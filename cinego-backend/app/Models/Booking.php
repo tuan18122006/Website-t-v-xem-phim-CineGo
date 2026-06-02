@@ -1,0 +1,48 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Booking extends Model
+{
+    protected $fillable = [
+        'booking_code',
+        'user_id',
+        'showtime_id',
+        'voucher_id',
+        'subtotal',
+        'discount_amount',
+        'total_amount',
+        'payment_method',
+        'payment_status',
+        'booking_status',
+    ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function showtime(): BelongsTo
+    {
+        return $this->belongsTo(Showtime::class);
+    }
+
+    public function voucher(): BelongsTo
+    {
+        return $this->belongsTo(Voucher::class);
+    }
+
+    public function bookingDetails(): HasMany
+    {
+        return $this->hasMany(BookingDetail::class);
+    }
+
+    public function bookingCombos(): HasMany
+    {
+        return $this->hasMany(BookingCombo::class);
+    }
+}
