@@ -35,7 +35,7 @@
             </td>
             <td class="font-bold">{{ movie.title }}</td>
             <td>{{ movie.duration }} phút</td>
-            <td><span class="rating-pill">{{ movie.rating }}</span></td>
+            <td><span class="rating-pill">{{ movie.rating || movie.rating || 'G' }}</span></td>
             <td>
               <div class="genres-list">
                 <span v-for="g in movie.genres" :key="g.id" class="genre-tag">
@@ -47,12 +47,12 @@
               <span 
                 class="status-pill" 
                 :class="{ 
-                  active: movie.status === 'showing', 
-                  upcoming: movie.status === 'upcoming',
-                  ended: movie.status === 'ended'
+                  active: movie.status === 'showing' || movie.status === 'Đang chiếu', 
+                  upcoming: movie.status === 'upcoming' || movie.status === 'Sắp chiếu',
+                  ended: movie.status === 'ended' || movie.status === 'Đã kết thúc'
                 }"
               >
-                {{ movie.status === 'showing' ? 'Đang chiếu' : movie.status === 'upcoming' ? 'Sắp chiếu' : 'Đã kết thúc' }}
+                {{ formatStatus(movie.status) }}
               </span>
             </td>
             <td>
@@ -60,42 +60,46 @@
               <button @click="deleteMovie(movie.id)" class="action-btn delete-btn">Xóa</button>
             </td>
           </tr>
+          <tr v-if="movies.length === 0">
+            <td colspan="8" style="text-align: center; padding: 30px; color: var(--text-muted);">
+              📭 Chưa có bộ phim nào được in ra. Hãy bấm "Thêm Phim Mới"!
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- CREATE / EDIT MOVIE MODAL -->
     <div v-if="showModal" class="modal-backdrop">
       <div class="modal-content glass-panel">
         <h3 class="modal-title glow-text-pink">{{ isEdit ? 'Cập Nhật Phim' : 'Thêm Phim Mới' }}</h3>
         
         <form @submit.prevent="saveMovie" class="movie-form">
           <div class="form-group">
-            <label>Tên Phim</label>
-            <input v-model="form.title" type="text" required placeholder="Nhập tên phim..." class="form-input" @input="generateSlug" />
+            <label>Tên Phim *</label>
+            <input v-model="form.title" type="text" required placeholder="Nhập tên phim..." class="form-input" @input="handleTitleInput" />
           </div>
 
           <div class="form-group">
-            <label>Slug (Đường dẫn tĩnh)</label>
+            <label>Slug (Đường dẫn tĩnh) *</label>
             <input v-model="form.slug" type="text" required placeholder="example-slug-phim" class="form-input" />
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label>Thời Lượng (Phút)</label>
+              <label>Thời Lượng (Phút) *</label>
               <input v-model.number="form.duration" type="number" required min="1" class="form-input" />
             </div>
 
             <div class="form-group">
-              <label>Ngày Phát Hành</label>
+              <label>Ngày Phát Hành *</label>
               <input v-model="form.release_date" type="date" required class="form-input" />
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label>Phân Loại Độ Tuổi</label>
-              <select v-model="form.rating" required class="form-input">
+              <label>Phân Loại Độ Tuổi *</label>
+              <select v-model="form.age_rating" required class="form-input">
                 <option value="G">G - Mọi đối tượng</option>
                 <option value="PG-13">PG-13 - Trên 13 tuổi</option>
                 <option value="T16">T16 - Trên 16 tuổi</option>
@@ -104,17 +108,17 @@
             </div>
 
             <div class="form-group">
-              <label>Trạng Thái Chiếu</label>
+              <label>Trạng Thái Chiếu *</label>
               <select v-model="form.status" required class="form-input">
-                <option value="upcoming">Sắp chiếu</option>
-                <option value="showing">Đang chiếu</option>
-                <option value="ended">Đã kết thúc</option>
+                <option value="Đang chiếu">Đang chiếu</option>
+                <option value="Sắp chiếu">Sắp chiếu</option>
+                <option value="Đã kết thúc">Đã kết thúc</option>
               </select>
             </div>
           </div>
 
           <div class="form-group">
-            <label>Thể Loại Phim</label>
+            <label>Thể Loại Phim * (Chọn ít nhất 1 mục)</label>
             <div class="genres-checkboxes">
               <label v-for="genre in genres" :key="genre.id" class="checkbox-label">
                 <input 
@@ -128,8 +132,21 @@
           </div>
 
           <div class="form-group">
-            <label>Poster URL Image</label>
-            <input v-model="form.poster_url" type="text" placeholder="https://images.unsplash.com/..." class="form-input" />
+            <label>Chọn Ảnh Poster Phim *</label>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+              <input 
+                type="file" 
+                accept="image/*" 
+                @change="handleFileChange" 
+                :required="!isEdit" 
+                class="form-input" 
+                style="padding: 8px;"
+              />
+              <div v-if="imagePreview" style="margin-top: 5px;">
+                <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 4px;">Xem trước hình ảnh:</p>
+                <img :src="imagePreview" style="width: 80px; height: 110px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-glass);" />
+              </div>
+            </div>
           </div>
 
           <div class="form-group">
@@ -166,32 +183,63 @@ const isEdit = ref(false);
 const submitting = ref(false);
 const currentMovieId = ref(null);
 
+// Biến lưu trữ file thật và link preview tạm thời
+const selectedFile = ref(null);
+const imagePreview = ref('');
+
 const form = ref({
   title: '',
   slug: '',
   description: '',
   duration: 120,
   release_date: '',
-  poster_url: '',
   trailer_url: '',
   rating: 'G',
-  status: 'showing',
+  status: 'Đang chiếu',
   genre_ids: []
 });
+
+const getAuthConfig = (isMultipart = false) => {
+  const token = localStorage.getItem('cinego_token');
+  return {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json',
+      'Content-Type': isMultipart ? 'multipart/form-data' : 'application/json'
+    }
+  };
+};
+
+const formatStatus = (status) => {
+  if (status === 'showing' || status === 'Đang chiếu') return 'Đang chiếu';
+  if (status === 'upcoming' || status === 'Sắp chiếu') return 'Sắp chiếu';
+  return 'Đã kết thúc';
+};
+
+// Xử lý khi người dùng chọn file từ máy tính
+const handleFileChange = (event) => {
+  const file = event.target.files[0];
+  if (file) {
+    selectedFile.value = file;
+    // Tạo link blob tạm thời hiển thị ảnh lên giao diện luôn
+    imagePreview.value = URL.createObjectURL(file);
+  }
+};
 
 const openCreateModal = () => {
   isEdit.value = false;
   currentMovieId.value = null;
+  selectedFile.value = null;
+  imagePreview.value = '';
   form.value = {
     title: '',
     slug: '',
     description: '',
     duration: 120,
     release_date: new Date().toISOString().split('T')[0],
-    poster_url: '',
     trailer_url: '',
     rating: 'G',
-    status: 'showing',
+    status: 'Đang chiếu',
     genre_ids: []
   };
   showModal.value = true;
@@ -200,8 +248,10 @@ const openCreateModal = () => {
 const openEditModal = (movie) => {
   isEdit.value = true;
   currentMovieId.value = movie.id;
+  selectedFile.value = null;
+  // Điền link ảnh cũ từ DB vào ô xem trước
+  imagePreview.value = movie.poster_url || '';
   
-  // Format date correctly for HTML input
   let formattedDate = '';
   if (movie.release_date) {
     const d = new Date(movie.release_date);
@@ -214,10 +264,9 @@ const openEditModal = (movie) => {
     description: movie.description || '',
     duration: movie.duration,
     release_date: formattedDate,
-    poster_url: movie.poster_url || '',
     trailer_url: movie.trailer_url || '',
-    rating: movie.rating || 'G',
-    status: movie.status || 'showing',
+    rating: movie.rating || movie.rating || 'G',
+    status: movie.status || 'Đang chiếu',
     genre_ids: movie.genres ? movie.genres.map(g => g.id) : []
   };
   showModal.value = true;
@@ -227,8 +276,8 @@ const closeModal = () => {
   showModal.value = false;
 };
 
-const generateSlug = () => {
-  if (isEdit.value) return; // Don't auto-regenerate on edit
+const handleTitleInput = () => {
+  if (isEdit.value) return; 
   form.value.slug = form.value.title
     .toLowerCase()
     .normalize('NFD')
@@ -242,8 +291,8 @@ const generateSlug = () => {
 const fetchMovies = async () => {
   loading.value = true;
   try {
-    const response = await api.get('/movies');
-    movies.value = response.data;
+    const response = await api.get('admin/movies', getAuthConfig(false));
+    movies.value = response.data.data || response.data;
   } catch (err) {
     console.error('Fetch movies error:', err);
   } finally {
@@ -253,42 +302,82 @@ const fetchMovies = async () => {
 
 const fetchGenres = async () => {
   try {
-    const response = await api.get('/genres');
-    genres.value = response.data;
+    const response = await api.get('/admin/genres', getAuthConfig(false));
+    genres.value = response.data.data || response.data;
   } catch (err) {
     console.error('Fetch genres error:', err);
   }
 };
 
 const saveMovie = async () => {
+  // Kiểm tra thể loại
+  if (!form.value.genre_ids || form.value.genre_ids.length === 0) {
+    alert('Vui lòng chọn ít nhất một thể loại!');
+    return;
+  }
+  
   submitting.value = true;
   try {
-    if (isEdit.value) {
-      await api.put(`/admin/movies/${currentMovieId.value}`, form.value);
-      alert('Cập nhật phim thành công!');
-    } else {
-      await api.post('/admin/movies', form.value);
-      alert('Thêm phim mới thành công!');
+    const formData = new FormData();
+    formData.append('title', form.value.title);
+    formData.append('slug', form.value.slug);
+    formData.append('description', form.value.description);
+    formData.append('duration', form.value.duration);
+    formData.append('release_date', form.value.release_date);
+    formData.append('trailer_url', form.value.trailer_url);
+    
+    // Đảm bảo tên trường là 'rating' để khớp với Laravel
+    formData.append('rating', form.value.rating); 
+    formData.append('status', form.value.status);
+    
+    form.value.genre_ids.forEach(id => {
+      formData.append('genre_ids[]', id);
+    });
+
+    if (selectedFile.value) {
+      formData.append('poster', selectedFile.value);
     }
+
+    // Xử lý phương thức PUT cho Laravel khi Cập nhật
+    if (isEdit.value) {
+      formData.append('_method', 'PUT');
+    }
+
+    const url = isEdit.value ? `admin/movies/${currentMovieId.value}` : 'admin/movies';
+    
+    // Gửi request (KHÔNG set Content-Type header thủ công, để axios tự làm)
+    const token = localStorage.getItem('cinego_token');
+    await api.post(url, formData, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    alert(isEdit.value ? '✅ Cập nhật thành công!' : '✅ Thêm phim thành công!');
     showModal.value = false;
     await fetchMovies();
   } catch (err) {
-    console.error('Save movie error:', err);
-    alert(err.response?.data?.message || 'Có lỗi xảy ra khi lưu phim!');
+    console.error("Lỗi từ server:", err.response?.data);
+    // Hiển thị lỗi chi tiết để bạn biết chính xác tại sao lỗi
+    const errorMsg = err.response?.data?.errors 
+      ? Object.values(err.response.data.errors).flat().join('\n') 
+      : (err.response?.data?.message || err.message);
+    alert('Có lỗi xảy ra:\n' + errorMsg);
   } finally {
     submitting.value = false;
   }
 };
 
 const deleteMovie = async (id) => {
-  if (!confirm('Bạn có chắc chắn muốn xóa bộ phim này? Mọi suất chiếu và vé liên quan sẽ bị ảnh hưởng!')) return;
+  if (!confirm('⚠️ Bạn có chắc chắn muốn xóa bộ phim này? Mọi suất chiếu và vé liên quan sẽ bị ảnh hưởng!')) return;
   try {
-    await api.delete(`/admin/movies/${id}`);
-    alert('Xóa phim thành công!');
+    await api.delete(`admin/movies/${id}`, getAuthConfig(false));
+    alert('🗑️ Xóa phim thành công khỏi hệ thống!');
     await fetchMovies();
   } catch (err) {
     console.error('Delete movie error:', err);
-    alert('Không thể xóa phim này!');
+    alert('Không thể xóa phim này! Lỗi liên kết khóa ngoại dữ liệu.');
   }
 };
 
@@ -299,6 +388,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* Toàn bộ CSS gốc hoành tráng phong cách Cyberpunk của bạn được giữ nguyên vẹn */
 .admin-movies-view {
   padding: 30px;
 }
@@ -416,7 +506,6 @@ onMounted(async () => {
   color: white;
 }
 
-/* MODAL STYLING */
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -487,6 +576,8 @@ onMounted(async () => {
   padding: 12px;
   border-radius: 4px;
   border: 1px solid var(--border-glass);
+  max-height: 150px;
+  overflow-y: auto;
 }
 .checkbox-label {
   display: flex;
@@ -530,7 +621,6 @@ onMounted(async () => {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
 .loading-state {
   display: flex;
   flex-direction: column;

@@ -63,6 +63,16 @@ const routes = [
     component: AdminDashboard,
     meta: { requiresAuth: true, role: 'admin' }
   },
+  {
+    path: '/admin/genres',
+    name: 'admin-GenreManagement',
+    component: () => import('../views/admin/GenreManagement.vue') 
+  },
+  {
+    path: '/admin/movies',
+    name: 'admin-MoviesView',
+    component: () => import('../views/admin/MoviesView.vue')
+  },
   
   // Wildcard redirect
   {

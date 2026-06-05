@@ -27,7 +27,16 @@
           <span class="nav-icon">🎬</span>
           <span>Quản Lý Phim</span>
         </button>
-
+        
+        <button 
+          class="nav-link" 
+          :class="{ active: activeTab === 'genres' }" 
+          @click="activeTab = 'genres'"
+        >
+          <span class="nav-icon">🏷️</span>
+          <span>Quản Lý Thể Loại</span>
+        </button>
+        
         <button 
           class="nav-link" 
           :class="{ active: activeTab === 'showtimes' }" 
@@ -203,6 +212,9 @@
       <div v-else-if="activeTab === 'showtimes'">
         <ShowtimesView />
       </div>
+      <div v-else-if="activeTab === 'genres'">
+  <GenreManagement />
+</div>
 
       <!-- TAB 4: REVENUE TRANSACTION REPORT -->
       <div v-else-if="activeTab === 'revenue'" class="revenue-tab-content">
@@ -252,6 +264,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import MoviesView from './MoviesView.vue';
 import ShowtimesView from './ShowtimesView.vue';
+import GenreManagement from './GenreManagement.vue';
 import api from '../../api/axios';
 
 const authStore = useAuthStore();
@@ -293,7 +306,7 @@ const handleLogout = async () => {
 
 const fetchDashboardStats = async () => {
   try {
-    const moviesRes = await api.get('/movies');
+    const moviesRes = await api.get('/admin/movies');
     moviesCount.value = moviesRes.data.length;
     
     const showtimesRes = await api.get('/admin/showtimes');
