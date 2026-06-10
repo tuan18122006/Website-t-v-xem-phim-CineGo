@@ -11,9 +11,6 @@ use Illuminate\Support\Facades\Storage;
 
 class MovieController extends Controller
 {
-    /**
-     * Lấy toàn bộ danh sách phim kèm thể loại
-     */
     public function index(): JsonResponse
     {
         try {
@@ -32,9 +29,7 @@ class MovieController extends Controller
         }
     }
 
-    /**
-     * Lấy chi tiết 1 phim
-     */
+
     public function show($id): JsonResponse
     {
         try {
@@ -53,9 +48,7 @@ class MovieController extends Controller
         }
     }
 
-    /**
-     * Tạo phim mới (Admin)
-     */
+   
     public function store(Request $request): JsonResponse
     {
         $request->validate([
@@ -86,7 +79,6 @@ class MovieController extends Controller
             'trailer_url' => $request->trailer_url
         ]);
 
-        // Xử lý genre_ids nếu gửi từ FormData
         $genreIds = $request->has('genre_ids') ? (is_array($request->genre_ids) ? $request->genre_ids : json_decode($request->genre_ids, true)) : [];
         if (!empty($genreIds)) {
             $movie->genres()->attach($genreIds);
@@ -99,9 +91,7 @@ class MovieController extends Controller
         ], 201);
     }
 
-    /**
-     * Cập nhật phim (Admin)
-     */
+  
     public function update(Request $request, $id): JsonResponse
     {
         $movie = Movie::findOrFail($id);
@@ -141,9 +131,7 @@ class MovieController extends Controller
         ]);
     }
 
-    /**
-     * Xóa phim (Admin)
-     */
+   
     public function destroy($id): JsonResponse
     {
         $movie = Movie::findOrFail($id);
@@ -160,30 +148,23 @@ class MovieController extends Controller
         ], 200);
     }
 
-    /**
-     * API Tìm kiếm và lọc phim nâng cao (Client)
-     */
     public function search(Request $request): JsonResponse
     {
         try {
             $query = Movie::with('genres');
 
-            // 1. Lọc theo Tên phim (Tìm kiếm tương đối LIKE)
             if ($request->has('keyword') && !empty($request->keyword)) {
                 $query->where('title', 'LIKE', '%' . $request->keyword . '%');
             }
 
-            // 2. Lọc theo Năm phát hành
             if ($request->has('year') && !empty($request->year)) {
                 $query->whereYear('release_date', $request->year);
             }
 
-            // 3. Lọc theo Quốc gia
             if ($request->has('country') && !empty($request->country)) {
                 $query->where('country', $request->country);
             }
 
-            // 4. Lọc theo Thể loại (Mối quan hệ nhiều-nhiều)
             if ($request->has('genre_id') && !empty($request->genre_id)) {
                 $query->whereHas('genres', function ($q) use ($request) {
                     $q->where('genres.id', $request->genre_id);

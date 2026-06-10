@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 
 class GenreController extends Controller
 {
-    // 1. Hàm lấy danh sách thể loại
+    
     public function index()
     {
         return response()->json([
@@ -18,7 +18,6 @@ class GenreController extends Controller
         ], 200);
     }
 
-    // 2. Hàm thêm mới thể loại (Đảm bảo tự sinh slug để không bị rỗng DB)
     public function store(Request $request)
     {
         $request->validate([
@@ -27,7 +26,7 @@ class GenreController extends Controller
 
         $genre = Genre::create([
             'name' => $request->name,
-            'slug' => Str::slug($request->name), // Tự động chuyển "Kinh Dị" thành "kinh-di"
+            'slug' => Str::slug($request->name), 
         ]);
 
         return response()->json([
@@ -37,7 +36,7 @@ class GenreController extends Controller
         ], 201);
     }
 
-    // 3. Hàm cập nhật thể loại
+   
     public function update(Request $request, $id)
     {
         $genre = Genre::find($id);
@@ -61,7 +60,7 @@ class GenreController extends Controller
         ], 200);
     }
 
-    // 4. Hàm xóa thể loại
+  
     public function destroy($id)
     {
         
