@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\MovieController;
 
 /*
 |--------------------------------------------------------------------------
@@ -42,3 +43,9 @@ Route::middleware('auth:sanctum')->group(function () {
         // ==========================================
     });
 });
+
+
+
+// 3. Public Routes (Không cần đăng nhập)
+Route::get('/movies', [MovieController::class, 'index']);
+Route::get('/movies/search', [MovieController::class, 'search']);
