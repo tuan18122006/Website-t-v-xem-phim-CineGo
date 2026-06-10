@@ -47,7 +47,7 @@
             </td>
           </tr>
           
-          <tr v-slot:empty v-if="showtimes.length === 0">
+          <tr v-if="showtimes.length === 0">
             <td colspan="9" class="empty-state">
               📭 Hiện chưa có suất chiếu nào được lên lịch. Hãy bấm nút "Thêm Suất Chiếu"!
             </td>
