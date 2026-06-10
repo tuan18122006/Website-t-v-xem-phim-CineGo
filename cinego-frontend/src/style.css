@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Arial:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap");
-
 :root {
   --bg-primary: #ffffff;
   --bg-secondary: #fdf5f8; /* Light pink-tinted white */
@@ -38,12 +36,18 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  font-family: Arial, Helvetica, sans-serif !important;
+}
+
+/* Cho phép các phần tử cần font chữ monospace đặc thù giữ nguyên phông chữ của chúng */
+code, kbd, pre, samp, .input-readonly, .slug-tag, .cell-id, .font-mono {
+  font-family: monospace, Courier, sans-serif !important;
 }
 
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: var(--font-main);
+  font-family: Arial, Helvetica, sans-serif !important;
   min-height: 100vh;
   overflow-x: hidden;
   line-height: 1.6;
@@ -56,7 +60,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-display);
+  font-family: Arial, Helvetica, sans-serif !important;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -70,7 +74,7 @@ button,
 input,
 select,
 textarea {
-  font-family: inherit;
+  font-family: Arial, Helvetica, sans-serif !important;
 }
 
 /* Glassmorphism Styles */

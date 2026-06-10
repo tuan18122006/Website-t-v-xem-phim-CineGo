@@ -21,20 +21,20 @@
 
         <button 
           class="nav-link" 
-          :class="{ active: activeTab === 'movies' }" 
-          @click="activeTab = 'movies'"
-        >
-          <span class="nav-icon">🎬</span>
-          <span>Quản Lý Phim</span>
-        </button>
-        
-        <button 
-          class="nav-link" 
           :class="{ active: activeTab === 'genres' }" 
           @click="activeTab = 'genres'"
         >
           <span class="nav-icon">🏷️</span>
           <span>Quản Lý Thể Loại</span>
+        </button>
+
+        <button 
+          class="nav-link" 
+          :class="{ active: activeTab === 'movies' }" 
+          @click="activeTab = 'movies'"
+        >
+          <span class="nav-icon">🎬</span>
+          <span>Quản Lý Phim</span>
         </button>
         
         <button 
