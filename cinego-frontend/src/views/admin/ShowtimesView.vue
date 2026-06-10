@@ -1,130 +1,149 @@
 <template>
-  <div class="admin-showtimes-view-container glass-panel">
-    <div class="header-row">
-      <h2 class="title-cine">🕒 Quản Lý Lịch Chiếu</h2>
-      <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Suất Chiếu</button>
-    </div>
+  <div class="admin-showtimes-view-container">
     
-    <!-- Spinner loading dữ liệu -->
-    <div v-if="loading" class="loading-state">
-      <div class="spinner-cine"></div>
-      <p>Đang tải danh sách suất chiếu từ database...</p>
-    </div>
-
-    <div v-else class="showtimes-table-wrapper">
-      <table class="showtimes-table">
-        <thead>
-          <tr>
-            <th class="col-id">ID</th>
-            <th class="col-movie">Tên Phim</th>
-            <th class="col-room">Phòng</th>
-            <th class="col-time">Giờ Bắt Đầu</th>
-            <th class="col-time">Giờ Kết Thúc</th>
-            <th class="col-format">Định Dạng</th>
-            <th class="col-translation">Dịch Thuật</th>
-            <th class="col-status">Trạng Thái</th>
-            <th class="col-actions">Hành Động</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="st in showtimes" :key="st.id" class="table-row">
-            <td class="cell-id">#{{ st.id }}</td>
-            <td class="cell-movie">{{ st.movie_title }}</td>
-            <td><span class="room-pill-cine">{{ st.room_name }}</span></td>
-            <td class="time-start-cine">{{ formatDateTime(st.start_time) }}</td>
-            <td class="time-end-cine">{{ formatDateTime(st.end_time) }}</td>
-            <td><span class="format-pill-cine">{{ st.format }}</span></td>
-            <td><span class="translation-pill-cine">{{ st.translation }}</span></td>
-            <td>
-              <span class="status-pill-cine" :class="{ active: st.status === 'active', cancelled: st.status === 'cancelled' }">
-                {{ st.status === 'active' ? 'Hoạt động' : 'Đã hủy' }}
-              </span>
-            </td>
-            <td class="cell-actions">
-              <div class="action-buttons-group">
-                <button @click="deleteShowtime(st.id)" class="btn-action delete">🗑️ Xóa</button>
-              </div>
-            </td>
-          </tr>
+    <!-- CARD 1: FORM THÊM SUẤT CHIẾU MỚI (NHÚNG TRỰC TIẾP TRÊN TRANG) -->
+    <div class="glass-panel form-card">
+      <h3 class="card-title">
+        <span class="title-icon">🕒</span>
+        Thêm Suất Chiếu Mới
+      </h3>
+      
+      <form @submit.prevent="saveShowtime" class="movie-form">
+        <div class="form-grid-layout">
           
-          <tr v-if="showtimes.length === 0">
-            <td colspan="9" class="empty-state">
-              📭 Hiện chưa có suất chiếu nào được lên lịch. Hãy bấm nút "Thêm Suất Chiếu"!
-            </td>
-          </tr>
-        </tbody>
-      </table>
+          <!-- Cột 1 -->
+          <div class="form-column">
+            <div class="form-group-large">
+              <label class="form-label-large">Chọn Phim *</label>
+              <select v-model="form.movie_id" required class="form-input-large select-cine" @change="onMovieChange">
+                <option value="" disabled>-- Vui lòng chọn phim --</option>
+                <option v-for="movie in movies" :key="movie.id" :value="movie.id">
+                  {{ movie.title }} ({{ movie.duration }} phút)
+                </option>
+              </select>
+            </div>
+
+            <div class="form-group-large">
+              <label class="form-label-large">Chọn Phòng Chiếu *</label>
+              <select v-model="form.room_id" required class="form-input-large select-cine">
+                <option value="" disabled>-- Vui lòng chọn phòng chiếu --</option>
+                <option v-for="room in rooms" :key="room.id" :value="room.id">
+                  {{ room.name }} (Sức chứa: {{ room.total_seats }} ghế)
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Cột 2 -->
+          <div class="form-column">
+            <div class="form-row-double">
+              <div class="form-group-large">
+                <label class="form-label-large">Thời Gian Chiếu (Bắt đầu) *</label>
+                <input v-model="form.start_time" type="datetime-local" required class="form-input-large" @change="calculateEndTime" />
+              </div>
+
+              <div class="form-group-large">
+                <label class="form-label-large">Thời Gian Kết Thúc (Tự động)</label>
+                <input v-model="form.end_time" type="datetime-local" required readonly class="form-input-large input-readonly" />
+              </div>
+            </div>
+
+            <div class="form-row-double">
+              <div class="form-group-large">
+                <label class="form-label-large">Định Dạng Suất Chiếu *</label>
+                <select v-model="form.format" required class="form-input-large select-cine">
+                  <option value="2D">2D</option>
+                  <option value="3D">3D</option>
+                  <option value="IMAX">IMAX</option>
+                </select>
+              </div>
+
+              <div class="form-group-large">
+                <label class="form-label-large">Hình Thức Dịch Thuật *</label>
+                <select v-model="form.translation" required class="form-input-large select-cine">
+                  <option value="Phụ đề">Phụ đề (Vietsub)</option>
+                  <option value="Thuyết minh">Thuyết minh</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="form-actions-cine">
+          <button type="submit" class="btn-primary-cine" :disabled="submitting">
+            {{ submitting ? 'Đang tạo...' : 'Tạo Suất Chiếu' }}
+          </button>
+          <button 
+            type="button" 
+            @click="resetForm" 
+            class="btn-secondary-cine"
+          >
+            Làm mới biểu mẫu
+          </button>
+        </div>
+      </form>
     </div>
 
-    <!-- CREATE SHOWTIME MODAL (RED/WHITE HIGH ACCESSIBILITY THEME) -->
-    <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
-      <div class="modal-content-cine">
-        <div class="modal-header">
-          <h3 class="modal-title-cine">✨ Thêm Suất Chiếu Mới</h3>
-          <button @click="closeModal" class="btn-close-modal">✕</button>
-        </div>
-        
-        <form @submit.prevent="saveShowtime" class="movie-form">
-          <div class="form-group-large">
-            <label class="form-label-large">Chọn Phim *</label>
-            <select v-model="form.movie_id" required class="form-input-large select-cine" @change="onMovieChange">
-              <option value="" disabled>-- Vui lòng chọn phim --</option>
-              <option v-for="movie in movies" :key="movie.id" :value="movie.id">
-                {{ movie.title }} ({{ movie.duration }} phút)
-              </option>
-            </select>
-          </div>
+    <!-- CARD 2: DANH SÁCH SUẤT CHIẾU -->
+    <div class="glass-panel list-card">
+      <div class="header-row">
+        <h3 class="list-title">🕒 Danh Sách Lịch Chiếu Hiện Tại</h3>
+        <span class="count-badge">Tổng số: {{ showtimes.length }} suất chiếu</span>
+      </div>
+      
+      <!-- Spinner loading dữ liệu -->
+      <div v-if="loading" class="loading-state">
+        <div class="spinner-cine"></div>
+        <p>Đang tải danh sách suất chiếu từ database...</p>
+      </div>
 
-          <div class="form-group-large">
-            <label class="form-label-large">Chọn Phòng Chiếu *</label>
-            <select v-model="form.room_id" required class="form-input-large select-cine">
-              <option value="" disabled>-- Vui lòng chọn phòng chiếu --</option>
-              <option v-for="room in rooms" :key="room.id" :value="room.id">
-                {{ room.name }} (Sức chứa: {{ room.total_seats }} ghế)
-              </option>
-            </select>
-          </div>
-
-          <div class="form-row-double">
-            <div class="form-group-large">
-              <label class="form-label-large">Thời Gian Chiếu (Bắt đầu) *</label>
-              <input v-model="form.start_time" type="datetime-local" required class="form-input-large" @change="calculateEndTime" />
-            </div>
-
-            <div class="form-group-large">
-              <label class="form-label-large">Thời Gian Kết Thúc (Tự động)</label>
-              <input v-model="form.end_time" type="datetime-local" required readonly class="form-input-large input-readonly" />
-            </div>
-          </div>
-
-          <div class="form-row-double">
-            <div class="form-group-large">
-              <label class="form-label-large">Định Dạng Suất Chiếu *</label>
-              <select v-model="form.format" required class="form-input-large select-cine">
-                <option value="2D">2D</option>
-                <option value="3D">3D</option>
-                <option value="IMAX">IMAX</option>
-              </select>
-            </div>
-
-            <div class="form-group-large">
-              <label class="form-label-large">Hình Thức Dịch Thuật *</label>
-              <select v-model="form.translation" required class="form-input-large select-cine">
-                <option value="Phụ đề">Phụ đề (Vietsub)</option>
-                <option value="Thuyết minh">Thuyết minh</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="modal-footer-cine">
-            <button type="button" @click="closeModal" class="btn-secondary-cine">Hủy bỏ</button>
-            <button type="submit" class="btn-primary-cine" :disabled="submitting">
-              {{ submitting ? 'Đang tạo...' : 'Tạo Suất Chiếu' }}
-            </button>
-          </div>
-        </form>
+      <div v-else class="showtimes-table-wrapper">
+        <table class="showtimes-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th class="col-movie">Tên Phim</th>
+              <th class="col-room">Phòng</th>
+              <th class="col-time">Giờ Bắt Đầu</th>
+              <th class="col-time">Giờ Kết Thúc</th>
+              <th class="col-format">Định Dạng</th>
+              <th class="col-translation">Dịch Thuật</th>
+              <th class="col-status">Trạng Thái</th>
+              <th class="col-actions">Hành Động</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="st in showtimes" :key="st.id" class="table-row">
+              <td class="cell-id">#{{ st.id }}</td>
+              <td class="cell-movie">{{ st.movie_title }}</td>
+              <td><span class="room-pill-cine">{{ st.room_name }}</span></td>
+              <td class="time-start-cine">{{ formatDateTime(st.start_time) }}</td>
+              <td class="time-end-cine">{{ formatDateTime(st.end_time) }}</td>
+              <td><span class="format-pill-cine">{{ st.format }}</span></td>
+              <td><span class="translation-pill-cine">{{ st.translation }}</span></td>
+              <td>
+                <span class="status-pill-cine" :class="{ active: st.status === 'active', cancelled: st.status === 'cancelled' }">
+                  {{ st.status === 'active' ? 'Hoạt động' : 'Đã hủy' }}
+                </span>
+              </td>
+              <td class="cell-actions">
+                <div class="action-buttons-group">
+                  <button @click="deleteShowtime(st.id)" class="btn-action delete">🗑️ Xóa</button>
+                </div>
+              </td>
+            </tr>
+            
+            <tr v-if="showtimes.length === 0">
+              <td colspan="9" class="empty-state">
+                📭 Hiện chưa có suất chiếu nào được lên lịch. Hãy điền form phía trên để thêm suất chiếu!
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -136,7 +155,6 @@ const showtimes = ref([]);
 const movies = ref([]);
 const rooms = ref([]);
 const loading = ref(false);
-const showModal = ref(false);
 const submitting = ref(false);
 
 const form = ref({
@@ -147,22 +165,6 @@ const form = ref({
   format: '2D',
   translation: 'Phụ đề'
 });
-
-const openCreateModal = () => {
-  form.value = {
-    movie_id: '',
-    room_id: '',
-    start_time: '',
-    end_time: '',
-    format: '2D',
-    translation: 'Phụ đề'
-  };
-  showModal.value = true;
-};
-
-const closeModal = () => {
-  showModal.value = false;
-};
 
 const formatDateTime = (dateTimeStr) => {
   if (!dateTimeStr) return '';
@@ -209,7 +211,6 @@ const fetchShowtimes = async () => {
 const fetchMovies = async () => {
   try {
     const response = await api.get('/movies');
-    // Nhận diện dữ liệu dạng response.data.data hoặc response.data
     movies.value = response.data.data || response.data;
   } catch (err) {
     console.error('Fetch movies error:', err);
@@ -230,7 +231,7 @@ const saveShowtime = async () => {
   try {
     await api.post('/admin/showtimes', form.value);
     alert('🎉 Thêm suất chiếu mới thành công!');
-    showModal.value = false;
+    resetForm();
     await fetchShowtimes();
   } catch (err) {
     console.error('Save showtime error:', err);
@@ -252,6 +253,17 @@ const deleteShowtime = async (id) => {
   }
 };
 
+const resetForm = () => {
+  form.value = {
+    movie_id: '',
+    room_id: '',
+    start_time: '',
+    end_time: '',
+    format: '2D',
+    translation: 'Phụ đề'
+  };
+};
+
 onMounted(async () => {
   await fetchShowtimes();
   await fetchMovies();
@@ -261,32 +273,134 @@ onMounted(async () => {
 
 <style scoped>
 .admin-showtimes-view-container {
-  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
   background-color: #ffffff;
   color: #1e293b;
 }
 
-.header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 15px;
+/* Glass-like Panel styled for Red/White Theme */
+.glass-panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  padding: 30px;
+  transition: all 0.3s ease;
+}
+.glass-panel:hover {
+  box-shadow: 0 6px 25px rgba(229, 9, 20, 0.04);
+  border-color: rgba(229, 9, 20, 0.15);
 }
 
-.title-cine {
-  font-size: 22px;
+/* Form Card Styles */
+.form-card {
+  border-left: 5px solid #e50914;
+}
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
   font-weight: 800;
   color: #9b000e;
+  margin-bottom: 25px;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.title-icon {
+  font-size: 24px;
+}
+
+/* Form Grid */
+.movie-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.form-grid-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+@media (max-width: 768px) {
+  .form-grid-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-group-large {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label-large {
+  font-size: 15px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.form-input-large {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  padding: 14px 20px;
+  border-radius: 10px;
+  outline: none;
+  font-size: 16px;
+  background-color: #f8fafc;
+  color: #1e293b;
+  transition: all 0.2s ease-in-out;
+}
+.form-input-large:focus {
+  border-color: #e50914;
+  box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
+  background-color: #ffffff;
+}
+
+.input-readonly {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border-color: #e2e8f0;
+  font-family: monospace;
+}
+
+.form-row-double {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.select-cine {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 18px;
+  appearance: none;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+.form-actions-cine {
+  display: flex;
+  gap: 15px;
+  margin-top: 15px;
+  border-top: 1px solid #cbd5e1;
+  padding-top: 20px;
 }
 
 .btn-primary-cine {
   background: linear-gradient(135deg, #e50914 0%, #9b000e 100%);
   color: #ffffff;
   border: none;
-  padding: 12px 24px;
+  padding: 14px 28px;
   border-radius: 10px;
   font-size: 15px;
   font-weight: 700;
@@ -303,7 +417,7 @@ onMounted(async () => {
   background-color: #ffffff;
   color: #475569;
   border: 1px solid #cbd5e1;
-  padding: 12px 22px;
+  padding: 14px 24px;
   border-radius: 10px;
   font-size: 15px;
   font-weight: 600;
@@ -314,6 +428,34 @@ onMounted(async () => {
   background-color: #f1f5f9;
   border-color: #94a3b8;
   color: #1e293b;
+}
+
+/* List Card Styles */
+.list-card {
+  border-top: 4px solid #cbd5e1;
+}
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 25px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 15px;
+}
+.list-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e293b;
+}
+.count-badge {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 /* Loading state */
@@ -459,140 +601,5 @@ onMounted(async () => {
 .btn-action.delete:hover {
   background-color: #fee2e2;
   border-color: #dc2626;
-}
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: #94a3b8;
-  font-size: 15px;
-}
-
-/* PREMIUM SCROLLABLE RED & WHITE MODAL */
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(8px);
-  z-index: 999;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 40px 20px;
-  overflow-y: auto;
-}
-
-.modal-content-cine {
-  width: 100%;
-  max-width: 600px;
-  padding: 35px;
-  background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #cbd5e1;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  color: #1e293b;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  border-bottom: 2px solid #fee2e2;
-  padding-bottom: 15px;
-}
-
-.modal-title-cine {
-  font-size: 22px;
-  font-weight: 800;
-  color: #9b000e;
-  text-transform: uppercase;
-}
-
-.btn-close-modal {
-  background: transparent;
-  border: none;
-  font-size: 22px;
-  color: #94a3b8;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-.btn-close-modal:hover {
-  color: #e50914;
-}
-
-.movie-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.form-group-large {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-label-large {
-  font-size: 15px;
-  font-weight: 700;
-  color: #334155;
-}
-
-.form-input-large {
-  width: 100%;
-  border: 1px solid #cbd5e1;
-  padding: 14px 20px;
-  border-radius: 10px;
-  outline: none;
-  font-size: 16px;
-  background-color: #f8fafc;
-  color: #1e293b;
-  transition: all 0.2s ease-in-out;
-}
-.form-input-large:focus {
-  border-color: #e50914;
-  box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
-  background-color: #ffffff;
-}
-
-.input-readonly {
-  background-color: #f1f5f9;
-  color: #64748b;
-  border-color: #e2e8f0;
-  font-family: monospace;
-}
-
-.form-row-double {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-@media (max-width: 576px) {
-  .form-row-double {
-    grid-template-columns: 1fr;
-  }
-}
-
-.select-cine {
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 16px center;
-  background-size: 18px;
-  appearance: none;
-  padding-right: 40px;
-  cursor: pointer;
-}
-
-.modal-footer-cine {
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  margin-top: 15px;
-  border-top: 2px solid #fee2e2;
-  padding-top: 20px;
 }
 </style>

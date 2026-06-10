@@ -1,224 +1,240 @@
 <template>
-  <div class="admin-movies-view-container glass-panel">
-    <div class="header-row">
-      <h2 class="title-cine">🎬 Quản Lý Danh Sách Phim</h2>
-      <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Phim Mới</button>
-    </div>
+  <div class="admin-movies-view-container">
     
-    <!-- Spinner loading dữ liệu -->
-    <div v-if="loading" class="loading-state">
-      <div class="spinner-cine"></div>
-      <p>Đang quét và tải danh sách phim từ database...</p>
-    </div>
-
-    <div v-else class="movies-table-wrapper">
-      <table class="movies-table">
-        <thead>
-          <tr>
-            <th class="col-id">ID</th>
-            <th class="col-poster">Poster</th>
-            <th class="col-title">Tên Phim</th>
-            <th class="col-duration">Thời Lượng</th>
-            <th class="col-rating">Phân Loại</th>
-            <th class="col-genres">Thể Loại</th>
-            <th class="col-status">Trạng Thái</th>
-            <th class="col-actions">Hành Động</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="movie in movies" :key="movie.id" class="table-row">
-            <td class="cell-id">#{{ movie.id }}</td>
-            <td class="cell-poster">
-              <img 
-                :src="getPosterUrl(movie.poster_url)" 
-                class="poster-thumbnail"
-                @error="handleImageError"
-              />
-            </td>
-            <td class="cell-title">{{ movie.title }}</td>
-            <td class="cell-duration">{{ movie.duration }} phút</td>
-            <td class="cell-rating">
-              <span class="rating-pill-cine" :class="getRatingClass(movie.rating)">
-                {{ movie.rating || 'G' }}
-              </span>
-            </td>
-            <td class="cell-genres">
-              <div class="genres-list">
-                <span v-for="g in movie.genres" :key="g.id" class="genre-tag">
-                  {{ g.name }}
-                </span>
-              </div>
-            </td>
-            <td class="cell-status">
-              <span 
-                class="status-pill-cine" 
-                :class="{ 
-                  active: movie.status === 'showing' || movie.status === 'Đang chiếu', 
-                  upcoming: movie.status === 'upcoming' || movie.status === 'Sắp chiếu',
-                  ended: movie.status === 'ended' || movie.status === 'Đã kết thúc'
-                }"
-              >
-                {{ formatStatus(movie.status) }}
-              </span>
-            </td>
-            <td class="cell-actions">
-              <div class="action-buttons-group">
-                <button @click="openEditModal(movie)" class="btn-action edit">✏️ Sửa</button>
-                <button @click="deleteMovie(movie.id)" class="btn-action delete">🗑️ Xóa</button>
-              </div>
-            </td>
-          </tr>
+    <!-- CARD 1: FORM THÊM / CẬP NHẬT PHIM (NHÚNG TRỰC TIẾP TRÊN TRANG) -->
+    <div class="glass-panel form-card">
+      <h3 class="card-title">
+        <span class="title-icon">{{ isEdit ? '📝' : '🎬' }}</span>
+        {{ isEdit ? 'Cập Nhật Thông Tin Phim' : 'Thêm Phim Chiếu Rạp Mới' }}
+      </h3>
+      
+      <form @submit.prevent="saveMovie" class="movie-form">
+        <div class="form-grid-layout">
           
-          <tr v-if="movies.length === 0">
-            <td colspan="8" class="empty-state">
-              📭 Chưa có bộ phim nào được lưu. Hãy bấm nút "Thêm Phim Mới" để bắt đầu!
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <!-- MODAL THÊM / SỬA PHIM (TÔNG MÀU TRẮNG ĐỎ CHỦ ĐẠO) -->
-    <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
-      <div class="modal-content-cine">
-        <div class="modal-header">
-          <h3 class="modal-title-cine">
-            {{ isEdit ? '📝 Cập Nhật Thông Tin Phim' : '✨ Thêm Phim Chiếu Rạp Mới' }}
-          </h3>
-          <button @click="closeModal" class="btn-close-modal">✕</button>
-        </div>
-        
-        <form @submit.prevent="saveMovie" class="movie-form">
-          
-          <div class="form-group-large">
-            <label class="form-label-large">Tên Phim *</label>
-            <input 
-              v-model="form.title" 
-              type="text" 
-              required 
-              placeholder="Nhập tên phim đầy đủ..." 
-              class="form-input-large" 
-              @input="handleTitleInput" 
-            />
-          </div>
-
-          <div class="form-group-large">
-            <label class="form-label-large">Slug (Đường dẫn tĩnh) *</label>
-            <input 
-              v-model="form.slug" 
-              type="text" 
-              required 
-              placeholder="duong-dan-tinh-phim" 
-              class="form-input-large input-readonly" 
-            />
-          </div>
-
-          <div class="form-row-double">
+          <!-- Cột 1: Thông tin cơ bản -->
+          <div class="form-column">
             <div class="form-group-large">
-              <label class="form-label-large">Thời Lượng (Phút) *</label>
+              <label class="form-label-large">Tên Phim *</label>
               <input 
-                v-model.number="form.duration" 
-                type="number" 
+                v-model="form.title" 
+                type="text" 
                 required 
-                min="1" 
+                placeholder="Nhập tên phim..." 
                 class="form-input-large" 
+                @input="handleTitleInput" 
               />
             </div>
 
             <div class="form-group-large">
-              <label class="form-label-large">Ngày Khởi Chiếu *</label>
+              <label class="form-label-large">Slug (Đường dẫn tĩnh) *</label>
               <input 
-                v-model="form.release_date" 
-                type="date" 
+                v-model="form.slug" 
+                type="text" 
                 required 
-                class="form-input-large" 
+                placeholder="duong-dan-tinh-phim" 
+                class="form-input-large input-readonly" 
+                readonly
               />
             </div>
-          </div>
 
-          <div class="form-row-double">
-            <div class="form-group-large">
-              <label class="form-label-large">Giới Hạn Độ Tuổi *</label>
-              <select v-model="form.rating" required class="form-input-large select-cine">
-                <option value="G">G - Mọi đối tượng</option>
-                <option value="PG-13">PG-13 - Trên 13 tuổi</option>
-                <option value="T16">T16 - Trên 16 tuổi</option>
-                <option value="T18">T18 - Trên 18 tuổi</option>
-              </select>
-            </div>
-
-            <div class="form-group-large">
-              <label class="form-label-large">Trạng Thái Chiếu *</label>
-              <select v-model="form.status" required class="form-input-large select-cine">
-                <option value="Đang chiếu">Đang chiếu</option>
-                <option value="Sắp chiếu">Sắp chiếu</option>
-                <option value="Đã kết thúc">Đã kết thúc</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="form-group-large">
-            <label class="form-label-large">Thể Loại Phim * (Chọn ít nhất 1 thể loại)</label>
-            <div class="genres-checkboxes-cine">
-              <label v-for="genre in genres" :key="genre.id" class="checkbox-label-large">
+            <div class="form-row-double">
+              <div class="form-group-large">
+                <label class="form-label-large">Thời Lượng (Phút) *</label>
                 <input 
-                  type="checkbox" 
-                  :value="genre.id" 
-                  v-model="form.genre_ids"
-                  class="checkbox-box-cine"
+                  v-model.number="form.duration" 
+                  type="number" 
+                  required 
+                  min="1" 
+                  class="form-input-large" 
                 />
-                <span class="checkbox-text">{{ genre.name }}</span>
-              </label>
-            </div>
-          </div>
+              </div>
 
-          <div class="form-group-large">
-            <label class="form-label-large">Chọn Ảnh Poster Phim *</label>
-            <div class="file-upload-section">
-              <input 
-                type="file" 
-                accept="image/*" 
-                @change="handleFileChange" 
-                :required="!isEdit" 
-                class="form-input-large file-input" 
-              />
-              <div v-if="imagePreview" class="image-preview-box">
-                <p class="preview-title">Ảnh được chọn:</p>
-                <img :src="getPosterUrl(imagePreview)" class="preview-image-cine" />
+              <div class="form-group-large">
+                <label class="form-label-large">Ngày Khởi Chiếu *</label>
+                <input 
+                  v-model="form.release_date" 
+                  type="date" 
+                  required 
+                  class="form-input-large" 
+                />
+              </div>
+            </div>
+
+            <div class="form-row-double">
+              <div class="form-group-large">
+                <label class="form-label-large">Giới Hạn Độ Tuổi *</label>
+                <select v-model="form.rating" required class="form-input-large select-cine">
+                  <option value="G">G - Mọi đối tượng</option>
+                  <option value="PG-13">PG-13 - Trên 13 tuổi</option>
+                  <option value="T16">T16 - Trên 16 tuổi</option>
+                  <option value="T18">T18 - Trên 18 tuổi</option>
+                </select>
+              </div>
+
+              <div class="form-group-large">
+                <label class="form-label-large">Trạng Thái Chiếu *</label>
+                <select v-model="form.status" required class="form-input-large select-cine">
+                  <option value="Đang chiếu">Đang chiếu</option>
+                  <option value="Sắp chiếu">Sắp chiếu</option>
+                  <option value="Đã kết thúc">Đã kết thúc</option>
+                </select>
               </div>
             </div>
           </div>
 
-          <div class="form-group-large">
-            <label class="form-label-large">Trailer URL (YouTube Link)</label>
-            <input 
-              v-model="form.trailer_url" 
-              type="text" 
-              placeholder="Ví dụ: https://www.youtube.com/watch?v=..." 
-              class="form-input-large" 
-            />
+          <!-- Cột 2: Phân loại & File Upload -->
+          <div class="form-column">
+            <div class="form-group-large">
+              <label class="form-label-large">Thể Loại Phim * (Chọn ít nhất 1 thể loại)</label>
+              <div class="genres-checkboxes-cine">
+                <label v-for="genre in genres" :key="genre.id" class="checkbox-label-large">
+                  <input 
+                    type="checkbox" 
+                    :value="genre.id" 
+                    v-model="form.genre_ids"
+                    class="checkbox-box-cine"
+                  />
+                  <span class="checkbox-text">{{ genre.name }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group-large">
+              <label class="form-label-large">Ảnh Poster Phim *</label>
+              <div class="file-upload-section">
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  @change="handleFileChange" 
+                  :required="!isEdit" 
+                  class="form-input-large file-input" 
+                />
+                <div v-if="imagePreview" class="image-preview-box">
+                  <p class="preview-title">Ảnh xem trước:</p>
+                  <img :src="getPosterUrl(imagePreview)" class="preview-image-cine" />
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group-large">
+              <label class="form-label-large">Trailer URL (YouTube Link)</label>
+              <input 
+                v-model="form.trailer_url" 
+                type="text" 
+                placeholder="Ví dụ: https://www.youtube.com/watch?v=..." 
+                class="form-input-large" 
+              />
+            </div>
           </div>
 
-          <div class="form-group-large">
-            <label class="form-label-large">Mô Tả Tóm Tắt Nội Dung</label>
-            <textarea 
-              v-model="form.description" 
-              rows="4" 
-              placeholder="Nhập giới thiệu tóm tắt phim..." 
-              class="form-input-large textarea-cine"
-            ></textarea>
-          </div>
+        </div>
 
-          <div class="modal-footer-cine">
-            <button type="button" @click="closeModal" class="btn-secondary-cine">Hủy bỏ</button>
-            <button type="submit" class="btn-primary-cine" :disabled="submitting">
-              {{ submitting ? 'Đang lưu phim...' : 'Lưu lại' }}
-            </button>
-          </div>
+        <div class="form-group-large" style="margin-top: 15px;">
+          <label class="form-label-large">Mô Tả Tóm Tắt Nội Dung</label>
+          <textarea 
+            v-model="form.description" 
+            rows="3" 
+            placeholder="Nhập giới thiệu tóm tắt phim..." 
+            class="form-input-large textarea-cine"
+          ></textarea>
+        </div>
 
-        </form>
+        <div class="form-actions-cine">
+          <button type="submit" class="btn-primary-cine" :disabled="submitting">
+            {{ submitting ? 'Đang lưu phim...' : (isEdit ? 'Cập nhật phim' : 'Lưu phim mới') }}
+          </button>
+          <button 
+            type="button" 
+            @click="resetForm" 
+            class="btn-secondary-cine"
+          >
+            Hủy bỏ / Làm mới
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- CARD 2: DANH SÁCH PHIM -->
+    <div class="glass-panel list-card">
+      <div class="header-row">
+        <h3 class="list-title">🎬 Danh Sách Phim Hiện Có</h3>
+        <span class="count-badge">Tổng số: {{ movies.length }} phim</span>
+      </div>
+      
+      <!-- Spinner loading dữ liệu -->
+      <div v-if="loading" class="loading-state">
+        <div class="spinner-cine"></div>
+        <p>Đang quét và tải danh sách phim từ database...</p>
+      </div>
+
+      <div v-else class="movies-table-wrapper">
+        <table class="movies-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th class="col-poster">Poster</th>
+              <th class="col-title">Tên Phim</th>
+              <th class="col-duration">Thời Lượng</th>
+              <th class="col-rating">Phân Loại</th>
+              <th class="col-genres">Thể Loại</th>
+              <th class="col-status">Trạng Thế</th>
+              <th class="col-actions">Hành Động</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="movie in movies" :key="movie.id" class="table-row">
+              <td class="cell-id">#{{ movie.id }}</td>
+              <td class="cell-poster">
+                <img 
+                  :src="getPosterUrl(movie.poster_url)" 
+                  class="poster-thumbnail"
+                  @error="handleImageError"
+                />
+              </td>
+              <td class="cell-title">{{ movie.title }}</td>
+              <td class="cell-duration">{{ movie.duration }} phút</td>
+              <td class="cell-rating">
+                <span class="rating-pill-cine" :class="getRatingClass(movie.rating)">
+                  {{ movie.rating || 'G' }}
+                </span>
+              </td>
+              <td class="cell-genres">
+                <div class="genres-list">
+                  <span v-for="g in movie.genres" :key="g.id" class="genre-tag">
+                    {{ g.name }}
+                  </span>
+                </div>
+              </td>
+              <td class="cell-status">
+                <span 
+                  class="status-pill-cine" 
+                  :class="{ 
+                    active: movie.status === 'showing' || movie.status === 'Đang chiếu', 
+                    upcoming: movie.status === 'upcoming' || movie.status === 'Sắp chiếu',
+                    ended: movie.status === 'ended' || movie.status === 'Đã kết thúc'
+                  }"
+                >
+                  {{ formatStatus(movie.status) }}
+                </span>
+              </td>
+              <td class="cell-actions">
+                <div class="action-buttons-group">
+                  <button @click="openEditForm(movie)" class="btn-action edit">✏️ Sửa</button>
+                  <button @click="deleteMovie(movie.id)" class="btn-action delete">🗑️ Xóa</button>
+                </div>
+              </td>
+            </tr>
+            
+            <tr v-if="movies.length === 0">
+              <td colspan="8" class="empty-state">
+                📭 Chưa có bộ phim nào được lưu. Hãy điền form phía trên để thêm phim!
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -229,7 +245,6 @@ import api from '../../api/axios';
 const movies = ref([]);
 const genres = ref([]);
 const loading = ref(false);
-const showModal = ref(false);
 const isEdit = ref(false);
 const submitting = ref(false);
 const currentMovieId = ref(null);
@@ -249,14 +264,9 @@ const form = ref({
   genre_ids: []
 });
 
-// BỘ LỌC TỰ ĐỘNG DỊCH URL CHUẨN XÁC: Đảm bảo ảnh poster được lấy đúng Host API port 8000
 const getPosterUrl = (url) => {
   if (!url) return 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=100&q=80';
-  
-  // Tránh dịch các URL preview dạng blob tạm thời
   if (url.startsWith('blob:')) return url;
-  
-  // Dịch port localhost nếu database bị lệch URL do .env cũ
   if (url.startsWith('http://localhost/storage/')) {
     return url.replace('http://localhost/storage/', 'http://127.0.0.1:8000/storage/');
   }
@@ -290,26 +300,7 @@ const handleFileChange = (event) => {
   }
 };
 
-const openCreateModal = () => {
-  isEdit.value = false;
-  currentMovieId.value = null;
-  selectedFile.value = null;
-  imagePreview.value = '';
-  form.value = {
-    title: '',
-    slug: '',
-    description: '',
-    duration: 120,
-    release_date: new Date().toISOString().split('T')[0],
-    trailer_url: '',
-    rating: 'G',
-    status: 'Đang chiếu',
-    genre_ids: []
-  };
-  showModal.value = true;
-};
-
-const openEditModal = (movie) => {
+const openEditForm = (movie) => {
   isEdit.value = true;
   currentMovieId.value = movie.id;
   selectedFile.value = null;
@@ -332,11 +323,9 @@ const openEditModal = (movie) => {
     status: movie.status || 'Đang chiếu',
     genre_ids: movie.genres ? movie.genres.map(g => g.id) : []
   };
-  showModal.value = true;
-};
-
-const closeModal = () => {
-  showModal.value = false;
+  
+  // Cuộn nhẹ lên trên để bắt đầu chỉnh sửa
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 const handleTitleInput = () => {
@@ -411,7 +400,7 @@ const saveMovie = async () => {
     });
 
     alert(isEdit.value ? '✅ Cập nhật thành công!' : '✅ Thêm phim thành công!');
-    showModal.value = false;
+    resetForm();
     await fetchMovies();
   } catch (err) {
     console.error("Lỗi lưu phim:", err);
@@ -436,6 +425,24 @@ const deleteMovie = async (id) => {
   }
 };
 
+const resetForm = () => {
+  isEdit.value = false;
+  currentMovieId.value = null;
+  selectedFile.value = null;
+  imagePreview.value = '';
+  form.value = {
+    title: '',
+    slug: '',
+    description: '',
+    duration: 120,
+    release_date: new Date().toISOString().split('T')[0],
+    trailer_url: '',
+    rating: 'G',
+    status: 'Đang chiếu',
+    genre_ids: []
+  };
+};
+
 onMounted(async () => {
   await fetchMovies();
   await fetchGenres();
@@ -444,33 +451,207 @@ onMounted(async () => {
 
 <style scoped>
 .admin-movies-view-container {
-  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
   background-color: #ffffff;
   color: #1e293b;
 }
 
-.header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 15px;
+/* Glass-like Panel styled for Red/White Theme */
+.glass-panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  padding: 30px;
+  transition: all 0.3s ease;
+}
+.glass-panel:hover {
+  box-shadow: 0 6px 25px rgba(229, 9, 20, 0.04);
+  border-color: rgba(229, 9, 20, 0.15);
 }
 
-.title-cine {
-  font-size: 22px;
+/* Form Card Styles */
+.form-card {
+  border-left: 5px solid #e50914;
+}
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
   font-weight: 800;
   color: #9b000e;
+  margin-bottom: 25px;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.title-icon {
+  font-size: 24px;
 }
 
-/* Beautiful CineGo themed Primary button */
+/* Form Grid */
+.movie-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.form-grid-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
+@media (max-width: 768px) {
+  .form-grid-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.form-group-large {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label-large {
+  font-size: 15px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.form-input-large {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  padding: 14px 20px;
+  border-radius: 10px;
+  outline: none;
+  font-size: 16px;
+  background-color: #f8fafc;
+  color: #1e293b;
+  transition: all 0.2s ease-in-out;
+}
+.form-input-large:focus {
+  border-color: #e50914;
+  box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
+  background-color: #ffffff;
+}
+
+.input-readonly {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border-color: #e2e8f0;
+  font-family: monospace;
+}
+
+.form-row-double {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.select-cine {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 18px;
+  appearance: none;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+.genres-checkboxes-cine {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.checkbox-label-large {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  color: #334155;
+  cursor: pointer;
+}
+
+.checkbox-box-cine {
+  width: 18px;
+  height: 18px;
+  accent-color: #e50914;
+  cursor: pointer;
+}
+
+.checkbox-text {
+  font-weight: 600;
+}
+
+.file-upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.file-input {
+  padding: 10px;
+  cursor: pointer;
+}
+
+.image-preview-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  width: fit-content;
+}
+
+.preview-title {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.preview-image-cine {
+  width: 100px;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+}
+
+.textarea-cine {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.form-actions-cine {
+  display: flex;
+  gap: 15px;
+  margin-top: 15px;
+  border-top: 1px solid #cbd5e1;
+  padding-top: 20px;
+}
+
 .btn-primary-cine {
   background: linear-gradient(135deg, #e50914 0%, #9b000e 100%);
   color: #ffffff;
   border: none;
-  padding: 12px 24px;
+  padding: 14px 28px;
   border-radius: 10px;
   font-size: 15px;
   font-weight: 700;
@@ -487,7 +668,7 @@ onMounted(async () => {
   background-color: #ffffff;
   color: #475569;
   border: 1px solid #cbd5e1;
-  padding: 12px 22px;
+  padding: 14px 24px;
   border-radius: 10px;
   font-size: 15px;
   font-weight: 600;
@@ -498,6 +679,34 @@ onMounted(async () => {
   background-color: #f1f5f9;
   border-color: #94a3b8;
   color: #1e293b;
+}
+
+/* List Card Styles */
+.list-card {
+  border-top: 4px solid #cbd5e1;
+}
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 25px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 15px;
+}
+.list-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e293b;
+}
+.count-badge {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 /* Loading state */
@@ -669,214 +878,5 @@ onMounted(async () => {
 .btn-action.delete:hover {
   background-color: #fee2e2;
   border-color: #dc2626;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: #94a3b8;
-  font-size: 15px;
-}
-
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.4);
-  backdrop-filter: blur(8px);
-  z-index: 999;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 40px 20px;
-  overflow-y: auto;
-}
-
-.modal-content-cine {
-  width: 100%;
-  max-width: 650px;
-  padding: 35px;
-  background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #cbd5e1;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  color: #1e293b;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  border-bottom: 2px solid #fee2e2;
-  padding-bottom: 15px;
-}
-
-.modal-title-cine {
-  font-size: 22px;
-  font-weight: 800;
-  color: #9b000e;
-  text-transform: uppercase;
-}
-
-.btn-close-modal {
-  background: transparent;
-  border: none;
-  font-size: 22px;
-  color: #94a3b8;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-.btn-close-modal:hover {
-  color: #e50914;
-}
-
-/* Movie Form inputs & layout */
-.movie-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.form-group-large {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-label-large {
-  font-size: 15px;
-  font-weight: 700;
-  color: #334155;
-}
-
-.form-input-large {
-  width: 100%;
-  border: 1px solid #cbd5e1;
-  padding: 14px 20px;
-  border-radius: 10px;
-  outline: none;
-  font-size: 16px;
-  background-color: #f8fafc;
-  color: #1e293b;
-  transition: all 0.2s ease-in-out;
-}
-.form-input-large:focus {
-  border-color: #e50914;
-  box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
-  background-color: #ffffff;
-}
-
-.input-readonly {
-  background-color: #f1f5f9;
-  color: #64748b;
-  border-color: #e2e8f0;
-  font-family: monospace;
-}
-
-.form-row-double {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-@media (max-width: 576px) {
-  .form-row-double {
-    grid-template-columns: 1fr;
-  }
-}
-
-.select-cine {
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 16px center;
-  background-size: 18px;
-  appearance: none;
-  padding-right: 40px;
-  cursor: pointer;
-}
-
-.genres-checkboxes-cine {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
-  background: #f8fafc;
-  padding: 16px;
-  border-radius: 10px;
-  border: 1px solid #cbd5e1;
-  max-height: 180px;
-  overflow-y: auto;
-}
-
-.checkbox-label-large {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 15px;
-  color: #334155;
-  cursor: pointer;
-}
-
-.checkbox-box-cine {
-  width: 18px;
-  height: 18px;
-  accent-color: #e50914;
-  cursor: pointer;
-}
-
-.checkbox-text {
-  font-weight: 600;
-}
-
-.file-upload-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.file-input {
-  padding: 10px;
-  cursor: pointer;
-}
-
-.image-preview-box {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: #f8fafc;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  width: fit-content;
-}
-
-.preview-title {
-  font-size: 13px;
-  color: #64748b;
-  font-weight: 700;
-}
-
-.preview-image-cine {
-  width: 100px;
-  height: 140px;
-  object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-}
-
-.textarea-cine {
-  resize: vertical;
-  min-height: 100px;
-}
-
-.modal-footer-cine {
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  margin-top: 15px;
-  border-top: 2px solid #fee2e2;
-  padding-top: 20px;
 }
 </style>
