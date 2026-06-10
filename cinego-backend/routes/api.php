@@ -53,3 +53,9 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
         Route::delete('/movies/{id}', [MovieController::class, 'destroy']);
     });
 });
+
+
+
+// 3. Public Routes (Không cần đăng nhập)
+Route::get('/movies', [MovieController::class, 'index']);
+Route::get('/movies/search', [MovieController::class, 'search']);
