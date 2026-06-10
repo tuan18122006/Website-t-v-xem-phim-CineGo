@@ -678,7 +678,6 @@ onMounted(async () => {
   font-size: 15px;
 }
 
-/* PREMIUM RED & WHITE MODAL CONTAINER */
 .modal-backdrop {
   position: fixed;
   top: 0;
@@ -689,16 +688,15 @@ onMounted(async () => {
   backdrop-filter: blur(8px);
   z-index: 999;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 20px;
+  padding: 40px 20px;
+  overflow-y: auto;
 }
 
 .modal-content-cine {
   width: 100%;
   max-width: 650px;
-  max-height: 90vh;
-  overflow-y: auto;
   padding: 35px;
   background: #ffffff;
   border-radius: 16px;
