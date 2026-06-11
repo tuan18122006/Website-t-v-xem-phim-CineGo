@@ -85,3 +85,96 @@ Khi dự án hoàn tất và nhóm muốn nâng cấp lên thành hệ thống q
 2. **API Controller:** Lọc lịch chiếu phim (`ShowtimeController`) thêm điều kiện `cinema_id` thông qua bảng `rooms`.
 3. **Frontend:** Gọi API `api.get('/cinemas')` để lấy danh sách rạp thật từ database hiển thị lên trang đặt vé nhanh thay vì khóa cứng cụm rạp CineGo duy nhất.
 4. **Admin Panel:** Thêm tab CRUD "Quản lý Chi Nhánh" và bộ lọc "Chọn rạp" ở biểu đồ thống kê để xem doanh thu của từng cơ sở hoặc toàn bộ tổng công ty.
+
+---
+
+## 🆕 NHẬT KÝ PHIÊN LÀM VIỆC - THÁNG 6/2026 (PHIÊN 2: HOÀN THIỆN ADMIN PANEL)
+
+> **Thời gian thực hiện:** 10–11/06/2026  
+> **Người thực hiện:** Antigravity AI + Nhóm dự án CineGo
+
+---
+
+### 🔤 5. Sửa Lỗi Phông Chữ Toàn Trang (Font Fix)
+
+* **Vấn đề phát hiện:** Phông chữ trên toàn bộ giao diện (cả trang Client lẫn Admin) bị hiển thị không đúng — chữ tiếng Việt bị lỗi dấu, font dự phòng trình duyệt thay thế trông rất mất thẩm mỹ.
+* **Nguyên nhân gốc rễ:** Font `Inter` được khai báo trong `style.css` nhưng chưa được import đúng cách từ Google Fonts.
+* **Giải pháp:**
+  * Bổ sung `@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap')` vào đầu file [`style.css`](file:///c:/laragon/www/CineGo/cinego-frontend/src/style.css).
+  * Đặt `font-family: 'Inter', sans-serif` toàn cục cho thẻ `body`, `*` và các class tiêu đề để đảm bảo nhất quán.
+* **Kết quả:** Toàn bộ trang web (Client + Admin) hiển thị chữ tiếng Việt sắc nét, không còn lỗi font.
+
+---
+
+### 🧹 6. Ẩn Thanh Trạng Thái Cố Định Ở Cuối Trang (Fixed Bottom Bar Removal)
+
+* **Vấn đề phát hiện:** Khi số lượng mục trong danh sách (phim, suất chiếu, thể loại...) ít hoặc khi phóng to trình duyệt (zoom), một thanh trạng thái cố định ở phía dưới cùng màn hình xuất hiện và che khuất nội dung, gây mất thẩm mỹ.
+* **Giải pháp áp dụng cho tất cả các trang admin:**
+  * Loại bỏ phần tử `bottom-status-bar` khỏi các View: `MoviesView.vue`, `ShowtimesView.vue`, `GenreManagement.vue` và các view tương tự.
+  * Cập nhật CSS của `.admin-layout` trong `DashboardView.vue`:
+    * `min-height: 100vh` (đảm bảo trang luôn kéo dài chạm đáy màn hình).
+    * `border-radius: 0` và `box-shadow: none` (loại bỏ viền bo góc gây ra khoảng trống xám).
+    * `overflow: visible` thay vì `overflow: hidden` (tránh cắt xén nội dung khi phóng to).
+* **Kết quả:** Giao diện Admin kéo dài đúng 100% chiều cao màn hình, không còn khoảng trống xám ở đáy trang dù mức zoom là bao nhiêu.
+
+---
+
+### 🪟 7. Sửa Lỗi Modal Popup Bị Che Khuất (Modal Backdrop Fix)
+
+* **Vấn đề phát hiện:** Khi mở hộp thoại thêm/sửa (Modal), phần nền mờ (`modal-backdrop`) không bao phủ toàn bộ màn hình — phần Sidebar bên trái vẫn hiển thị, khiến trải nghiệm bị vỡ bố cục ở một số mức zoom.
+* **Nguyên nhân gốc rễ:** Class `.glass-panel` được gán trực tiếp vào thẻ gốc (`root container`) của mỗi View. Vì `.glass-panel` có thuộc tính `backdrop-filter: blur()`, nó tạo ra một **stacking context mới**, khiến phần tử con `position: fixed` của `modal-backdrop` bị giam hãm bên trong thay vì bao phủ toàn bộ viewport.
+* **Giải pháp:**
+  * Xóa class `.glass-panel` khỏi thẻ `<div>` gốc của `MoviesView.vue` và `ShowtimesView.vue`.
+  * Bọc **chỉ phần bảng danh sách** (list table) bằng một thẻ `<div class="glass-panel list-card">` riêng biệt.
+  * Phần Modal `<div class="modal-backdrop">` giờ đây là con trực tiếp của container không có `backdrop-filter`, cho phép nó trải rộng `position: fixed` đúng toàn màn hình.
+* **Kết quả:** Hộp thoại (Modal) Thêm/Sửa phim và Suất chiếu hiện đóng băng toàn bộ giao diện (kể cả Sidebar), hiển thị chuẩn ở mọi mức zoom từ 90% đến 200%.
+
+---
+
+### 🏷️ 8. Phóng To Nhãn Trạng Thái (Status Pill Enlargement)
+
+* **Vấn đề phát hiện:** Cột "Trạng Thái" trong bảng danh sách Phim và Suất chiếu hiển thị badge trạng thái (Đang chiếu / Hoạt động / Đã hủy...) quá nhỏ, khó đọc và không nổi bật.
+* **Giải pháp:**
+  * Tăng kích thước class `.status-pill-cine` trong cả `MoviesView.vue` và `ShowtimesView.vue`:
+    * `padding: 10px 20px` (tăng từ `4px 10px`).
+    * `font-size: 16px` (tăng từ `13px`).
+    * `font-weight: 800`.
+    * `white-space: nowrap` (tránh xuống dòng).
+  * Tăng độ rộng cột `.col-status` lên `170px` để vừa đủ chứa nhãn lớn hơn.
+* **Kết quả:** Nhãn trạng thái dễ đọc, nổi bật và chuyên nghiệp hơn, phù hợp với chuẩn thiết kế CineGo.
+
+---
+
+### 🔌 9. Xây Dựng Backend API Quản Lý Suất Chiếu (Showtime CRUD API)
+
+Sau khi các thành viên nhóm tự xây dựng phần quản lý phim, phần backend cho Suất Chiếu được phát triển và tích hợp hoàn chỉnh:
+
+#### A. RoomController ([RoomController.php](file:///c:/laragon/www/CineGo/cinego-backend/app/Http/Controllers/Api/RoomController.php))
+* Tạo mới `RoomController.php` với hàm `index()` trả về danh sách tất cả phòng chiếu (`rooms`) từ database.
+* Đăng ký route public `GET /api/rooms` trong `api.php` — **không yêu cầu đăng nhập** — để Frontend có thể tải danh sách phòng khi mở hộp thoại thêm suất chiếu.
+
+#### B. ShowtimeController ([ShowtimeController.php](file:///c:/laragon/www/CineGo/cinego-backend/app/Http/Controllers/Api/ShowtimeController.php))
+* Tạo mới `ShowtimeController.php` với đầy đủ 3 phương thức:
+  * **`index()`**: Lấy toàn bộ danh sách suất chiếu kèm tên phim (`movie_title`) và tên phòng (`room_name`) thông qua Eloquent relationship.
+  * **`store(Request $request)`**: Validate và tạo suất chiếu mới với các trường `movie_id`, `room_id`, `start_time`, `end_time`, `format`, `translation`. Mặc định trạng thái là `active`.
+  * **`destroy($id)`**: Tìm và xóa suất chiếu theo ID, trả về lỗi 404 nếu không tìm thấy.
+* Đăng ký 3 route admin trong `api.php` (yêu cầu Sanctum + quyền `admin-only`):
+  * `GET /api/admin/showtimes`
+  * `POST /api/admin/showtimes`
+  * `DELETE /api/admin/showtimes/{id}`
+
+---
+
+### 🖥️ 10. Giao Diện Quản Lý Suất Chiếu Frontend ([ShowtimesView.vue](file:///c:/laragon/www/CineGo/cinego-frontend/src/views/admin/ShowtimesView.vue))
+
+* **Bảng danh sách suất chiếu** với đầy đủ cột: ID, Tên Phim, Phòng Chiếu, Giờ Bắt Đầu, Giờ Kết Thúc, Định Dạng, Dịch Thuật, Trạng Thái, Hành Động.
+* **Spinner loading** trong khi tải dữ liệu từ API.
+* **Empty state** khi chưa có suất chiếu nào.
+* **Modal Thêm Suất Chiếu** với các tính năng nổi bật:
+  * Dropdown chọn Phim (hiển thị tên phim kèm thời lượng).
+  * Dropdown chọn Phòng Chiếu (hiển thị tên phòng kèm sức chứa).
+  * Input `datetime-local` cho Giờ Bắt Đầu.
+  * **Tự động tính Giờ Kết Thúc** dựa trên thời lượng phim đã chọn (hàm `calculateEndTime`).
+  * Chọn Định Dạng (2D / 3D / IMAX) và Hình Thức Dịch Thuật (Phụ đề / Thuyết minh).
+* **Chức năng Xóa** suất chiếu có xác nhận trước khi thực hiện.
+* Giao diện áp dụng nhất quán tông màu Trắng & Đỏ Cinema Red của CineGo.

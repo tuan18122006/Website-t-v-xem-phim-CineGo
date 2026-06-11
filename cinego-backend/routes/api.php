@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GenreController;
 use App\Http\Controllers\Api\MovieController;
+use App\Http\Controllers\Api\ShowtimeController;
+use App\Http\Controllers\Api\RoomController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -51,6 +53,11 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
         Route::post('/movies', [MovieController::class, 'store']);
         Route::put('/movies/{id}', [MovieController::class, 'update']);
         Route::delete('/movies/{id}', [MovieController::class, 'destroy']);
+
+        // Route của suất chiếu
+        Route::get('/showtimes', [ShowtimeController::class, 'index']);
+        Route::post('/showtimes', [ShowtimeController::class, 'store']);
+        Route::delete('/showtimes/{id}', [ShowtimeController::class, 'destroy']);
     });
 });
 
@@ -59,3 +66,4 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
 // 3. Public Routes (Không cần đăng nhập)
 Route::get('/movies', [MovieController::class, 'index']);
 Route::get('/movies/search', [MovieController::class, 'search']);
+Route::get('/rooms', [RoomController::class, 'index']);

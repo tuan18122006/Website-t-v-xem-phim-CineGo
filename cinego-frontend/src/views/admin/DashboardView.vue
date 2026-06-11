@@ -338,13 +338,13 @@ onMounted(() => {
 .admin-layout {
   display: grid;
   grid-template-columns: 260px 1fr;
-  min-height: 85vh;
+  min-height: 100vh;
   gap: 30px;
   background-color: #ffffff;
   color: var(--text-primary);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: 0 4px 30px rgba(0,0,0,0.03);
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
 }
 
 @media (max-width: 992px) {
