@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GenreController;
 use App\Http\Controllers\Api\MovieController;
+use App\Http\Controllers\Api\UserController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -29,6 +30,16 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'userProfile']); // Trả về thông tin user + vai trò (customer/admin)
+
+    // Quản lý tài khoản (chỉ Admin)
+    Route::get('/users', [UserController::class, 'index']);
+    Route::get('/users/{id}', [UserController::class, 'show']);
+    Route::post('/users', [UserController::class, 'store']);
+    Route::put('/users/{id}', [UserController::class, 'update']);
+    Route::patch('/users/{id}/status', [UserController::class, 'toggleStatus']);
+    Route::patch('/users/{id}/role', [UserController::class, 'updateRole']);
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
 
     // ==========================================
     // [THÀNH VIÊN NHÓM TỰ LẬP TRÌNH ROUTE PROTECTED CHO KHÁCH HÀNG DƯỚI ĐÂY]

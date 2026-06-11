@@ -27,6 +27,7 @@ class User extends Authenticatable
         'password',
         'role',
         'phone',
+        'status',
     ];
 
     /**
@@ -60,5 +61,10 @@ class User extends Authenticatable
     public function seatHolds(): HasMany
     {
         return $this->hasMany(SeatHold::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
     }
 }
