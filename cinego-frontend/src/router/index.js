@@ -10,6 +10,8 @@ const Login = () => import('../views/client/LoginView.vue');
 const Register = () => import('../views/client/RegisterView.vue');
 const QuickBooking = () => import('../views/client/QuickBookingView.vue');
 
+const TopMovies = () => import('../views/client/TopMovies.vue');
+
 const AdminDashboard = () => import('../views/admin/DashboardView.vue');
 
 const routes = [
@@ -28,6 +30,11 @@ const routes = [
     path: '/movie/:id',
     name: 'movie-detail',
     component: MovieDetail
+  },
+  {
+    path: '/top-movies',
+    name: 'top-movies',
+    component: TopMovies
   },
   {
     path: '/booking/seats',

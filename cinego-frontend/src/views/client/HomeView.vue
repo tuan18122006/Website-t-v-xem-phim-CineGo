@@ -135,10 +135,6 @@
                   @click="goToDetail(movie.id)">
                   Mua vé
                 </button>
-
-                <button v-else class="btn-action-light btn-trailer" @click="openTrailer(movie.trailer_url)">
-                  Xem Trailer
-                </button>
               </div>
 
             </div>
