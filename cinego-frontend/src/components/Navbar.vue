@@ -18,7 +18,7 @@
           <router-link to="/mua-ve" class="nav-item">Lịch chiếu</router-link>
           <router-link to="/mua-ve" class="nav-item">Rạp chiếu</router-link>
           <router-link to="/" class="nav-item">Phim chiếu</router-link>
-          <a href="#" class="nav-item">Review phim</a>
+          <router-link to="/review-movies" class="nav-item">Review phim</router-link>
           <router-link to="/top-movies" class="nav-item">Top phim</router-link>
           <a href="#" class="nav-item">Blog phim</a>
           <a href="#" class="nav-item font-bold">Về CineGo</a>

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import ReviewMovies from '../views/client/ReviewMovies.vue';
 
 // Lazy loading views
 const Home = () => import('../views/client/HomeView.vue');
@@ -36,6 +37,12 @@ const routes = [
     name: 'top-movies',
     component: TopMovies
   },
+    {
+    path: '/review-movies',
+    name: 'review-movies',
+    component: ReviewMovies
+  },
+
   {
     path: '/booking/seats',
     name: 'seat-selection',
