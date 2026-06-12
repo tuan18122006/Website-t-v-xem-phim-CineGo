@@ -25,7 +25,8 @@ class DatabaseSeeder extends Seeder
             'email' => 'admin@cinego.com',
             'password' => bcrypt('password'),
             'role' => 'admin',
-            'phone' => '0987654321'
+            'phone' => '0987654321',
+            'age' => 30
         ]);
 
         User::create([
@@ -33,7 +34,8 @@ class DatabaseSeeder extends Seeder
             'email' => 'customer@cinego.com',
             'password' => bcrypt('password'),
             'role' => 'customer',
-            'phone' => '0123456789'
+            'phone' => '0123456789',
+            'age' => 25
         ]);
 
         // 2. Tạo Genres

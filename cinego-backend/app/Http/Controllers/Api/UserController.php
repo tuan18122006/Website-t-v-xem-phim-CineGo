@@ -7,13 +7,15 @@ use App\Models\User;
 use App\Models\Booking;
 use App\Models\BookingDetail;
 use App\Models\Review;
+use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
-    // Danh sách tài khoản (kèm tìm kiếm theo tên/email/sđt + lọc theo trạng thái)
+    // Danh sách tài khoản (kèm tìm kiếm theo tên/email/sđt + lọc theo trạng thái, vai trò, hạng thành viên)
     public function index(Request $request)
     {
         $query = User::query();
@@ -33,16 +35,21 @@ class UserController extends Controller
             $query->where('status', $request->status);
         }
 
-        // Lọc theo vai trò (tùy chọn, tiện cho admin)
+        // Lọc theo vai trò (admin / staff / customer)
         if ($request->filled('role')) {
             $query->where('role', $request->role);
+        }
+
+        // Lọc theo hạng thành viên (Bronze, Silver, Gold, Diamond)
+        if ($request->filled('membership_tier')) {
+            $query->where('membership_tier', $request->membership_tier);
         }
 
         $users = $query->orderBy('id', 'desc')->get();
         return response()->json(['success' => true, 'data' => $users], 200);
     }
 
-    // Xem chi tiết khách hàng: thông tin + thống kê vé/chi tiêu + lịch sử đánh giá
+    // Xem chi tiết khách hàng: thông tin + thống kê vé/chi tiêu + lịch sử đánh giá + log thiết bị + ví voucher
     public function show($id)
     {
         $user = User::findOrFail($id);
@@ -52,9 +59,7 @@ class UserController extends Controller
 
         $stats = [
             'total_bookings' => $bookings->count(),
-            // Số vé = tổng số ghế đã đặt (mỗi booking_detail là 1 ghế = 1 vé)
             'total_tickets'  => BookingDetail::whereIn('booking_id', $bookingIds)->count(),
-            // Tổng chi tiêu chỉ tính các đơn đã thanh toán thành công
             'total_spent'    => $bookings->where('payment_status', 'paid')->sum('total_amount'),
         ];
 
@@ -64,12 +69,20 @@ class UserController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
+        // Lịch sử thiết bị đăng nhập gần đây (10 bản ghi gần nhất)
+        $deviceLogs = $user->deviceLogs()->orderBy('last_login_at', 'desc')->take(10)->get();
+
+        // Danh sách vouchers đang có trong ví
+        $vouchers = $user->vouchers()->get();
+
         return response()->json([
             'success' => true,
             'data' => [
-                'user'    => $user,
-                'stats'   => $stats,
-                'reviews' => $reviews,
+                'user'        => $user,
+                'stats'       => $stats,
+                'reviews'     => $reviews,
+                'device_logs' => $deviceLogs,
+                'vouchers'    => $vouchers,
             ],
         ], 200);
     }
@@ -84,6 +97,7 @@ class UserController extends Controller
             'phone'    => 'nullable|string|max:20',
             'role'     => ['required', Rule::in(['admin', 'staff', 'customer'])],
             'status'   => ['nullable', Rule::in(['active', 'locked'])],
+            'age'      => 'nullable|integer|min:0|max:120',
         ]);
 
         $user = User::create([
@@ -92,7 +106,8 @@ class UserController extends Controller
             'password' => Hash::make($request->password),
             'phone'    => $request->phone,
             'role'     => $request->role,
-            'status'   => $request->status ?? 'active', // mặc định hoạt động
+            'status'   => $request->status ?? 'active',
+            'age'      => $request->age,
         ]);
 
         return response()->json([
@@ -110,10 +125,11 @@ class UserController extends Controller
         $request->validate([
             'name'     => 'required|string|max:255',
             'email'    => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($id)],
-            'password' => 'nullable|string|min:8', // để trống = không đổi mật khẩu
+            'password' => 'nullable|string|min:8',
             'phone'    => 'nullable|string|max:20',
             'role'     => ['required', Rule::in(['admin', 'staff', 'customer'])],
             'status'   => ['required', Rule::in(['active', 'locked'])],
+            'age'      => 'nullable|integer|min:0|max:120',
         ]);
 
         $user->name   = $request->name;
@@ -121,8 +137,8 @@ class UserController extends Controller
         $user->phone  = $request->phone;
         $user->role   = $request->role;
         $user->status = $request->status;
+        $user->age    = $request->age;
 
-        // Chỉ đổi mật khẩu khi người dùng nhập mới
         if ($request->filled('password')) {
             $user->password = Hash::make($request->password);
         }
@@ -136,11 +152,17 @@ class UserController extends Controller
         ], 200);
     }
 
-    // Khóa / Mở khóa nhanh (đảo trạng thái)
-    public function toggleStatus($id)
+    // Khóa / Mở khóa (đảo trạng thái kèm lý do khóa)
+    public function toggleStatus(Request $request, $id)
     {
         $user = User::findOrFail($id);
-        $user->status = $user->status === 'locked' ? 'active' : 'locked';
+        if ($user->status === 'locked') {
+            $user->status = 'active';
+            $user->lock_reason = null;
+        } else {
+            $user->status = 'locked';
+            $user->lock_reason = $request->input('lock_reason', 'Bị khóa bởi quản lý');
+        }
         $user->save();
 
         return response()->json([
@@ -152,7 +174,7 @@ class UserController extends Controller
         ], 200);
     }
 
-    // Phân quyền nhanh: đổi vai trò (vd: Nâng cấp customer -> staff)
+    // Phân quyền nhanh: đổi vai trò
     public function updateRole(Request $request, $id)
     {
         $request->validate([
@@ -170,7 +192,90 @@ class UserController extends Controller
         ], 200);
     }
 
-    // Xóa tài khoản (tùy chọn)
+    // Ẩn danh tính tài khoản khách hàng để bảo mật thông tin (GDPR compliance)
+    public function anonymize($id)
+    {
+        $user = User::findOrFail($id);
+        if ($user->role === 'admin') {
+            return response()->json(['success' => false, 'message' => 'Không thể ẩn danh tài khoản quản trị viên!'], 400);
+        }
+
+        $user->name = 'Customer_Ref_' . $user->id;
+        $user->email = 'anonymized_' . $user->id . '@cinego.test';
+        $user->phone = null;
+        $user->password = Hash::make(Str::random(16));
+        $user->is_anonymized = true;
+        $user->status = 'locked';
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã ẩn danh tính tài khoản và lưu trữ an toàn!'
+        ], 200);
+    }
+
+    // Thủ công thay đổi hạng thành viên
+    public function updateTier(Request $request, $id)
+    {
+        $request->validate([
+            'membership_tier' => ['required', Rule::in(['Bronze', 'Silver', 'Gold', 'Diamond'])],
+        ]);
+
+        $user = User::findOrFail($id);
+        $user->membership_tier = $request->membership_tier;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cập nhật hạng thành viên thành công!',
+            'data'    => $user
+        ], 200);
+    }
+
+    // Tặng voucher cho khách hàng
+    public function giftVoucher(Request $request, $id)
+    {
+        $request->validate([
+            'voucher_code' => 'required|string',
+        ]);
+
+        $user = User::findOrFail($id);
+        $voucher = Voucher::where('code', $request->voucher_code)->first();
+
+        if (!$voucher) {
+            return response()->json(['success' => false, 'message' => 'Mã giảm giá không tồn tại!'], 404);
+        }
+
+        if ($user->vouchers()->where('voucher_id', $voucher->id)->exists()) {
+            return response()->json(['success' => false, 'message' => 'Khách hàng đã sở hữu voucher này rồi!'], 400);
+        }
+
+        $user->vouchers()->attach($voucher->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã tặng mã giảm giá thành công!',
+            'data' => $voucher
+        ], 200);
+    }
+
+    // Thu hồi voucher
+    public function revokeVoucher(Request $request, $id)
+    {
+        $request->validate([
+            'voucher_id' => 'required|integer',
+        ]);
+
+        $user = User::findOrFail($id);
+        $user->vouchers()->detach($request->voucher_id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã thu hồi voucher thành công!'
+        ], 200);
+    }
+
+    // Xóa tài khoản vĩnh viễn khỏi DB
     public function destroy($id)
     {
         $user = User::findOrFail($id);

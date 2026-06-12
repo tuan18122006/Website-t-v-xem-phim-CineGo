@@ -273,7 +273,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import MoviesView from './MoviesView.vue';
@@ -285,7 +285,10 @@ import api from '../../api/axios';
 const authStore = useAuthStore();
 const router = useRouter();
 
-const activeTab = ref('stats');
+const activeTab = ref(localStorage.getItem('admin_active_tab') || 'stats');
+watch(activeTab, (newVal) => {
+  localStorage.setItem('admin_active_tab', newVal);
+});
 const moviesCount = ref(0);
 const showtimesCount = ref(0);
 const bookings = ref([]);
