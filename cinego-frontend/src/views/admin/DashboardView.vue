@@ -46,9 +46,18 @@
           <span>Quản Lý Lịch Chiếu</span>
         </button>
 
-        <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'revenue' }" 
+        <button
+          class="nav-link"
+          :class="{ active: activeTab === 'users' }"
+          @click="activeTab = 'users'"
+        >
+          <span class="nav-icon">👥</span>
+          <span>Quản Lý Tài Khoản</span>
+        </button>
+
+        <button
+          class="nav-link"
+          :class="{ active: activeTab === 'revenue' }"
           @click="activeTab = 'revenue'"
         >
           <span class="nav-icon">💰</span>
@@ -216,6 +225,11 @@
   <GenreManagement />
 </div>
 
+      <!-- TAB: USER MANAGEMENT -->
+      <div v-else-if="activeTab === 'users'">
+        <UserManagement />
+      </div>
+
       <!-- TAB 4: REVENUE TRANSACTION REPORT -->
       <div v-else-if="activeTab === 'revenue'" class="revenue-tab-content">
         <div class="glass-panel detailed-report">
@@ -265,6 +279,7 @@ import { useAuthStore } from '../../stores/auth';
 import MoviesView from './MoviesView.vue';
 import ShowtimesView from './ShowtimesView.vue';
 import GenreManagement from './GenreManagement.vue';
+import UserManagement from './UserManagement.vue';
 import api from '../../api/axios';
 
 const authStore = useAuthStore();
@@ -280,6 +295,8 @@ const getTabTitle = computed(() => {
     stats: 'Dashboard Quản Trị Hệ Thống',
     movies: 'Quản Lý Danh Sách Phim',
     showtimes: 'Quản Lý Suất Chiếu & Lịch Trình',
+    genres: 'Quản Lý Thể Loại Phim',
+    users: 'Quản Lý Tài Khoản & Phân Quyền',
     revenue: 'Báo Cáo & Thống Kê Doanh Thu'
   };
   return titles[activeTab.value];
@@ -290,6 +307,8 @@ const getTabDesc = computed(() => {
     stats: 'Xem tổng quan báo cáo doanh thu kinh doanh và biểu đồ tăng trưởng hệ thống CineGo.',
     movies: 'Quản lý phim đang chiếu, sắp chiếu, cấu hình các thể loại phim và hình ảnh poster.',
     showtimes: 'Quản lý lịch chiếu các phòng chiếu, kiểm tra phòng và dịch thuật, định dạng 2D/3D.',
+    genres: 'Quản lý danh mục thể loại phim của hệ thống CineGo.',
+    users: 'Thêm, sửa, phân quyền (Admin/Staff/User) và khóa/mở khóa tài khoản người dùng.',
     revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.'
   };
   return descs[activeTab.value];
