@@ -49,6 +49,17 @@ class AuthController extends Controller
             ]);
         }
 
+        // ... sau khi check Hash::check thành công
+
+        if ($user->status === 'locked') {
+            throw ValidationException::withMessages([
+                'email' => ['Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên!'],
+            ]);
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([

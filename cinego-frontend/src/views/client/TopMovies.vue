@@ -1,81 +1,85 @@
 <template>
-  <div class="top-movies-container page-container">
-    <div class="page-header text-center">
-      <h1 class="page-title gradient-text-accent">
-        <span class="fire-icon">🔥</span> BẢNG XẾP HẠNG CINEGO <span class="fire-icon">🔥</span>
-      </h1>
-      <p class="page-subtitle">Cập nhật liên tục dựa trên lượt vé bán ra và đánh giá thực tế từ mọt phim.</p>
+  <div class="top-movies-container">
+    <!-- HERO HEADER -->
+    <div class="top-movies-hero">
+      <div class="hero-glow"></div>
+      <div class="hero-content">
+        <span class="hero-tag">TRENDING & TOP RATED</span>
+        <h1 class="hero-title gradient-text-accent">Bảng Xếp Hạng Phim CineGo</h1>
+        <p class="hero-desc">
+          Cập nhật liên tục xu hướng xem phim và xếp hạng các bộ phim ăn khách nhất, được chấm điểm cao nhất bởi người xem tại hệ thống rạp CineGo.
+        </p>
+
+        <!-- Category selector -->
+        <div class="category-tabs">
+          <button 
+            class="tab-btn" 
+            :class="{ active: activeFilter === 'trending' }"
+            @click="activeFilter = 'trending'"
+          >
+            🔥 Đang càn quét phòng vé
+          </button>
+          <button 
+            class="tab-btn" 
+            :class="{ active: activeFilter === 'alltime' }"
+            @click="activeFilter = 'alltime'"
+          >
+            🏆 Phim hay nhất mọi thời đại
+          </button>
+        </div>
+      </div>
     </div>
 
-    <div class="tabs-container glass-panel">
-      <button 
-        class="tab-btn" 
-        :class="{ active: currentTab === 'trending' }"
-        @click="currentTab = 'trending'"
-      >
-        <span class="icon">🎟️</span> Top Bán Chạy (Doanh Thu)
-      </button>
-      <button 
-        class="tab-btn" 
-        :class="{ active: currentTab === 'rating' }"
-        @click="currentTab = 'rating'"
-      >
-        <span class="icon">⭐</span> Top Đánh Giá Cao
-      </button>
-    </div>
-
-    <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
-      <p>Đang tính toán bảng xếp hạng...</p>
-    </div>
-
-    <div v-else class="top-movies-list">
-      <div 
-        v-for="(movie, index) in sortedMovies" 
-        :key="movie.id" 
-        class="movie-rank-card glass-panel"
-        :class="`top-${index + 1}`"
-      >
-        <div class="rank-number-box">
-          <span class="rank-number">{{ index + 1 }}</span>
-        </div>
-
-        <div class="movie-poster-box">
-          <img :src="movie.poster_url" :alt="movie.title" class="movie-poster" />
-          <span class="age-badge" :class="getRatingClass(movie.rating_badge)">
-            {{ movie.rating_badge || 'G' }}
-          </span>
-        </div>
-
-        <div class="movie-info-box">
-          <h3 class="movie-title glow-text-pink" @click="goToDetail(movie.id)">
-            {{ movie.title }}
-          </h3>
-          <p class="movie-genres">{{ movie.genres?.join(', ') }}</p>
-          
-          <div class="movie-meta-row">
-            <span><strong>Thời lượng:</strong> {{ movie.duration }} phút</span>
-            <span><strong>Khởi chiếu:</strong> {{ formatDate(movie.release_date) }}</span>
-          </div>
-        </div>
-
-        <div class="movie-stats-box">
-          <div v-if="currentTab === 'trending'" class="stat-trending">
-            <span class="stat-label">Vé đã bán</span>
-            <span class="stat-value text-neon-cyan">
-              {{ formatNumber(movie.tickets_sold) }} <small>vé</small>
-            </span>
+    <!-- MAIN LISTING -->
+    <div class="top-movies-list-wrapper">
+      <div class="movies-rank-list">
+        <div v-for="(movie, index) in filteredMovies" :key="movie.id" class="rank-card glass-panel">
+          <!-- Rank Number Tag -->
+          <div class="rank-number-box" :class="'rank-' + (index + 1)">
+            <span class="rank-num-val">#{{ index + 1 }}</span>
+            <span v-if="index === 0" class="rank-crown">👑 Top 1</span>
           </div>
 
-          <div v-else class="stat-rating">
-            <span class="stat-label">Đánh giá</span>
-            <span class="stat-value text-neon-yellow">
-              {{ movie.avg_rating?.toFixed(1) || '0.0' }}<small>/10</small>
-            </span>
-            <div class="stars-preview">
-              <span v-for="s in Math.round(movie.avg_rating / 2)" :key="'f-'+s" class="star-f">★</span>
-              <span v-for="s in (5 - Math.round(movie.avg_rating / 2))" :key="'e-'+s" class="star-e">★</span>
+          <!-- Movie Poster -->
+          <div class="movie-poster-box">
+            <img :src="movie.poster" :alt="movie.title" class="poster-img" />
+          </div>
+
+          <!-- Movie Details -->
+          <div class="movie-meta-details">
+            <div class="title-row">
+              <h2 class="movie-title">{{ movie.title }}</h2>
+              <span class="movie-age-badge" :class="movie.ratingClass">{{ movie.rating }}</span>
             </div>
+            
+            <p class="movie-genres">{{ movie.genres.join(' • ') }}</p>
+            <p class="movie-description">{{ movie.description }}</p>
+
+            <div class="metrics-row">
+              <div class="metric-item">
+                <span class="metric-lbl">Điểm IMDb:</span>
+                <strong class="metric-val text-gold">⭐ {{ movie.imdb }}</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-lbl">Thời lượng:</span>
+                <strong class="metric-val">{{ movie.duration }} phút</strong>
+              </div>
+              <div class="metric-item">
+                <span class="metric-lbl">Khởi chiếu:</span>
+                <strong class="metric-val">{{ formatDate(movie.release_date) }}</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- CTA Booking Button -->
+          <div class="rank-card-cta">
+            <router-link to="/mua-ve" class="btn-book-now">
+              <span>Mua vé ngay</span>
+              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none">
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+                <polyline points="12 5 19 12 12 5"></polyline>
+              </svg>
+            </router-link>
           </div>
         </div>
       </div>
@@ -84,78 +88,387 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import api from '../../api/axios'; // Axios instance đã cấu hình
+import { ref, computed } from 'vue';
 
-const router = useRouter();
-const currentTab = ref('trending'); // 'trending' hoặc 'rating'
-const loading = ref(false);
-const moviesList = ref([]);
+const activeFilter = ref('trending');
 
-// Mock data chuẩn cấu hình hiển thị top 10 phòng trường hợp API Backend chưa xong
-const mockTopMovies = [
-  { id: 1, title: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn', poster_url: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=400&q=80', rating_badge: 'T13', duration: 126, release_date: '2026-05-15', genres: ['Hành Động', 'Viễn Tưởng'], tickets_sold: 14520, avg_rating: 9.2 },
-  { id: 2, title: 'Avatar: Dòng Chảy Của Nước', poster_url: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80', rating_badge: 'PG-13', duration: 192, release_date: '2026-05-20', genres: ['Hành Động', 'Phiêu Lưu'], tickets_sold: 12800, avg_rating: 8.8 },
-  { id: 3, title: 'Kẻ Kiến Tạo (The Creator)', poster_url: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=400&q=80', rating_badge: 'T16', duration: 133, release_date: '2026-06-01', genres: ['Hành Động', 'Viễn Tưởng'], tickets_sold: 9400, avg_rating: 7.5 }
-];
-
-// Hàm lấy dữ liệu bảng xếp hạng từ Laravel
-const fetchLeaderboard = async () => {
-  loading.value = true;
-  try {
-    // Thắng cấu hình Route Backend: Route::get('/movies/leaderboard', [MovieController::class, 'leaderboard']);
-    const response = await api.get('/movies/leaderboard');
-    moviesList.value = response.data;
-  } catch (err) {
-    console.warn('Lỗi gọi API Leaderboard, sử dụng dữ liệu Mock:', err);
-    moviesList.value = mockTopMovies;
-  } finally {
-    loading.value = false;
+const trendingMovies = ref([
+  {
+    id: 101,
+    title: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
+    genres: ['Hành Động', 'Viễn Tưởng', 'Kỳ Ảo'],
+    rating: 'T13',
+    ratingClass: 'age-t13',
+    description: 'Doctor Strange du hành vào không gian đa vũ trụ phức tạp để bảo vệ thế giới khỏi những hiểm nguy khôn lường mang tính hủy diệt vũ trụ.',
+    imdb: '8.5',
+    duration: '126',
+    release_date: '2026-05-15',
+    poster: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=400&q=80'
+  },
+  {
+    id: 102,
+    title: 'Avatar: Dòng Chảy Của Nước',
+    genres: ['Kỳ Ảo', 'Viễn Tưởng', 'Hành Động'],
+    rating: 'PG-13',
+    ratingClass: 'age-pg13',
+    description: 'Jake Sully và Neytiri phải rời bỏ tổ ấm và khám phá các vùng đất mới của đại dương Pandora khi mối đe dọa vũ trang quay trở lại tàn phá.',
+    imdb: '8.3',
+    duration: '192',
+    release_date: '2026-06-01',
+    poster: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80'
+  },
+  {
+    id: 103,
+    title: 'Kẻ Kiến Tạo (The Creator)',
+    genres: ['Hành Động', 'Drama', 'Viễn Tưởng'],
+    rating: 'T16',
+    ratingClass: 'age-t16',
+    description: 'Giữa cuộc chiến khốc liệt của nhân loại và trí tuệ nhân tạo, một cựu đặc vụ được giao nhiệm vụ ám sát một kiến trúc sư công nghệ bí ẩn.',
+    imdb: '7.9',
+    duration: '133',
+    release_date: '2026-05-20',
+    poster: 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&w=400&q=80'
   }
-};
+]);
 
-// Logic sắp xếp danh sách phim theo Tab hiện tại (Giới hạn tối đa Top 10)
-const sortedMovies = computed(() => {
-  const temp = [...moviesList.value];
-  if (currentTab.value === 'trending') {
-    // Sắp xếp giảm dần theo số lượng vé bán ra (booking_details count)
-    return temp.sort((a, b) => b.tickets_sold - a.tickets_sold).slice(0, 10);
-  } else {
-    // Sắp xếp giảm dần theo trung bình cộng rating trong bảng reviews
-    return temp.sort((a, b) => b.avg_rating - a.avg_rating).slice(0, 10);
+const allTimeMovies = ref([
+  {
+    id: 201,
+    title: 'Avatar: Dòng Chảy Của Nước',
+    genres: ['Kỳ Ảo', 'Viễn Tưởng', 'Hành Động'],
+    rating: 'PG-13',
+    ratingClass: 'age-pg13',
+    description: 'Jake Sully và Neytiri phải rời bỏ tổ ấm và khám phá các vùng đất mới của đại dương Pandora khi mối đe dọa vũ trang quay trở lại tàn phá.',
+    imdb: '9.2',
+    duration: '192',
+    release_date: '2026-06-01',
+    poster: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80'
+  },
+  {
+    id: 202,
+    title: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
+    genres: ['Hành Động', 'Viễn Tưởng', 'Kỳ Ảo'],
+    rating: 'T13',
+    ratingClass: 'age-t13',
+    description: 'Doctor Strange du hành vào không gian đa vũ trụ phức tạp để bảo vệ thế giới khỏi những hiểm nguy khôn lường mang tính hủy diệt vũ trụ.',
+    imdb: '8.8',
+    duration: '126',
+    release_date: '2026-05-15',
+    poster: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=400&q=80'
+  },
+  {
+    id: 203,
+    title: 'Kẻ Kiến Tạo (The Creator)',
+    genres: ['Hành Động', 'Drama', 'Viễn Tưởng'],
+    rating: 'T16',
+    ratingClass: 'age-t16',
+    description: 'Giữa cuộc chiến khốc liệt của nhân loại và trí tuệ nhân tạo, một cựu đặc vụ được giao nhiệm vụ ám sát một kiến trúc sư công nghệ bí ẩn.',
+    imdb: '8.1',
+    duration: '133',
+    release_date: '2026-05-20',
+    poster: 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&w=400&q=80'
   }
+]);
+
+const filteredMovies = computed(() => {
+  return activeFilter.value === 'trending' ? trendingMovies.value : allTimeMovies.value;
 });
 
-// Điều hướng xem chi tiết phim
-const goToDetail = (id) => {
-  router.push(`/movies/${id}`);
+const formatDate = (val) => {
+  if (!val) return '—';
+  const d = new Date(val);
+  return isNaN(d) ? '—' : d.toLocaleDateString('vi-VN');
 };
-
-// Phân loại màu cho nhãn độ tuổi (Giữ nguyên cấu trúc đồng bộ hệ thống)
-const getRatingClass = (rating) => {
-  if (!rating) return 'rating-g';
-  const r = rating.toUpperCase();
-  if (r.includes('18') || r === 'R') return 'rating-t18';
-  if (r.includes('16')) return 'rating-t16';
-  if (r.includes('13') || r === 'PG-13') return 'rating-t13';
-  return 'rating-g';
-};
-
-const formatDate = (dateStr) => {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-};
-
-const formatNumber = (num) => {
-  return num ? num.toLocaleString('vi-VN') : 0;
-};
-
-onMounted(() => {
-  fetchLeaderboard();
-});
 </script>
 
 <style scoped>
-@import '../../assets/css/pages/top-movies.css';
+.top-movies-container {
+  width: 100%;
+  min-height: 100vh;
+  background-color: #ffffff;
+  padding-bottom: 60px;
+}
+
+/* HERO HEADER */
+.top-movies-hero {
+  position: relative;
+  background: linear-gradient(135deg, #1f0105 0%, #000000 100%);
+  padding: 80px 24px;
+  border-radius: 24px;
+  overflow: hidden;
+  margin-bottom: 40px;
+  text-align: center;
+  border: 1px solid rgba(229, 9, 20, 0.1);
+}
+
+.hero-glow {
+  position: absolute;
+  top: -50%;
+  left: 20%;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(155, 0, 14, 0.3) 0%, transparent 70%);
+  filter: blur(60px);
+  pointer-events: none;
+}
+
+.hero-content {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.hero-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: #e50914;
+  letter-spacing: 2px;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.hero-title {
+  font-size: 38px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 16px;
+  letter-spacing: -1px;
+}
+
+.hero-desc {
+  font-size: 16px;
+  color: #cbd5e1;
+  line-height: 1.6;
+  margin-bottom: 36px;
+}
+
+/* TABS SELECTION */
+.category-tabs {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 6px;
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-weight: 700;
+  font-size: 13.5px;
+  padding: 12px 24px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.tab-btn:hover {
+  color: #ffffff;
+}
+
+.tab-btn.active {
+  background: #e50914;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(229, 9, 20, 0.3);
+}
+
+/* RANK CARD LISTING */
+.top-movies-list-wrapper {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.movies-rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.rank-card {
+  background: #ffffff;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 20px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.rank-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(229, 9, 20, 0.15);
+  box-shadow: 0 8px 30px rgba(229, 9, 20, 0.06);
+}
+
+/* Rank Number styling */
+.rank-number-box {
+  width: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-right: 1px solid #f1f5f9;
+  padding-right: 20px;
+}
+
+.rank-num-val {
+  font-size: 32px;
+  font-weight: 900;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.rank-1 .rank-num-val {
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.rank-2 .rank-num-val {
+  background: linear-gradient(135deg, #c0c0c0, #708090);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.rank-3 .rank-num-val {
+  background: linear-gradient(135deg, #cd7f32, #8b4513);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.rank-crown {
+  font-size: 10px;
+  font-weight: 800;
+  background: rgba(255, 140, 0, 0.1);
+  color: #ff8c00;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+/* Poster */
+.movie-poster-box {
+  width: 100px;
+  height: 140px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  flex-shrink: 0;
+}
+
+.poster-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Meta info */
+.movie-meta-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.movie-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.movie-age-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #ffffff;
+}
+
+.age-t13 { background-color: #3b82f6; }
+.age-t16 { background-color: #ef4444; }
+.age-pg13 { background-color: #10b981; }
+
+.movie-genres {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #e50914;
+  margin: 0 0 10px 0;
+}
+
+.movie-description {
+  font-size: 13.5px;
+  color: #64748b;
+  margin: 0 0 14px 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.metrics-row {
+  display: flex;
+  gap: 24px;
+  font-size: 12px;
+}
+
+.metric-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metric-lbl {
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.metric-val {
+  color: #334155;
+  font-weight: 700;
+}
+
+.text-gold {
+  color: #b2902b !important;
+}
+
+/* CTA BOOKING */
+.rank-card-cta {
+  flex-shrink: 0;
+}
+
+.btn-book-now {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #e50914;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 14px 22px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(229, 9, 20, 0.15);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btn-book-now:hover {
+  background: #ff121f;
+  transform: translateX(2px);
+  box-shadow: 0 6px 18px rgba(229, 9, 20, 0.25);
+}
 </style>

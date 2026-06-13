@@ -18,10 +18,10 @@
           <router-link to="/mua-ve" class="nav-item">Lịch chiếu</router-link>
           <router-link to="/mua-ve" class="nav-item">Rạp chiếu</router-link>
           <router-link to="/" class="nav-item">Phim chiếu</router-link>
-          <router-link to="/review-movies" class="nav-item">Review phim</router-link>
-          <router-link to="/top-movies" class="nav-item">Top phim</router-link>
-          <a href="#" class="nav-item">Blog phim</a>
-          <a href="#" class="nav-item font-bold">Về CineGo</a>
+          <router-link to="/review-phim" class="nav-item">Review phim</router-link>
+          <router-link to="/top-phim" class="nav-item">Top phim</router-link>
+          <router-link to="/blog-phim" class="nav-item">Blog phim</router-link>
+          <router-link to="/ve-cinego" class="nav-item font-bold">Về CineGo</router-link>
         </div>
       </div>
       
