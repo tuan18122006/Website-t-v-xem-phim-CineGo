@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Arial:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
 
 :root {
   --bg-primary: #ffffff;
@@ -18,8 +18,8 @@
   --text-secondary: #475569;
   --text-muted: #94a3b8;
 
-  --font-main: Arial, Helvetica, sans-serif;
-  --font-display: Arial, Helvetica, sans-serif;
+  --font-main: 'Inter', sans-serif;
+  --font-display: 'Inter', sans-serif;
 
   --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-bounce: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -38,12 +38,18 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* Cho phép các phần tử cần font chữ monospace đặc thù giữ nguyên phông chữ của chúng */
+code, kbd, pre, samp, .input-readonly, .slug-tag, .cell-id, .font-mono {
+  font-family: monospace, Courier, sans-serif !important;
 }
 
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: var(--font-main);
+  font-family: 'Inter', sans-serif !important;
   min-height: 100vh;
   overflow-x: hidden;
   line-height: 1.6;
@@ -56,7 +62,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-display);
+  font-family: 'Inter', sans-serif !important;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -70,7 +76,7 @@ button,
 input,
 select,
 textarea {
-  font-family: inherit;
+  font-family: Arial, Helvetica, sans-serif !important;
 }
 
 /* Glassmorphism Styles */

@@ -9,15 +9,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Movie extends Model
 {
     protected $fillable = [
-        'title',
-        'slug',
-        'description',
-        'duration',
-        'release_date',
-        'poster_url',
-        'trailer_url',
-        'rating',
-        'status',
+       'title', 
+    'slug', 
+    'description', 
+    'duration', 
+    'release_date', 
+    'status', 
+    'rating', 
+    'poster_url', 
+    'trailer_url'
     ];
 
     protected $casts = [
@@ -26,7 +26,7 @@ class Movie extends Model
 
     public function genres(): BelongsToMany
     {
-        return $this->belongsToMany(Genre::class, 'movie_genre');
+        return $this->belongsToMany(Genre::class, 'movie_genre','movie_id', 'genre_id');
     }
 
     public function showtimes(): HasMany
