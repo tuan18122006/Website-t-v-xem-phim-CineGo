@@ -169,7 +169,7 @@ const handleRegister = async () => {
 
 .form-input {
   background: var(--bg-tertiary);
-  color: white;
+  color: red;
   border: 1px solid var(--border-glass);
   padding: 14px 18px;
   border-radius: var(--radius-md);

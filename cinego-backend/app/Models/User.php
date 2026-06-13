@@ -10,6 +10,7 @@ use Illuminate\Notifications\Notifiable;
 
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class User extends Authenticatable
 {
@@ -27,6 +28,14 @@ class User extends Authenticatable
         'password',
         'role',
         'phone',
+        'status',
+        'membership_tier',
+        'loyalty_points',
+        'total_spent',
+        'lock_reason',
+        'is_anonymized',
+        'work_status',
+        'age',
     ];
 
     /**
@@ -49,6 +58,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_anonymized' => 'boolean',
         ];
     }
 
@@ -60,5 +70,35 @@ class User extends Authenticatable
     public function seatHolds(): HasMany
     {
         return $this->hasMany(SeatHold::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
+
+    public function deviceLogs(): HasMany
+    {
+        return $this->hasMany(UserDeviceLog::class);
+    }
+
+    public function shiftLogs(): HasMany
+    {
+        return $this->hasMany(ShiftLog::class);
+    }
+
+    public function actionLogs(): HasMany
+    {
+        return $this->hasMany(ActionLog::class);
+    }
+
+    public function refundRequests(): HasMany
+    {
+        return $this->hasMany(RefundRequest::class);
+    }
+
+    public function vouchers(): BelongsToMany
+    {
+        return $this->belongsToMany(Voucher::class, 'user_vouchers');
     }
 }

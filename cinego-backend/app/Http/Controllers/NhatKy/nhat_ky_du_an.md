@@ -178,3 +178,38 @@ Sau khi các thành viên nhóm tự xây dựng phần quản lý phim, phần 
   * Chọn Định Dạng (2D / 3D / IMAX) và Hình Thức Dịch Thuật (Phụ đề / Thuyết minh).
 * **Chức năng Xóa** suất chiếu có xác nhận trước khi thực hiện.
 * Giao diện áp dụng nhất quán tông màu Trắng & Đỏ Cinema Red của CineGo.
+
+---
+
+## ⚡ CẬP NHẬT MỚI: HỆ THỐNG QUẢN LÝ TÀI KHOẢN NÂNG CAO & 4 TRANG CLIENT MỚI (Ngày 13/06/2026)
+
+Chúng tôi đã triển khai đợt nâng cấp lớn về cấu trúc cơ sở dữ liệu, API nghiệp vụ, đại tu giao diện quản lý tài khoản chuyên nghiệp và xây dựng thêm 4 trang giao diện khách hàng.
+
+### 1. Cơ sở dữ liệu & Nghiệp vụ Backend (Laravel 11)
+* **Database Migrations:**
+  * Tạo migration nâng cấp bảng `users` (thêm hạng thành viên, điểm thưởng, tổng chi tiêu, trạng thái làm việc, lý do khóa).
+  * Bổ sung cột `age` (Tuổi) vào bảng `users` (`2026_06_13_000002_add_age_to_users_table.php`).
+  * Tạo mới bảng `user_devices_logs` (log thiết bị/IP), `shift_logs` (quản lý ca trực POS), `action_logs` (audit log bảo mật) và `refund_requests` (duyệt hoàn vé).
+* **Models & Relationships:** Khai báo liên kết đầy đủ trong `User.php`, `Voucher.php`, và tạo các model mới tương ứng.
+* **Controllers & Routes:**
+  * **[UserController.php](file:///c:/laragon/www/CineGo/cinego-backend/app/Http/Controllers/Api/UserController.php):** Cung cấp các API tìm kiếm/lọc nâng cao, xem Profile 360°, khóa/mở khóa tài khoản kèm lý do, thay đổi hạng thành viên, tặng/thu hồi voucher, ẩn danh tính bảo vệ dữ liệu (GDPR).
+  * **ShiftController & RefundController:** Xử lý nghiệp vụ ca trực đối soát và quy trình đề xuất/duyệt hoàn vé giải phóng ghế ngồi tự động.
+
+### 2. Đại tu Giao diện Quản trị ([UserManagement.vue](file:///c:/laragon/www/CineGo/cinego-frontend/src/views/admin/UserManagement.vue))
+* **Tối ưu hóa Bố cục:** Khôi phục sidebar dọc màu đen (`CineGo Hub`) gọn gàng ở cột trái, giải quyết tình trạng lồng ghép sidebar thừa thãi của Dashboard chính.
+* **Loại bỏ Checkbox tích chọn:** Gỡ bỏ hoàn toàn cột checkbox tích chọn và dải bulk actions để giao diện bảng thoáng đãng, tinh giản.
+* **Click Avatar xem nhanh Profile 360°:** Nhấp chuột vào avatar tròn của bất kỳ người dùng nào trên bảng sẽ tự động mở hộp thoại chi tiết Profile 360°.
+* **Hiển thị Tên, Tuổi, SĐT:** Khối thông tin nhanh hiển thị đầy đủ tên tuổi và số điện thoại. Tích hợp thêm trường nhập tuổi trong form thêm/sửa.
+* **Hộp thoại Custom Dialog:** Loại bỏ toàn bộ `confirm()` và `prompt()` mặc định của trình duyệt, thay thế bằng modal popup xác nhận/nhập liệu mượt mà, đồng bộ với thiết kế.
+* **Thẻ VIP 3D Tilt:** Tích hợp hiệu ứng nghiêng xoay góc nhìn 3D tương tác chân thực trên thẻ thành viên VIP khi di chuột qua.
+
+### 3. Giải quyết lỗi tải lại trang ([DashboardView.vue](file:///c:/laragon/www/CineGo/cinego-frontend/src/views/admin/DashboardView.vue))
+* Đồng bộ và lưu trữ `activeTab` của Admin Dashboard vào `localStorage` của trình duyệt. F5 reload trang sẽ giữ đúng tab đang làm việc hiện tại, không bị reset chuyển hướng về màn hình stats chính.
+
+### 4. Triển khai 4 trang Client mới (Review, Top Phim, Blog, Về CineGo)
+* **Review Phim ([ReviewPhimView.vue](file:///c:/laragon/www/CineGo/cinego-frontend/src/views/client/ReviewPhimView.vue)):** Bố cục lưới thẻ review, play button giả lập, badge điểm trung bình và ý kiến đánh giá có gắn nhãn *"Đã mua vé qua CineGo"*.
+* **Top Phim ([TopMovies.vue](file:///c:/laragon/www/CineGo/cinego-frontend/src/views/client/TopMovies.vue)):** Bảng xếp hạng phim đang hot và phim hay nhất, đánh số thứ tự kim loại (Vàng, Bạc, Đồng) kèm nút đặt vé nhanh.
+* **Blog Phim ([BlogPhimView.vue](file:///c:/laragon/www/CineGo/cinego-frontend/src/views/client/BlogPhimView.vue)):** Bài viết tiêu điểm (Hero post) nổi bật và lưới bài viết tin tức điện ảnh mới cập nhật.
+* **Về CineGo ([AboutCineGoView.vue](file:///c:/laragon/www/CineGo/cinego-frontend/src/views/client/AboutCineGoView.vue)):** Giới thiệu phòng chiếu Luxury, ghế VIP da 100%, thẻ thành viên đặc quyền.
+* **Định tuyến & Navbar:** Khai báo 4 định tuyến lazy-loaded mới trong `router/index.js` và cập nhật Navbar.vue liên kết trực tiếp tới các trang này.
+
