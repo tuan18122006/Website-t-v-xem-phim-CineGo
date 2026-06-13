@@ -1,74 +1,128 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import ReviewMovies from '../views/client/ReviewMovies.vue';
 
 // Lazy loading views
-const Home = () => import('../views/client/HomeView.vue');
-const MovieDetail = () => import('../views/client/MovieDetailView.vue');
-const SeatSelection = () => import('../views/client/SeatSelectionView.vue');
-const Payment = () => import('../views/client/PaymentView.vue');
-const Login = () => import('../views/client/LoginView.vue');
-const Register = () => import('../views/client/RegisterView.vue');
-const QuickBooking = () => import('../views/client/QuickBookingView.vue');
+const Home = () => import("../views/client/HomeView.vue");
+const MovieDetail = () => import("../views/client/MovieDetailView.vue");
+const SeatSelection = () => import("../views/client/SeatSelectionView.vue");
+const Payment = () => import("../views/client/PaymentView.vue");
+const Login = () => import("../views/client/LoginView.vue");
+const Register = () => import("../views/client/RegisterView.vue");
+const QuickBooking = () => import("../views/client/QuickBookingView.vue");
+const ReviewPhim = () => import("../views/client/ReviewPhimView.vue");
+const TopMovies = () => import("../views/client/TopMovies.vue");
+const BlogPhim = () => import("../views/client/BlogPhimView.vue");
+const AboutCineGo = () => import("../views/client/AboutCineGoView.vue");
+
+const TopMovies = () => import('../views/client/TopMovies.vue');
 
 const AdminDashboard = () => import('../views/admin/DashboardView.vue');
 
 const routes = [
   // Client Routes
   {
-    path: '/',
-    name: 'home',
-    component: Home
+    path: "/",
+    name: "home",
+    component: Home,
   },
   {
-    path: '/mua-ve',
-    name: 'quick-booking',
-    component: QuickBooking
+    path: "/mua-ve",
+    name: "quick-booking",
+    component: QuickBooking,
   },
   {
-    path: '/movie/:id',
-    name: 'movie-detail',
-    component: MovieDetail
+    path: "/movie/:id",
+    name: "movie-detail",
+    component: MovieDetail,
   },
+  {
+    path: '/top-movies',
+    name: 'top-movies',
+    component: TopMovies
+  },
+    {
+    path: '/review-movies',
+    name: 'review-movies',
+    component: ReviewMovies
+  },
+
   {
     path: '/booking/seats',
     name: 'seat-selection',
     component: SeatSelection,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
-    path: '/booking/payment',
-    name: 'payment',
+    path: "/booking/payment",
+    name: "payment",
     component: Payment,
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
   {
-    path: '/login',
-    name: 'login',
-    component: Login
+    path: "/login",
+    name: "login",
+    component: Login,
   },
   {
-    path: '/register',
-    name: 'register',
-    component: Register
+    path: "/register",
+    name: "register",
+    component: Register,
+  },
+  {
+    path: "/review-phim",
+    name: "review-phim",
+    component: ReviewPhim,
+  },
+  {
+    path: "/top-phim",
+    name: "top-phim",
+    component: TopMovies,
+  },
+  {
+    path: "/blog-phim",
+    name: "blog-phim",
+    component: BlogPhim,
+  },
+  {
+    path: "/ve-cinego",
+    name: "ve-cinego",
+    component: AboutCineGo,
   },
 
   // Admin Routes
   {
-    path: '/admin',
-    redirect: '/admin/dashboard'
+    path: "/admin",
+    redirect: "/admin/dashboard",
   },
   {
-    path: '/admin/dashboard',
-    name: 'admin-dashboard',
+    path: "/admin/dashboard",
+    name: "admin-dashboard",
     component: AdminDashboard,
-    meta: { requiresAuth: true, role: 'admin' }
+    meta: { requiresAuth: true, role: "admin" },
   },
-  
+  {
+    path: "/admin/genres",
+    name: "admin-GenreManagement",
+    component: () => import("../views/admin/GenreManagement.vue"),
+  },
+  {
+    path: "/admin/movies",
+    name: "admin-MoviesView",
+    component: () => import("../views/admin/MoviesView.vue"),
+  },
+  {
+    path: "/admin/users",
+    name: "admin-UserManagement",
+    component: () => import("../views/admin/UserManagement.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+
   // Wildcard redirect
   {
-    path: '/:pathMatch(.*)*',
-    redirect: '/'
-  }
+    path: "/:pathMatch(.*)*",
+    redirect: "/",
+  },
 ];
 
 const router = createRouter({
@@ -76,26 +130,26 @@ const router = createRouter({
   routes,
   scrollBehavior() {
     return { top: 0 };
-  }
+  },
 });
 
 // Navigation Guards: Bảo vệ các trang cần Đăng nhập & Quyền Admin
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
-  
+
   // Xác định xem trang yêu cầu đăng nhập không
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
   // Xác định xem trang yêu cầu quyền cụ thể không (ví dụ: admin)
   const requiredRole = to.meta.role;
-  
+
   if (requiresAuth && !authStore.isAuthenticated) {
     // Nếu chưa đăng nhập -> chuyển về Login
-    next({ name: 'login', query: { redirect: to.fullPath } });
+    next({ name: "login", query: { redirect: to.fullPath } });
   } else if (requiresAuth && requiredRole) {
     // Nếu đã đăng nhập nhưng cần check quyền
-    if (requiredRole === 'admin' && !authStore.isAdmin) {
+    if (requiredRole === "admin" && !authStore.isAdmin) {
       // Không có quyền Admin -> chuyển về Trang chủ
-      next({ name: 'home' });
+      next({ name: "home" });
     } else {
       next();
     }

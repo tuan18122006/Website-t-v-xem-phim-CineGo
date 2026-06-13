@@ -1,61 +1,75 @@
 <template>
-  <div class="admin-showtimes-view glass-panel">
-    <div class="header-row">
-      <h2 class="gradient-text-accent">Quản Lý Lịch Chiếu</h2>
-      <button @click="openCreateModal" class="btn-add">+ Thêm Suất Chiếu</button>
-    </div>
-    
-    <div v-if="loading" class="loading-state">
-      <div class="spinner"></div>
-      <p>Đang tải danh sách suất chiếu từ database MySQL...</p>
-    </div>
+  <div class="admin-showtimes-view-container">
+    <div class="glass-panel list-card">
+      <div class="header-row">
+        <h2 class="title-cine">🕒 Quản Lý Lịch Chiếu</h2>
+        <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Suất Chiếu</button>
+      </div>
+      
+      <!-- Spinner loading dữ liệu -->
+      <div v-if="loading" class="loading-state">
+        <div class="spinner-cine"></div>
+        <p>Đang tải danh sách suất chiếu từ database...</p>
+      </div>
 
-    <div v-else class="showtimes-table-wrapper">
+      <div v-else class="showtimes-table-wrapper">
       <table class="showtimes-table">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Tên Phim</th>
-            <th>Phòng</th>
-            <th>Giờ Bắt Đầu</th>
-            <th>Giờ Kết Thúc</th>
-            <th>Định Dạng</th>
-            <th>Dịch Thuật</th>
-            <th>Trạng Thái</th>
-            <th>Hành Động</th>
+            <th class="col-id">ID</th>
+            <th class="col-movie">Tên Phim</th>
+            <th class="col-room">Phòng</th>
+            <th class="col-time">Giờ Bắt Đầu</th>
+            <th class="col-time">Giờ Kết Thúc</th>
+            <th class="col-format">Định Dạng</th>
+            <th class="col-translation">Dịch Thuật</th>
+            <th class="col-status">Trạng Thái</th>
+            <th class="col-actions">Hành Động</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="st in showtimes" :key="st.id">
-            <td>#{{ st.id }}</td>
-            <td class="font-bold">{{ st.movie_title }}</td>
-            <td><span class="room-pill">{{ st.room_name }}</span></td>
-            <td class="time-highlight">{{ formatDateTime(st.start_time) }}</td>
-            <td class="time-end">{{ formatDateTime(st.end_time) }}</td>
-            <td><span class="format-pill">{{ st.format }}</span></td>
-            <td><span class="translation-pill">{{ st.translation }}</span></td>
+          <tr v-for="st in showtimes" :key="st.id" class="table-row">
+            <td class="cell-id">#{{ st.id }}</td>
+            <td class="cell-movie">{{ st.movie_title }}</td>
+            <td><span class="room-pill-cine">{{ st.room_name }}</span></td>
+            <td class="time-start-cine">{{ formatDateTime(st.start_time) }}</td>
+            <td class="time-end-cine">{{ formatDateTime(st.end_time) }}</td>
+            <td><span class="format-pill-cine">{{ st.format }}</span></td>
+            <td><span class="translation-pill-cine">{{ st.translation }}</span></td>
             <td>
-              <span class="status-pill" :class="{ active: st.status === 'active', cancelled: st.status === 'cancelled' }">
+              <span class="status-pill-cine" :class="{ active: st.status === 'active', cancelled: st.status === 'cancelled' }">
                 {{ st.status === 'active' ? 'Hoạt động' : 'Đã hủy' }}
               </span>
             </td>
-            <td>
-              <button @click="deleteShowtime(st.id)" class="action-btn delete-btn">Xóa</button>
+            <td class="cell-actions">
+              <div class="action-buttons-group">
+                <button @click="deleteShowtime(st.id)" class="btn-action delete">🗑️ Xóa</button>
+              </div>
+            </td>
+          </tr>
+          
+          <tr v-if="showtimes.length === 0">
+            <td colspan="9" class="empty-state">
+              📭 Hiện chưa có suất chiếu nào được lên lịch. Hãy bấm nút "Thêm Suất Chiếu"!
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+    </div>
 
-    <!-- CREATE SHOWTIME MODAL -->
-    <div v-if="showModal" class="modal-backdrop">
-      <div class="modal-content glass-panel">
-        <h3 class="modal-title glow-text-pink">Thêm Suất Chiếu Mới</h3>
+    <!-- CREATE SHOWTIME MODAL (RED/WHITE HIGH ACCESSIBILITY THEME) -->
+    <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
+      <div class="modal-content-cine">
+        <div class="modal-header">
+          <h3 class="modal-title-cine">✨ Thêm Suất Chiếu Mới</h3>
+          <button @click="closeModal" class="btn-close-modal">✕</button>
+        </div>
         
-        <form @submit.prevent="saveShowtime" class="showtime-form">
-          <div class="form-group">
-            <label>Chọn Phim</label>
-            <select v-model="form.movie_id" required class="form-input" @change="onMovieChange">
+        <form @submit.prevent="saveShowtime" class="movie-form">
+          <div class="form-group-large">
+            <label class="form-label-large">Chọn Phim *</label>
+            <select v-model="form.movie_id" required class="form-input-large select-cine" @change="onMovieChange">
               <option value="" disabled>-- Vui lòng chọn phim --</option>
               <option v-for="movie in movies" :key="movie.id" :value="movie.id">
                 {{ movie.title }} ({{ movie.duration }} phút)
@@ -63,50 +77,50 @@
             </select>
           </div>
 
-          <div class="form-group">
-            <label>Chọn Phòng Chiếu</label>
-            <select v-model="form.room_id" required class="form-input">
-              <option value="" disabled>-- Vui lòng chọn phòng --</option>
+          <div class="form-group-large">
+            <label class="form-label-large">Chọn Phòng Chiếu *</label>
+            <select v-model="form.room_id" required class="form-input-large select-cine">
+              <option value="" disabled>-- Vui lòng chọn phòng chiếu --</option>
               <option v-for="room in rooms" :key="room.id" :value="room.id">
                 {{ room.name }} (Sức chứa: {{ room.total_seats }} ghế)
               </option>
             </select>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>Thời Gian Chiếu (Bắt đầu)</label>
-              <input v-model="form.start_time" type="datetime-local" required class="form-input" @change="calculateEndTime" />
+          <div class="form-row-double">
+            <div class="form-group-large">
+              <label class="form-label-large">Thời Gian Chiếu (Bắt đầu) *</label>
+              <input v-model="form.start_time" type="datetime-local" required class="form-input-large" @change="calculateEndTime" />
             </div>
 
-            <div class="form-group">
-              <label>Thời Gian Kết Thúc (Tự động)</label>
-              <input v-model="form.end_time" type="datetime-local" required readonly class="form-input readonly" />
+            <div class="form-group-large">
+              <label class="form-label-large">Thời Gian Kết Thúc (Tự động)</label>
+              <input v-model="form.end_time" type="datetime-local" required readonly class="form-input-large input-readonly" />
             </div>
           </div>
 
-          <div class="form-row">
-            <div class="form-group">
-              <label>Định Dạng</label>
-              <select v-model="form.format" required class="form-input">
+          <div class="form-row-double">
+            <div class="form-group-large">
+              <label class="form-label-large">Định Dạng Suất Chiếu *</label>
+              <select v-model="form.format" required class="form-input-large select-cine">
                 <option value="2D">2D</option>
                 <option value="3D">3D</option>
                 <option value="IMAX">IMAX</option>
               </select>
             </div>
 
-            <div class="form-group">
-              <label>Dịch Thuật</label>
-              <select v-model="form.translation" required class="form-input">
-                <option value="Phụ đề">Phụ đề</option>
+            <div class="form-group-large">
+              <label class="form-label-large">Hình Thức Dịch Thuật *</label>
+              <select v-model="form.translation" required class="form-input-large select-cine">
+                <option value="Phụ đề">Phụ đề (Vietsub)</option>
                 <option value="Thuyết minh">Thuyết minh</option>
               </select>
             </div>
           </div>
 
-          <div class="modal-footer">
-            <button type="button" @click="closeModal" class="btn-cancel">Hủy</button>
-            <button type="submit" class="btn-save" :disabled="submitting">
+          <div class="modal-footer-cine">
+            <button type="button" @click="closeModal" class="btn-secondary-cine">Hủy bỏ</button>
+            <button type="submit" class="btn-primary-cine" :disabled="submitting">
               {{ submitting ? 'Đang tạo...' : 'Tạo Suất Chiếu' }}
             </button>
           </div>
@@ -176,7 +190,7 @@ const calculateEndTime = () => {
   const start = new Date(form.value.start_time);
   const end = new Date(start.getTime() + movie.duration * 60 * 1000);
   
-  // Format for datetime-local input
+  // Định dạng chuẩn cho datetime-local input
   const tzOffset = end.getTimezoneOffset() * 60000;
   const localISOTime = new Date(end.getTime() - tzOffset).toISOString().slice(0, 16);
   form.value.end_time = localISOTime;
@@ -197,7 +211,8 @@ const fetchShowtimes = async () => {
 const fetchMovies = async () => {
   try {
     const response = await api.get('/movies');
-    movies.value = response.data;
+    // Nhận diện dữ liệu dạng response.data.data hoặc response.data
+    movies.value = response.data.data || response.data;
   } catch (err) {
     console.error('Fetch movies error:', err);
   }
@@ -206,7 +221,7 @@ const fetchMovies = async () => {
 const fetchRooms = async () => {
   try {
     const response = await api.get('/rooms');
-    rooms.value = response.data;
+    rooms.value = response.data.data || response.data;
   } catch (err) {
     console.error('Fetch rooms error:', err);
   }
@@ -216,7 +231,7 @@ const saveShowtime = async () => {
   submitting.value = true;
   try {
     await api.post('/admin/showtimes', form.value);
-    alert('Thêm suất chiếu mới thành công!');
+    alert('🎉 Thêm suất chiếu mới thành công!');
     showModal.value = false;
     await fetchShowtimes();
   } catch (err) {
@@ -228,10 +243,10 @@ const saveShowtime = async () => {
 };
 
 const deleteShowtime = async (id) => {
-  if (!confirm('Bạn có chắc chắn muốn xóa suất chiếu này? Hành động này không thể hoàn tác!')) return;
+  if (!confirm('⚠️ Bạn có chắc chắn muốn xóa suất chiếu này? Hành động này không thể hoàn tác!')) return;
   try {
     await api.delete(`/admin/showtimes/${id}`);
-    alert('Xóa suất chiếu thành công!');
+    alert('🗑️ Xóa suất chiếu thành công!');
     await fetchShowtimes();
   } catch (err) {
     console.error('Delete showtime error:', err);
@@ -247,31 +262,91 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.admin-showtimes-view {
-  padding: 30px;
+.admin-showtimes-view-container {
+  background-color: #ffffff;
+  color: #1e293b;
 }
+
 .header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 25px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 15px;
 }
-.btn-add {
-  background: linear-gradient(135deg, var(--accent-pink), var(--accent-violet));
-  color: white;
+
+.title-cine {
+  font-size: 22px;
+  font-weight: 800;
+  color: #9b000e;
+  text-transform: uppercase;
+}
+
+.btn-primary-cine {
+  background: linear-gradient(135deg, #e50914 0%, #9b000e 100%);
+  color: #ffffff;
   border: none;
   padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 15px;
   font-weight: 700;
-  border-radius: var(--radius-sm);
   cursor: pointer;
-  box-shadow: var(--shadow-neon-pink);
-  transition: var(--transition-bounce);
+  box-shadow: 0 4px 15px rgba(229, 9, 20, 0.25);
+  transition: all 0.2s ease;
 }
-.btn-add:hover {
+.btn-primary-cine:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 20px rgba(255, 0, 127, 0.4);
+  box-shadow: 0 6px 20px rgba(229, 9, 20, 0.35);
 }
+
+.btn-secondary-cine {
+  background-color: #ffffff;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-secondary-cine:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+  color: #1e293b;
+}
+
+/* Loading state */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 0;
+  gap: 15px;
+}
+.spinner-cine {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #e50914;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.loading-state p {
+  font-size: 15px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Showtimes List Table */
 .showtimes-table-wrapper {
+  width: 100%;
   overflow-x: auto;
 }
 .showtimes-table {
@@ -279,187 +354,248 @@ onMounted(async () => {
   border-collapse: collapse;
   text-align: left;
 }
-.showtimes-table th, .showtimes-table td {
-  padding: 16px;
-  border-bottom: 1px solid var(--border-glass);
-}
 .showtimes-table th {
-  color: var(--text-muted);
-  font-size: 13px;
-  text-transform: uppercase;
-}
-.font-bold {
-  font-weight: 700;
-}
-.room-pill {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.time-highlight {
-  color: var(--accent-mint);
+  padding: 16px;
+  background-color: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+  color: #475569;
+  font-size: 15px;
   font-weight: 800;
-  font-size: 14px;
 }
-.time-end {
-  color: var(--text-secondary);
-  font-size: 13px;
+.showtimes-table td {
+  padding: 16px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 15px;
 }
-.format-pill {
-  background: rgba(112, 0, 255, 0.1);
-  color: var(--accent-violet);
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 700;
-}
-.translation-pill {
-  background: rgba(255, 0, 127, 0.05);
-  color: var(--accent-pink);
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.status-pill {
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-}
-.status-pill.active {
-  background: rgba(0, 245, 160, 0.1);
-  color: var(--accent-mint);
-}
-.status-pill.cancelled {
-  background: rgba(255, 0, 0, 0.1);
-  color: #ff5555;
-}
-.action-btn {
-  background: transparent;
-  border: 1px solid var(--border-glass);
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: var(--transition-smooth);
-}
-.delete-btn {
-  color: #ff5555;
-}
-.delete-btn:hover {
-  border-color: #ff0000;
-  background: rgba(255, 0, 0, 0.1);
-  color: white;
+.table-row:hover {
+  background-color: #fffafb;
 }
 
-/* MODAL STYLING */
+.col-id { width: 80px; text-align: center; }
+.col-movie { min-width: 200px; }
+.col-room { width: 120px; }
+.col-time { width: 160px; }
+.col-format { width: 110px; text-align: center; }
+.col-translation { width: 130px; text-align: center; }
+.col-status { width: 170px; text-align: center; }
+.col-actions { width: 110px; text-align: center; }
+
+.cell-id {
+  font-weight: 800;
+  color: #e50914;
+  text-align: center;
+}
+.cell-movie {
+  font-weight: 700;
+  color: #1e293b;
+}
+.room-pill-cine {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.time-start-cine {
+  color: #0d9488;
+  font-weight: 800;
+}
+.time-end-cine {
+  color: #64748b;
+}
+.format-pill-cine {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.translation-pill-cine {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.status-pill-cine {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 800;
+  display: inline-block;
+  white-space: nowrap;
+}
+.status-pill-cine.active {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+.status-pill-cine.cancelled {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+.cell-actions {
+  text-align: center;
+}
+.action-buttons-group {
+  display: flex;
+  justify-content: center;
+}
+.btn-action {
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-action.delete {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+.btn-action.delete:hover {
+  background-color: #fee2e2;
+  border-color: #dc2626;
+}
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #94a3b8;
+  font-size: 15px;
+}
+
+/* PREMIUM SCROLLABLE RED & WHITE MODAL */
 .modal-backdrop {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(5px);
-  z-index: 200;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 999;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 20px;
-}
-.modal-content {
-  width: 100%;
-  max-width: 500px;
-  max-height: 90vh;
+  padding: 40px 20px;
   overflow-y: auto;
-  padding: 30px;
-  background: rgba(18, 14, 36, 0.95);
-  border-radius: var(--radius-lg);
-}
-.modal-title {
-  font-size: 24px;
-  font-weight: 800;
-  margin-bottom: 24px;
-  text-align: center;
-}
-.showtime-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.form-group label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-.form-input {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-glass);
-  color: white;
-  padding: 10px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 14px;
-}
-.form-input:focus {
-  outline: none;
-  border-color: var(--accent-pink);
-  box-shadow: var(--shadow-neon-pink);
-}
-.form-input.readonly {
-  background: rgba(255, 255, 255, 0.01);
-  color: var(--text-muted);
-  cursor: not-allowed;
-}
-.form-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 10px;
-  border-top: 1px solid var(--border-glass);
-  padding-top: 16px;
-}
-.btn-cancel {
-  background: transparent;
-  border: 1px solid var(--border-glass);
-  color: var(--text-secondary);
-  padding: 10px 20px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-weight: 600;
-}
-.btn-save {
-  background: linear-gradient(135deg, var(--accent-pink), var(--accent-violet));
-  color: white;
-  border: none;
-  padding: 10px 24px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-weight: 700;
-  box-shadow: var(--shadow-neon-pink);
-}
-.btn-save:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
-.loading-state {
+.modal-content-cine {
+  width: 100%;
+  max-width: 600px;
+  padding: 35px;
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  color: #1e293b;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  border-bottom: 2px solid #fee2e2;
+  padding-bottom: 15px;
+}
+
+.modal-title-cine {
+  font-size: 22px;
+  font-weight: 800;
+  color: #9b000e;
+  text-transform: uppercase;
+}
+
+.btn-close-modal {
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+.btn-close-modal:hover {
+  color: #e50914;
+}
+
+.movie-form {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 40px;
+  gap: 20px;
+}
+
+.form-group-large {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label-large {
+  font-size: 15px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.form-input-large {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  padding: 14px 20px;
+  border-radius: 10px;
+  outline: none;
+  font-size: 16px;
+  background-color: #f8fafc;
+  color: #1e293b;
+  transition: all 0.2s ease-in-out;
+}
+.form-input-large:focus {
+  border-color: #e50914;
+  box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
+  background-color: #ffffff;
+}
+
+.input-readonly {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border-color: #e2e8f0;
+  font-family: monospace;
+}
+
+.form-row-double {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 576px) {
+  .form-row-double {
+    grid-template-columns: 1fr;
+  }
+}
+
+.select-cine {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 18px;
+  appearance: none;
+  padding-right: 40px;
+  cursor: pointer;
+}
+
+.modal-footer-cine {
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+  margin-top: 15px;
+  border-top: 2px solid #fee2e2;
+  padding-top: 20px;
 }
 </style>

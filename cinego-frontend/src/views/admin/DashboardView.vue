@@ -21,13 +21,22 @@
 
         <button 
           class="nav-link" 
+          :class="{ active: activeTab === 'genres' }" 
+          @click="activeTab = 'genres'"
+        >
+          <span class="nav-icon">🏷️</span>
+          <span>Quản Lý Thể Loại</span>
+        </button>
+
+        <button 
+          class="nav-link" 
           :class="{ active: activeTab === 'movies' }" 
           @click="activeTab = 'movies'"
         >
           <span class="nav-icon">🎬</span>
           <span>Quản Lý Phim</span>
         </button>
-
+        
         <button 
           class="nav-link" 
           :class="{ active: activeTab === 'showtimes' }" 
@@ -37,9 +46,18 @@
           <span>Quản Lý Lịch Chiếu</span>
         </button>
 
-        <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'revenue' }" 
+        <button
+          class="nav-link"
+          :class="{ active: activeTab === 'users' }"
+          @click="activeTab = 'users'"
+        >
+          <span class="nav-icon">👥</span>
+          <span>Quản Lý Tài Khoản</span>
+        </button>
+
+        <button
+          class="nav-link"
+          :class="{ active: activeTab === 'revenue' }"
           @click="activeTab = 'revenue'"
         >
           <span class="nav-icon">💰</span>
@@ -203,6 +221,14 @@
       <div v-else-if="activeTab === 'showtimes'">
         <ShowtimesView />
       </div>
+      <div v-else-if="activeTab === 'genres'">
+  <GenreManagement />
+</div>
+
+      <!-- TAB: USER MANAGEMENT -->
+      <div v-else-if="activeTab === 'users'">
+        <UserManagement />
+      </div>
 
       <!-- TAB 4: REVENUE TRANSACTION REPORT -->
       <div v-else-if="activeTab === 'revenue'" class="revenue-tab-content">
@@ -247,17 +273,22 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import MoviesView from './MoviesView.vue';
 import ShowtimesView from './ShowtimesView.vue';
+import GenreManagement from './GenreManagement.vue';
+import UserManagement from './UserManagement.vue';
 import api from '../../api/axios';
 
 const authStore = useAuthStore();
 const router = useRouter();
 
-const activeTab = ref('stats');
+const activeTab = ref(localStorage.getItem('admin_active_tab') || 'stats');
+watch(activeTab, (newVal) => {
+  localStorage.setItem('admin_active_tab', newVal);
+});
 const moviesCount = ref(0);
 const showtimesCount = ref(0);
 const bookings = ref([]);
@@ -267,6 +298,8 @@ const getTabTitle = computed(() => {
     stats: 'Dashboard Quản Trị Hệ Thống',
     movies: 'Quản Lý Danh Sách Phim',
     showtimes: 'Quản Lý Suất Chiếu & Lịch Trình',
+    genres: 'Quản Lý Thể Loại Phim',
+    users: 'Quản Lý Tài Khoản & Phân Quyền',
     revenue: 'Báo Cáo & Thống Kê Doanh Thu'
   };
   return titles[activeTab.value];
@@ -277,6 +310,8 @@ const getTabDesc = computed(() => {
     stats: 'Xem tổng quan báo cáo doanh thu kinh doanh và biểu đồ tăng trưởng hệ thống CineGo.',
     movies: 'Quản lý phim đang chiếu, sắp chiếu, cấu hình các thể loại phim và hình ảnh poster.',
     showtimes: 'Quản lý lịch chiếu các phòng chiếu, kiểm tra phòng và dịch thuật, định dạng 2D/3D.',
+    genres: 'Quản lý danh mục thể loại phim của hệ thống CineGo.',
+    users: 'Thêm, sửa, phân quyền (Admin/Staff/User) và khóa/mở khóa tài khoản người dùng.',
     revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.'
   };
   return descs[activeTab.value];
@@ -293,7 +328,7 @@ const handleLogout = async () => {
 
 const fetchDashboardStats = async () => {
   try {
-    const moviesRes = await api.get('/movies');
+    const moviesRes = await api.get('/admin/movies');
     moviesCount.value = moviesRes.data.length;
     
     const showtimesRes = await api.get('/admin/showtimes');
@@ -325,13 +360,13 @@ onMounted(() => {
 .admin-layout {
   display: grid;
   grid-template-columns: 260px 1fr;
-  min-height: 85vh;
+  min-height: 100vh;
   gap: 30px;
   background-color: #ffffff;
   color: var(--text-primary);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: 0 4px 30px rgba(0,0,0,0.03);
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
 }
 
 @media (max-width: 992px) {
