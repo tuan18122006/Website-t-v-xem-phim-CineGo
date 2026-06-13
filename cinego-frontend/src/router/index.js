@@ -9,6 +9,10 @@ const Payment = () => import("../views/client/PaymentView.vue");
 const Login = () => import("../views/client/LoginView.vue");
 const Register = () => import("../views/client/RegisterView.vue");
 const QuickBooking = () => import("../views/client/QuickBookingView.vue");
+const ReviewPhim = () => import("../views/client/ReviewPhimView.vue");
+const TopMovies = () => import("../views/client/TopMovies.vue");
+const BlogPhim = () => import("../views/client/BlogPhimView.vue");
+const AboutCineGo = () => import("../views/client/AboutCineGoView.vue");
 
 const AdminDashboard = () => import("../views/admin/DashboardView.vue");
 
@@ -50,6 +54,26 @@ const routes = [
     path: "/register",
     name: "register",
     component: Register,
+  },
+  {
+    path: "/review-phim",
+    name: "review-phim",
+    component: ReviewPhim,
+  },
+  {
+    path: "/top-phim",
+    name: "top-phim",
+    component: TopMovies,
+  },
+  {
+    path: "/blog-phim",
+    name: "blog-phim",
+    component: BlogPhim,
+  },
+  {
+    path: "/ve-cinego",
+    name: "ve-cinego",
+    component: AboutCineGo,
   },
 
   // Admin Routes

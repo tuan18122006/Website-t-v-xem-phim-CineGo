@@ -1,111 +1,102 @@
 <template>
-  <div class="dashboard-tab-content">
+  <div class="genre-management-container">
     
-    <div class="glass-panel detailed-report" style="margin-bottom: 25px; padding: 25px; border-radius: 16px;">
-      <h3 class="card-title" style="margin-bottom: 20px; font-size: 16px; font-weight: 700; border-left: 4px solid var(--accent-pink); padding-left: 10px;">
-        {{ isEditing ? '📝 Cập Nhật Thể Loại' : '✨ Thêm Thể Loại Mới' }}
+    <!-- CARD 1: FORM THÊM / CẬP NHẬT THỂ LOẠI -->
+    <div class="glass-panel form-card">
+      <h3 class="card-title">
+        <span class="title-icon">{{ isEditing ? '📝' : '✨' }}</span>
+        {{ isEditing ? 'Cập Nhật Thể Loại Phim' : 'Thêm Thể Loại Mới' }}
       </h3>
       
-      <form @submit.prevent="saveGenre" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-        <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 8px;">
-          <label style="font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px;">Tên thể loại</label>
-          <input 
-            v-model="form.name" 
-            type="text" 
-            style="width: 100%; border: 1px solid rgba(0,0,0,0.08); padding: 12px 16px; border-radius: 8px; outline: none; font-size: 14px; background-color: #fdfbfd;"
-            placeholder="Nhập tên thể loại phim..." 
-            required 
-          />
-        </div>
+      <form @submit.prevent="saveGenre" class="genre-form">
+        <div class="form-inputs-row">
+          <div class="input-group">
+            <label class="form-label">Tên thể loại *</label>
+            <input 
+              v-model="form.name" 
+              type="text" 
+              class="form-input-large"
+              placeholder="Nhập tên thể loại phim..." 
+              required 
+            />
+          </div>
 
-        <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 8px;">
-          <label style="font-size: 13px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">Slug tự sinh</label>
-          <input 
-            :value="generateSlug(form.name)"
-            type="text" 
-            style="width: 100%; border: 1px solid rgba(0,0,0,0.05); padding: 12px 16px; border-radius: 8px; outline: none; font-size: 14px; background-color: #f1f5f9; color: #64748b; font-family: monospace;"
-            readonly
-            placeholder="slug-duong-dan-tinh" 
-          />
+          <div class="input-group">
+            <label class="form-label label-muted">Slug tự sinh (Đường dẫn tĩnh)</label>
+            <input 
+              :value="generateSlug(form.name)"
+              type="text" 
+              class="form-input-large input-readonly"
+              readonly
+              placeholder="slug-tu-dong" 
+            />
+          </div>
         </div>
         
-        <div style="display: flex; gap: 10px;">
-          <button 
-            type="submit" 
-            class="btn-export" 
-            style="background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-violet) 100%); color: white; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(216, 45, 139, 0.2);"
-          >
-            {{ isEditing ? 'Cập nhật' : 'Lưu lại' }}
+        <div class="form-actions">
+          <button type="submit" class="btn-primary-cine">
+            {{ isEditing ? 'Cập nhật thể loại' : 'Lưu thể loại' }}
           </button>
           
           <button 
             v-if="isEditing" 
             type="button" 
             @click="resetForm" 
-            class="btn-logout-sidebar"
-            style="padding: 12px 20px; border-radius: 8px; font-weight: 600; margin: 0;"
+            class="btn-secondary-cine"
           >
-            Hủy
+            Hủy bỏ
           </button>
         </div>
       </form>
     </div>
 
-    <div class="glass-panel detailed-report" style="padding: 25px; border-radius: 16px;">
-      <div class="report-header" style="margin-bottom: 20px;">
-        <h3 style="font-size: 16px; font-weight: 700; color: #1e293b;">Danh Sách Thể Loại</h3>
+    <!-- CARD 2: DANH SÁCH THỂ LOẠI -->
+    <div class="glass-panel list-card">
+      <div class="list-header">
+        <h3 class="list-title">📁 Danh Sách Thể Loại Hiện Có</h3>
+        <span class="count-badge">Tổng cộng: {{ genres.length }} thể loại</span>
+      </div>
+
+      <!-- Loading spinner -->
+      <div v-if="loading" class="loading-state">
+        <div class="spinner-cine"></div>
+        <p>Đang tải dữ liệu thể loại...</p>
       </div>
       
-      <div style="overflow-x: auto;">
-        <table class="report-table">
+      <div v-else class="table-responsive">
+        <table class="genre-table">
           <thead>
             <tr>
-              <th style="width: 70px; text-align: center; font-weight: 700;">ID</th>
-              <th style="font-weight: 700;">Tên thể loại</th>
-              <th style="font-weight: 700;">Slug</th>
-              <th style="font-weight: 700;">Thời gian cập nhật</th>
-              <th style="width: 160px; text-align: center; font-weight: 700;">Hành Động</th>
+              <th class="col-id">ID</th>
+              <th class="col-name">Tên thể loại</th>
+              <th class="col-slug">Slug đường dẫn</th>
+              <th class="col-date">Thời gian cập nhật</th>
+              <th class="col-actions">Hành Động</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="genre in genres" :key="genre.id">
-              <td class="font-bold text-pink" style="text-align: center; font-weight: 700; font-size: 14px;">
-                #{{ genre.id }}
+            <tr v-for="genre in genres" :key="genre.id" class="table-row">
+              <td class="cell-id">#{{ genre.id }}</td>
+              <td class="cell-name">{{ genre.name }}</td>
+              <td class="cell-slug">
+                <span class="slug-tag">{{ genre.slug }}</span>
               </td>
-              <td style="font-weight: 700; color: #1e293b; font-size: 14px;">
-                {{ genre.name }}
-              </td>
-              <td>
-                <span class="method-badge" style="background-color: rgba(216, 45, 139, 0.05); color: var(--accent-pink); font-family: monospace; font-size: 12px; padding: 4px 10px; border-radius: 6px;">
-                  {{ genre.slug }}
-                </span>
-              </td>
-              <td style="color: #64748b; font-size: 13px;">
-                {{ formatDate(genre.updated_at) }}
-              </td>
-              <td style="text-align: center;">
-                <div style="display: flex; justify-content: center; gap: 8px;">
-                  <button 
-                    @click="editGenre(genre)" 
-                    class="btn-export" 
-                    style="padding: 6px 14px; font-size: 12px; border-color: #dd6b20; color: #dd6b20; font-weight: 700; border-radius: 6px;"
-                  >
-                    Sửa
+              <td class="cell-date">{{ formatDate(genre.updated_at) }}</td>
+              <td class="cell-actions">
+                <div class="action-buttons-group">
+                  <button @click="editGenre(genre)" class="btn-action edit">
+                    ✏️ Sửa
                   </button>
-                  <button 
-                    @click="deleteGenre(genre.id)" 
-                    class="btn-logout-sidebar" 
-                    style="padding: 6px 14px; font-size: 12px; font-weight: 600; border-radius: 6px; margin: 0;"
-                  >
-                    Xóa
+                  <button @click="deleteGenre(genre.id)" class="btn-action delete">
+                    🗑️ Xóa
                   </button>
                 </div>
               </td>
             </tr>
 
             <tr v-if="genres.length === 0">
-              <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-muted); font-size: 14px;">
-                📭 Chưa có dữ liệu thể loại phim.
+              <td colspan="5" class="empty-state">
+                📭 Hệ thống chưa có dữ liệu thể loại phim.
               </td>
             </tr>
           </tbody>
@@ -118,14 +109,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import axios from 'axios'; // Đã sửa sạch lỗi import bậy bạ ở đây
+import api from '../../api/axios'; // Dùng api config tập trung giúp tối ưu hiệu năng và xử lý lỗi 401
 
 const genres = ref([]);
 const isEditing = ref(false);
 const editingId = ref(null);
+const loading = ref(false);
 const form = ref({ name: '' });
-
-const API_URL = 'http://127.0.0.1:8000/api/admin/genres';
 
 const generateSlug = (title) => {
   if (!title) return '';
@@ -144,18 +134,8 @@ const generateSlug = (title) => {
   return slug;
 };
 
-const getAuthConfig = () => {
-  const token = localStorage.getItem('cinego_token');
-  return {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Accept': 'application/json'
-    }
-  };
-};
-
 const formatDate = (dateString) => {
-  if (!dateString) return 'Chưa có thông tin';
+  if (!dateString) return 'Chưa cập nhật';
   const date = new Date(dateString);
   return date.toLocaleString('vi-VN', {
     hour: '2-digit',
@@ -167,39 +147,36 @@ const formatDate = (dateString) => {
 };
 
 const fetchGenres = async () => {
+  loading.value = true;
   try {
-    const response = await axios.get(API_URL, getAuthConfig());
-    if (response.data && response.data.data) {
-      genres.value = response.data.data;
-    } else {
-      genres.value = response.data;
-    }
+    const response = await api.get('/admin/genres');
+    genres.value = response.data.data || response.data;
   } catch (error) {
-    console.error('Lỗi tải danh sách:', error);
-    if (error.response?.status === 401) {
-      alert('Hết phiên làm việc hoặc chưa đăng nhập tài khoản hợp lệ! Vui lòng đăng nhập lại.');
-    }
+    console.error('Lỗi tải danh sách thể loại:', error);
+  } finally {
+    loading.value = false;
   }
 };
 
 const saveGenre = async () => {
+  if (!form.value.name.trim()) return;
   try {
     const payload = {
-      name: form.value.name,
-      slug: generateSlug(form.value.name)
+      name: form.value.name.trim(),
+      slug: generateSlug(form.value.name.trim())
     };
 
     if (isEditing.value) {
-      await axios.put(`${API_URL}/${editingId.value}`, payload, getAuthConfig());
+      await api.put(`/admin/genres/${editingId.value}`, payload);
       alert('🎉 Cập nhật thể loại thành công!');
     } else {
-      await axios.post(API_URL, payload, getAuthConfig());
+      await api.post('/admin/genres', payload);
       alert('🎉 Thêm thể loại mới thành công!');
     }
     resetForm();
-    fetchGenres();
+    await fetchGenres();
   } catch (error) {
-    console.error(error.response);
+    console.error('Lỗi lưu thể loại:', error);
     alert(error.response?.data?.message || 'Có lỗi xảy ra khi lưu dữ liệu!');
   }
 };
@@ -208,17 +185,19 @@ const editGenre = (genre) => {
   isEditing.value = true;
   editingId.value = genre.id;
   form.value.name = genre.name;
+  // Cuộn nhẹ lên trên để người dùng dễ nhập liệu
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 const deleteGenre = async (id) => {
-  if (confirm('⚠️ Bạn có chắc chắn muốn xóa thể loại này không?')) {
+  if (confirm('⚠️ Bạn có chắc chắn muốn xóa thể loại này không? Tất cả các liên kết phim liên quan sẽ bị ảnh hưởng.')) {
     try {
-      await axios.delete(`${API_URL}/${id}`, getAuthConfig());
+      await api.delete(`/admin/genres/${id}`);
       alert('🗑️ Đã xóa thể loại thành công!');
-      fetchGenres();
+      await fetchGenres();
     } catch (error) {
-      console.error(error.response);
-      alert('Không thể xóa thể loại này.');
+      console.error('Lỗi xóa thể loại:', error);
+      alert(error.response?.data?.message || 'Không thể xóa thể loại này!');
     }
   }
 };
@@ -233,9 +212,286 @@ onMounted(fetchGenres);
 </script>
 
 <style scoped>
-input:focus {
-  border-color: var(--accent-pink) !important;
-  box-shadow: 0 0 0 3px rgba(216, 45, 139, 0.1);
-  background-color: #ffffff !important;
+.genre-management-container {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  background-color: #ffffff;
+  color: #1e293b;
+}
+
+/* Glass-like Panel styled for Red/White Theme */
+.glass-panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  padding: 30px;
+  transition: all 0.3s ease;
+}
+.glass-panel:hover {
+  box-shadow: 0 6px 25px rgba(229, 9, 20, 0.04);
+  border-color: rgba(229, 9, 20, 0.15);
+}
+
+/* Form Card Styles */
+.form-card {
+  border-left: 5px solid #e50914; /* Dải đỏ đô sang trọng ở viền trái */
+}
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #9b000e;
+  margin-bottom: 25px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.title-icon {
+  font-size: 24px;
+}
+
+.genre-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.form-inputs-row {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.input-group {
+  flex: 1;
+  min-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.form-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #334155;
+}
+.form-label.label-muted {
+  color: #64748b;
+}
+
+/* Inputs are larger (16px) and taller */
+.form-input-large {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  padding: 14px 20px;
+  border-radius: 10px;
+  outline: none;
+  font-size: 16px;
+  background-color: #f8fafc;
+  color: #1e293b;
+  transition: all 0.2s ease-in-out;
+}
+.form-input-large:focus {
+  border-color: #e50914;
+  box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
+  background-color: #ffffff;
+}
+.input-readonly {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border-color: #e2e8f0;
+  font-family: monospace;
+}
+
+/* Dynamic CineGo themed buttons */
+.form-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 5px;
+}
+.btn-primary-cine {
+  background: linear-gradient(135deg, #e50914 0%, #9b000e 100%);
+  color: #ffffff;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(229, 9, 20, 0.25);
+  transition: all 0.2s ease;
+}
+.btn-primary-cine:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(229, 9, 20, 0.35);
+}
+.btn-primary-cine:active {
+  transform: translateY(0);
+}
+.btn-secondary-cine {
+  background-color: #ffffff;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-secondary-cine:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  border-color: #94a3b8;
+}
+
+/* List Card Styles */
+.list-card {
+  border-top: 4px solid #cbd5e1;
+}
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 25px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 15px;
+}
+.list-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e293b;
+}
+.count-badge {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Performance Loading Spinner */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 0;
+  gap: 15px;
+}
+.spinner-cine {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #e50914;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.loading-state p {
+  font-size: 15px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Table styling with 15px headers and 16px body */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+.genre-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.genre-table th {
+  padding: 16px;
+  background-color: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+  color: #475569;
+  font-size: 15px;
+  font-weight: 800;
+}
+.genre-table td {
+  padding: 18px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 15px;
+}
+.table-row:hover {
+  background-color: #fffafb;
+}
+
+/* Cell Specific Styles */
+.col-id { width: 90px; text-align: center; }
+.col-name { min-width: 200px; }
+.col-slug { min-width: 180px; }
+.col-date { width: 220px; }
+.col-actions { width: 180px; text-align: center; }
+
+.cell-id {
+  font-weight: 800;
+  color: #e50914;
+  text-align: center;
+}
+.cell-name {
+  font-weight: 700;
+  color: #1e293b;
+}
+.slug-tag {
+  background-color: #f1f5f9;
+  color: #475569;
+  font-family: monospace;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+.cell-date {
+  color: #64748b;
+}
+
+/* Buttons in the table: larger, easier to click */
+.action-buttons-group {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+.btn-action {
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-action.edit {
+  color: #d97706;
+  border-color: #fde68a;
+}
+.btn-action.edit:hover {
+  background-color: #fef3c7;
+  border-color: #d97706;
+}
+.btn-action.delete {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+.btn-action.delete:hover {
+  background-color: #fee2e2;
+  border-color: #dc2626;
+}
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #94a3b8;
+  font-size: 15px;
 }
 </style>

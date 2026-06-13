@@ -21,20 +21,20 @@
 
         <button 
           class="nav-link" 
-          :class="{ active: activeTab === 'movies' }" 
-          @click="activeTab = 'movies'"
-        >
-          <span class="nav-icon">🎬</span>
-          <span>Quản Lý Phim</span>
-        </button>
-        
-        <button 
-          class="nav-link" 
           :class="{ active: activeTab === 'genres' }" 
           @click="activeTab = 'genres'"
         >
           <span class="nav-icon">🏷️</span>
           <span>Quản Lý Thể Loại</span>
+        </button>
+
+        <button 
+          class="nav-link" 
+          :class="{ active: activeTab === 'movies' }" 
+          @click="activeTab = 'movies'"
+        >
+          <span class="nav-icon">🎬</span>
+          <span>Quản Lý Phim</span>
         </button>
         
         <button 
@@ -273,7 +273,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import MoviesView from './MoviesView.vue';
@@ -285,7 +285,10 @@ import api from '../../api/axios';
 const authStore = useAuthStore();
 const router = useRouter();
 
-const activeTab = ref('stats');
+const activeTab = ref(localStorage.getItem('admin_active_tab') || 'stats');
+watch(activeTab, (newVal) => {
+  localStorage.setItem('admin_active_tab', newVal);
+});
 const moviesCount = ref(0);
 const showtimesCount = ref(0);
 const bookings = ref([]);
@@ -357,13 +360,13 @@ onMounted(() => {
 .admin-layout {
   display: grid;
   grid-template-columns: 260px 1fr;
-  min-height: 85vh;
+  min-height: 100vh;
   gap: 30px;
   background-color: #ffffff;
   color: var(--text-primary);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  box-shadow: 0 4px 30px rgba(0,0,0,0.03);
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
 }
 
 @media (max-width: 992px) {
