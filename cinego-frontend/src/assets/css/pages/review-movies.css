@@ -1,0 +1,259 @@
+.reviews-page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px 20px;
+  background-color: #11141e;
+  color: #ffffff;
+}
+
+.reviews-header {
+  margin-bottom: 40px;
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.page-subtitle {
+  color: #94a3b8;
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+/* GRID LAYOUT */
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+@media (max-width: 992px) {
+  .reviews-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .reviews-grid { grid-template-columns: 1fr; }
+}
+
+/* CARD PHIM */
+.review-movie-card {
+  background: #ffffff;
+  color: #1e293b;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+/* BANNER POSTER NGANG */
+.poster-wrapper {
+  position: relative;
+  height: 180px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.movie-banner {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.review-movie-card:hover .movie-banner {
+  transform: scale(1.04);
+}
+
+.poster-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.85));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+}
+
+/* PLAY BUTTON */
+.play-btn {
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+}
+
+.play-btn:hover {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.play-icon {
+  color: white;
+  font-size: 14px;
+  margin-left: 2px;
+}
+
+.movie-title-on-poster {
+  position: absolute;
+  bottom: 35px;
+  left: 12px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+
+/* THANH THÔNG SỐ (DƯỚI POSTER) */
+.poster-stats-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 32px;
+  background: rgba(15, 23, 42, 0.8); /* Chuyển sang màu tối Slate khớp hệ thống */
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 14px;
+}
+
+.stat-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #ffffff;
+  font-size: 12px;
+}
+
+/* SỬA ICON SAO CINEGO */
+.cinego-rating-icon {
+  color: #ffaa00;
+  font-size: 14px;
+}
+
+.score-text {
+  font-size: 13px;
+  color: #ffaa00; /* Điểm màu vàng rực nổi bật */
+}
+
+/* KHU VỰC BÌNH LUẬN */
+.comments-list-section {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.user-comment-row {
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 14px;
+}
+
+.user-comment-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.comment-user-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: #cbd5e1;
+  color: #475569;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.user-name-time .u-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.user-name-time .u-time {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+/* TAG ĐÃ MUA VÉ ĐỔI SANG MÀU HỒNG NEON CỦA CINEGO */
+.purchased-tag {
+  display: inline-block;
+  font-size: 10px;
+  color: #ff007f; /* Đổi sang tông Hồng Cyberpunk đặc trưng */
+  background: rgba(255, 0, 127, 0.06);
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin: 6px 0;
+  border: 0.5px solid rgba(255, 0, 127, 0.15);
+}
+
+.comment-text-short {
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.5;
+  margin-bottom: 6px;
+}
+
+.view-more-comment-btn {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.view-more-comment-btn:hover {
+  color: #ff007f;
+}
+
+/* BUTTON XEM TIẾP DƯỚI CÙNG */
+.load-more-wrapper {
+  margin-top: 40px;
+}
+
+.btn-load-more {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #ff007f;
+  padding: 10px 28px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.btn-load-more:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 0, 127, 0.25);
+  border-color: #ff007f;
+}

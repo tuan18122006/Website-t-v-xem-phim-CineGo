@@ -7,16 +7,16 @@
           {{ movie.rating }}
         </span>
       </div>
-      
+
       <div class="info-container">
         <h1 class="movie-title glow-text-pink">{{ movie.title }}</h1>
-        
+
         <div class="genres-row">
           <span v-for="g in movie.genres" :key="g.id || g" class="detail-genre">
             {{ g.name || g }}
           </span>
         </div>
-        
+
         <div class="metadata-grid">
           <div class="meta-item">
             <span class="meta-label">Thời lượng:</span>
@@ -35,7 +35,7 @@
             <span class="meta-value">Phụ đề tiếng Việt</span>
           </div>
         </div>
-        
+
         <div class="movie-description">
           <h3>Nội Dung Phim</h3>
           <p>{{ movie.description || 'Bộ phim kể về một cuộc phiêu lưu kịch tính đầy bất ngờ, dẫn dắt người xem đi qua nhiều cung bậc cảm xúc với kỹ xảo hoành tráng và diễn xuất đỉnh cao từ dàn diễn viên hạng A.' }}</p>
@@ -46,16 +46,11 @@
     <!-- Chọn lịch chiếu -->
     <section class="schedule-section glass-panel">
       <h2 class="section-title gradient-text-accent">Lịch Chiếu & Đặt Vé</h2>
-      
+
       <!-- Chọn ngày -->
       <div class="date-selector">
-        <button 
-          v-for="(day, index) in availableDays" 
-          :key="index" 
-          class="date-btn"
-          :class="{ active: selectedDayIndex === index }"
-          @click="selectedDayIndex = index"
-        >
+        <button v-for="(day, index) in availableDays" :key="index" class="date-btn"
+          :class="{ active: selectedDayIndex === index }" @click="selectedDayIndex = index">
           <span class="day-name">{{ day.weekday }}</span>
           <span class="day-date">{{ day.dateLabel }}</span>
         </button>
@@ -73,21 +68,16 @@
             <h3 class="room-name">{{ room.roomName }}</h3>
             <span class="room-type">Phòng chiếu 2D & Âm thanh Dolby Atmos</span>
           </div>
-          
+
           <div class="showtimes-grid">
-            <button 
-              v-for="showtime in room.showtimes" 
-              :key="showtime.id"
-              class="showtime-btn"
-              :class="{ active: selectedShowtime?.id === showtime.id }"
-              @click="selectShowtime(showtime)"
-            >
+            <button v-for="showtime in room.showtimes" :key="showtime.id" class="showtime-btn"
+              :class="{ active: selectedShowtime?.id === showtime.id }" @click="selectShowtime(showtime)">
               <span class="time-label">{{ showtime.start_time }}</span>
               <span class="seat-available">Trống {{ showtime.available_seats || 85 }} ghế</span>
             </button>
           </div>
         </div>
-        
+
         <div v-if="showtimesByRoom.length === 0" class="no-showtimes">
           Không có suất chiếu nào cho ngày đã chọn.
         </div>
@@ -96,7 +86,8 @@
       <!-- Footer điều hướng -->
       <div class="schedule-footer" v-if="selectedShowtime">
         <div class="selected-summary">
-          <p>Suất chiếu đã chọn: <strong>{{ selectedShowtime.start_time }}</strong> - Phòng: <strong>{{ selectedShowtime.room_name }}</strong></p>
+          <p>Suất chiếu đã chọn: <strong>{{ selectedShowtime.start_time }}</strong> - Phòng: <strong>{{
+            selectedShowtime.room_name }}</strong></p>
           <p>Ngày chiếu: <strong>{{ availableDays[selectedDayIndex].fullLabel }}</strong></p>
         </div>
         <button @click="proceedToSeatSelection" class="btn-proceed">
@@ -104,12 +95,76 @@
         </button>
       </div>
     </section>
+
+    <section class="casts-section glass-panel">
+      <h2 class="section-title gradient-text-accent">Diễn Viên Chính</h2>
+      <div class="casts-grid">
+        <div v-for="cast in (movie.casts || mockCasts)" :key="cast.id || cast.name" class="cast-card">
+          <div class="cast-avatar-box">
+            <img
+              :src="cast.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'"
+              :alt="cast.name" class="cast-avatar" />
+          </div>
+          <div class="cast-info">
+            <h4 class="cast-name">{{ cast.name }}</h4>
+            <p class="cast-character">trong vai {{ cast.character || 'Character' }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="reviews-section glass-panel">
+      <h2 class="section-title gradient-text-accent">Đánh Giá Từ Mọt Phim</h2>
+
+      <div class="review-form-box">
+        <h4 class="form-title">Để lại đánh giá của bạn</h4>
+        <div class="rating-input-row">
+          <span>Đánh giá của bạn:</span>
+          <div class="stars-picker">
+            <span v-for="star in 10" :key="star" class="star-pick" :class="{ active: myReview.rating >= star }"
+              @click="myReview.rating = star">★</span>
+          </div>
+        </div>
+        <div class="comment-input-group">
+          <textarea v-model="myReview.comment" placeholder="Chia sẻ cảm nghĩ của bạn về bộ phim này..."
+            class="review-textarea"></textarea>
+          <button @click="submitReview" class="btn-submit-review">Gửi Review</button>
+        </div>
+      </div>
+
+      <div class="reviews-list">
+        <div v-for="review in (movie.reviews || mockReviews)" :key="review.id" class="review-item-card">
+          <div class="review-user-header">
+            <div class="user-meta">
+              <span class="user-avatar-text">{{ review.user_name.charAt(0).toUpperCase() }}</span>
+              <div>
+                <h5 class="user-name">{{ review.user_name }}</h5>
+                <span class="review-date">{{ formatDate(review.created_at) || 'Vừa xong' }}</span>
+              </div>
+            </div>
+            <div class="user-stars">
+              <span v-for="s in review.rating" :key="'fill-' + s" class="star-filled">★</span>
+              <span v-for="s in (5 - review.rating)" :key="'empty-' + s" class="star-empty">★</span>
+            </div>
+          </div>
+          <p class="review-content">{{ review.comment }}</p>
+        </div>
+
+        <div v-if="(movie.reviews && movie.reviews.length === 0) && mockReviews.length === 0" class="no-reviews">
+          Chưa có đánh giá nào. Hãy là người đầu tiên review bộ phim này!
+        </div>
+      </div>
+    </section>
   </div>
   <div v-else class="loading-state">
     <div class="spinner"></div>
     <p>Đang tải chi tiết phim...</p>
   </div>
+
+
 </template>
+
+
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
@@ -129,7 +184,7 @@ const selectedShowtime = ref(null);
 const availableDays = computed(() => {
   const days = [];
   const weekdays = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-  
+
   for (let i = 0; i < 5; i++) {
     const d = new Date();
     d.setDate(d.getDate() + i);
@@ -144,6 +199,57 @@ const availableDays = computed(() => {
 });
 
 const showtimesByRoom = ref([]);
+
+// State phục vụ việc tạo review mới
+const myReview = ref({
+  rating: 5,
+  comment: ''
+});
+
+// Dữ liệu giả lập Diễn viên khi API Laravel chưa kịp trả về dữ liệu quan hệ (Relationship)
+const mockCasts = ref([
+  { id: 1, name: 'Benedict Cumberbatch', character: 'Dr. Stephen Strange', avatar_url: 'https://images.jpg.photo/avatar/benedict.jpg' || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80' },
+  { id: 2, name: 'Elizabeth Olsen', character: 'Wanda Maximoff / Scarlet Witch', avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80' },
+  { id: 3, name: 'Xochitl Gomez', character: 'America Chavez', avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80' },
+  { id: 4, name: 'Benedict Wong', character: 'Wong', avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80' }
+]);
+
+// Dữ liệu giả lập Review người dùng
+const mockReviews = ref([
+  { id: 1, user_name: 'Phạm Thắng', rating: 5, comment: 'Kỹ xảo đỉnh cao xem ở phòng IMAX Dolby Atmos thực sự mãn nhãn, cốt truyện đa vũ trụ cuốn hút!', created_at: '2026-06-08' },
+  { id: 2, user_name: 'Minh Anh', rating: 4, comment: 'Phim rất hay nhưng nhịp phim đoạn giữa hơi nhanh. Nhạc phim xuất sắc!', created_at: '2026-06-09' }
+]);
+
+// Hàm xử lý khi người dùng nhấn gửi Đánh giá
+const submitReview = async () => {
+  if (!myReview.value.comment.trim()) {
+    alert('Vui lòng nhập nội dung đánh giá trước khi gửi!');
+    return;
+  }
+  
+  try {
+    // Dữ liệu đóng gói gửi lên Laravel lưu vào bảng review
+    const dataPost = {
+      movie_id: movie.value.id,       // ứng với cột movie_id
+      rating: myReview.value.rating,   // ứng với cột rating
+      comment: myReview.value.comment  // ứng với cột comment
+    };
+    
+    // Gửi request lên API Laravel
+    const response = await api.post(`/movies/${movie.value.id}/reviews`, dataPost);
+    
+    // Nếu thành công, đẩy trực tiếp dữ liệu trả về vào mảng hiển thị công khai
+    if (movie.value.reviews) {
+      movie.value.reviews.unshift(response.data);
+    }
+    
+    myReview.value.comment = ''; // Reset ô nhập
+    alert('Đăng bài đánh giá thành công!');
+  } catch (err) {
+    console.error('Lỗi khi lưu review vào Database:', err);
+    alert('Không thể gửi đánh giá, vui lòng kiểm tra lại đăng nhập!');
+  }
+};
 
 const getRatingClass = (rating) => {
   if (!rating) return 'rating-g';
@@ -180,8 +286,8 @@ const fetchMovieDetail = async () => {
       movie.value = {
         id: movieId,
         title: movieId == 1 ? 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn' : 'Avatar: Dòng Chảy Của Nước',
-        poster_url: movieId == 1 
-          ? 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=400&q=80' 
+        poster_url: movieId == 1
+          ? 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=400&q=80'
           : 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80',
         rating: movieId == 1 ? 'T13' : 'PG-13',
         duration: movieId == 1 ? 126 : 192,
@@ -197,7 +303,7 @@ const fetchShowtimes = async () => {
   if (!movie.value) return;
   loadingShowtimes.value = true;
   selectedShowtime.value = null;
-  
+
   const dateStr = availableDays.value[selectedDayIndex.value].dateStr;
   try {
     const response = await api.get(`/movies/${movie.value.id}/showtimes?date=${dateStr}`);
@@ -255,319 +361,5 @@ const proceedToSeatSelection = () => {
 </script>
 
 <style scoped>
-.movie-detail-view {
-  display: flex;
-  flex-direction: column;
-  gap: 40px;
-}
-
-.detail-header {
-  padding: 40px;
-  display: flex;
-  gap: 40px;
-  flex-wrap: wrap;
-}
-
-.poster-container {
-  position: relative;
-  width: 280px;
-  flex-shrink: 0;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-  border: 1px solid var(--border-glass);
-}
-
-.detail-poster {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-.detail-rating-badge {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  color: white;
-  font-size: 14px;
-  font-weight: 800;
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-}
-
-.rating-g { background: #00cd6c; }
-.rating-t13 { background: #ffaa00; }
-.rating-t16 { background: #ff5500; }
-.rating-t18 { background: #e60000; }
-
-.info-container {
-  flex: 1;
-  min-width: 320px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.movie-title {
-  font-size: 40px;
-  font-weight: 800;
-  line-height: 1.2;
-}
-
-.genres-row {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.detail-genre {
-  background: var(--bg-tertiary);
-  color: var(--accent-pink);
-  border: 1px solid rgba(255, 0, 127, 0.15);
-  font-size: 13px;
-  font-weight: 600;
-  padding: 4px 14px;
-  border-radius: var(--radius-full);
-}
-
-.metadata-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
-  padding: 20px;
-  background: rgba(255,255,255,0.02);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-glass);
-}
-
-.meta-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.meta-label {
-  color: var(--text-muted);
-  font-size: 12px;
-  text-transform: uppercase;
-}
-
-.meta-value {
-  color: var(--text-primary);
-  font-weight: 600;
-  font-size: 15px;
-}
-
-.movie-description h3 {
-  font-size: 18px;
-  margin-bottom: 8px;
-  color: var(--text-primary);
-}
-
-.movie-description p {
-  color: var(--text-secondary);
-  font-size: 15px;
-  line-height: 1.6;
-}
-
-.schedule-section {
-  padding: 40px;
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-}
-
-.section-title {
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.date-selector {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding-bottom: 8px;
-}
-
-.date-btn {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid var(--border-glass);
-  color: var(--text-secondary);
-  padding: 12px 20px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  min-width: 100px;
-  transition: var(--transition-smooth);
-}
-
-.date-btn:hover {
-  border-color: var(--accent-violet);
-  background: rgba(112,0,255,0.05);
-}
-
-.date-btn.active {
-  background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-violet) 100%);
-  color: white;
-  border-color: transparent;
-  box-shadow: var(--shadow-neon-pink);
-}
-
-.day-name {
-  font-size: 12px;
-  font-weight: 500;
-  text-transform: uppercase;
-}
-
-.day-date {
-  font-size: 18px;
-  font-weight: 800;
-}
-
-.showtimes-by-room {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.room-row {
-  display: flex;
-  padding: 24px;
-  gap: 24px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.room-info {
-  flex-shrink: 0;
-  width: 220px;
-}
-
-.room-name {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.room-type {
-  color: var(--text-muted);
-  font-size: 12px;
-}
-
-.showtimes-grid {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  flex: 1;
-}
-
-.showtime-btn {
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-glass);
-  color: var(--text-primary);
-  padding: 10px 20px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  transition: var(--transition-smooth);
-}
-
-.showtime-btn:hover {
-  border-color: var(--accent-pink);
-  transform: translateY(-2px);
-}
-
-.showtime-btn.active {
-  border-color: var(--accent-pink);
-  background: rgba(255, 0, 127, 0.1);
-  box-shadow: var(--shadow-neon-pink);
-}
-
-.time-label {
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.seat-available {
-  font-size: 10px;
-  color: var(--text-muted);
-}
-
-.showtime-btn.active .seat-available {
-  color: var(--accent-pink);
-}
-
-.no-showtimes {
-  text-align: center;
-  padding: 40px;
-  color: var(--text-muted);
-  font-size: 15px;
-}
-
-.schedule-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid var(--border-glass);
-  padding-top: 24px;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-
-.selected-summary p {
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
-.selected-summary strong {
-  color: var(--text-primary);
-}
-
-.btn-proceed {
-  background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-violet) 100%);
-  color: white;
-  padding: 14px 32px;
-  border: none;
-  border-radius: var(--radius-md);
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: var(--shadow-neon-pink);
-  transition: var(--transition-bounce);
-}
-
-.btn-proceed:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 0 25px rgba(255, 0, 127, 0.5);
-}
-
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 80px;
-  text-align: center;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid rgba(255, 255, 255, 0.1);
-  border-top-color: var(--accent-pink);
-  border-radius: 50%;
-  animation: spin 1s infinite linear;
-  margin-bottom: 20px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@import '../../assets/css/pages/movie-detail.css';
 </style>

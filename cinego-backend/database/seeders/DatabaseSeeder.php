@@ -25,7 +25,8 @@ class DatabaseSeeder extends Seeder
             'email' => 'admin@cinego.com',
             'password' => bcrypt('password'),
             'role' => 'admin',
-            'phone' => '0987654321'
+            'phone' => '0987654321',
+            'age' => 30
         ]);
 
         User::create([
@@ -33,7 +34,8 @@ class DatabaseSeeder extends Seeder
             'email' => 'customer@cinego.com',
             'password' => bcrypt('password'),
             'role' => 'customer',
-            'phone' => '0123456789'
+            'phone' => '0123456789',
+            'age' => 25
         ]);
 
         // 2. Tạo Genres
@@ -77,7 +79,7 @@ class DatabaseSeeder extends Seeder
                 'description' => 'Giữa cuộc chiến khốc liệt của nhân loại và trí tuệ nhân tạo, một cựu đặc vụ được giao nhiệm vụ ám sát "Kẻ kiến tạo".',
                 'duration' => 133,
                 'release_date' => '2026-05-20',
-                'poster_url' => 'https://images.unsplash.com/photo-1478720143022-10d0002856a3?auto=format&fit=crop&w=400&q=80',
+                'poster_url' => 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&w=400&q=80',
                 'rating' => 'T16',
                 'status' => 'showing'
             ])
