@@ -383,6 +383,11 @@ onMounted(() => {
   flex-direction: column;
   padding: 30px 20px;
   justify-content: space-between;
+  /* Cố định Sidebar khi cuộn trang */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .sidebar-brand {
