@@ -75,6 +75,9 @@ Route::middleware(['auth:sanctum'])->prefix('admin')->group(function () {
         Route::get('/showtimes', [ShowtimeController::class, 'index']);
         Route::post('/showtimes', [ShowtimeController::class, 'store']);
         Route::delete('/showtimes/{id}', [ShowtimeController::class, 'destroy']);
+        // Route của rooms
+        Route::post('/rooms', [RoomController::class, 'store']);
+        Route::get('/rooms/{id}', [RoomController::class, 'show']);
     });
 });
 
