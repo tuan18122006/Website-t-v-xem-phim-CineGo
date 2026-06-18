@@ -105,16 +105,24 @@ const routes = [
     component: () => import("../views/admin/GenreManagement.vue"),
   },
   {
+    path: "/admin/rooms/:id",
+    name: "admin-RoomEditor",
+    component: () => import("../views/admin/RoomEditorView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
     path: "/admin/movies",
     name: "admin-MoviesView",
     component: () => import("../views/admin/MoviesView.vue"),
   },
+  
   {
     path: "/admin/users",
     name: "admin-UserManagement",
     component: () => import("../views/admin/UserManagement.vue"),
     meta: { requiresAuth: true, role: "admin" },
   },
+  
 
   // Wildcard redirect
   {
