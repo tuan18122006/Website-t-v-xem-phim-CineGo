@@ -45,7 +45,7 @@ class RoomController extends Controller
                     'row'        => $rows[$i],
                     'number'     => $j,
                     'type'       => 'standard',
-                    'status'     => 'available', 
+                    'status'     => 'available',
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
@@ -65,7 +65,10 @@ class RoomController extends Controller
     public function show($id)
     {
         $room = Room::findOrFail($id);
-        $seats = $room->seats()->orderBy('row')->orderBy('number')->get();
+        $seats = $room->seats()
+            ->orderBy('row', 'asc')
+            ->orderBy('number', 'asc')
+            ->get();
 
         return response()->json([
             'success' => true,
@@ -76,29 +79,21 @@ class RoomController extends Controller
         ], 200);
     }
 
-    // Cập nhật cấu hình sơ đồ ghế (Visual Editor)
     public function updateSeatMap(Request $request, $id)
     {
         $request->validate([
             'seats' => 'required|array',
-            'seats.*.id' => 'required|integer|exists:seats,id',
-            'seats.*.type' => 'required|string|in:standard,vip,couple,hidden',
         ]);
 
-        Room::findOrFail($id);
-        
         DB::transaction(function () use ($request) {
             foreach ($request->seats as $seatData) {
-                Seat::where('id', $seatData['id'])->update([
+                \App\Models\Seat::where('id', $seatData['id'])->update([
                     'type' => $seatData['type']
                 ]);
             }
         });
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Lưu sơ đồ ghế thành công!'
-        ], 200);
+        return response()->json(['message' => 'Cập nhật thành công']);
     }
 
     // Xóa phòng
