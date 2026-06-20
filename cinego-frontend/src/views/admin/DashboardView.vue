@@ -47,13 +47,13 @@
         </button>
 
         <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'rooms' }" 
-          @click="activeTab = 'rooms'"
-        >
-          <span class="nav-icon">🏟️</span>
-          <span>Quản Lý Rạp & Ghế</span>
-        </button>
+  class="nav-link" 
+  :class="{ active: activeTab === 'rooms' }" 
+  @click="activeTab = 'rooms'"
+>
+  <span class="nav-icon">🏟️</span>
+  <span>Quản Lý Rạp & Ghế</span>
+</button>
 
         <button
           class="nav-link"
@@ -295,8 +295,9 @@ import MoviesView from './MoviesView.vue';
 import ShowtimesView from './ShowtimesView.vue';
 import GenreManagement from './GenreManagement.vue';
 import UserManagement from './UserManagement.vue';
-import RoomsView from './RoomsView.vue';
-import api from '../../api/axios';
+import RoomsView from './RoomManagementView.vue'; 
+import RoomManagementView from './RoomManagementView.vue';
+import RoomEditorView from './RoomEditorView.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -321,6 +322,8 @@ const getTabTitle = computed(() => {
   };
   return titles[activeTab.value];
 });
+
+
 
 const getTabDesc = computed(() => {
   const descs = {

@@ -26,7 +26,7 @@ Route::post('/login', [AuthController::class, 'login']);
 // 2. Protected Routes (Yêu cầu đăng nhập qua Sanctum để kiểm tra quyền)
 Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/user', [AuthController::class, 'userProfile']); // Trả về thông tin user + vai trò (customer/admin)
+    Route::get('/user', [AuthController::class, 'userProfile']);
 
     // Quản lý tài khoản (chỉ Admin)
     Route::get('/users', [UserController::class, 'index']);
@@ -58,6 +58,9 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
         // Route của rooms
         Route::post('/rooms', [RoomController::class, 'store']);
         Route::get('/rooms/{id}', [RoomController::class, 'show']);
+        Route::put('/rooms/{id}/update-seat-map', [RoomController::class, 'updateSeatMap']);
+        Route::get('/rooms', [RoomController::class, 'index']);
+        Route::delete('/rooms/{id}', [RoomController::class, 'destroy']);
     });
 });
 
@@ -66,4 +69,3 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
 // 3. Public Routes (Không cần đăng nhập)
 Route::get('/movies', [MovieController::class, 'index']);
 Route::get('/movies/search', [MovieController::class, 'search']);
-Route::get('/rooms', [RoomController::class, 'index']);
