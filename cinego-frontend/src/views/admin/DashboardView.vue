@@ -46,6 +46,15 @@
           <span>Quản Lý Lịch Chiếu</span>
         </button>
 
+        <button 
+          class="nav-link" 
+          :class="{ active: activeTab === 'rooms' }" 
+          @click="activeTab = 'rooms'"
+        >
+          <span class="nav-icon">🏟️</span>
+          <span>Quản Lý Rạp & Ghế</span>
+        </button>
+
         <button
           class="nav-link"
           :class="{ active: activeTab === 'users' }"
@@ -221,9 +230,15 @@
       <div v-else-if="activeTab === 'showtimes'">
         <ShowtimesView />
       </div>
+
+      <!-- TAB: QUẢN LÝ RẠP & GHẾ -->
+      <div v-else-if="activeTab === 'rooms'">
+        <RoomsView />
+      </div>
+
       <div v-else-if="activeTab === 'genres'">
-  <GenreManagement />
-</div>
+        <GenreManagement />
+      </div>
 
       <!-- TAB: USER MANAGEMENT -->
       <div v-else-if="activeTab === 'users'">
@@ -280,6 +295,7 @@ import MoviesView from './MoviesView.vue';
 import ShowtimesView from './ShowtimesView.vue';
 import GenreManagement from './GenreManagement.vue';
 import UserManagement from './UserManagement.vue';
+import RoomsView from './RoomsView.vue';
 import api from '../../api/axios';
 
 const authStore = useAuthStore();
@@ -298,6 +314,7 @@ const getTabTitle = computed(() => {
     stats: 'Dashboard Quản Trị Hệ Thống',
     movies: 'Quản Lý Danh Sách Phim',
     showtimes: 'Quản Lý Suất Chiếu & Lịch Trình',
+    rooms: 'Quản Lý Sơ Đồ Rạp & Ghế',
     genres: 'Quản Lý Thể Loại Phim',
     users: 'Quản Lý Tài Khoản & Phân Quyền',
     revenue: 'Báo Cáo & Thống Kê Doanh Thu'
@@ -310,6 +327,7 @@ const getTabDesc = computed(() => {
     stats: 'Xem tổng quan báo cáo doanh thu kinh doanh và biểu đồ tăng trưởng hệ thống CineGo.',
     movies: 'Quản lý phim đang chiếu, sắp chiếu, cấu hình các thể loại phim và hình ảnh poster.',
     showtimes: 'Quản lý lịch chiếu các phòng chiếu, kiểm tra phòng và dịch thuật, định dạng 2D/3D.',
+    rooms: 'Thiết kế trực quan sơ đồ không gian rạp, quản lý các loại ghế (Thường, VIP, Đôi) và lối đi.',
     genres: 'Quản lý danh mục thể loại phim của hệ thống CineGo.',
     users: 'Thêm, sửa, phân quyền (Admin/Staff/User) và khóa/mở khóa tài khoản người dùng.',
     revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.'
@@ -383,6 +401,11 @@ onMounted(() => {
   flex-direction: column;
   padding: 30px 20px;
   justify-content: space-between;
+  /* Cố định Sidebar khi cuộn trang */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
 }
 
 .sidebar-brand {
