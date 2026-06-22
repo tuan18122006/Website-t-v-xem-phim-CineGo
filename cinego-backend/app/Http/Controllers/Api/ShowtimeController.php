@@ -43,11 +43,45 @@ class ShowtimeController extends Controller
             'translation' => 'required|string',
         ]);
 
+        // Chuẩn hóa thời gian về 'Y-m-d H:i:s' để so sánh chính xác trong DB
+        // (input datetime-local gửi lên dạng "Y-m-dTH:i" có chữ T).
+        $start = Carbon::parse($request->start_time);
+        $end   = Carbon::parse($request->end_time);
+
+        // === CHỐNG TRÙNG LỊCH ===
+        // Hai khoảng thời gian [A_start, A_end] và [B_start, B_end] bị chồng (overlap)
+        // khi và chỉ khi:  A_start < B_end  VÀ  A_end > B_start.
+        // Chỉ xét trong cùng một phòng và các suất còn "active".
+        $conflict = Showtime::where('room_id', $request->room_id)
+            ->where('status', 'active')
+            ->where('start_time', '<', $end)
+            ->where('end_time', '>', $start)
+            ->with('movie:id,title')
+            ->first();
+
+        if ($conflict) {
+            $clashName = $conflict->movie ? $conflict->movie->title : 'một suất chiếu khác';
+
+            return response()->json([
+                'success' => false,
+                'message' => "Phòng đang chiếu \"{$clashName}\" từ "
+                    . $conflict->start_time->format('H:i d/m/Y') . ' đến '
+                    . $conflict->end_time->format('H:i d/m/Y')
+                    . '. Vui lòng chọn khung giờ khác!',
+                'conflict' => [
+                    'id'         => $conflict->id,
+                    'movie'      => $clashName,
+                    'start_time' => $conflict->start_time->toIso8601String(),
+                    'end_time'   => $conflict->end_time->toIso8601String(),
+                ],
+            ], 422);
+        }
+
         $showtime = Showtime::create([
             'movie_id' => $request->movie_id,
             'room_id' => $request->room_id,
-            'start_time' => $request->start_time,
-            'end_time' => $request->end_time,
+            'start_time' => $start,
+            'end_time' => $end,
             'format' => $request->format,
             'translation' => $request->translation,
             'status' => 'active'
