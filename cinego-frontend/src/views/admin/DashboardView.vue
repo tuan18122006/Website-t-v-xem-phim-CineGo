@@ -315,7 +315,7 @@ const getTabTitle = computed(() => {
     stats: 'Dashboard Quản Trị Hệ Thống',
     movies: 'Quản Lý Danh Sách Phim',
     showtimes: 'Quản Lý Suất Chiếu & Lịch Trình',
-    rooms: 'Quản Lý Sơ Đồ Rạp & Ghế',
+    rooms: 'Quản Lý Phòng Chiếu & Ghế',
     genres: 'Quản Lý Thể Loại Phim',
     users: 'Quản Lý Tài Khoản & Phân Quyền',
     revenue: 'Báo Cáo & Thống Kê Doanh Thu'
