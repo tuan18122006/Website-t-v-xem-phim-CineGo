@@ -2,15 +2,15 @@
   <div class="admin-movies-view-container">
     <div class="glass-panel list-card">
       <div class="header-row">
-        <h2 class="title-cine">🏟️ Quản Lý Rạp Chiếu</h2>
-        <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Rạp Mới</button>
+        <h2 class="title-cine">🏟️ Quản Lý Phòng Chiếu & Ghế</h2>
+        <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Phòng Chiếu Mới</button>
       </div>
 
       <table class="movies-table">
         <thead>
           <tr>
             <th>ID</th>
-            <th>Tên Rạp</th>
+            <th>Tên Phòng Chiếu</th>
             <th>Tổng Ghế</th>
             <th>Trạng thái</th>
             <th>Hành Động</th>

@@ -1,49 +1,36 @@
 <template>
   <div class="genre-management-container">
-    
+
     <!-- CARD 1: FORM THÊM / CẬP NHẬT THỂ LOẠI -->
     <div class="glass-panel form-card">
       <h3 class="card-title">
         <span class="title-icon">{{ isEditing ? '📝' : '✨' }}</span>
         {{ isEditing ? 'Cập Nhật Thể Loại Phim' : 'Thêm Thể Loại Mới' }}
       </h3>
-      
+
       <form @submit.prevent="saveGenre" class="genre-form">
         <div class="form-inputs-row">
           <div class="input-group">
             <label class="form-label">Tên thể loại *</label>
-            <input 
-              v-model="form.name" 
-              type="text" 
-              class="form-input-large"
-              placeholder="Nhập tên thể loại phim..." 
-              required 
-            />
+            <input v-model="form.name" type="text" class="form-input-large" placeholder="Nhập tên thể loại phim..." />
+            <span v-if="errors?.name" class="error-msg" style="color: red; font-size: 0.8rem;">
+              {{ errors.name[0] }}
+            </span>
           </div>
 
           <div class="input-group">
             <label class="form-label label-muted">Slug tự sinh (Đường dẫn tĩnh)</label>
-            <input 
-              :value="generateSlug(form.name)"
-              type="text" 
-              class="form-input-large input-readonly"
-              readonly
-              placeholder="slug-tu-dong" 
-            />
+            <input :value="generateSlug(form.name)" type="text" class="form-input-large input-readonly" readonly
+              placeholder="slug-tu-dong" />
           </div>
         </div>
-        
+
         <div class="form-actions">
           <button type="submit" class="btn-primary-cine">
             {{ isEditing ? 'Cập nhật thể loại' : 'Lưu thể loại' }}
           </button>
-          
-          <button 
-            v-if="isEditing" 
-            type="button" 
-            @click="resetForm" 
-            class="btn-secondary-cine"
-          >
+
+          <button v-if="isEditing" type="button" @click="resetForm" class="btn-secondary-cine">
             Hủy bỏ
           </button>
         </div>
@@ -62,7 +49,7 @@
         <div class="spinner-cine"></div>
         <p>Đang tải dữ liệu thể loại...</p>
       </div>
-      
+
       <div v-else class="table-responsive">
         <table class="genre-table">
           <thead>
@@ -158,26 +145,31 @@ const fetchGenres = async () => {
   }
 };
 
+const errors = ref({});
+
 const saveGenre = async () => {
-  if (!form.value.name.trim()) return;
+  errors.value = {};
+
   try {
     const payload = {
       name: form.value.name.trim(),
-      slug: generateSlug(form.value.name.trim())
     };
 
     if (isEditing.value) {
       await api.put(`/admin/genres/${editingId.value}`, payload);
-      alert('🎉 Cập nhật thể loại thành công!');
+      alert('🎉 Cập nhật thành công!');
     } else {
       await api.post('/admin/genres', payload);
-      alert('🎉 Thêm thể loại mới thành công!');
+      alert('🎉 Thêm thành công!');
     }
     resetForm();
     await fetchGenres();
   } catch (error) {
-    console.error('Lỗi lưu thể loại:', error);
-    alert(error.response?.data?.message || 'Có lỗi xảy ra khi lưu dữ liệu!');
+    if (error.response?.status === 422) {
+      errors.value = error.response.data.errors;
+    } else {
+      alert('Có lỗi xảy ra!');
+    }
   }
 };
 
@@ -229,6 +221,7 @@ onMounted(fetchGenres);
   padding: 30px;
   transition: all 0.3s ease;
 }
+
 .glass-panel:hover {
   box-shadow: 0 6px 25px rgba(229, 9, 20, 0.04);
   border-color: rgba(229, 9, 20, 0.15);
@@ -236,8 +229,10 @@ onMounted(fetchGenres);
 
 /* Form Card Styles */
 .form-card {
-  border-left: 5px solid #e50914; /* Dải đỏ đô sang trọng ở viền trái */
+  border-left: 5px solid #e50914;
+  /* Dải đỏ đô sang trọng ở viền trái */
 }
+
 .card-title {
   display: flex;
   align-items: center;
@@ -249,6 +244,7 @@ onMounted(fetchGenres);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
 .title-icon {
   font-size: 24px;
 }
@@ -258,11 +254,13 @@ onMounted(fetchGenres);
   flex-direction: column;
   gap: 20px;
 }
+
 .form-inputs-row {
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
 }
+
 .input-group {
   flex: 1;
   min-width: 280px;
@@ -270,11 +268,13 @@ onMounted(fetchGenres);
   flex-direction: column;
   gap: 10px;
 }
+
 .form-label {
   font-size: 15px;
   font-weight: 700;
   color: #334155;
 }
+
 .form-label.label-muted {
   color: #64748b;
 }
@@ -291,11 +291,13 @@ onMounted(fetchGenres);
   color: #1e293b;
   transition: all 0.2s ease-in-out;
 }
+
 .form-input-large:focus {
   border-color: #e50914;
   box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
   background-color: #ffffff;
 }
+
 .input-readonly {
   background-color: #f1f5f9;
   color: #64748b;
@@ -309,6 +311,7 @@ onMounted(fetchGenres);
   gap: 15px;
   margin-top: 5px;
 }
+
 .btn-primary-cine {
   background: linear-gradient(135deg, #e50914 0%, #9b000e 100%);
   color: #ffffff;
@@ -321,13 +324,16 @@ onMounted(fetchGenres);
   box-shadow: 0 4px 15px rgba(229, 9, 20, 0.25);
   transition: all 0.2s ease;
 }
+
 .btn-primary-cine:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(229, 9, 20, 0.35);
 }
+
 .btn-primary-cine:active {
   transform: translateY(0);
 }
+
 .btn-secondary-cine {
   background-color: #ffffff;
   color: #475569;
@@ -339,6 +345,7 @@ onMounted(fetchGenres);
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .btn-secondary-cine:hover {
   background-color: #f1f5f9;
   color: #1e293b;
@@ -349,6 +356,7 @@ onMounted(fetchGenres);
 .list-card {
   border-top: 4px solid #cbd5e1;
 }
+
 .list-header {
   display: flex;
   justify-content: space-between;
@@ -359,11 +367,13 @@ onMounted(fetchGenres);
   border-bottom: 1px solid #e2e8f0;
   padding-bottom: 15px;
 }
+
 .list-title {
   font-size: 18px;
   font-weight: 800;
   color: #1e293b;
 }
+
 .count-badge {
   background-color: #fee2e2;
   color: #b91c1c;
@@ -382,6 +392,7 @@ onMounted(fetchGenres);
   padding: 50px 0;
   gap: 15px;
 }
+
 .spinner-cine {
   width: 40px;
   height: 40px;
@@ -390,10 +401,17 @@ onMounted(fetchGenres);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
+
 .loading-state p {
   font-size: 15px;
   color: #64748b;
@@ -405,11 +423,13 @@ onMounted(fetchGenres);
   width: 100%;
   overflow-x: auto;
 }
+
 .genre-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
 }
+
 .genre-table th {
   padding: 16px;
   background-color: #f8fafc;
@@ -418,31 +438,51 @@ onMounted(fetchGenres);
   font-size: 15px;
   font-weight: 800;
 }
+
 .genre-table td {
   padding: 18px 16px;
   border-bottom: 1px solid #e2e8f0;
   font-size: 15px;
 }
+
 .table-row:hover {
   background-color: #fffafb;
 }
 
 /* Cell Specific Styles */
-.col-id { width: 90px; text-align: center; }
-.col-name { min-width: 200px; }
-.col-slug { min-width: 180px; }
-.col-date { width: 220px; }
-.col-actions { width: 180px; text-align: center; }
+.col-id {
+  width: 90px;
+  text-align: center;
+}
+
+.col-name {
+  min-width: 200px;
+}
+
+.col-slug {
+  min-width: 180px;
+}
+
+.col-date {
+  width: 220px;
+}
+
+.col-actions {
+  width: 180px;
+  text-align: center;
+}
 
 .cell-id {
   font-weight: 800;
   color: #e50914;
   text-align: center;
 }
+
 .cell-name {
   font-weight: 700;
   color: #1e293b;
 }
+
 .slug-tag {
   background-color: #f1f5f9;
   color: #475569;
@@ -452,6 +492,7 @@ onMounted(fetchGenres);
   border-radius: 8px;
   border: 1px solid #e2e8f0;
 }
+
 .cell-date {
   color: #64748b;
 }
@@ -462,6 +503,7 @@ onMounted(fetchGenres);
   justify-content: center;
   gap: 10px;
 }
+
 .btn-action {
   border: 1px solid #cbd5e1;
   background-color: #ffffff;
@@ -472,22 +514,27 @@ onMounted(fetchGenres);
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .btn-action.edit {
   color: #d97706;
   border-color: #fde68a;
 }
+
 .btn-action.edit:hover {
   background-color: #fef3c7;
   border-color: #d97706;
 }
+
 .btn-action.delete {
   color: #dc2626;
   border-color: #fecaca;
 }
+
 .btn-action.delete:hover {
   background-color: #fee2e2;
   border-color: #dc2626;
 }
+
 .empty-state {
   text-align: center;
   padding: 40px;
