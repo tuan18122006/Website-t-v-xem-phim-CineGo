@@ -11,7 +11,7 @@ const Login = () => import("../views/client/LoginView.vue");
 const Register = () => import("../views/client/RegisterView.vue");
 const QuickBooking = () => import("../views/client/QuickBookingView.vue");
 const ReviewPhim = () => import("../views/client/ReviewPhimView.vue");
-const TopMovies = () => import("../views/client/TopMovies.vue");
+const TopMovies = () => import("../views/client/TopMoviesView.vue");
 const BlogPhim = () => import("../views/client/BlogPhimView.vue");
 const AboutCineGo = () => import("../views/client/AboutCineGoView.vue");
 
