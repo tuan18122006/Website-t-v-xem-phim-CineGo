@@ -7,6 +7,9 @@ use App\Http\Controllers\Api\MovieController;
 use App\Http\Controllers\Api\ShowtimeController;
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\SeatHoldController;
+use App\Http\Controllers\Api\BookingController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -20,6 +23,10 @@ use App\Http\Controllers\Api\UserController;
 // 1. Routes Xác thực & Phân quyền (Public Routes)
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Routes nghiệp vụ ghế & suất chiếu công khai
+Route::get('/showtimes/{id}/seats', [ShowtimeController::class, 'getSeats']);
+
 
 
 
@@ -56,6 +63,12 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
         Route::post('/showtimes', [ShowtimeController::class, 'store']);
         Route::delete('/showtimes/{id}', [ShowtimeController::class, 'destroy']);
     });
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/seat-holds', [SeatHoldController::class, 'hold']);
+    Route::post('/seat-holds/release', [SeatHoldController::class, 'release']);
+    Route::post('/bookings', [BookingController::class, 'store']);
 });
 
 

@@ -181,6 +181,12 @@ const selectedSeatIds = computed(() => {
 
 // HỨNG SỰ KIỆN TỪ SEATMAP: Xử lý kích hoạt khi bấm chọn ghế trên giao diện 3D
 const handleSeatMapClick = async (seat) => {
+  if (!localStorage.getItem('cinego_token')) {
+    alert("Vui lòng đăng nhập trước khi thực hiện đặt vé!");
+    router.push("/login");
+    return;
+  }
+
   const price = getSeatPrice(seat.type);
   const seatObj = {
     id: seat.id,
@@ -197,16 +203,10 @@ const handleSeatMapClick = async (seat) => {
   try {
     if (!isAlreadySelected) {
       // Gọi API giữ ghế tạm thời
-      try {
-        await api.post("/seat-holds", {
-          showtime_id: bookingStore.selectedShowtime.id,
-          seat_id: seat.id, // Tối ưu: Truyền ID trực tiếp thay vì bóc tách row/number độc lập
-        });
-      } catch (err) {
-        console.warn(
-          "API Seat Hold not running or failed. Simulating local hold.",
-        );
-      }
+      await api.post("/seat-holds", {
+        showtime_id: bookingStore.selectedShowtime.id,
+        seat_id: seat.id,
+      });
 
       // Đẩy ghế vào Store quản lý đơn hàng
       bookingStore.toggleSeat(seatObj);
@@ -218,14 +218,10 @@ const handleSeatMapClick = async (seat) => {
       }
     } else {
       // Gọi API hủy giữ ghế khi bấm lại ghế đang chọn
-      try {
-        await api.post("/seat-holds/release", {
-          showtime_id: bookingStore.selectedShowtime.id,
-          seat_id: seat.id,
-        });
-      } catch (err) {
-        console.warn("API Seat Release failure. Simulating locally.");
-      }
+      await api.post("/seat-holds/release", {
+        showtime_id: bookingStore.selectedShowtime.id,
+        seat_id: seat.id,
+      });
 
       bookingStore.toggleSeat(seatObj);
 
@@ -236,7 +232,10 @@ const handleSeatMapClick = async (seat) => {
       }
     }
   } catch (error) {
-    alert(error.response?.data?.message || "Có lỗi xảy ra khi xử lý chọn ghế!");
+    const errorMsg = error.response?.data?.message || "Có lỗi xảy ra khi xử lý chọn ghế!";
+    alert(errorMsg);
+    // Tải lại sơ đồ ghế để cập nhật trạng thái mới nhất từ server
+    fetchSeatStatus();
   }
 };
 

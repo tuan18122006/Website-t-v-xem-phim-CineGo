@@ -349,23 +349,9 @@ const applyVoucher = async () => {
     voucherMessage.value = `Áp dụng thành công voucher giảm ${response.data.discount_value}${response.data.discount_type === "percentage" ? "%" : "đ"}!`;
     voucherSuccess.value = true;
   } catch (err) {
-    console.warn("Voucher API error, simulating locally.");
-    if (code === "CINEGO10") {
-      const mockVoucher = {
-        code: "CINEGO10",
-        discount_type: "percentage",
-        discount_value: 10,
-        min_spend: 50000,
-        max_discount: 50000,
-      };
-      bookingStore.applyVoucher(mockVoucher);
-      voucherMessage.value = "Áp dụng mã CINEGO10 giảm 10% thành công!";
-      voucherSuccess.value = true;
-    } else {
-      voucherMessage.value =
-        "Mã giảm giá không chính xác hoặc đã hết lượt dùng!";
-      voucherSuccess.value = false;
-    }
+    const errorMsg = err.response?.data?.message || "Mã giảm giá không chính xác hoặc đã hết lượt dùng!";
+    voucherMessage.value = errorMsg;
+    voucherSuccess.value = false;
   }
 };
 
