@@ -52,7 +52,7 @@
   @click="activeTab = 'rooms'"
 >
   <span class="nav-icon">🏟️</span>
-  <span>Quản Lý Rạp & Ghế</span>
+  <span>Quản Lý Phòng Chiếu & Ghế</span>
 </button>
 
         <button
