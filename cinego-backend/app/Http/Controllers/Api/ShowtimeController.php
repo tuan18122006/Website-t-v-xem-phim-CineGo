@@ -14,7 +14,12 @@ class ShowtimeController extends Controller
 {
     public function index()
     {
-        $showtimes = Showtime::with(['movie', 'room'])->get()->map(function ($st) {
+        $showtimes = Showtime::with(['movie', 'room', 'priceConfigs'])->get()->map(function ($st) {
+            $prices = [];
+            foreach ($st->priceConfigs as $config) {
+                $prices[$config->seat_type] = $config->price;
+            }
+
             return [
                 'id' => $st->id,
                 'movie_id' => $st->movie_id,
@@ -26,6 +31,7 @@ class ShowtimeController extends Controller
                 'status' => $st->status ?? 'active',
                 'movie_title' => $st->movie ? $st->movie->title : 'Không xác định',
                 'room_name' => $st->room ? $st->room->name : 'Không xác định',
+                'prices' => $prices,
             ];
         });
 
