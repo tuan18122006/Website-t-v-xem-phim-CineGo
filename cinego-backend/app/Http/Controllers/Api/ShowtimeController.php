@@ -234,4 +234,23 @@ class ShowtimeController extends Controller
             'data' => $grouped
         ]);
     }
+
+    public function getAvailableDates($id)
+    {
+        $dates = Showtime::where('movie_id', $id)
+            ->whereDate('start_time', '>=', now()->toDateString())
+            ->orderBy('start_time')
+            ->pluck('start_time')
+            ->map(function ($date) {
+                return \Carbon\Carbon::parse($date)->toDateString();
+            })
+            ->unique()
+            ->values()
+            ->take(7);
+
+        return response()->json([
+            'success' => true,
+            'data' => $dates
+        ]);
+    }
 }
