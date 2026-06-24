@@ -20,6 +20,7 @@ Route::get('/movies/search', [MovieController::class, 'search']);
 Route::get('/movies/{id}', [MovieController::class, 'show']);
 
 // Suất chiếu & Sơ đồ ghế công khai
+Route::get('/showtimes/by-date', [ShowtimeController::class, 'getShowtimesByDate']);
 Route::get('/movies/{id}/available-dates', [ShowtimeController::class, 'getAvailableDates']);
 Route::get('/movies/{id}/showtimes', [ShowtimeController::class, 'getShowtimesByMovie']);
 Route::get('/showtimes/{id}/seats', [ShowtimeController::class, 'getSeats']);
