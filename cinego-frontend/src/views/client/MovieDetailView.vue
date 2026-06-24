@@ -180,7 +180,9 @@ const movie = ref(null);
 const loadingShowtimes = ref(false);
 const selectedDayIndex = ref(0);
 const selectedShowtime = ref(null);
+const showtimesByRoom = ref([]);
 
+// Khởi tạo ngày đặt vé linh hoạt từ hôm nay trở đi
 const availableDays = computed(() => {
   const days = [];
   const weekdays = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
@@ -198,29 +200,70 @@ const availableDays = computed(() => {
   return days;
 });
 
-const showtimesByRoom = ref([]);
-
-// State phục vụ việc tạo review mới
+// State phục vụ việc gửi bình luận / review lên DB
 const myReview = ref({
-  rating: 5,
+  rating: 10, // CineGo hỗ trợ thang điểm 10 ngôi sao
   comment: ''
 });
 
-// Dữ liệu giả lập Diễn viên khi API Laravel chưa kịp trả về dữ liệu quan hệ (Relationship)
+// Dữ liệu mồi cục bộ cho thành phần phụ không ảnh hưởng luồng mua vé (Casts/Reviews) nếu DB trống
 const mockCasts = ref([
-  { id: 1, name: 'Benedict Cumberbatch', character: 'Dr. Stephen Strange', avatar_url: 'https://images.jpg.photo/avatar/benedict.jpg' || 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80' },
-  { id: 2, name: 'Elizabeth Olsen', character: 'Wanda Maximoff / Scarlet Witch', avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80' },
-  { id: 3, name: 'Xochitl Gomez', character: 'America Chavez', avatar_url: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80' },
-  { id: 4, name: 'Benedict Wong', character: 'Wong', avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80' }
+  { id: 1, name: 'Diễn viên chính', character: 'Vai diễn xuất sắc', avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' }
 ]);
 
-// Dữ liệu giả lập Review người dùng
 const mockReviews = ref([
-  { id: 1, user_name: 'Phạm Thắng', rating: 5, comment: 'Kỹ xảo đỉnh cao xem ở phòng IMAX Dolby Atmos thực sự mãn nhãn, cốt truyện đa vũ trụ cuốn hút!', created_at: '2026-06-08' },
-  { id: 2, user_name: 'Minh Anh', rating: 4, comment: 'Phim rất hay nhưng nhịp phim đoạn giữa hơi nhanh. Nhạc phim xuất sắc!', created_at: '2026-06-09' }
+  { id: 1, user_name: 'Khách hàng CineGo', rating: 5, comment: 'Hệ thống rạp chiếu phim hiện đại, âm thanh bùng nổ!', created_at: new Date().toISOString() }
 ]);
 
-// Hàm xử lý khi người dùng nhấn gửi Đánh giá
+// 🔥 HÀM LẤY CHI TIẾT PHIM THUẦN TỪ DATABASE
+const fetchMovieDetail = async () => {
+  const movieId = route.params.id;
+  try {
+    const response = await api.get(`/movies/${movieId}`);
+    // Chấp nhận cấu trúc bọc dữ liệu chuẩn của API
+    const resData = response.data?.data || response.data;
+    
+    if (resData) {
+      movie.value = resData;
+      bookingStore.selectMovie(movie.value);
+      console.log('=== ĐÃ TẢI CHI TIẾT PHIM TỪ DB ===', movie.value);
+    } else {
+      console.error('Không tìm thấy dữ liệu bộ phim này trong DB.');
+    }
+  } catch (err) {
+    console.error('Lỗi API lấy chi tiết phim từ cơ sở dữ liệu:', err);
+    // Nếu trong Pinia store trang chủ đã nạp sẵn phim này thì lôi ra hiển thị tiếp
+    if (bookingStore.selectedMovie && bookingStore.selectedMovie.id == movieId) {
+      movie.value = bookingStore.selectedMovie;
+    }
+  }
+};
+
+// 🔥 HÀM LẤY SUẤT CHIẾU THEO PHÒNG THUẦN TỪ DATABASE
+const fetchShowtimes = async () => {
+  if (!movie.value) return;
+  loadingShowtimes.value = true;
+  selectedShowtime.value = null;
+
+  const dateStr = availableDays.value[selectedDayIndex.value].dateStr;
+  try {
+    // Gọi route public: /api/movies/{id}/showtimes?date=YYYY-MM-DD
+    const response = await api.get(`/movies/${movie.value.id}/showtimes`, {
+      params: { date: dateStr }
+    });
+    
+    const resData = response.data?.data || response.data;
+    showtimesByRoom.value = Array.isArray(resData) ? resData : [];
+    console.log('=== ĐÃ TẢI LỊCH CHIẾU TỪ DB ===', showtimesByRoom.value);
+  } catch (err) {
+    console.error('Lỗi khi lấy danh sách suất chiếu từ DB:', err);
+    showtimesByRoom.value = []; // Trả về mảng rỗng nếu DB chưa được thiết lập suất chiếu
+  } finally {
+    loadingShowtimes.value = false;
+  }
+};
+
+// 🔥 HÀM GỬI REVIEW LƯU TRỰC TIẾP VÀO DATABASE LARAVEL
 const submitReview = async () => {
   if (!myReview.value.comment.trim()) {
     alert('Vui lòng nhập nội dung đánh giá trước khi gửi!');
@@ -228,26 +271,27 @@ const submitReview = async () => {
   }
   
   try {
-    // Dữ liệu đóng gói gửi lên Laravel lưu vào bảng review
     const dataPost = {
-      movie_id: movie.value.id,       // ứng với cột movie_id
-      rating: myReview.value.rating,   // ứng với cột rating
-      comment: myReview.value.comment  // ứng với cột comment
+      movie_id: movie.value.id,
+      rating: myReview.value.rating,
+      comment: myReview.value.comment
     };
     
-    // Gửi request lên API Laravel
+    // Gửi request lên API lưu vào bảng reviews
     const response = await api.post(`/movies/${movie.value.id}/reviews`, dataPost);
+    const savedReview = response.data?.data || response.data;
     
-    // Nếu thành công, đẩy trực tiếp dữ liệu trả về vào mảng hiển thị công khai
-    if (movie.value.reviews) {
-      movie.value.reviews.unshift(response.data);
+    if (!movie.value.reviews) {
+      movie.value.reviews = [];
     }
     
-    myReview.value.comment = ''; // Reset ô nhập
-    alert('Đăng bài đánh giá thành công!');
+    // Thêm đánh giá vừa tạo lên đầu danh sách hiển thị công khai
+    movie.value.reviews.unshift(savedReview);
+    myReview.value.comment = ''; // Dọn dẹp ô nhập liệu
+    alert('Đăng bài đánh giá thành công lên CineGo!');
   } catch (err) {
     console.error('Lỗi khi lưu review vào Database:', err);
-    alert('Không thể gửi đánh giá, vui lòng kiểm tra lại đăng nhập!');
+    alert('Không thể gửi đánh giá, vui lòng kiểm tra trạng thái đăng nhập hệ thống!');
   }
 };
 
@@ -270,74 +314,7 @@ const selectShowtime = (showtime) => {
   selectedShowtime.value = showtime;
 };
 
-const fetchMovieDetail = async () => {
-  const movieId = route.params.id;
-  try {
-    const response = await api.get(`/movies/${movieId}`);
-    movie.value = response.data;
-    bookingStore.selectMovie(movie.value);
-  } catch (err) {
-    console.error('Fetch movie detail error, fallback to store state or mock:', err);
-    // Nếu store đã lưu thì lấy ra
-    if (bookingStore.selectedMovie && bookingStore.selectedMovie.id == movieId) {
-      movie.value = bookingStore.selectedMovie;
-    } else {
-      // Mock if completely new
-      movie.value = {
-        id: movieId,
-        title: movieId == 1 ? 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn' : 'Avatar: Dòng Chảy Của Nước',
-        poster_url: movieId == 1
-          ? 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=400&q=80'
-          : 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80',
-        rating: movieId == 1 ? 'T13' : 'PG-13',
-        duration: movieId == 1 ? 126 : 192,
-        release_date: '2026-05-15',
-        genres: ['Hành Động', 'Viễn Tưởng', 'Kỳ Ảo']
-      };
-      bookingStore.selectMovie(movie.value);
-    }
-  }
-};
-
-const fetchShowtimes = async () => {
-  if (!movie.value) return;
-  loadingShowtimes.value = true;
-  selectedShowtime.value = null;
-
-  const dateStr = availableDays.value[selectedDayIndex.value].dateStr;
-  try {
-    const response = await api.get(`/movies/${movie.value.id}/showtimes?date=${dateStr}`);
-    showtimesByRoom.value = response.data;
-  } catch (err) {
-    console.warn('Fetch showtimes API error, fallback to mock showtimes:');
-    // Mock showtimes
-    showtimesByRoom.value = [
-      {
-        roomId: 1,
-        roomName: 'Phòng Chiếu LUXURY 01',
-        showtimes: [
-          { id: 101, start_time: '10:00', room_name: 'LUXURY 01', available_seats: 98, room_id: 1 },
-          { id: 102, start_time: '13:30', room_name: 'LUXURY 01', available_seats: 82, room_id: 1 },
-          { id: 103, start_time: '17:00', room_name: 'LUXURY 01', available_seats: 12, room_id: 1 },
-          { id: 104, start_time: '20:30', room_name: 'LUXURY 01', available_seats: 44, room_id: 1 }
-        ]
-      },
-      {
-        roomId: 2,
-        roomName: 'Phòng Chiếu IMAX 3D 02',
-        showtimes: [
-          { id: 201, start_time: '11:15', room_name: 'IMAX 02', available_seats: 110, room_id: 2 },
-          { id: 202, start_time: '15:00', room_name: 'IMAX 02', available_seats: 75, room_id: 2 },
-          { id: 203, start_time: '18:45', room_name: 'IMAX 02', available_seats: 3, room_id: 2 },
-          { id: 204, start_time: '22:15', room_name: 'IMAX 02', available_seats: 92, room_id: 2 }
-        ]
-      }
-    ];
-  } finally {
-    loadingShowtimes.value = false;
-  }
-};
-
+// Theo dõi thay đổi thanh ngày chiếu để gọi lại suất chiếu tương ứng của DB
 watch(selectedDayIndex, () => {
   fetchShowtimes();
 });
@@ -347,6 +324,7 @@ onMounted(async () => {
   await fetchShowtimes();
 });
 
+// Chuyển tiếp sang màn hình chọn ghế ngồi thực tế
 const proceedToSeatSelection = () => {
   if (selectedShowtime.value) {
     const formattedShowtime = {
@@ -359,6 +337,7 @@ const proceedToSeatSelection = () => {
   }
 };
 </script>
+
 
 <style scoped>
 @import '../../assets/css/pages/movie-detail.css';
