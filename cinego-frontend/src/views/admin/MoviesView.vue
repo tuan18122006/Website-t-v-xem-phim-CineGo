@@ -196,6 +196,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import api from '../../api/axios';
+import { toast, confirmDialog } from '../../utils/alert';
 
 const movies = ref([]);
 const genres = ref([]);
@@ -388,14 +389,14 @@ const saveMovie = async () => {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
 
-    alert("Lưu thành công!");
+    toast("Lưu thành công!");
     showModal.value = false;
     await fetchMovies();
   } catch (err) {
     if (err.response && err.response.status === 422) {
       errors.value = err.response.data.errors;
     } else {
-      alert("Có lỗi xảy ra!");
+      toast("Có lỗi xảy ra!", "error");
     }
   } finally {
     submitting.value = false;
@@ -404,19 +405,19 @@ const saveMovie = async () => {
 
 
 const deleteMovie = async (id) => {
-  if (!confirm('Bạn có chắc chắn muốn xóa phim này không? Hành động này không thể hoàn tác!')) {
+  if (!(await confirmDialog('Bạn có chắc chắn muốn xóa phim này không?', 'Hành động này không thể hoàn tác!'))) {
     return;
   }
 
   try {
     await api.delete(`/admin/movies/${id}`);
 
-    alert("Xóa phim thành công!");
+    toast("Xóa phim thành công!");
 
     await fetchMovies();
   } catch (err) {
     console.error("Lỗi khi xóa:", err);
-    alert("Có lỗi xảy ra khi xóa phim. Vui lòng thử lại!");
+    toast("Có lỗi xảy ra khi xóa phim. Vui lòng thử lại!", "error");
   }
 };
 

@@ -96,7 +96,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import api from '../../api/axios'; // Dùng api config tập trung giúp tối ưu hiệu năng và xử lý lỗi 401
+import api from '../../api/axios';
+import { toast, confirmDialog } from '../../utils/alert';
 
 const genres = ref([]);
 const isEditing = ref(false);
@@ -157,10 +158,10 @@ const saveGenre = async () => {
 
     if (isEditing.value) {
       await api.put(`/admin/genres/${editingId.value}`, payload);
-      alert('🎉 Cập nhật thành công!');
+      toast('Cập nhật thành công!');
     } else {
       await api.post('/admin/genres', payload);
-      alert('🎉 Thêm thành công!');
+      toast('Thêm thành công!');
     }
     resetForm();
     await fetchGenres();
@@ -168,7 +169,7 @@ const saveGenre = async () => {
     if (error.response?.status === 422) {
       errors.value = error.response.data.errors;
     } else {
-      alert('Có lỗi xảy ra!');
+      toast('Có lỗi xảy ra!', 'error');
     }
   }
 };
@@ -182,14 +183,14 @@ const editGenre = (genre) => {
 };
 
 const deleteGenre = async (id) => {
-  if (confirm('⚠️ Bạn có chắc chắn muốn xóa thể loại này không? Tất cả các liên kết phim liên quan sẽ bị ảnh hưởng.')) {
+  if (await confirmDialog('Bạn có chắc chắn muốn xóa thể loại này không?', 'Tất cả các liên kết phim liên quan sẽ bị ảnh hưởng.')) {
     try {
       await api.delete(`/admin/genres/${id}`);
-      alert('🗑️ Đã xóa thể loại thành công!');
+      toast('Đã xóa thể loại thành công!');
       await fetchGenres();
     } catch (error) {
       console.error('Lỗi xóa thể loại:', error);
-      alert(error.response?.data?.message || 'Không thể xóa thể loại này!');
+      toast(error.response?.data?.message || 'Không thể xóa thể loại này!', 'error');
     }
   }
 };
