@@ -85,21 +85,44 @@ class RoomController extends Controller
             'seats' => 'required|array',
         ]);
 
-        DB::transaction(function () use ($request) {
-            foreach ($request->seats as $seatData) {
-                \App\Models\Seat::where('id', $seatData['id'])->update([
-                    'type' => $seatData['type']
-                ]);
-            }
-        });
+        if (empty($request->seats)) {
+            return response()->json(['message' => 'Cập nhật thành công']);
+        }
 
-        return response()->json(['message' => 'Cập nhật thành công']);
+        $cases = [];
+        $params = [];
+        $ids = [];
+
+        foreach ($request->seats as $seatData) {
+            $seatId = (int)$seatData['id'];
+            $cases[] = "WHEN id = ? THEN ?";
+            $params[] = $seatId;
+            $params[] = $seatData['type'];
+            $ids[] = $seatId;
+        }
+
+        $casesString = implode(' ', $cases);
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        
+        $params = array_merge($params, $ids);
+
+        DB::update("UPDATE seats SET type = CASE {$casesString} ELSE type END WHERE id IN ({$placeholders})", $params);
+
+        return response()->json(['message' => 'Cập nhật sơ đồ ghế thành công']);
     }
 
     // Xóa phòng
     public function destroy($id)
     {
         $room = Room::findOrFail($id);
+
+        if ($room->showtimes()->count() > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể xóa rạp này vì đã được lên lịch chiếu! Vui lòng xóa suất chiếu trước.'
+            ], 400);
+        }
+
         $room->delete();
 
         return response()->json([
