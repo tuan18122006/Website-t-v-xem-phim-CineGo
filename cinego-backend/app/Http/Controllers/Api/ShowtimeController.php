@@ -136,5 +136,40 @@ class ShowtimeController extends Controller
 
         return response()->json($formattedSeats, 200);
     }
-}
 
+    public function getShowtimesByMovie(Request $request, $id)
+    {
+        $date = $request->query('date');
+
+        $query = Showtime::with('room')
+            ->where('movie_id', $id);
+
+        if ($date) {
+            $query->whereDate('start_time', $date);
+        }
+
+        $showtimes = $query->get();
+
+        $grouped = $showtimes->groupBy('room_id')->map(function ($items) {
+            $room = $items->first()->room;
+
+            return [
+                'roomId' => $room->id,
+                'roomName' => $room->name,
+                'showtimes' => $items->map(function ($showtime) {
+                    return [
+                        'id' => $showtime->id,
+                        'start_time' => \Carbon\Carbon::parse($showtime->start_time)->format('H:i'),
+                        'available_seats' => 85,
+                        'room_name' => $showtime->room->name,
+                    ];
+                })->values()
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $grouped
+        ]);
+    }
+}

@@ -1,5 +1,6 @@
 <template>
   <div class="home-view">
+    <!-- HERO SLIDER BANNER -->
     <header class="hero-slider">
       <div v-for="(banner, idx) in banners" :key="banner.id" class="slide" :class="{ active: activeSlideIndex === idx }"
         :style="{ backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.95) 35%, rgba(15, 23, 42, 0.6) 65%, rgba(15, 23, 42, 0.2) 100%), url(${banner.bg_url})` }">
@@ -16,7 +17,7 @@
           <p class="slide-desc">{{ banner.description }}</p>
 
           <div class="slide-actions">
-            <button @click="goToMovie(banner.id)" class="btn-slide-book">ĐẶT VÉ NGAY</button>
+            <button @click="goToDetail(banner.id)" class="btn-slide-book">ĐẶT VÉ NGAY</button>
             <router-link to="/mua-ve" class="btn-slide-quick">Mua Vé Nhanh</router-link>
           </div>
         </div>
@@ -31,11 +32,7 @@
       </div>
     </header>
 
-
-
-
-
-
+    <!-- SECTION: PHIM ĐANG CHIẾU -->
     <section class="now-showing-section">
       <div class="now-showing-container">
         <div class="section-header-dark">
@@ -62,14 +59,14 @@
               </div>
 
               <span class="age-badge" :class="getRatingClass(movie.rating)">
-                {{ movie.rating }}
+                {{ movie.rating || 'G' }}
               </span>
             </div>
 
             <div class="movie-meta-info" @click="bookMovie(movie)">
               <h3 class="movie-carousel-title">{{ movie.title }}</h3>
               <p class="movie-carousel-genres">
-                {{movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Hành động, Viễn tưởng'}}
+                {{ movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Hành động, Viễn tưởng' }}
               </p>
               <div class="rating-row">
                 <span class="star-rating">★ {{ getStarRating(movie.id) }}</span>
@@ -81,12 +78,7 @@
       </div>
     </section>
 
-
-
-
-
-
-
+    <!-- SECTION: PHIM SẮP CHIẾU -->
     <section class="upcoming-section">
       <div class="upcoming-container">
         <div class="section-header-light">
@@ -114,29 +106,21 @@
 
               <div class="info-light" @click="goToDetail(movie.id)">
                 <h3 class="title-light">{{ movie.title }}</h3>
-                <p class="genres-light">{{movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Sắp chiếu'}}
+                <p class="genres-light">
+                  {{ movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Sắp chiếu' }}
                 </p>
 
                 <p v-if="movie.duration" class="duration-light">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                     stroke="currentColor" width="13" height="13"
                     style="display: inline-block; vertical-align: middle; margin-right: 3px;">
-                    <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                   </svg>
                   {{ movie.duration }} phút
                 </p>
 
                 <p class="release-date">Khởi chiếu: {{ formatDate(movie.release_date) }}</p>
               </div>
-
-              <div class="action-container-light">
-                <button v-if="movie.status === 'now-showing'" class="btn-action-light btn-buy"
-                  @click="goToDetail(movie.id)">
-                  Mua vé
-                </button>
-              </div>
-
             </div>
           </div>
 
@@ -145,10 +129,7 @@
       </div>
     </section>
 
-
-
-
-
+    <!-- SECTION: TÌM KIẾM & BỘ LỌC BỘ TRUYỆN -->
     <section class="cg-search-filter-section">
       <div class="cg-filter-container">
         <div class="cg-filter-bar-header">
@@ -189,8 +170,7 @@
         <div v-else class="cg-filter-movies-grid">
           <div v-for="movie in filteredMovies" :key="'filter-' + movie.id" class="cg-filter-movie-card">
             <div class="cg-filter-poster-box">
-              <img :src="movie.poster_url" :alt="movie.title" class="cg-filter-movie-poster"
-                @click="goToDetail(movie.id)" />
+              <img :src="movie.poster_url" :alt="movie.title" class="cg-filter-movie-poster" @click="goToDetail(movie.id)" />
               <div class="cg-filter-play-overlay" @click="openTrailer(movie.trailer_url)">
                 <div class="cg-filter-play-icon-btn">
                   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
@@ -202,17 +182,16 @@
             </div>
             <div class="cg-filter-movie-info">
               <h3 class="cg-filter-movie-title" @click="goToDetail(movie.id)">{{ movie.title }}</h3>
-              <p class="cg-filter-movie-genres">{{movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Hành động' }}</p>
+              <p class="cg-filter-movie-genres">
+                {{ movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Hành động' }}
+              </p>
             </div>
           </div>
         </div>
       </div>
     </section>
 
-
-
-
-
+    <!-- TRAILER MODAL -->
     <div v-if="isTrailerOpen" class="trailer-modal-backdrop" @click.self="closeTrailer">
       <div class="trailer-modal-content">
         <button class="trailer-close-btn" @click="closeTrailer">✕</button>
@@ -220,7 +199,7 @@
           <iframe v-if="embedTrailerUrl" :src="embedTrailerUrl" frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen></iframe>
-          <div v-else class="no-trailer-msg">Không có dữ liệu Trailer cho phim này.</div>
+          <div class="no-trailer-msg">Không có dữ liệu Trailer cho phim này.</div>
         </div>
       </div>
     </div>
@@ -241,13 +220,10 @@ let slideInterval = null;
 const isTrailerOpen = ref(false);
 const currentTrailerUrl = ref('');
 
-// 1. CHUẨN HÓA: Dữ liệu giả lập ban đầu (Sử dụng đồng bộ dạng gạch ngang 'now-showing' và 'coming-soon')
-const movies = ref([]);
+const movies = ref([]); 
+const filteredMovies = ref([]);
 
 const loading = ref(false);
-
-// State dành riêng cho bộ lọc tìm kiếm
-const filteredMovies = ref([]);
 const filterLoading = ref(false);
 const genreList = ref([
   { id: 1, name: 'Hành Động' },
@@ -264,6 +240,7 @@ const filters = ref({
   keyword: ''
 });
 
+// Cấu hình Banners hiển thị trên cùng (Bạn có thể sửa text/ảnh tùy ý)
 const banners = ref([
   {
     id: 4,
@@ -272,24 +249,19 @@ const banners = ref([
     rating: 'T13',
     duration: 145,
     genres: ['Khoa Học Viễn Tưởng', 'Phiêu Lưu'],
-    description: 'Hành trình vượt qua các tinh vân xa xôi của thợ săn tiền thưởng Mandalorian và cậu bé Grogu đáng yêu trước các mối đe dọa mới từ tàn dư Đế Chế.'
-  },
-  {
-    id: 1,
-    title: 'Doraemon Movie 45: Nobita và Bản Giao Hưởng Địa Cầu',
-    bg_url: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=1600&q=80',
-    rating: 'G',
-    duration: 110,
-    genres: ['Hoạt Hình', 'Giả Tưởng', 'Âm Nhạc'],
-    description: 'Nobita và những người bạn quen biết một cô gái bí ẩn và cùng tham gia vào cuộc hành trình giải cứu thế giới bằng sức mạnh kỳ diệu của âm nhạc.'
+    description: 'Hành trình vượt qua các tinh vân xa xôi của thợ săn tiền thưởng Mandalorian.'
   }
 ]);
 
 const nextSlide = () => {
-  activeSlideIndex.value = (activeSlideIndex.value + 1) % banners.value.length;
+  if (banners.value.length > 0) {
+    activeSlideIndex.value = (activeSlideIndex.value + 1) % banners.value.length;
+  }
 };
 const prevSlide = () => {
-  activeSlideIndex.value = (activeSlideIndex.value - 1 + banners.value.length) % banners.value.length;
+  if (banners.value.length > 0) {
+    activeSlideIndex.value = (activeSlideIndex.value - 1 + banners.value.length) % banners.value.length;
+  }
 };
 
 const embedTrailerUrl = computed(() => {
@@ -315,22 +287,23 @@ const closeTrailer = () => {
   currentTrailerUrl.value = '';
 };
 
-// 2. CHUẨN HÓA LOGIC LỌC COMPUTED: Chấp nhận cả gạch dưới và gạch ngang từ API để tránh lỗi hiển thị giao diện
-// Kéo xuống phần computed và sửa lại như sau:
+// 🔥 BỘ LỌC PHIM ĐANG CHIẾU - Lấy từ dữ liệu gốc của DB lên
 const activeMovies = computed(() => {
-  return movies.value.filter(movie =>
-    movie.status === 'showing' ||
-    movie.status === 'now_showing' ||
-    movie.status === 'now-showing' // Nhận diện cả định dạng này của bạn
-  );
+  return movies.value.filter(movie => {
+    if (!movie.status) return false;
+    // Chuẩn hóa chữ thường, đổi gạch dưới thành gạch ngang để khớp chính xác cấu trúc filter
+    const s = movie.status.toLowerCase().replace(/[\s_]/g, '-');
+    return s === 'showing' || s === 'now-showing' || s === 'now_showing';
+  });
 });
 
+// 🔥 BỘ LỌC PHIM SẮP CHIẾU - Lấy từ dữ liệu gốc của DB lên
 const upcomingMovies = computed(() => {
-  return movies.value.filter(movie =>
-    movie.status === 'upcoming' ||
-    movie.status === 'coming_soon' ||
-    movie.status === 'coming-soon' // Nhận diện cả định dạng này của bạn
-  );
+  return movies.value.filter(movie => {
+    if (!movie.status) return false;
+    const s = movie.status.toLowerCase().replace(/[\s_]/g, '-');
+    return s === 'upcoming' || s === 'coming-soon' || s === 'coming_soon';
+  });
 });
 
 const getRatingClass = (rating) => {
@@ -343,7 +316,7 @@ const getRatingClass = (rating) => {
 };
 
 const getStarRating = (id) => {
-  const ratings = { 1: '9.0', 2: '9.0', 3: '7.5', 4: '9.2' };
+  const ratings = { 1: '9.0', 2: '8.8', 3: '7.5', 4: '9.2' };
   return ratings[id] || '8.5';
 };
 
@@ -366,9 +339,11 @@ const fetchFilteredMovies = async () => {
   filterLoading.value = true;
   try {
     const response = await api.get('/movies/search', { params: filters.value });
-    filteredMovies.value = response.data.data || response.data;
+    const resData = response.data?.data || response.data;
+    filteredMovies.value = resData || [];
   } catch (error) {
-    filteredMovies.value = movies.value;
+    console.error('Lỗi tìm kiếm từ DB:', error);
+    filteredMovies.value = [];
   } finally {
     filterLoading.value = false;
   }
@@ -390,19 +365,20 @@ const fetchMovies = async () => {
   loading.value = true;
   try {
     const response = await api.get('/movies');
-    const apiData = response.data.data || response.data;
+    const apiData = response.data?.data || response.data;
     
-    // NẾU API trả về có dữ liệu thực tế trong DB rạp phim
     if (apiData && apiData.length > 0) {
-      movies.value = apiData;
+      movies.value = apiData.map(movie => ({
+        ...movie,
+        status: movie.status ? movie.status.toLowerCase().replace(/[\s_]/g, '-') : 'now-showing'
+      }));
+      console.log('=== KẾT NỐI DB THÀNH CÔNG ===', movies.value);
     } else {
-      // NẾU API chạy thành công nhưng Database rạp của bạn đang trống rỗng, 
-      // Ta giữ nguyên mảng mock data (không làm gì cả để giữ lại 3 phim mồi ban đầu)
-      console.log('API trả về mảng rỗng, giữ lại dữ liệu giả lập để test UI.');
+      movies.value = [];
+      console.warn('Kết nối DB thành công nhưng bảng movies hiện tại đang trống rỗng!');
     }
   } catch (err) {
-    console.error('Fetch API lỗi hoàn toàn, kích hoạt dữ liệu dự phòng:', err);
-    // Mảng dự phòng khi lỗi kết nối hoàn toàn (Sử dụng đồng bộ dạng gạch ngang)
+    console.error('Lỗi nghiêm trọng: Không thể kéo dữ liệu từ Laragon Database!', err);
     movies.value = [];
   } finally {
     loading.value = false;
@@ -410,9 +386,7 @@ const fetchMovies = async () => {
   }
 };
 
-
 const upcomingCarouselRef = ref(null);
-
 const scrollUpcoming = (direction) => {
   if (upcomingCarouselRef.value) {
     const scrollAmount = 500;
@@ -432,7 +406,10 @@ onMounted(() => {
 onUnmounted(() => {
   if (slideInterval) clearInterval(slideInterval);
 });
+
 </script>
+
+
 <style scoped>
 @import '../../assets/css/pages/home-view.css';
 </style>
