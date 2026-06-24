@@ -241,11 +241,15 @@ class ShowtimeController extends Controller
         ]);
     }
 
-    public function getAvailableDates($id)
+    public function getAvailableDates($id = null)
     {
-        $dates = Showtime::where('movie_id', $id)
-            ->whereDate('start_time', '>=', now()->toDateString())
-            ->orderBy('start_time')
+        $query = Showtime::whereDate('start_time', '>=', now()->toDateString());
+        
+        if ($id) {
+            $query->where('movie_id', $id);
+        }
+
+        $dates = $query->orderBy('start_time')
             ->pluck('start_time')
             ->map(function ($date) {
                 return \Carbon\Carbon::parse($date)->toDateString();
@@ -257,6 +261,45 @@ class ShowtimeController extends Controller
         return response()->json([
             'success' => true,
             'data' => $dates
+        ]);
+    }
+
+    public function getShowtimesByDate(Request $request)
+    {
+        $date = $request->query('date', now()->toDateString());
+
+        $showtimes = Showtime::with(['movie.genres', 'room'])
+            ->whereDate('start_time', $date)
+            ->where('status', 'active')
+            ->orderBy('start_time', 'asc')
+            ->get();
+
+        // Group by movie
+        $grouped = $showtimes->groupBy('movie_id')->map(function ($items) {
+            $movie = $items->first()->movie;
+
+            return [
+                'movie_id' => $movie->id,
+                'title' => $movie->title,
+                'poster_url' => $movie->poster_url,
+                'rating' => $movie->rating,
+                'genres' => $movie->genres->pluck('name'),
+                'showtimes' => $items->map(function ($st) {
+                    return [
+                        'id' => $st->id,
+                        'start_time' => \Carbon\Carbon::parse($st->start_time)->format('H:i'),
+                        'end_time' => \Carbon\Carbon::parse($st->end_time)->format('H:i'),
+                        'format' => $st->format,
+                        'translation' => $st->translation,
+                        'room_name' => $st->room->name
+                    ];
+                })->values()
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $grouped
         ]);
     }
 }

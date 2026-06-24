@@ -9,10 +9,10 @@
 
   --accent-pink: #e50914; /* Cinema Red */
   --accent-pink-glow: rgba(229, 9, 20, 0.2);
-  --accent-violet: #9b000e; /* Deep Burgundy Red */
-  --accent-violet-glow: rgba(155, 0, 14, 0.2);
-  --accent-mint: #008f5d; /* Darker Mint Green for high contrast on white */
-  --accent-mint-glow: rgba(0, 143, 93, 0.2);
+  --accent-violet: #b8000b; /* Darker Red for gradients */
+  --accent-violet-glow: rgba(184, 0, 11, 0.2);
+  --accent-mint: #e50914; /* Map mint to red as well for consistency */
+  --accent-mint-glow: rgba(229, 9, 20, 0.2);
 
   --text-primary: #1e293b; /* Dark charcoal text */
   --text-secondary: #475569;
@@ -29,9 +29,9 @@
   --radius-lg: 24px;
   --radius-full: 9999px;
 
-  --shadow-neon-pink: 0 4px 20px rgba(216, 45, 139, 0.25);
-  --shadow-neon-violet: 0 4px 20px rgba(165, 0, 100, 0.25);
-  --shadow-neon-mint: 0 4px 20px rgba(0, 143, 93, 0.25);
+  --shadow-neon-pink: 0 4px 20px rgba(229, 9, 20, 0.25);
+  --shadow-neon-violet: 0 4px 20px rgba(184, 0, 11, 0.25);
+  --shadow-neon-mint: 0 4px 20px rgba(229, 9, 20, 0.25);
 }
 
 * {
@@ -93,8 +93,8 @@ textarea {
   transition: var(--transition-smooth);
 }
 .glass-panel-hover:hover {
-  border-color: rgba(112, 0, 255, 0.3);
-  box-shadow: 0 10px 40px 0 rgba(112, 0, 255, 0.15);
+  border-color: rgba(229, 9, 20, 0.3);
+  box-shadow: 0 10px 40px 0 rgba(229, 9, 20, 0.15);
   transform: translateY(-4px);
 }
 
@@ -116,13 +116,13 @@ textarea {
 
 /* Glowing Neon Elements */
 .glow-text-violet {
-  text-shadow: 0 0 10px rgba(112, 0, 255, 0.6);
+  text-shadow: 0 0 10px rgba(229, 9, 20, 0.6);
 }
 .glow-text-pink {
-  text-shadow: 0 0 10px rgba(255, 0, 127, 0.6);
+  text-shadow: 0 0 10px rgba(229, 9, 20, 0.6);
 }
 .glow-text-mint {
-  text-shadow: 0 0 10px rgba(0, 245, 160, 0.6);
+  text-shadow: 0 0 10px rgba(229, 9, 20, 0.6);
 }
 
 /* Modern Gradient Text */
@@ -155,11 +155,11 @@ textarea {
   0%,
   100% {
     opacity: 0.8;
-    box-shadow: 0 0 10px var(--accent-violet-glow);
+    box-shadow: 0 0 10px var(--accent-pink-glow);
   }
   50% {
     opacity: 1;
-    box-shadow: 0 0 20px rgba(112, 0, 255, 0.6);
+    box-shadow: 0 0 20px rgba(229, 9, 20, 0.6);
   }
 }
 
