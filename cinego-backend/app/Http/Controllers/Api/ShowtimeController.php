@@ -38,6 +38,9 @@ class ShowtimeController extends Controller
             'end_time' => 'required|date|after:start_time',
             'format' => 'required|string',
             'translation' => 'required|string',
+            'standard_price' => 'required|numeric|min:0',
+            'vip_price' => 'required|numeric|min:0',
+            'couple_price' => 'required|numeric|min:0',
         ]);
 
         // Chuẩn hóa thời gian về 'Y-m-d H:i:s' để so sánh chính xác trong DB
@@ -82,6 +85,31 @@ class ShowtimeController extends Controller
             'format' => $request->format,
             'translation' => $request->translation,
             'status' => 'active'
+        ]);
+
+        // Tạo 3 cấu hình giá vé cơ bản
+        \Illuminate\Support\Facades\DB::table('price_configs')->insert([
+            [
+                'showtime_id' => $showtime->id,
+                'seat_type' => 'standard',
+                'price' => $request->standard_price,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'showtime_id' => $showtime->id,
+                'seat_type' => 'vip',
+                'price' => $request->vip_price,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'showtime_id' => $showtime->id,
+                'seat_type' => 'couple',
+                'price' => $request->couple_price,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
         ]);
 
         return response()->json([

@@ -206,6 +206,25 @@
               </div>
             </div>
 
+            <!-- CẤU HÌNH GIÁ VÉ -->
+            <div class="stv-field stv-field--price">
+              <label>Cấu hình giá vé (VNĐ) <i>*</i></label>
+              <div class="price-inputs">
+                <div class="price-col">
+                  <span>Standard</span>
+                  <input v-model="form.standard_price" type="number" required class="stv-input" />
+                </div>
+                <div class="price-col">
+                  <span>VIP</span>
+                  <input v-model="form.vip_price" type="number" required class="stv-input" />
+                </div>
+                <div class="price-col">
+                  <span>Couple</span>
+                  <input v-model="form.couple_price" type="number" required class="stv-input" />
+                </div>
+              </div>
+            </div>
+
             <!-- Preview vé trực tiếp -->
             <transition name="preview-pop">
               <div v-if="previewMovie" class="stv-preview">
@@ -239,6 +258,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import api from '../../api/axios';
+import { toast, confirmDialog } from '../../utils/alert';
 
 const showtimes = ref([]);
 const movies = ref([]);
@@ -258,7 +278,10 @@ const form = ref({
   start_time: '',
   end_time: '',
   format: '2D',
-  translation: 'Phụ đề'
+  translation: 'Phụ đề',
+  standard_price: 80000,
+  vip_price: 100000,
+  couple_price: 150000
 });
 
 /* ---------- Computed ---------- */
@@ -308,7 +331,11 @@ const durationLabel = (st) => {
 
 /* ---------- Modal ---------- */
 const openCreateModal = () => {
-  form.value = { movie_id: '', room_id: '', start_time: '', end_time: '', format: '2D', translation: 'Phụ đề' };
+  form.value = { 
+    movie_id: '', room_id: '', start_time: '', end_time: '', 
+    format: '2D', translation: 'Phụ đề',
+    standard_price: 80000, vip_price: 100000, couple_price: 150000 
+  };
   formError.value = '';
   showModal.value = true;
 };
@@ -364,7 +391,7 @@ const saveShowtime = async () => {
   formError.value = '';
   try {
     await api.post('/admin/showtimes', form.value);
-    alert('🎉 Thêm suất chiếu mới thành công!');
+    toast('Thêm suất chiếu mới thành công!');
     showModal.value = false;
     await fetchShowtimes();
   } catch (err) {
@@ -383,14 +410,14 @@ const saveShowtime = async () => {
 };
 
 const deleteShowtime = async (id) => {
-  if (!confirm('⚠️ Bạn có chắc chắn muốn xóa suất chiếu này? Hành động này không thể hoàn tác!')) return;
+  if (!(await confirmDialog('Bạn có chắc chắn muốn xóa suất chiếu này?', 'Hành động này không thể hoàn tác!'))) return;
   try {
     await api.delete(`/admin/showtimes/${id}`);
-    alert('🗑️ Xóa suất chiếu thành công!');
+    toast('Xóa suất chiếu thành công!');
     await fetchShowtimes();
   } catch (err) {
     console.error('Delete showtime error:', err);
-    alert('Không thể xóa suất chiếu này!');
+    toast('Không thể xóa suất chiếu này!', 'error');
   }
 };
 
@@ -869,14 +896,13 @@ onMounted(async () => {
   background: #eef6f1; color: #047857;
 }
 .stv-input {
-  width: 100%;
-  border: 1.5px solid #e6e2e6;
-  padding: 13px 16px;
+  padding: 10px;
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
   border-radius: 12px;
-  outline: none;
-  font-size: 15px;
-  background: #faf9fa;
+  font-size: 14px;
   color: #1e293b;
+  outline: none;
   transition: all 0.2s;
 }
 .stv-input:focus { border-color: #e50914; background: #fff; box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1); }
