@@ -50,8 +50,8 @@
               <span class="rank-number">{{ index + 1 }}</span>
               <img :src="movie.poster_url" :alt="movie.title" class="carousel-poster" @click="goToDetail(movie.id)" />
 
-              <div class="play-overlay" @click="openTrailer(movie.trailer_url)">
-                <div class="play-icon-btn">
+              <div class="play-overlay" @click="goToDetail(movie.id)">
+                <div class="play-icon-btn" @click.stop="openTrailer(movie.trailer_url)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#ffffff">
                     <polygon points="5 3 19 12 5 21 5 3"></polygon>
                   </svg>
@@ -93,8 +93,8 @@
               <div class="poster-container-light">
                 <img :src="movie.poster_url" :alt="movie.title" class="poster-light" @click="goToDetail(movie.id)" />
 
-                <div class="play-overlay" @click="openTrailer(movie.trailer_url)">
-                  <div class="play-icon-btn">
+                <div class="play-overlay" @click="goToDetail(movie.id)">
+                  <div class="play-icon-btn" @click.stop="openTrailer(movie.trailer_url)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#ffffff">
                       <polygon points="5 3 19 12 5 21 5 3"></polygon>
                     </svg>
@@ -171,8 +171,8 @@
           <div v-for="movie in filteredMovies" :key="'filter-' + movie.id" class="cg-filter-movie-card">
             <div class="cg-filter-poster-box">
               <img :src="movie.poster_url" :alt="movie.title" class="cg-filter-movie-poster" @click="goToDetail(movie.id)" />
-              <div class="cg-filter-play-overlay" @click="openTrailer(movie.trailer_url)">
-                <div class="cg-filter-play-icon-btn">
+              <div class="cg-filter-play-overlay" @click="goToDetail(movie.id)">
+                <div class="cg-filter-play-icon-btn" @click.stop="openTrailer(movie.trailer_url)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
                     <polygon points="5 3 19 12 5 21 5 3"></polygon>
                   </svg>
@@ -274,7 +274,7 @@ const embedTrailerUrl = computed(() => {
 });
 
 const openTrailer = (url) => {
-  if (url) {
+  if (url && url !== 'null' && url !== 'undefined') {
     currentTrailerUrl.value = url;
     isTrailerOpen.value = true;
   } else {
