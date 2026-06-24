@@ -130,7 +130,9 @@ const selectedDayIndex = ref(0);
 
 const showtimesData = ref([]);
 
-const availableDays = computed(() => {
+const availableDays = ref([]);
+
+const defaultDays = () => {
   const days = [];
   const weekdays = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
   for (let i = 0; i < 5; i++) {
@@ -144,7 +146,7 @@ const availableDays = computed(() => {
     });
   }
   return days;
-});
+};
 
 // Dynamic virtual theaters mapping from seeded DB rooms
 const virtualTheaters = computed(() => {
@@ -189,6 +191,35 @@ const fetchMovies = async () => {
   }
 };
 
+const fetchAvailableDates = async () => {
+  if (!selectedMovie.value) return;
+  try {
+    const response = await api.get(`/movies/${selectedMovie.value.id}/available-dates`);
+    const dates = response.data?.data || [];
+    
+    if (dates.length > 0) {
+      const weekdays = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+      const todayStr = new Date().toISOString().split('T')[0];
+      
+      availableDays.value = dates.map(dateStr => {
+        const d = new Date(dateStr);
+        return {
+          dateStr: dateStr,
+          weekday: dateStr === todayStr ? 'Hôm nay' : weekdays[d.getDay()],
+          dateLabel: `${d.getDate()}/${d.getMonth() + 1}`,
+          fullLabel: d.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
+        };
+      });
+      selectedDayIndex.value = 0; // Reset ngày về ngày đầu tiên có lịch
+    } else {
+      availableDays.value = defaultDays();
+    }
+  } catch (err) {
+    console.error('Fetch available dates error:', err);
+    availableDays.value = defaultDays();
+  }
+};
+
 const fetchShowtimes = async () => {
   if (!selectedMovie.value) return;
   loadingShowtimes.value = true;
@@ -205,13 +236,17 @@ const fetchShowtimes = async () => {
 };
 
 // Watchers to update showtimes dynamically
-watch([selectedMovie, selectedDayIndex], () => {
+watch(selectedMovie, async () => {
+  await fetchAvailableDates();
+  await fetchShowtimes();
+});
+
+watch(selectedDayIndex, () => {
   fetchShowtimes();
 });
 
 onMounted(async () => {
   await fetchMovies();
-  await fetchShowtimes();
 });
 
 const proceedToBooking = (showtime) => {
