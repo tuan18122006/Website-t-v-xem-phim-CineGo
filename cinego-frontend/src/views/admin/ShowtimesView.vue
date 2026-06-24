@@ -1,137 +1,243 @@
 <template>
-  <div class="admin-showtimes-view-container">
-    <div class="glass-panel list-card">
-      <div class="header-row">
-        <h2 class="title-cine">🕒 Quản Lý Lịch Chiếu</h2>
-        <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Suất Chiếu</button>
-      </div>
-      
-      <!-- Spinner loading dữ liệu -->
-      <div v-if="loading" class="loading-state">
-        <div class="spinner-cine"></div>
-        <p>Đang tải danh sách suất chiếu từ database...</p>
-      </div>
+  <div class="stv">
+    <!-- ===== HERO: BẢNG ĐIỀU PHỐI (cinematic dark marquee) ===== -->
+    <header class="stv-hero">
+      <div class="stv-hero__grain"></div>
+      <div class="stv-hero__filmstrip"></div>
 
-      <div v-else class="showtimes-table-wrapper">
-      <table class="showtimes-table">
-        <thead>
-          <tr>
-            <th class="col-id">ID</th>
-            <th class="col-movie">Tên Phim</th>
-            <th class="col-room">Phòng</th>
-            <th class="col-time">Giờ Bắt Đầu</th>
-            <th class="col-time">Giờ Kết Thúc</th>
-            <th class="col-format">Định Dạng</th>
-            <th class="col-translation">Dịch Thuật</th>
-            <th class="col-status">Trạng Thái</th>
-            <th class="col-actions">Hành Động</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="st in showtimes" :key="st.id" class="table-row">
-            <td class="cell-id">#{{ st.id }}</td>
-            <td class="cell-movie">{{ st.movie_title }}</td>
-            <td><span class="room-pill-cine">{{ st.room_name }}</span></td>
-            <td class="time-start-cine">{{ formatDateTime(st.start_time) }}</td>
-            <td class="time-end-cine">{{ formatDateTime(st.end_time) }}</td>
-            <td><span class="format-pill-cine">{{ st.format }}</span></td>
-            <td><span class="translation-pill-cine">{{ st.translation }}</span></td>
-            <td>
-              <span class="status-pill-cine" :class="{ active: st.status === 'active', cancelled: st.status === 'cancelled' }">
-                {{ st.status === 'active' ? 'Hoạt động' : 'Đã hủy' }}
-              </span>
-            </td>
-            <td class="cell-actions">
-              <div class="action-buttons-group">
-                <button @click="deleteShowtime(st.id)" class="btn-action delete">🗑️ Xóa</button>
-              </div>
-            </td>
-          </tr>
-          
-          <tr v-if="showtimes.length === 0">
-            <td colspan="9" class="empty-state">
-              📭 Hiện chưa có suất chiếu nào được lên lịch. Hãy bấm nút "Thêm Suất Chiếu"!
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    </div>
-
-    <!-- CREATE SHOWTIME MODAL (RED/WHITE HIGH ACCESSIBILITY THEME) -->
-    <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
-      <div class="modal-content-cine">
-        <div class="modal-header">
-          <h3 class="modal-title-cine">✨ Thêm Suất Chiếu Mới</h3>
-          <button @click="closeModal" class="btn-close-modal">✕</button>
+      <div class="stv-hero__row">
+        <div class="stv-hero__intro">
+          <span class="stv-hero__kicker">🎬 PHÒNG ĐIỀU PHỐI</span>
+          <h2 class="stv-hero__title">Lịch Chiếu &amp; Suất Phim</h2>
+          <p class="stv-hero__desc">
+            Xếp phim vào phòng đúng giờ — hệ thống <b>tự động chống trùng lịch</b> trong cùng một phòng.
+          </p>
         </div>
-        
-        <form @submit.prevent="saveShowtime" class="movie-form">
-          <div class="form-group-large">
-            <label class="form-label-large">Chọn Phim *</label>
-            <select v-model="form.movie_id" required class="form-input-large select-cine" @change="onMovieChange">
-              <option value="" disabled>-- Vui lòng chọn phim --</option>
-              <option v-for="movie in movies" :key="movie.id" :value="movie.id">
-                {{ movie.title }} ({{ movie.duration }} phút)
-              </option>
-            </select>
-          </div>
 
-          <div class="form-group-large">
-            <label class="form-label-large">Chọn Phòng Chiếu *</label>
-            <select v-model="form.room_id" required class="form-input-large select-cine">
-              <option value="" disabled>-- Vui lòng chọn phòng chiếu --</option>
-              <option v-for="room in rooms" :key="room.id" :value="room.id">
-                {{ room.name }} (Sức chứa: {{ room.total_seats }} ghế)
-              </option>
-            </select>
-          </div>
+        <button class="stv-hero__cta" @click="openCreateModal">
+          <span class="stv-hero__cta-plus">＋</span>
+          <span>Thêm Suất Chiếu</span>
+        </button>
+      </div>
 
-          <div class="form-row-double">
-            <div class="form-group-large">
-              <label class="form-label-large">Thời Gian Chiếu (Bắt đầu) *</label>
-              <input v-model="form.start_time" type="datetime-local" required class="form-input-large" @change="calculateEndTime" />
-            </div>
+      <div class="stv-hero__stats">
+        <div class="stv-stat">
+          <span class="stv-stat__num">{{ showtimes.length }}</span>
+          <span class="stv-stat__label">Tổng suất chiếu</span>
+        </div>
+        <div class="stv-stat stv-stat--mint">
+          <span class="stv-stat__num">{{ activeCount }}</span>
+          <span class="stv-stat__label">Đang hoạt động</span>
+        </div>
+        <div class="stv-stat stv-stat--gold">
+          <span class="stv-stat__num">{{ todayCount }}</span>
+          <span class="stv-stat__label">Chiếu hôm nay</span>
+        </div>
+      </div>
+    </header>
 
-            <div class="form-group-large">
-              <label class="form-label-large">Thời Gian Kết Thúc (Tự động)</label>
-              <input v-model="form.end_time" type="datetime-local" required readonly class="form-input-large input-readonly" />
-            </div>
-          </div>
+    <!-- ===== TOOLBAR: tìm kiếm + lọc định dạng ===== -->
+    <div class="stv-toolbar">
+      <label class="stv-search">
+        <span class="stv-search__icon">🔍</span>
+        <input v-model="searchQuery" type="text" placeholder="Tìm theo tên phim hoặc phòng chiếu…" />
+        <button v-if="searchQuery" class="stv-search__clear" @click="searchQuery = ''" aria-label="Xóa">✕</button>
+      </label>
 
-          <div class="form-row-double">
-            <div class="form-group-large">
-              <label class="form-label-large">Định Dạng Suất Chiếu *</label>
-              <select v-model="form.format" required class="form-input-large select-cine">
-                <option value="2D">2D</option>
-                <option value="3D">3D</option>
-                <option value="IMAX">IMAX</option>
-              </select>
-            </div>
-
-            <div class="form-group-large">
-              <label class="form-label-large">Hình Thức Dịch Thuật *</label>
-              <select v-model="form.translation" required class="form-input-large select-cine">
-                <option value="Phụ đề">Phụ đề (Vietsub)</option>
-                <option value="Thuyết minh">Thuyết minh</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="modal-footer-cine">
-            <button type="button" @click="closeModal" class="btn-secondary-cine">Hủy bỏ</button>
-            <button type="submit" class="btn-primary-cine" :disabled="submitting">
-              {{ submitting ? 'Đang tạo...' : 'Tạo Suất Chiếu' }}
-            </button>
-          </div>
-        </form>
+      <div class="stv-segment">
+        <button
+          v-for="f in formatOptions"
+          :key="f"
+          class="stv-segment__btn"
+          :class="{ active: formatFilter === f }"
+          @click="formatFilter = f"
+        >{{ f }}</button>
       </div>
     </div>
+
+    <!-- ===== LOADING ===== -->
+    <div v-if="loading" class="stv-loading">
+      <div class="stv-spinner"></div>
+      <p>Đang tải lịch chiếu từ hệ thống…</p>
+    </div>
+
+    <!-- ===== EMPTY ===== -->
+    <div v-else-if="filteredShowtimes.length === 0" class="stv-empty">
+      <div class="stv-empty__art">🎞️</div>
+      <h3>{{ showtimes.length === 0 ? 'Chưa có suất chiếu nào' : 'Không tìm thấy suất chiếu phù hợp' }}</h3>
+      <p>{{ showtimes.length === 0 ? 'Hãy tạo suất chiếu đầu tiên để khởi động phòng vé.' : 'Thử đổi từ khóa hoặc bộ lọc định dạng.' }}</p>
+      <button v-if="showtimes.length === 0" class="stv-empty__btn" @click="openCreateModal">＋ Tạo suất chiếu</button>
+    </div>
+
+    <!-- ===== TICKET GRID ===== -->
+    <div v-else class="stv-grid">
+      <article
+        v-for="st in filteredShowtimes"
+        :key="st.id"
+        class="ticket"
+        :class="{ 'ticket--off': st.status !== 'active' }"
+      >
+        <!-- Cuống vé: giờ bắt đầu -->
+        <div class="ticket__stub">
+          <span class="ticket__stub-time">{{ timeOnly(st.start_time) }}</span>
+          <span class="ticket__stub-date">{{ dateOnly(st.start_time) }}</span>
+          <span class="ticket__stub-id">#{{ st.id }}</span>
+        </div>
+
+        <!-- Đường xé răng cưa -->
+        <div class="ticket__tear"></div>
+
+        <!-- Thân vé -->
+        <div class="ticket__body">
+          <div class="ticket__top">
+            <h3 class="ticket__movie" :title="st.movie_title">{{ st.movie_title }}</h3>
+            <span class="ticket__status" :class="st.status === 'active' ? 'is-on' : 'is-off'">
+              <span class="ticket__status-dot"></span>
+              {{ st.status === 'active' ? 'Hoạt động' : 'Đã hủy' }}
+            </span>
+          </div>
+
+          <!-- Timeline giờ chiếu -->
+          <div class="ticket__timeline">
+            <span class="tl-node tl-node--start"></span>
+            <span class="tl-time">{{ timeOnly(st.start_time) }}</span>
+            <span class="tl-track">
+              <span class="tl-dur">{{ durationLabel(st) }}</span>
+            </span>
+            <span class="tl-time">{{ timeOnly(st.end_time) }}</span>
+            <span class="tl-node tl-node--end"></span>
+          </div>
+
+          <!-- Nhãn thông tin -->
+          <div class="ticket__tags">
+            <span class="tg tg--room">🏛️ {{ st.room_name }}</span>
+            <span class="tg tg--format">{{ st.format }}</span>
+            <span class="tg tg--trans">💬 {{ st.translation }}</span>
+          </div>
+        </div>
+
+        <button class="ticket__del" @click="deleteShowtime(st.id)" title="Xóa suất chiếu">🗑️</button>
+      </article>
+    </div>
+
+    <!-- ===== MODAL: TẠO SUẤT CHIẾU ===== -->
+    <transition name="modal-fade">
+      <div v-if="showModal" class="stv-backdrop" @click.self="closeModal">
+        <div class="stv-modal">
+          <!-- Marquee header -->
+          <div class="stv-modal__marquee">
+            <div class="stv-modal__marquee-dots"></div>
+            <h3>✨ Lên Lịch Suất Chiếu Mới</h3>
+            <button class="stv-modal__close" @click="closeModal" aria-label="Đóng">✕</button>
+          </div>
+
+          <form @submit.prevent="saveShowtime" class="stv-form">
+            <!-- Banner lỗi chống trùng lịch -->
+            <transition name="error-pop">
+              <div v-if="formError" class="error-banner" role="alert">
+                <span class="error-banner__icon">⚠️</span>
+                <div class="error-banner__body">
+                  <strong class="error-banner__title">Không thể xếp lịch</strong>
+                  <p class="error-banner__msg">{{ formError }}</p>
+                </div>
+                <button type="button" class="error-banner__close" @click="formError = ''" aria-label="Đóng">✕</button>
+              </div>
+            </transition>
+
+            <div class="stv-field">
+              <label>Chọn phim <i>*</i></label>
+              <select v-model="form.movie_id" required class="stv-input stv-input--select" @change="onMovieChange">
+                <option value="" disabled>— Chọn phim cần chiếu —</option>
+                <option v-for="movie in movies" :key="movie.id" :value="movie.id">
+                  {{ movie.title }} • {{ movie.duration }} phút
+                </option>
+              </select>
+            </div>
+
+            <div class="stv-field">
+              <label>Phòng chiếu <i>*</i></label>
+              <select
+                v-model="form.room_id"
+                required
+                class="stv-input stv-input--select"
+                :class="{ 'is-error': formError }"
+                @change="formError = ''"
+              >
+                <option value="" disabled>— Chọn phòng chiếu —</option>
+                <option v-for="room in rooms" :key="room.id" :value="room.id">
+                  {{ room.name }} • {{ room.total_seats }} ghế
+                </option>
+              </select>
+            </div>
+
+            <div class="stv-grid2">
+              <div class="stv-field">
+                <label>Giờ bắt đầu <i>*</i></label>
+                <input
+                  v-model="form.start_time"
+                  type="datetime-local"
+                  required
+                  class="stv-input"
+                  :class="{ 'is-error': formError }"
+                  @change="onStartTimeChange"
+                />
+              </div>
+              <div class="stv-field">
+                <label>Giờ kết thúc <span class="stv-auto">tự tính</span></label>
+                <input v-model="form.end_time" type="datetime-local" required readonly class="stv-input stv-input--readonly" />
+              </div>
+            </div>
+
+            <div class="stv-grid2">
+              <div class="stv-field">
+                <label>Định dạng <i>*</i></label>
+                <select v-model="form.format" required class="stv-input stv-input--select">
+                  <option value="2D">2D</option>
+                  <option value="3D">3D</option>
+                  <option value="IMAX">IMAX</option>
+                </select>
+              </div>
+              <div class="stv-field">
+                <label>Dịch thuật <i>*</i></label>
+                <select v-model="form.translation" required class="stv-input stv-input--select">
+                  <option value="Phụ đề">Phụ đề (Vietsub)</option>
+                  <option value="Thuyết minh">Thuyết minh</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Preview vé trực tiếp -->
+            <transition name="preview-pop">
+              <div v-if="previewMovie" class="stv-preview">
+                <span class="stv-preview__tag">Xem trước</span>
+                <div class="stv-preview__line">
+                  <strong>{{ previewMovie.title }}</strong>
+                  <span class="stv-preview__fmt">{{ form.format }}</span>
+                </div>
+                <div class="stv-preview__time" v-if="form.start_time">
+                  🕒 {{ timeOnly(form.start_time) }} → {{ form.end_time ? timeOnly(form.end_time) : '—' }}
+                  <span class="stv-preview__dur">({{ previewMovie.duration }} phút)</span>
+                </div>
+                <div class="stv-preview__time" v-else>Chọn giờ bắt đầu để xem khung giờ chiếu.</div>
+              </div>
+            </transition>
+
+            <div class="stv-form__footer">
+              <button type="button" class="stv-btn stv-btn--ghost" @click="closeModal">Hủy bỏ</button>
+              <button type="submit" class="stv-btn stv-btn--solid" :disabled="submitting">
+                <span v-if="submitting" class="stv-btn__spin"></span>
+                {{ submitting ? 'Đang tạo…' : 'Xác nhận lên lịch' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import api from '../../api/axios';
 
 const showtimes = ref([]);
@@ -140,6 +246,11 @@ const rooms = ref([]);
 const loading = ref(false);
 const showModal = ref(false);
 const submitting = ref(false);
+const formError = ref('');
+
+const searchQuery = ref('');
+const formatFilter = ref('Tất cả');
+const formatOptions = ['Tất cả', '2D', '3D', 'IMAX'];
 
 const form = ref({
   movie_id: '',
@@ -150,57 +261,79 @@ const form = ref({
   translation: 'Phụ đề'
 });
 
+/* ---------- Computed ---------- */
+const activeCount = computed(() => showtimes.value.filter(s => s.status === 'active').length);
+
+const todayCount = computed(() => {
+  const now = new Date();
+  return showtimes.value.filter(s => {
+    if (!s.start_time) return false;
+    const d = new Date(s.start_time);
+    return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+});
+
+const filteredShowtimes = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  return showtimes.value.filter(s => {
+    const matchFormat = formatFilter.value === 'Tất cả' || s.format === formatFilter.value;
+    const matchSearch = !q
+      || (s.movie_title || '').toLowerCase().includes(q)
+      || (s.room_name || '').toLowerCase().includes(q);
+    return matchFormat && matchSearch;
+  });
+});
+
+const previewMovie = computed(() => movies.value.find(m => m.id === form.value.movie_id) || null);
+
+/* ---------- Helpers ---------- */
+const timeOnly = (dt) => {
+  if (!dt) return '--:--';
+  return new Date(dt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+};
+
+const dateOnly = (dt) => {
+  if (!dt) return '';
+  return new Date(dt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+};
+
+const durationLabel = (st) => {
+  if (!st.start_time || !st.end_time) return '';
+  const mins = Math.round((new Date(st.end_time) - new Date(st.start_time)) / 60000);
+  if (mins <= 0) return '';
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h > 0 ? `${h}h${m ? m + "'" : ''}` : `${m}'`;
+};
+
+/* ---------- Modal ---------- */
 const openCreateModal = () => {
-  form.value = {
-    movie_id: '',
-    room_id: '',
-    start_time: '',
-    end_time: '',
-    format: '2D',
-    translation: 'Phụ đề'
-  };
+  form.value = { movie_id: '', room_id: '', start_time: '', end_time: '', format: '2D', translation: 'Phụ đề' };
+  formError.value = '';
   showModal.value = true;
 };
 
-const closeModal = () => {
-  showModal.value = false;
-};
+const closeModal = () => { showModal.value = false; };
 
-const formatDateTime = (dateTimeStr) => {
-  if (!dateTimeStr) return '';
-  const d = new Date(dateTimeStr);
-  return d.toLocaleString('vi-VN', { 
-    day: '2-digit', 
-    month: '2-digit', 
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
-const onMovieChange = () => {
-  calculateEndTime();
-};
+const onMovieChange = () => { formError.value = ''; calculateEndTime(); };
+const onStartTimeChange = () => { formError.value = ''; calculateEndTime(); };
 
 const calculateEndTime = () => {
   if (!form.value.start_time || !form.value.movie_id) return;
   const movie = movies.value.find(m => m.id === form.value.movie_id);
   if (!movie) return;
-
   const start = new Date(form.value.start_time);
   const end = new Date(start.getTime() + movie.duration * 60 * 1000);
-  
-  // Định dạng chuẩn cho datetime-local input
   const tzOffset = end.getTimezoneOffset() * 60000;
-  const localISOTime = new Date(end.getTime() - tzOffset).toISOString().slice(0, 16);
-  form.value.end_time = localISOTime;
+  form.value.end_time = new Date(end.getTime() - tzOffset).toISOString().slice(0, 16);
 };
 
+/* ---------- API ---------- */
 const fetchShowtimes = async () => {
   loading.value = true;
   try {
-    const response = await api.get('/admin/showtimes');
-    showtimes.value = response.data;
+    const res = await api.get('/admin/showtimes');
+    showtimes.value = res.data;
   } catch (err) {
     console.error('Fetch showtimes error:', err);
   } finally {
@@ -210,9 +343,8 @@ const fetchShowtimes = async () => {
 
 const fetchMovies = async () => {
   try {
-    const response = await api.get('/movies');
-    // Nhận diện dữ liệu dạng response.data.data hoặc response.data
-    movies.value = response.data.data || response.data;
+    const res = await api.get('/movies');
+    movies.value = res.data.data || res.data;
   } catch (err) {
     console.error('Fetch movies error:', err);
   }
@@ -220,8 +352,8 @@ const fetchMovies = async () => {
 
 const fetchRooms = async () => {
   try {
-    const response = await api.get('/rooms');
-    rooms.value = response.data.data || response.data;
+    const res = await api.get('/rooms');
+    rooms.value = res.data.data || res.data;
   } catch (err) {
     console.error('Fetch rooms error:', err);
   }
@@ -229,6 +361,7 @@ const fetchRooms = async () => {
 
 const saveShowtime = async () => {
   submitting.value = true;
+  formError.value = '';
   try {
     await api.post('/admin/showtimes', form.value);
     alert('🎉 Thêm suất chiếu mới thành công!');
@@ -236,7 +369,14 @@ const saveShowtime = async () => {
     await fetchShowtimes();
   } catch (err) {
     console.error('Save showtime error:', err);
-    alert(err.response?.data?.message || 'Có lỗi xảy ra khi tạo suất chiếu!');
+    const res = err.response?.data;
+    if (res?.message) {
+      formError.value = res.message;
+    } else if (res?.errors) {
+      formError.value = Object.values(res.errors).flat()[0];
+    } else {
+      formError.value = 'Có lỗi xảy ra khi tạo suất chiếu. Vui lòng thử lại!';
+    }
   } finally {
     submitting.value = false;
   }
@@ -262,340 +402,619 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.admin-showtimes-view-container {
-  background-color: #ffffff;
-  color: #1e293b;
-}
-
-.header-row {
+.stv {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 25px;
-  border-bottom: 1px solid #e2e8f0;
-  padding-bottom: 15px;
-}
-
-.title-cine {
-  font-size: 22px;
-  font-weight: 800;
-  color: #9b000e;
-  text-transform: uppercase;
-}
-
-.btn-primary-cine {
-  background: linear-gradient(135deg, #e50914 0%, #9b000e 100%);
-  color: #ffffff;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(229, 9, 20, 0.25);
-  transition: all 0.2s ease;
-}
-.btn-primary-cine:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(229, 9, 20, 0.35);
-}
-
-.btn-secondary-cine {
-  background-color: #ffffff;
-  color: #475569;
-  border: 1px solid #cbd5e1;
-  padding: 12px 22px;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.btn-secondary-cine:hover {
-  background-color: #f1f5f9;
-  border-color: #94a3b8;
+  flex-direction: column;
+  gap: 24px;
   color: #1e293b;
 }
 
-/* Loading state */
-.loading-state {
+/* ===================== HERO ===================== */
+.stv-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 22px;
+  padding: 30px 34px 26px;
+  color: #fff;
+  background:
+    radial-gradient(circle at 88% -30%, rgba(229, 9, 20, 0.55) 0%, transparent 45%),
+    radial-gradient(circle at 10% 120%, rgba(255, 191, 0, 0.18) 0%, transparent 40%),
+    linear-gradient(125deg, #1a0205 0%, #4a0610 45%, #7d0411 100%);
+  box-shadow: 0 22px 48px rgba(123, 4, 17, 0.38);
+  isolation: isolate;
+}
+/* hạt phim mờ */
+.stv-hero__grain {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.5;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-size: 4px 4px;
+}
+/* cuộn phim chạy dọc cạnh phải */
+.stv-hero__filmstrip {
+  position: absolute;
+  top: 0; bottom: 0; right: 0;
+  width: 26px;
+  z-index: -1;
+  background:
+    linear-gradient(#0000 0 0) padding-box,
+    repeating-linear-gradient(to bottom, transparent 0 10px, rgba(255, 255, 255, 0.16) 10px 18px);
+  border-left: 2px dashed rgba(255, 255, 255, 0.18);
+  -webkit-mask: linear-gradient(to left, #000 60%, transparent);
+          mask: linear-gradient(to left, #000 60%, transparent);
+}
+
+.stv-hero__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.stv-hero__kicker {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(6px);
+}
+.stv-hero__title {
+  margin: 14px 0 8px;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1.1;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+.stv-hero__desc {
+  margin: 0;
+  max-width: 540px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.82);
+}
+.stv-hero__desc b { color: #ffd6da; font-weight: 700; }
+
+.stv-hero__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 14px;
+  background: #fff;
+  color: #9b000e;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s;
+  white-space: nowrap;
+}
+.stv-hero__cta:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 16px 34px rgba(0, 0, 0, 0.36); }
+.stv-hero__cta-plus {
+  display: grid; place-items: center;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e50914, #9b000e);
+  color: #fff; font-size: 18px; font-weight: 700;
+}
+
+.stv-hero__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 26px;
+}
+.stv-stat {
+  flex: 1;
+  min-width: 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px);
+  border-left: 4px solid #ff5a64;
+}
+.stv-stat--mint { border-left-color: #2ee6a6; }
+.stv-stat--gold { border-left-color: #ffce4d; }
+.stv-stat__num { font-size: 28px; font-weight: 800; line-height: 1; }
+.stv-stat__label { font-size: 12.5px; font-weight: 600; color: rgba(255, 255, 255, 0.78); }
+
+/* ===================== TOOLBAR ===================== */
+.stv-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.stv-search {
+  flex: 1;
+  min-width: 240px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  height: 48px;
+  background: #fff;
+  border: 1.5px solid #ececf1;
+  border-radius: 14px;
+  transition: all 0.2s;
+}
+.stv-search:focus-within { border-color: #e50914; box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1); }
+.stv-search__icon { font-size: 15px; opacity: 0.6; }
+.stv-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  color: #1e293b;
+}
+.stv-search__clear {
+  border: none; background: #f1f5f9; color: #64748b;
+  width: 22px; height: 22px; border-radius: 50%;
+  cursor: pointer; font-size: 11px; line-height: 1;
+}
+.stv-search__clear:hover { background: #fee2e2; color: #e50914; }
+
+.stv-segment {
+  display: inline-flex;
+  padding: 5px;
+  background: #f4f1f4;
+  border-radius: 14px;
+  gap: 4px;
+}
+.stv-segment__btn {
+  border: none;
+  background: transparent;
+  padding: 9px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.stv-segment__btn:hover { color: #9b000e; }
+.stv-segment__btn.active {
+  background: #fff;
+  color: #e50914;
+  box-shadow: 0 3px 10px rgba(229, 9, 20, 0.18);
+}
+
+/* ===================== LOADING / EMPTY ===================== */
+.stv-loading {
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  padding: 70px 0; color: #94a3b8; font-weight: 600;
+}
+.stv-spinner {
+  width: 42px; height: 42px; border-radius: 50%;
+  border: 4px solid #f1e3e5; border-top-color: #e50914;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.stv-empty {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 8px; padding: 64px 20px;
+  background: #fff;
+  border: 2px dashed #f0d5d9;
+  border-radius: 22px;
+}
+.stv-empty__art { font-size: 54px; filter: grayscale(0.1); margin-bottom: 6px; animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.stv-empty h3 { margin: 0; font-size: 19px; font-weight: 800; color: #1e293b; }
+.stv-empty p { margin: 0; color: #94a3b8; font-size: 14.5px; }
+.stv-empty__btn {
+  margin-top: 14px;
+  border: none; cursor: pointer;
+  padding: 12px 24px; border-radius: 12px;
+  background: linear-gradient(135deg, #e50914, #9b000e);
+  color: #fff; font-weight: 800; font-size: 14px;
+  box-shadow: 0 8px 20px rgba(229, 9, 20, 0.28);
+}
+
+/* ===================== TICKET GRID ===================== */
+.stv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(370px, 1fr));
+  gap: 22px;
+}
+
+.ticket {
+  position: relative;
+  display: grid;
+  grid-template-columns: 96px 18px 1fr;
+  background: #fff;
+  border-radius: 18px;
+  border: 1px solid #f3dde0;
+  box-shadow: 0 6px 22px rgba(15, 23, 42, 0.07);
+  transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.26s;
+  overflow: hidden;
+}
+.ticket:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 18px 38px rgba(229, 9, 20, 0.16);
+}
+.ticket--off { opacity: 0.62; filter: grayscale(0.35); }
+
+/* Cuống vé */
+.ticket__stub {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 0;
-  gap: 15px;
+  gap: 3px;
+  padding: 16px 6px;
+  background: linear-gradient(165deg, #e50914 0%, #9b000e 100%);
+  color: #fff;
+  position: relative;
 }
-.spinner-cine {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #e50914;
+.ticket__stub::after {
+  content: '';
+  position: absolute;
+  inset: 8px auto 8px 8px;
+  width: 0;
+}
+.ticket__stub-time { font-size: 23px; font-weight: 800; font-family: 'Courier New', monospace; letter-spacing: 0.5px; }
+.ticket__stub-date { font-size: 11px; font-weight: 600; opacity: 0.85; text-align: center; }
+.ticket__stub-id {
+  margin-top: 5px;
+  font-size: 10.5px; font-weight: 700;
+  padding: 2px 8px; border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Đường xé răng cưa giữa cuống và thân */
+.ticket__tear {
+  position: relative;
+  background: #fff;
+}
+.ticket__tear::before {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  border-left: 2.5px dashed #f3c9cd;
+}
+/* hai lỗ tròn khoét trên & dưới */
+.ticket__tear::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -9px;
+  transform: translateX(-50%);
+  width: 16px; height: 16px;
   border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-.loading-state p {
-  font-size: 15px;
-  color: #64748b;
-  font-weight: 600;
+  background: #fff;
+  box-shadow:
+    0 0 0 1px #f3dde0,
+    0 calc(100% + 18px) 0 0 #fff,
+    0 calc(100% + 18px) 0 1px #f3dde0;
 }
 
-/* Showtimes List Table */
-.showtimes-table-wrapper {
-  width: 100%;
-  overflow-x: auto;
+/* Thân vé */
+.ticket__body {
+  padding: 16px 50px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
 }
-.showtimes-table {
-  width: 100%;
-  border-collapse: collapse;
-  text-align: left;
+.ticket__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
 }
-.showtimes-table th {
-  padding: 16px;
-  background-color: #f8fafc;
-  border-bottom: 2px solid #e2e8f0;
-  color: #475569;
-  font-size: 15px;
+.ticket__movie {
+  margin: 0;
+  font-size: 17px;
   font-weight: 800;
-}
-.showtimes-table td {
-  padding: 16px;
-  border-bottom: 1px solid #e2e8f0;
-  font-size: 15px;
-}
-.table-row:hover {
-  background-color: #fffafb;
-}
-
-.col-id { width: 80px; text-align: center; }
-.col-movie { min-width: 200px; }
-.col-room { width: 120px; }
-.col-time { width: 160px; }
-.col-format { width: 110px; text-align: center; }
-.col-translation { width: 130px; text-align: center; }
-.col-status { width: 170px; text-align: center; }
-.col-actions { width: 110px; text-align: center; }
-
-.cell-id {
-  font-weight: 800;
-  color: #e50914;
-  text-align: center;
-}
-.cell-movie {
-  font-weight: 700;
   color: #1e293b;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
-.room-pill-cine {
-  background-color: #f1f5f9;
-  color: #1e293b;
-  border: 1px solid #e2e8f0;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-}
-.time-start-cine {
-  color: #0d9488;
-  font-weight: 800;
-}
-.time-end-cine {
-  color: #64748b;
-}
-.format-pill-cine {
-  background-color: #fee2e2;
-  color: #b91c1c;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 13px;
+.ticket__status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  font-size: 11.5px;
   font-weight: 700;
-}
-.translation-pill-cine {
-  background-color: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
   padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-}
-.status-pill-cine {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 800;
-  display: inline-block;
+  border-radius: 999px;
   white-space: nowrap;
 }
-.status-pill-cine.active {
-  background-color: #d1fae5;
-  color: #065f46;
+.ticket__status.is-on { background: #e6f9f0; color: #047857; }
+.ticket__status.is-off { background: #fee2e2; color: #b91c1c; }
+.ticket__status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.ticket__status.is-on .ticket__status-dot { animation: livepulse 1.5s ease-in-out infinite; }
+@keyframes livepulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(4, 120, 87, 0.5); } 50% { box-shadow: 0 0 0 5px rgba(4, 120, 87, 0); } }
+
+/* Timeline */
+.ticket__timeline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.status-pill-cine.cancelled {
-  background-color: #fee2e2;
-  color: #991b1b;
-}
-.cell-actions {
-  text-align: center;
-}
-.action-buttons-group {
+.tl-node { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.tl-node--start { background: #e50914; box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.15); }
+.tl-node--end { background: #94a3b8; box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.18); }
+.tl-time { font-size: 13px; font-weight: 800; color: #334155; font-family: 'Courier New', monospace; }
+.tl-track {
+  flex: 1;
+  position: relative;
+  height: 3px;
+  border-radius: 999px;
+  background: repeating-linear-gradient(to right, #e2c4c7 0 6px, transparent 6px 12px);
   display: flex;
   justify-content: center;
 }
-.btn-action {
-  border: 1px solid #cbd5e1;
-  background-color: #ffffff;
-  padding: 6px 14px;
-  font-size: 14px;
-  font-weight: 700;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.btn-action.delete {
-  color: #dc2626;
-  border-color: #fecaca;
-}
-.btn-action.delete:hover {
-  background-color: #fee2e2;
-  border-color: #dc2626;
-}
-.empty-state {
-  text-align: center;
-  padding: 40px;
-  color: #94a3b8;
-  font-size: 15px;
+.tl-dur {
+  position: absolute;
+  top: -10px;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: #9b000e;
+  background: #fff;
+  padding: 0 6px;
 }
 
-/* PREMIUM SCROLLABLE RED & WHITE MODAL */
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(15, 23, 42, 0.4);
+/* Tags */
+.ticket__tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.tg {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 11px;
+  border-radius: 8px;
+}
+.tg--room { background: #f1f5f9; color: #334155; }
+.tg--format { background: #fee2e2; color: #b91c1c; }
+.tg--trans { background: #eef6f1; color: #047857; }
+
+.ticket__del {
+  position: absolute;
+  top: 12px; right: 12px;
+  width: 32px; height: 32px;
+  border: none; border-radius: 9px;
+  background: #fff;
+  border: 1px solid #fde0e2;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: all 0.2s;
+}
+.ticket:hover .ticket__del { opacity: 1; transform: translateY(0); }
+.ticket__del:hover { background: #fee2e2; border-color: #e50914; }
+
+/* ===================== MODAL ===================== */
+.stv-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(15, 6, 8, 0.55);
   backdrop-filter: blur(8px);
   z-index: 999;
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 40px 20px;
+  padding: 44px 20px;
   overflow-y: auto;
 }
-
-.modal-content-cine {
+.stv-modal {
   width: 100%;
-  max-width: 600px;
-  padding: 35px;
-  background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid #cbd5e1;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  color: #1e293b;
+  max-width: 580px;
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4);
 }
-
-.modal-header {
+.stv-modal__marquee {
+  position: relative;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 25px;
-  border-bottom: 2px solid #fee2e2;
-  padding-bottom: 15px;
+  justify-content: space-between;
+  padding: 20px 24px;
+  background:
+    radial-gradient(circle at 90% -40%, rgba(229, 9, 20, 0.6) 0%, transparent 50%),
+    linear-gradient(120deg, #1a0205, #7d0411);
+  color: #fff;
 }
-
-.modal-title-cine {
-  font-size: 22px;
-  font-weight: 800;
-  color: #9b000e;
-  text-transform: uppercase;
+.stv-modal__marquee h3 { margin: 0; font-size: 19px; font-weight: 800; }
+.stv-modal__marquee-dots {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 5px;
+  background: repeating-linear-gradient(to right, #ffd6da 0 8px, transparent 8px 16px);
+  opacity: 0.5;
 }
-
-.btn-close-modal {
-  background: transparent;
+.stv-modal__close {
   border: none;
-  font-size: 22px;
-  color: #94a3b8;
-  cursor: pointer;
-  transition: color 0.2s ease;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  width: 32px; height: 32px; border-radius: 9px;
+  font-size: 15px; cursor: pointer;
+  transition: all 0.2s;
 }
-.btn-close-modal:hover {
-  color: #e50914;
-}
+.stv-modal__close:hover { background: rgba(255, 255, 255, 0.3); transform: rotate(90deg); }
 
-.movie-form {
+.stv-form {
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
-
-.form-group-large {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.stv-field { display: flex; flex-direction: column; gap: 7px; }
+.stv-field label {
+  font-size: 13.5px; font-weight: 700; color: #334155;
+  display: flex; align-items: center; gap: 6px;
 }
-
-.form-label-large {
-  font-size: 15px;
-  font-weight: 700;
-  color: #334155;
+.stv-field label i { color: #e50914; font-style: normal; }
+.stv-auto {
+  font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 999px;
+  background: #eef6f1; color: #047857;
 }
-
-.form-input-large {
+.stv-input {
   width: 100%;
-  border: 1px solid #cbd5e1;
-  padding: 14px 20px;
-  border-radius: 10px;
+  border: 1.5px solid #e6e2e6;
+  padding: 13px 16px;
+  border-radius: 12px;
   outline: none;
-  font-size: 16px;
-  background-color: #f8fafc;
+  font-size: 15px;
+  background: #faf9fa;
   color: #1e293b;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.2s;
 }
-.form-input-large:focus {
-  border-color: #e50914;
-  box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
-  background-color: #ffffff;
-}
-
-.input-readonly {
-  background-color: #f1f5f9;
-  color: #64748b;
-  border-color: #e2e8f0;
-  font-family: monospace;
-}
-
-.form-row-double {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-}
-
-@media (max-width: 576px) {
-  .form-row-double {
-    grid-template-columns: 1fr;
-  }
-}
-
-.select-cine {
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 16px center;
-  background-size: 18px;
+.stv-input:focus { border-color: #e50914; background: #fff; box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1); }
+.stv-input--readonly { background: #f1f5f9; color: #64748b; font-family: 'Courier New', monospace; }
+.stv-input--select {
   appearance: none;
-  padding-right: 40px;
   cursor: pointer;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23e50914' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 18px;
+  padding-right: 42px;
 }
+.stv-input.is-error {
+  border-color: #ef4444 !important;
+  background: #fff5f5 !important;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12) !important;
+}
+.stv-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 520px) { .stv-grid2 { grid-template-columns: 1fr; } }
 
-.modal-footer-cine {
+/* Preview */
+.stv-preview {
+  position: relative;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fff7f8, #fdeef0);
+  border: 1px dashed #f3c2c7;
+}
+.stv-preview__tag {
+  position: absolute; top: -10px; left: 16px;
+  font-size: 10.5px; font-weight: 800; letter-spacing: 0.5px;
+  padding: 3px 10px; border-radius: 999px;
+  background: #9b000e; color: #fff;
+}
+.stv-preview__line { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.stv-preview__line strong { font-size: 15.5px; color: #1e293b; }
+.stv-preview__fmt {
+  font-size: 11px; font-weight: 800;
+  padding: 2px 8px; border-radius: 6px;
+  background: #fee2e2; color: #b91c1c;
+}
+.stv-preview__time { font-size: 13.5px; font-weight: 600; color: #475569; }
+.stv-preview__dur { color: #9b000e; font-weight: 700; }
+
+.stv-form__footer {
   display: flex;
   justify-content: flex-end;
-  gap: 15px;
-  margin-top: 15px;
-  border-top: 2px solid #fee2e2;
-  padding-top: 20px;
+  gap: 12px;
+  padding-top: 6px;
+  border-top: 1px solid #f4eef0;
+  margin-top: 2px;
+  padding-top: 18px;
 }
+.stv-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: none; cursor: pointer;
+  padding: 13px 24px; border-radius: 12px;
+  font-size: 14.5px; font-weight: 800;
+  transition: all 0.2s;
+}
+.stv-btn--ghost { background: #fff; color: #475569; border: 1.5px solid #e2e8f0; }
+.stv-btn--ghost:hover { background: #f8fafc; border-color: #cbd5e1; }
+.stv-btn--solid {
+  background: linear-gradient(135deg, #e50914, #9b000e);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(229, 9, 20, 0.3);
+}
+.stv-btn--solid:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(229, 9, 20, 0.4); }
+.stv-btn--solid:disabled { opacity: 0.7; cursor: not-allowed; }
+.stv-btn__spin {
+  width: 15px; height: 15px; border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4); border-top-color: #fff;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ===================== ERROR BANNER ===================== */
+.error-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+  border: 1px solid #fca5a5;
+  border-left: 5px solid #e50914;
+  box-shadow: 0 8px 24px rgba(229, 9, 20, 0.18);
+  position: relative;
+  overflow: hidden;
+  animation: banner-shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+.error-banner::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -120%;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  animation: banner-sheen 2.2s ease-in-out 0.4s infinite;
+}
+.error-banner__icon {
+  font-size: 24px; line-height: 1.2;
+  filter: drop-shadow(0 2px 3px rgba(229, 9, 20, 0.35));
+  animation: icon-pulse 1.3s ease-in-out infinite;
+}
+.error-banner__body { flex: 1; min-width: 0; }
+.error-banner__title {
+  display: block; font-size: 15px; font-weight: 800;
+  color: #9b000e; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 3px;
+}
+.error-banner__msg { margin: 0; font-size: 14px; font-weight: 600; color: #b91c1c; line-height: 1.5; }
+.error-banner__close {
+  background: transparent; border: none; color: #ef4444;
+  font-size: 16px; font-weight: 700; cursor: pointer;
+  padding: 2px 6px; border-radius: 6px; transition: all 0.18s; z-index: 1;
+}
+.error-banner__close:hover { background: rgba(229, 9, 20, 0.12); color: #9b000e; }
+
+/* ===================== TRANSITIONS ===================== */
+.error-pop-enter-active { transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.error-pop-leave-active { transition: all 0.25s ease; }
+.error-pop-enter-from, .error-pop-leave-to { opacity: 0; transform: translateY(-10px) scale(0.97); }
+
+.preview-pop-enter-active { transition: all 0.3s ease; }
+.preview-pop-enter-from { opacity: 0; transform: translateY(8px); }
+
+.modal-fade-enter-active { transition: opacity 0.25s ease; }
+.modal-fade-enter-active .stv-modal { transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.modal-fade-enter-from { opacity: 0; }
+.modal-fade-enter-from .stv-modal { transform: translateY(-30px) scale(0.95); }
+.modal-fade-leave-active { transition: opacity 0.2s ease; }
+.modal-fade-leave-to { opacity: 0; }
+
+@keyframes banner-shake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+@keyframes banner-sheen { 0% { left: -120%; } 60%, 100% { left: 130%; } }
+@keyframes icon-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
 </style>
