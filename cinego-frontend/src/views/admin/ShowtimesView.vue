@@ -114,6 +114,13 @@
             <span class="tg tg--format">{{ st.format }}</span>
             <span class="tg tg--trans">💬 {{ st.translation }}</span>
           </div>
+
+          <!-- Chi tiết Giá vé -->
+          <div class="ticket__prices" v-if="st.prices && Object.keys(st.prices).length">
+            <span class="price-pill" title="Ghế Thường">Thuờng: {{ formatPrice(st.prices.standard) }}</span>
+            <span class="price-pill vip" title="Ghế VIP">VIP: {{ formatPrice(st.prices.vip) }}</span>
+            <span class="price-pill couple" title="Ghế Đôi">Đôi: {{ formatPrice(st.prices.couple) }}</span>
+          </div>
         </div>
 
         <button class="ticket__del" @click="deleteShowtime(st.id)" title="Xóa suất chiếu">🗑️</button>
@@ -270,7 +277,7 @@ const formError = ref('');
 
 const searchQuery = ref('');
 const formatFilter = ref('Tất cả');
-const formatOptions = ['Tất cả', '2D', '3D', 'IMAX'];
+const formatOptions = ['Tất cả', 'Hôm nay', '2D', '3D', 'IMAX'];
 
 const form = ref({
   movie_id: '',
@@ -298,11 +305,28 @@ const todayCount = computed(() => {
 
 const filteredShowtimes = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
+  const now = new Date();
+  
   return showtimes.value.filter(s => {
-    const matchFormat = formatFilter.value === 'Tất cả' || s.format === formatFilter.value;
+    let matchFormat = false;
+    
+    if (formatFilter.value === 'Tất cả') {
+      matchFormat = true;
+    } else if (formatFilter.value === 'Hôm nay') {
+      if (s.start_time) {
+        const d = new Date(s.start_time);
+        matchFormat = d.getDate() === now.getDate() && 
+                      d.getMonth() === now.getMonth() && 
+                      d.getFullYear() === now.getFullYear();
+      }
+    } else {
+      matchFormat = s.format === formatFilter.value;
+    }
+
     const matchSearch = !q
       || (s.movie_title || '').toLowerCase().includes(q)
       || (s.room_name || '').toLowerCase().includes(q);
+    
     return matchFormat && matchSearch;
   });
 });
@@ -327,6 +351,11 @@ const durationLabel = (st) => {
   const h = Math.floor(mins / 60);
   const m = mins % 60;
   return h > 0 ? `${h}h${m ? m + "'" : ''}` : `${m}'`;
+};
+
+const formatPrice = (price) => {
+  if (!price) return '0đ';
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
 };
 
 /* ---------- Modal ---------- */
@@ -399,10 +428,8 @@ const saveShowtime = async () => {
     const res = err.response?.data;
     if (res?.message) {
       formError.value = res.message;
-    } else if (res?.errors) {
-      formError.value = Object.values(res.errors).flat()[0];
     } else {
-      formError.value = 'Có lỗi xảy ra khi tạo suất chiếu. Vui lòng thử lại!';
+      toast.error('Đã xảy ra lỗi, vui lòng kiểm tra lại!');
     }
   } finally {
     submitting.value = false;
