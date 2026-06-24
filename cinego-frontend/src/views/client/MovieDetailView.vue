@@ -182,8 +182,10 @@ const selectedDayIndex = ref(0);
 const selectedShowtime = ref(null);
 const showtimesByRoom = ref([]);
 
-// Khởi tạo ngày đặt vé linh hoạt từ hôm nay trở đi
-const availableDays = computed(() => {
+const availableDays = ref([]);
+
+// Khởi tạo ngày hôm nay nếu DB chưa có lịch
+const defaultDays = () => {
   const days = [];
   const weekdays = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
 
@@ -198,7 +200,7 @@ const availableDays = computed(() => {
     });
   }
   return days;
-});
+};
 
 // State phục vụ việc gửi bình luận / review lên DB
 const myReview = ref({
@@ -239,9 +241,38 @@ const fetchMovieDetail = async () => {
   }
 };
 
+// 🔥 HÀM LẤY CÁC NGÀY CÓ SUẤT CHIẾU TRONG TƯƠNG LAI
+const fetchAvailableDates = async () => {
+  if (!movie.value) return;
+  try {
+    const response = await api.get(`/movies/${movie.value.id}/available-dates`);
+    const dates = response.data?.data || [];
+    
+    if (dates.length > 0) {
+      const weekdays = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+      const todayStr = new Date().toISOString().split('T')[0];
+      
+      availableDays.value = dates.map(dateStr => {
+        const d = new Date(dateStr);
+        return {
+          dateStr: dateStr,
+          weekday: dateStr === todayStr ? 'Hôm nay' : weekdays[d.getDay()],
+          dateLabel: `${d.getDate()}/${d.getMonth() + 1}`,
+          fullLabel: d.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
+        };
+      });
+    } else {
+      availableDays.value = defaultDays(); // Fallback nếu phim chưa có lịch chiếu
+    }
+  } catch (err) {
+    console.error('Lỗi lấy ngày chiếu:', err);
+    availableDays.value = defaultDays();
+  }
+};
+
 // 🔥 HÀM LẤY SUẤT CHIẾU THEO PHÒNG THUẦN TỪ DATABASE
 const fetchShowtimes = async () => {
-  if (!movie.value) return;
+  if (!movie.value || availableDays.value.length === 0) return;
   loadingShowtimes.value = true;
   selectedShowtime.value = null;
 
@@ -321,6 +352,7 @@ watch(selectedDayIndex, () => {
 
 onMounted(async () => {
   await fetchMovieDetail();
+  await fetchAvailableDates();
   await fetchShowtimes();
 });
 
