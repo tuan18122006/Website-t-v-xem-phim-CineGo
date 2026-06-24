@@ -19,7 +19,7 @@
         <button @click="changeType('standard')" class="tool-btn standard-btn">Trở thành Ghế Thường</button>
         <button @click="changeType('vip')" class="tool-btn vip-btn">Trở thành VIP</button>
         <button @click="changeType('couple')" class="tool-btn couple-btn">Trở thành Ghế Đôi</button>
-        <button @click="changeType('hidden')" class="tool-btn hidden-btn">Tàng hình (Khoảng trống)</button>
+        <button @click="changeType('hidden')" class="tool-btn hidden-btn">Tạo Lối đi (Khoảng trống)</button>
       </div>
     </div>
 
