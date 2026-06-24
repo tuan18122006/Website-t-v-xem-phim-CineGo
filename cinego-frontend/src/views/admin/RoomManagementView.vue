@@ -67,6 +67,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '../../api/axios';
+import { toast, confirmDialog } from '../../utils/alert';
 
 const router = useRouter();
 const rooms = ref([]);
@@ -83,7 +84,7 @@ const fetchRooms = async () => {
 };
 
 const saveRoom = async () => {
-  if (!newRoomName.value) return alert("Vui lòng nhập tên rạp!");
+  if (!newRoomName.value) return toast("Vui lòng nhập tên rạp!", "warning");
   try {
     await api.post('admin/rooms', {
       name: newRoomName.value,
@@ -91,22 +92,23 @@ const saveRoom = async () => {
       cols: newCols.value
     });
     isCreateModalOpen.value = false;
+    toast("Thêm rạp thành công!");
     fetchRooms();
-  } catch (e) { alert("Lỗi khi thêm rạp!"); }
+  } catch (e) { toast("Lỗi khi thêm rạp!", "error"); }
 };
 
 const deleteRoom = async (id) => {
-  if (!confirm("Bạn có chắc chắn muốn xóa rạp này không?")) return;
+  if (!(await confirmDialog("Bạn có chắc chắn muốn xóa rạp này không?", "Hành động này không thể hoàn tác!"))) return;
 
   try {
 
     await api.delete(`/admin/rooms/${id}`);
 
-    alert("Đã xóa rạp thành công!");
+    toast("Đã xóa rạp thành công!");
     fetchRooms();
   } catch (e) {
     console.error("Lỗi chi tiết:", e.response ? e.response.data : e);
-    alert("Lỗi khi xóa: " + (e.response?.data?.message || "Vui lòng kiểm tra console"));
+    toast("Lỗi khi xóa: " + (e.response?.data?.message || "Vui lòng kiểm tra console"), "error");
   }
 };
 
