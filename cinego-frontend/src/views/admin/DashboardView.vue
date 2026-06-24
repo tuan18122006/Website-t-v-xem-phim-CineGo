@@ -95,7 +95,7 @@
       </header>
 
       <!-- TAB 1: DASHBOARD STATS & CHARTS -->
-      <div v-if="activeTab === 'stats'" class="dashboard-tab-content">
+      <div v-show="activeTab === 'stats'" class="dashboard-tab-content">
         <!-- Widgets thông số -->
         <div class="stats-widgets">
           <div class="widget-card glass-panel">
@@ -222,31 +222,31 @@
       </div>
 
       <!-- TAB 2: DYNAMIC MOVIES CRUD -->
-      <div v-else-if="activeTab === 'movies'">
+      <div v-show="activeTab === 'movies'">
         <MoviesView />
       </div>
 
       <!-- TAB 3: DYNAMIC SHOWTIMES CRUD -->
-      <div v-else-if="activeTab === 'showtimes'">
+      <div v-show="activeTab === 'showtimes'">
         <ShowtimesView />
       </div>
 
       <!-- TAB: QUẢN LÝ RẠP & GHẾ -->
-      <div v-else-if="activeTab === 'rooms'">
+      <div v-show="activeTab === 'rooms'">
         <RoomsView />
       </div>
 
-      <div v-else-if="activeTab === 'genres'">
+      <div v-show="activeTab === 'genres'">
         <GenreManagement />
       </div>
 
       <!-- TAB: USER MANAGEMENT -->
-      <div v-else-if="activeTab === 'users'">
+      <div v-show="activeTab === 'users'">
         <UserManagement />
       </div>
 
       <!-- TAB 4: REVENUE TRANSACTION REPORT -->
-      <div v-else-if="activeTab === 'revenue'" class="revenue-tab-content">
+      <div v-show="activeTab === 'revenue'" class="revenue-tab-content">
         <div class="glass-panel detailed-report">
           <div class="report-header">
             <h3>Báo Cáo Chi Tiết Hóa Đơn Đặt Vé</h3>
