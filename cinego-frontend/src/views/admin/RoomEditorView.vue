@@ -24,6 +24,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import SeatMap from '../../components/SeatMap.vue';
 import api from '../../api/axios';
+import { toast } from '../../utils/alert';
 
 const route = useRoute();
 const router = useRouter();
@@ -52,10 +53,10 @@ const saveSeats = async () => {
     await api.put(`/admin/rooms/${roomId}/update-seat-map`, {
       seats: seats.value.map(s => ({ id: s.id, type: s.type }))
     });
-    alert("Lưu sơ đồ thành công!");
+    toast("Lưu sơ đồ thành công!");
     
     router.push({ name: 'admin-dashboard' }); 
-  } catch (err) { alert("Lưu thất bại!"); }
+  } catch (err) { toast("Lưu thất bại!", "error"); }
 };
 
 const goBack = () => router.push({ name: 'admin-dashboard' });

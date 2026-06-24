@@ -239,6 +239,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import api from '../../api/axios';
+import { toast, confirmDialog } from '../../utils/alert';
 
 const showtimes = ref([]);
 const movies = ref([]);
@@ -364,7 +365,7 @@ const saveShowtime = async () => {
   formError.value = '';
   try {
     await api.post('/admin/showtimes', form.value);
-    alert('🎉 Thêm suất chiếu mới thành công!');
+    toast('Thêm suất chiếu mới thành công!');
     showModal.value = false;
     await fetchShowtimes();
   } catch (err) {
@@ -383,14 +384,14 @@ const saveShowtime = async () => {
 };
 
 const deleteShowtime = async (id) => {
-  if (!confirm('⚠️ Bạn có chắc chắn muốn xóa suất chiếu này? Hành động này không thể hoàn tác!')) return;
+  if (!(await confirmDialog('Bạn có chắc chắn muốn xóa suất chiếu này?', 'Hành động này không thể hoàn tác!'))) return;
   try {
     await api.delete(`/admin/showtimes/${id}`);
-    alert('🗑️ Xóa suất chiếu thành công!');
+    toast('Xóa suất chiếu thành công!');
     await fetchShowtimes();
   } catch (err) {
     console.error('Delete showtime error:', err);
-    alert('Không thể xóa suất chiếu này!');
+    toast('Không thể xóa suất chiếu này!', 'error');
   }
 };
 
