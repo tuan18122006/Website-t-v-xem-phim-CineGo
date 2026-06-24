@@ -47,13 +47,13 @@
         </button>
 
         <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'rooms' }" 
-          @click="activeTab = 'rooms'"
-        >
-          <span class="nav-icon">🏟️</span>
-          <span>Quản Lý Rạp & Ghế</span>
-        </button>
+  class="nav-link" 
+  :class="{ active: activeTab === 'rooms' }" 
+  @click="activeTab = 'rooms'"
+>
+  <span class="nav-icon">🏟️</span>
+  <span>Quản Lý Phòng Chiếu & Ghế</span>
+</button>
 
         <button
           class="nav-link"
@@ -295,8 +295,9 @@ import MoviesView from './MoviesView.vue';
 import ShowtimesView from './ShowtimesView.vue';
 import GenreManagement from './GenreManagement.vue';
 import UserManagement from './UserManagement.vue';
-import RoomsView from './RoomsView.vue';
-import api from '../../api/axios';
+import RoomsView from './RoomManagementView.vue'; 
+import RoomManagementView from './RoomManagementView.vue';
+import RoomEditorView from './RoomEditorView.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -314,13 +315,15 @@ const getTabTitle = computed(() => {
     stats: 'Dashboard Quản Trị Hệ Thống',
     movies: 'Quản Lý Danh Sách Phim',
     showtimes: 'Quản Lý Suất Chiếu & Lịch Trình',
-    rooms: 'Quản Lý Sơ Đồ Rạp & Ghế',
+    rooms: 'Quản Lý Phòng Chiếu & Ghế',
     genres: 'Quản Lý Thể Loại Phim',
     users: 'Quản Lý Tài Khoản & Phân Quyền',
     revenue: 'Báo Cáo & Thống Kê Doanh Thu'
   };
   return titles[activeTab.value];
 });
+
+
 
 const getTabDesc = computed(() => {
   const descs = {
