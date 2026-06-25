@@ -46,6 +46,16 @@
 
       <div class="stv-segment">
         <button
+          v-for="d in dateOptions"
+          :key="d"
+          class="stv-segment__btn"
+          :class="{ active: dateFilter === d }"
+          @click="dateFilter = d"
+        >{{ d }}</button>
+      </div>
+
+      <div class="stv-segment">
+        <button
           v-for="f in formatOptions"
           :key="f"
           class="stv-segment__btn"
@@ -76,6 +86,8 @@
         :key="st.id"
         class="ticket"
         :class="{ 'ticket--off': st.status !== 'active' }"
+        @click="openDetail(st.id)"
+        title="Bấm để xem chi tiết suất chiếu"
       >
         <!-- Cuống vé: giờ bắt đầu -->
         <div class="ticket__stub">
@@ -116,7 +128,7 @@
           </div>
         </div>
 
-        <button class="ticket__del" @click="deleteShowtime(st.id)" title="Xóa suất chiếu">🗑️</button>
+        <button class="ticket__del" @click.stop="askDelete(st)" title="Xóa suất chiếu">🗑️</button>
       </article>
     </div>
 
@@ -233,6 +245,170 @@
         </div>
       </div>
     </transition>
+
+    <!-- ===== MODAL: CHI TIẾT SUẤT CHIẾU ===== -->
+    <transition name="modal-fade">
+      <div v-if="showDetailModal" class="stv-backdrop" @click.self="closeDetail">
+        <div class="stv-modal">
+          <div class="stv-modal__marquee">
+            <div class="stv-modal__marquee-dots"></div>
+            <h3>🎟️ Chi Tiết Suất Chiếu</h3>
+            <button class="stv-modal__close" @click="closeDetail" aria-label="Đóng">✕</button>
+          </div>
+
+          <div class="stv-detail">
+            <!-- Loading -->
+            <div v-if="detailLoading" class="stv-loading">
+              <div class="stv-spinner"></div>
+              <p>Đang tải chi tiết…</p>
+            </div>
+
+            <template v-else-if="detail">
+              <!-- Tiêu đề phim -->
+              <div class="dt-head">
+                <img
+                  v-if="detail.movie && detail.movie.poster_url"
+                  :src="detail.movie.poster_url"
+                  :alt="detail.movie_title"
+                  class="dt-poster"
+                />
+                <div class="dt-head__info">
+                  <h4 class="dt-title">{{ detail.movie_title }}</h4>
+                  <div class="dt-badges">
+                    <span class="tg tg--format">{{ detail.format }}</span>
+                    <span class="tg tg--trans">💬 {{ detail.translation }}</span>
+                    <span
+                      class="ticket__status"
+                      :class="detail.status === 'active' ? 'is-on' : 'is-off'"
+                    >
+                      <span class="ticket__status-dot"></span>
+                      {{ detail.status === 'active' ? 'Hoạt động' : 'Đã hủy' }}
+                    </span>
+                  </div>
+                  <p v-if="detail.movie" class="dt-sub">
+                    ⏱️ {{ detail.movie.duration }} phút
+                    <span v-if="detail.movie.rating"> • ⭐ {{ detail.movie.rating }}</span>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Thông tin suất -->
+              <div class="dt-rows">
+                <div class="dt-row">
+                  <span class="dt-row__label">🏛️ Phòng chiếu</span>
+                  <span class="dt-row__value">{{ detail.room_name }}</span>
+                </div>
+                <div class="dt-row">
+                  <span class="dt-row__label">📅 Ngày chiếu</span>
+                  <span class="dt-row__value">{{ dateOnly(detail.start_time) }}</span>
+                </div>
+                <div class="dt-row">
+                  <span class="dt-row__label">🕒 Khung giờ</span>
+                  <span class="dt-row__value">
+                    {{ timeOnly(detail.start_time) }} → {{ timeOnly(detail.end_time) }}
+                    <em class="dt-dur">({{ durationLabel(detail) }})</em>
+                  </span>
+                </div>
+                <div class="dt-row">
+                  <span class="dt-row__label">#️⃣ Mã suất</span>
+                  <span class="dt-row__value">#{{ detail.id }}</span>
+                </div>
+              </div>
+
+              <!-- Tình hình đặt vé -->
+              <div class="dt-seats">
+                <div class="dt-seats__head">
+                  <span>🎫 Tình hình đặt vé</span>
+                  <strong>{{ detail.booked_seats }} / {{ detail.total_seats }} ghế</strong>
+                </div>
+                <div class="dt-seats__bar">
+                  <div class="dt-seats__fill" :style="{ width: seatPercent + '%' }"></div>
+                </div>
+                <div class="dt-seats__foot">
+                  <span>Đã bán {{ seatPercent }}%</span>
+                  <span>Còn trống {{ detail.available_seats }} ghế</span>
+                </div>
+              </div>
+            </template>
+
+            <div class="stv-form__footer">
+              <button type="button" class="stv-btn stv-btn--ghost" @click="closeDetail">Đóng</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ===== TOAST: "vé vừa được in" (tự thiết kế) ===== -->
+    <transition name="ticket-print">
+      <div
+        v-if="toast.show"
+        class="cg-toast"
+        :class="`cg-toast--${toast.type}`"
+        role="status"
+      >
+        <!-- Cuống vé có dấu mộc -->
+        <div class="cg-toast__stub">
+          <span class="cg-toast__stamp">
+            <svg v-if="toast.type === 'success'" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <svg v-else viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </span>
+          <span class="cg-toast__stub-brand">CINEGO</span>
+          <span class="cg-toast__stub-sprockets"></span>
+        </div>
+
+        <!-- Đường xé răng cưa -->
+        <span class="cg-toast__perf"></span>
+
+        <!-- Thân thông báo -->
+        <div class="cg-toast__body">
+          <span class="cg-toast__kicker">🎬 {{ toast.kicker }}</span>
+          <strong class="cg-toast__title">{{ toast.title }}</strong>
+          <p class="cg-toast__msg">{{ toast.message }}</p>
+        </div>
+
+        <button class="cg-toast__close" @click="hideToast" aria-label="Đóng">✕</button>
+        <span class="cg-toast__timer"></span>
+      </div>
+    </transition>
+
+    <!-- ===== HỘP THOẠI XÁC NHẬN XÓA (tự thiết kế) ===== -->
+    <transition name="modal-fade">
+      <div v-if="confirmState.show" class="stv-backdrop cg-confirm-backdrop" @click.self="cancelDelete">
+        <div class="cg-confirm">
+          <div class="cg-confirm__ribbon">⚠️ KHÔNG THỂ HOÀN TÁC</div>
+
+          <div class="cg-confirm__icon">
+            <span class="cg-confirm__icon-glow"></span>
+            🎫
+          </div>
+
+          <h3 class="cg-confirm__title">Gỡ suất chiếu khỏi lịch?</h3>
+          <p class="cg-confirm__desc">
+            Bạn sắp xóa vĩnh viễn suất chiếu sau khỏi hệ thống phòng vé:
+          </p>
+
+          <div v-if="confirmState.target" class="cg-confirm__ticket">
+            <span class="cg-confirm__ticket-time">{{ timeOnly(confirmState.target.start_time) }}</span>
+            <div class="cg-confirm__ticket-info">
+              <strong>{{ confirmState.target.movie_title }}</strong>
+              <span>🏛️ {{ confirmState.target.room_name }} • {{ dateOnly(confirmState.target.start_time) }}</span>
+            </div>
+            <span class="cg-confirm__ticket-id">#{{ confirmState.target.id }}</span>
+          </div>
+
+          <div class="cg-confirm__actions">
+            <button type="button" class="stv-btn stv-btn--ghost" @click="cancelDelete">Giữ lại</button>
+            <button type="button" class="cg-confirm__del" @click="confirmDelete">🗑️ Xóa suất chiếu</button>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
@@ -252,6 +428,27 @@ const searchQuery = ref('');
 const formatFilter = ref('Tất cả');
 const formatOptions = ['Tất cả', '2D', '3D', 'IMAX'];
 
+const dateFilter = ref('Tất cả');
+const dateOptions = ['Tất cả', 'Hôm nay', 'Sắp tới'];
+
+// ----- Chi tiết suất chiếu -----
+const showDetailModal = ref(false);
+const detail = ref(null);
+const detailLoading = ref(false);
+
+// ----- Toast "đã in vé" (thông báo tự thiết kế) -----
+const toast = ref({ show: false, kicker: '', title: '', message: '', type: 'success' });
+let toastTimer = null;
+const showToast = (title, message, { kicker = 'SUẤT CHIẾU MỚI', type = 'success' } = {}) => {
+  if (toastTimer) clearTimeout(toastTimer);
+  toast.value = { show: true, kicker, title, message, type };
+  toastTimer = setTimeout(() => { toast.value.show = false; }, 4200);
+};
+const hideToast = () => {
+  if (toastTimer) clearTimeout(toastTimer);
+  toast.value.show = false;
+};
+
 const form = ref({
   movie_id: '',
   room_id: '',
@@ -264,23 +461,27 @@ const form = ref({
 /* ---------- Computed ---------- */
 const activeCount = computed(() => showtimes.value.filter(s => s.status === 'active').length);
 
-const todayCount = computed(() => {
+const isToday = (dt) => {
+  if (!dt) return false;
+  const d = new Date(dt);
   const now = new Date();
-  return showtimes.value.filter(s => {
-    if (!s.start_time) return false;
-    const d = new Date(s.start_time);
-    return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).length;
-});
+  return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+};
+
+const todayCount = computed(() => showtimes.value.filter(s => isToday(s.start_time)).length);
 
 const filteredShowtimes = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
+  const now = new Date();
   return showtimes.value.filter(s => {
     const matchFormat = formatFilter.value === 'Tất cả' || s.format === formatFilter.value;
     const matchSearch = !q
       || (s.movie_title || '').toLowerCase().includes(q)
       || (s.room_name || '').toLowerCase().includes(q);
-    return matchFormat && matchSearch;
+    const matchDate = dateFilter.value === 'Tất cả'
+      || (dateFilter.value === 'Hôm nay' && isToday(s.start_time))
+      || (dateFilter.value === 'Sắp tới' && s.start_time && new Date(s.start_time) >= now);
+    return matchFormat && matchSearch && matchDate;
   });
 });
 
@@ -359,12 +560,41 @@ const fetchRooms = async () => {
   }
 };
 
+/* ---------- Validate (hiển thị trong banner của modal) ---------- */
+const validateForm = () => {
+  const errors = [];
+  if (!form.value.movie_id) errors.push('Vui lòng chọn phim cần chiếu.');
+  if (!form.value.room_id) errors.push('Vui lòng chọn phòng chiếu.');
+  if (!form.value.start_time) errors.push('Vui lòng chọn giờ bắt đầu.');
+  if (!form.value.end_time) errors.push('Chưa tính được giờ kết thúc (kiểm tra lại phim & giờ bắt đầu).');
+  if (form.value.start_time && form.value.end_time
+    && new Date(form.value.end_time) <= new Date(form.value.start_time)) {
+    errors.push('Giờ kết thúc phải sau giờ bắt đầu.');
+  }
+  if (form.value.start_time && new Date(form.value.start_time) < new Date()) {
+    errors.push('Giờ bắt đầu không được nằm trong quá khứ.');
+  }
+  if (!form.value.format) errors.push('Vui lòng chọn định dạng.');
+  if (!form.value.translation) errors.push('Vui lòng chọn loại dịch thuật.');
+  return errors;
+};
+
 const saveShowtime = async () => {
+  const errors = validateForm();
+  if (errors.length) {
+    formError.value = errors.join('\n');
+    return;
+  }
+
   submitting.value = true;
   formError.value = '';
   try {
     await api.post('/admin/showtimes', form.value);
-    alert('🎉 Thêm suất chiếu mới thành công!');
+    const movieName = previewMovie.value ? previewMovie.value.title : 'Suất chiếu';
+    const timeLabel = form.value.start_time
+      ? `${dateOnly(form.value.start_time)} • ${timeOnly(form.value.start_time)}`
+      : '';
+    showToast(movieName, `Đã lên lịch ${timeLabel} — vé sẵn sàng mở bán.`, { kicker: 'ĐÃ IN SUẤT CHIẾU' });
     showModal.value = false;
     await fetchShowtimes();
   } catch (err) {
@@ -382,17 +612,55 @@ const saveShowtime = async () => {
   }
 };
 
-const deleteShowtime = async (id) => {
-  if (!confirm('⚠️ Bạn có chắc chắn muốn xóa suất chiếu này? Hành động này không thể hoàn tác!')) return;
+/* ---------- Xóa suất chiếu (xác nhận bằng hộp thoại tự thiết kế) ---------- */
+const confirmState = ref({ show: false, target: null });
+
+const askDelete = (st) => {
+  confirmState.value = { show: true, target: st };
+};
+const cancelDelete = () => {
+  confirmState.value = { show: false, target: null };
+};
+const confirmDelete = async () => {
+  const st = confirmState.value.target;
+  if (!st) return;
+  confirmState.value = { show: false, target: null };
   try {
-    await api.delete(`/admin/showtimes/${id}`);
-    alert('🗑️ Xóa suất chiếu thành công!');
+    await api.delete(`/admin/showtimes/${st.id}`);
+    showToast('Đã gỡ suất chiếu', `Suất chiếu #${st.id} đã được xóa khỏi lịch.`, { kicker: 'HỦY SUẤT CHIẾU', type: 'danger' });
     await fetchShowtimes();
   } catch (err) {
     console.error('Delete showtime error:', err);
-    alert('Không thể xóa suất chiếu này!');
+    showToast('Không thể xóa', 'Đã xảy ra lỗi khi gỡ suất chiếu. Vui lòng thử lại!', { kicker: 'LỖI HỆ THỐNG', type: 'danger' });
   }
 };
+
+/* ---------- Chi tiết suất chiếu ---------- */
+const openDetail = async (id) => {
+  showDetailModal.value = true;
+  detailLoading.value = true;
+  detail.value = null;
+  try {
+    const res = await api.get(`/admin/showtimes/${id}`);
+    detail.value = res.data;
+  } catch (err) {
+    console.error('Fetch showtime detail error:', err);
+    showToast('Không tải được chi tiết', 'Vui lòng thử lại sau giây lát.', { kicker: 'LỖI HỆ THỐNG', type: 'danger' });
+    showDetailModal.value = false;
+  } finally {
+    detailLoading.value = false;
+  }
+};
+
+const closeDetail = () => {
+  showDetailModal.value = false;
+  detail.value = null;
+};
+
+const seatPercent = computed(() => {
+  if (!detail.value || !detail.value.total_seats) return 0;
+  return Math.round((detail.value.booked_seats / detail.value.total_seats) * 100);
+});
 
 onMounted(async () => {
   await fetchShowtimes();
@@ -641,6 +909,7 @@ onMounted(async () => {
   box-shadow: 0 6px 22px rgba(15, 23, 42, 0.07);
   transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.26s;
   overflow: hidden;
+  cursor: pointer;
 }
 .ticket:hover {
   transform: translateY(-5px);
@@ -953,6 +1222,351 @@ onMounted(async () => {
   animation: spin 0.7s linear infinite;
 }
 
+/* ===================== DETAIL MODAL ===================== */
+.stv-detail {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.dt-head { display: flex; gap: 16px; align-items: flex-start; }
+.dt-poster {
+  width: 76px; height: 110px;
+  object-fit: cover;
+  border-radius: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+}
+.dt-head__info { flex: 1; min-width: 0; }
+.dt-title { margin: 0 0 10px; font-size: 20px; font-weight: 800; color: #1e293b; line-height: 1.25; }
+.dt-badges { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dt-sub { margin: 10px 0 0; font-size: 13.5px; font-weight: 600; color: #64748b; }
+
+.dt-rows {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #f0e2e4;
+  border-radius: 14px;
+  overflow: hidden;
+}
+.dt-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+}
+.dt-row:not(:last-child) { border-bottom: 1px solid #f6eaeb; }
+.dt-row__label { font-size: 13.5px; font-weight: 700; color: #64748b; }
+.dt-row__value { font-size: 14.5px; font-weight: 800; color: #1e293b; text-align: right; }
+.dt-dur { font-style: normal; font-weight: 700; color: #9b000e; }
+
+.dt-seats {
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #fff7f8, #fdeef0);
+  border: 1px dashed #f3c2c7;
+}
+.dt-seats__head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: 14px; font-weight: 700; color: #475569; margin-bottom: 10px;
+}
+.dt-seats__head strong { font-size: 15.5px; color: #9b000e; }
+.dt-seats__bar {
+  height: 10px; border-radius: 999px;
+  background: #f1d8db; overflow: hidden;
+}
+.dt-seats__fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, #e50914, #9b000e);
+  transition: width 0.4s ease;
+}
+.dt-seats__foot {
+  display: flex; justify-content: space-between;
+  margin-top: 8px; font-size: 12.5px; font-weight: 600; color: #64748b;
+}
+
+/* ===================== TOAST "VÉ VỪA IN" ===================== */
+.cg-toast {
+  position: fixed;
+  top: 26px;
+  right: 26px;
+  z-index: 1200;
+  display: grid;
+  grid-template-columns: 64px 14px 1fr;
+  width: 380px;
+  max-width: calc(100vw - 40px);
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow:
+    0 22px 50px rgba(15, 6, 8, 0.32),
+    0 0 0 1px rgba(229, 9, 20, 0.08);
+}
+
+/* Cuống vé màu đỏ + dấu mộc đóng */
+.cg-toast__stub {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: linear-gradient(165deg, #e50914 0%, #9b000e 100%);
+  color: #fff;
+  overflow: hidden;
+}
+.cg-toast--danger .cg-toast__stub {
+  background: linear-gradient(165deg, #475569 0%, #1e293b 100%);
+}
+/* lỗ sprocket chạy dọc cuống vé */
+.cg-toast__stub-sprockets {
+  position: absolute;
+  left: 5px; top: 0; bottom: 0;
+  width: 5px;
+  background: repeating-linear-gradient(to bottom, transparent 0 7px, rgba(0, 0, 0, 0.22) 7px 12px);
+}
+.cg-toast__stamp {
+  display: grid;
+  place-items: center;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.08);
+  animation: stamp-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.cg-toast__stamp svg { animation: stamp-draw 0.45s ease 0.18s both; }
+.cg-toast__stub-brand {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  opacity: 0.9;
+}
+
+/* đường xé giữa cuống và thân */
+.cg-toast__perf {
+  position: relative;
+  background: #fff;
+}
+.cg-toast__perf::before {
+  content: '';
+  position: absolute;
+  top: 6px; bottom: 6px; left: 50%;
+  transform: translateX(-50%);
+  border-left: 2px dashed #f3c9cd;
+}
+.cg-toast--danger .cg-toast__perf::before { border-left-color: #cbd5e1; }
+
+/* thân thông báo */
+.cg-toast__body {
+  padding: 14px 36px 16px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.cg-toast__kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: #e50914;
+}
+.cg-toast--danger .cg-toast__kicker { color: #475569; }
+.cg-toast__title {
+  font-size: 15.5px;
+  font-weight: 800;
+  color: #1e293b;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cg-toast__msg {
+  margin: 0;
+  font-size: 12.8px;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1.45;
+}
+.cg-toast__close {
+  position: absolute;
+  top: 9px; right: 10px;
+  width: 22px; height: 22px;
+  border: none;
+  border-radius: 7px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.cg-toast__close:hover { background: #fee2e2; color: #e50914; }
+
+/* thanh đếm ngược tự ẩn */
+.cg-toast__timer {
+  position: absolute;
+  left: 64px; right: 0; bottom: 0;
+  height: 3px;
+  transform-origin: left;
+  background: linear-gradient(90deg, #e50914, #ff6b73);
+  animation: toast-timer 4.2s linear forwards;
+}
+.cg-toast--danger .cg-toast__timer { background: linear-gradient(90deg, #475569, #94a3b8); }
+
+@keyframes toast-timer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+@keyframes stamp-pop {
+  0% { transform: scale(0) rotate(-25deg); opacity: 0; }
+  100% { transform: scale(1) rotate(-8deg); opacity: 1; }
+}
+@keyframes stamp-draw {
+  from { stroke-dasharray: 40; stroke-dashoffset: 40; }
+  to { stroke-dasharray: 40; stroke-dashoffset: 0; }
+}
+
+/* hiệu ứng vé "in trượt ra" */
+.ticket-print-enter-active { transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease; }
+.ticket-print-leave-active { transition: transform 0.35s ease, opacity 0.3s ease; }
+.ticket-print-enter-from { opacity: 0; transform: translateX(40px) translateY(-14px) rotate(2deg); }
+.ticket-print-leave-to { opacity: 0; transform: translateX(40px) scale(0.96); }
+
+@media (max-width: 520px) {
+  .cg-toast { top: auto; bottom: 18px; right: 50%; transform: translateX(50%); }
+  .ticket-print-enter-from { transform: translateX(50%) translateY(20px); }
+  .ticket-print-leave-to { transform: translateX(50%) translateY(20px); }
+}
+
+/* ===================== CONFIRM XÓA ===================== */
+.cg-confirm-backdrop { align-items: center; }
+.cg-confirm {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  padding: 40px 28px 26px;
+  border-radius: 22px;
+  background: #fff;
+  text-align: center;
+  box-shadow: 0 30px 70px rgba(15, 6, 8, 0.45);
+  overflow: hidden;
+}
+/* dải ruy băng cảnh báo chéo góc */
+.cg-confirm__ribbon {
+  position: absolute;
+  top: 16px; right: -42px;
+  transform: rotate(45deg);
+  background: linear-gradient(90deg, #e50914, #9b000e);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  padding: 5px 48px;
+  box-shadow: 0 4px 12px rgba(229, 9, 20, 0.4);
+}
+.cg-confirm__icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 78px; height: 78px;
+  margin: 0 auto 16px;
+  font-size: 34px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #fff1f2, #ffe4e6);
+  border: 2px dashed #f3a8ae;
+}
+.cg-confirm__icon-glow {
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: rgba(229, 9, 20, 0.18);
+  animation: confirm-glow 1.6s ease-in-out infinite;
+  z-index: -1;
+}
+@keyframes confirm-glow {
+  0%, 100% { transform: scale(0.92); opacity: 0.5; }
+  50% { transform: scale(1.08); opacity: 0; }
+}
+.cg-confirm__title {
+  margin: 0 0 8px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #1e293b;
+}
+.cg-confirm__desc {
+  margin: 0 0 16px;
+  font-size: 13.8px;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1.5;
+}
+/* thẻ vé minh họa suất sắp xóa */
+.cg-confirm__ticket {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  padding: 12px 14px;
+  margin-bottom: 22px;
+  border-radius: 14px;
+  background: #faf9fa;
+  border: 1px solid #f3dde0;
+  border-left: 4px solid #e50914;
+}
+.cg-confirm__ticket-time {
+  font-size: 18px;
+  font-weight: 800;
+  font-family: 'Courier New', monospace;
+  color: #9b000e;
+  flex-shrink: 0;
+}
+.cg-confirm__ticket-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.cg-confirm__ticket-info strong {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cg-confirm__ticket-info span { font-size: 12px; font-weight: 600; color: #94a3b8; }
+.cg-confirm__ticket-id {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #fee2e2;
+  color: #b91c1c;
+  flex-shrink: 0;
+}
+.cg-confirm__actions {
+  display: flex;
+  gap: 12px;
+}
+.cg-confirm__actions .stv-btn--ghost { flex: 1; justify-content: center; }
+.cg-confirm__del {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: none;
+  cursor: pointer;
+  padding: 13px 20px;
+  border-radius: 12px;
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #e50914, #9b000e);
+  box-shadow: 0 8px 20px rgba(229, 9, 20, 0.32);
+  transition: all 0.2s;
+}
+.cg-confirm__del:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(229, 9, 20, 0.45); }
+
 /* ===================== ERROR BANNER ===================== */
 .error-banner {
   display: flex;
@@ -986,7 +1600,7 @@ onMounted(async () => {
   display: block; font-size: 15px; font-weight: 800;
   color: #9b000e; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 3px;
 }
-.error-banner__msg { margin: 0; font-size: 14px; font-weight: 600; color: #b91c1c; line-height: 1.5; }
+.error-banner__msg { margin: 0; font-size: 14px; font-weight: 600; color: #b91c1c; line-height: 1.5; white-space: pre-line; }
 .error-banner__close {
   background: transparent; border: none; color: #ef4444;
   font-size: 16px; font-weight: 700; cursor: pointer;

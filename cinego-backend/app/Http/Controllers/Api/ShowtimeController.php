@@ -3,30 +3,97 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\BookingDetail;
 use App\Models\Showtime;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class ShowtimeController extends Controller
 {
+    /**
+     * Xuất thời gian dạng "giờ địa phương trần" (không kèm offset múi giờ).
+     * Giá trị lưu trong DB chính là giờ người dùng nhập (wall-clock), nên trả về
+     * nguyên dạng "Y-m-dTH:i:s" để trình duyệt hiểu là giờ địa phương, tránh bị
+     * lệch 7 tiếng do new Date() tự quy đổi từ UTC.
+     */
+    private function localTime($value): ?string
+    {
+        return $value ? $value->format('Y-m-d\TH:i:s') : null;
+    }
+
     public function index()
     {
-        $showtimes = Showtime::with(['movie', 'room'])->get()->map(function ($st) {
-            return [
-                'id' => $st->id,
-                'movie_id' => $st->movie_id,
-                'room_id' => $st->room_id,
-                'start_time' => $st->start_time ? $st->start_time->toIso8601String() : null,
-                'end_time' => $st->end_time ? $st->end_time->toIso8601String() : null,
-                'format' => $st->format,
-                'translation' => $st->translation,
-                'status' => $st->status ?? 'active',
-                'movie_title' => $st->movie ? $st->movie->title : 'Không xác định',
-                'room_name' => $st->room ? $st->room->name : 'Không xác định',
-            ];
-        });
+        $showtimes = Showtime::with(['movie', 'room'])
+            ->orderBy('start_time')
+            ->get()
+            ->map(function ($st) {
+                return [
+                    'id' => $st->id,
+                    'movie_id' => $st->movie_id,
+                    'room_id' => $st->room_id,
+                    'start_time' => $this->localTime($st->start_time),
+                    'end_time' => $this->localTime($st->end_time),
+                    'format' => $st->format,
+                    'translation' => $st->translation,
+                    'status' => $st->status ?? 'active',
+                    'movie_title' => $st->movie ? $st->movie->title : 'Không xác định',
+                    'room_name' => $st->room ? $st->room->name : 'Không xác định',
+                ];
+            });
 
         return response()->json($showtimes, 200);
+    }
+
+    /**
+     * Chi tiết một suất chiếu (kèm thông tin phim, phòng và tình hình đặt vé).
+     */
+    public function show($id)
+    {
+        $st = Showtime::with(['movie', 'room'])->find($id);
+
+        if (!$st) {
+            return response()->json(['message' => 'Không tìm thấy suất chiếu'], 404);
+        }
+
+        // Số ghế đã bán = số vé thuộc các booking chưa bị hủy của suất này.
+        $bookedSeats = BookingDetail::whereHas('booking', function ($q) use ($id) {
+            $q->where('showtime_id', $id)
+                ->where('booking_status', '!=', 'cancelled');
+        })->count();
+
+        $totalSeats = $st->room ? (int) $st->room->total_seats : 0;
+        $durationMins = $st->start_time && $st->end_time
+            ? $st->start_time->diffInMinutes($st->end_time)
+            : null;
+
+        return response()->json([
+            'id' => $st->id,
+            'movie_id' => $st->movie_id,
+            'room_id' => $st->room_id,
+            'start_time' => $this->localTime($st->start_time),
+            'end_time' => $this->localTime($st->end_time),
+            'duration_mins' => $durationMins,
+            'format' => $st->format,
+            'translation' => $st->translation,
+            'status' => $st->status ?? 'active',
+            'movie' => $st->movie ? [
+                'id' => $st->movie->id,
+                'title' => $st->movie->title,
+                'duration' => $st->movie->duration,
+                'rating' => $st->movie->rating,
+                'poster_url' => $st->movie->poster_url,
+            ] : null,
+            'room' => $st->room ? [
+                'id' => $st->room->id,
+                'name' => $st->room->name,
+                'total_seats' => $totalSeats,
+            ] : null,
+            'movie_title' => $st->movie ? $st->movie->title : 'Không xác định',
+            'room_name' => $st->room ? $st->room->name : 'Không xác định',
+            'total_seats' => $totalSeats,
+            'booked_seats' => $bookedSeats,
+            'available_seats' => max($totalSeats - $bookedSeats, 0),
+        ], 200);
     }
 
     public function store(Request $request)
