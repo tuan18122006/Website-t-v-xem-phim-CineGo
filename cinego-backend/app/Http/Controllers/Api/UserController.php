@@ -52,9 +52,9 @@ class UserController extends Controller
     // Xem chi tiết khách hàng: thông tin + thống kê vé/chi tiêu + lịch sử đánh giá + log thiết bị + ví voucher
     public function show($id)
     {
-        $user = User::findOrFail($id);
+        $user = User::with('bookings')->findOrFail($id);
 
-        $bookings = Booking::where('user_id', $id)->get();
+        $bookings = $user->bookings;
         $bookingIds = $bookings->pluck('id');
 
         $stats = [
