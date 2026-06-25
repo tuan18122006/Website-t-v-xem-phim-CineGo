@@ -24,104 +24,83 @@ class RoomController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'total_seats' => 'required|integer|min:10|max:1000'
+            'rows' => 'required|integer|max:10',
+            'cols' => 'required|integer|min:1',
         ]);
 
         $room = Room::create([
             'name' => $request->name,
-            'total_seats' => $request->total_seats,
+            'total_seats' => $request->rows * $request->cols,
             'status' => 'active'
         ]);
 
-        // Logic sinh ghế tự động (10 ghế / hàng)
-        $seatsToInsert = [];
-        $rowsCount = ceil($request->total_seats / 10);
-        $seatsCounted = 0;
-
-        // Hàm tạo tên hàng (A, B... Z, AA, AB...)
-        $generateRowName = function($index) {
-            $letters = range('A', 'Z');
-            $rowName = '';
-            while ($index >= 0) {
-                $rowName = $letters[$index % 26] . $rowName;
-                $index = intdiv($index, 26) - 1;
-            }
-            return $rowName;
-        };
-
+        $rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+        $seatsData = [];
         $now = now();
-        for ($i = 0; $i < $rowsCount; $i++) {
-            $rowName = $generateRowName($i);
-            for ($number = 1; $number <= 10; $number++) {
-                if ($seatsCounted >= $request->total_seats) break;
-                
-                $seatsToInsert[] = [
-                    'room_id' => $room->id,
-                    'row' => $rowName,
-                    'number' => $number,
-                    'type' => 'standard',
-                    'status' => 'available',
+
+        for ($i = 0; $i < $request->rows; $i++) {
+            for ($j = 1; $j <= $request->cols; $j++) {
+                $seatsData[] = [
+                    'room_id'    => $room->id,
+                    'row'        => $rows[$i],
+                    'number'     => $j,
+                    'type'       => 'standard',
+                    'status'     => 'available',
                     'created_at' => $now,
                     'updated_at' => $now,
                 ];
-                $seatsCounted++;
             }
         }
-        
-        // Insert hàng loạt để tối ưu hiệu năng
-        Seat::insert($seatsToInsert);
+
+        Seat::insert($seatsData);
 
         return response()->json([
             'success' => true,
-            'message' => 'Tạo phòng và ' . $seatsCounted . ' ghế thành công',
+            'message' => 'Rạp và sơ đồ ghế đã được tạo thành công!',
             'data' => $room
         ], 201);
     }
 
-    // Lấy sơ đồ ghế của phòng
-    public function getSeats($id)
+    // Lấy chi tiết phòng và sơ đồ ghế
+    public function show($id)
     {
         $room = Room::findOrFail($id);
-        // Sắp xếp theo ID đảm bảo thứ tự A1 -> A10, B1 -> B10
-        $seats = $room->seats()->orderBy('id')->get();
-        
+        $seats = $room->seats()
+            ->orderBy('row', 'asc')
+            ->orderBy('number', 'asc')
+            ->get();
+
         return response()->json([
             'success' => true,
-            'data' => $seats
+            'data' => [
+                'room' => $room,
+                'seats' => $seats
+            ]
         ], 200);
     }
 
-    // Cập nhật cấu hình sơ đồ ghế (Visual Editor)
     public function updateSeatMap(Request $request, $id)
     {
         $request->validate([
             'seats' => 'required|array',
-            'seats.*.id' => 'required|integer|exists:seats,id',
-            'seats.*.type' => 'required|string|in:standard,vip,couple,hidden',
         ]);
 
-        Room::findOrFail($id); // Đảm bảo phòng tồn tại
-        
         DB::transaction(function () use ($request) {
             foreach ($request->seats as $seatData) {
-                // Chỉ cập nhật type (loại ghế)
-                Seat::where('id', $seatData['id'])->update([
+                \App\Models\Seat::where('id', $seatData['id'])->update([
                     'type' => $seatData['type']
                 ]);
             }
         });
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Lưu sơ đồ ghế thành công!'
-        ], 200);
+        return response()->json(['message' => 'Cập nhật thành công']);
     }
 
     // Xóa phòng
     public function destroy($id)
     {
         $room = Room::findOrFail($id);
-        $room->delete(); // Lệnh này cũng sẽ tự động xóa các ghế liên quan nhờ ON DELETE CASCADE trong DB
+        $room->delete();
 
         return response()->json([
             'success' => true,

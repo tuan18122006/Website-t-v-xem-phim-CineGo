@@ -47,13 +47,13 @@
         </button>
 
         <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'rooms' }" 
-          @click="activeTab = 'rooms'"
-        >
-          <span class="nav-icon">🏟️</span>
-          <span>Quản Lý Rạp & Ghế</span>
-        </button>
+  class="nav-link" 
+  :class="{ active: activeTab === 'rooms' }" 
+  @click="activeTab = 'rooms'"
+>
+  <span class="nav-icon">🏟️</span>
+  <span>Quản Lý Phòng Chiếu & Ghế</span>
+</button>
 
         <button
           class="nav-link"
@@ -95,7 +95,7 @@
       </header>
 
       <!-- TAB 1: DASHBOARD STATS & CHARTS -->
-      <div v-if="activeTab === 'stats'" class="dashboard-tab-content">
+      <div v-show="activeTab === 'stats'" class="dashboard-tab-content">
         <!-- Widgets thông số -->
         <div class="stats-widgets">
           <div class="widget-card glass-panel">
@@ -222,31 +222,31 @@
       </div>
 
       <!-- TAB 2: DYNAMIC MOVIES CRUD -->
-      <div v-else-if="activeTab === 'movies'">
+      <div v-show="activeTab === 'movies'">
         <MoviesView />
       </div>
 
       <!-- TAB 3: DYNAMIC SHOWTIMES CRUD -->
-      <div v-else-if="activeTab === 'showtimes'">
+      <div v-show="activeTab === 'showtimes'">
         <ShowtimesView />
       </div>
 
       <!-- TAB: QUẢN LÝ RẠP & GHẾ -->
-      <div v-else-if="activeTab === 'rooms'">
+      <div v-show="activeTab === 'rooms'">
         <RoomsView />
       </div>
 
-      <div v-else-if="activeTab === 'genres'">
+      <div v-show="activeTab === 'genres'">
         <GenreManagement />
       </div>
 
       <!-- TAB: USER MANAGEMENT -->
-      <div v-else-if="activeTab === 'users'">
+      <div v-show="activeTab === 'users'">
         <UserManagement />
       </div>
 
       <!-- TAB 4: REVENUE TRANSACTION REPORT -->
-      <div v-else-if="activeTab === 'revenue'" class="revenue-tab-content">
+      <div v-show="activeTab === 'revenue'" class="revenue-tab-content">
         <div class="glass-panel detailed-report">
           <div class="report-header">
             <h3>Báo Cáo Chi Tiết Hóa Đơn Đặt Vé</h3>
@@ -295,8 +295,9 @@ import MoviesView from './MoviesView.vue';
 import ShowtimesView from './ShowtimesView.vue';
 import GenreManagement from './GenreManagement.vue';
 import UserManagement from './UserManagement.vue';
-import RoomsView from './RoomsView.vue';
-import api from '../../api/axios';
+import RoomsView from './RoomManagementView.vue'; 
+import RoomManagementView from './RoomManagementView.vue';
+import RoomEditorView from './RoomEditorView.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -314,13 +315,15 @@ const getTabTitle = computed(() => {
     stats: 'Dashboard Quản Trị Hệ Thống',
     movies: 'Quản Lý Danh Sách Phim',
     showtimes: 'Quản Lý Suất Chiếu & Lịch Trình',
-    rooms: 'Quản Lý Sơ Đồ Rạp & Ghế',
+    rooms: 'Quản Lý Phòng Chiếu & Ghế',
     genres: 'Quản Lý Thể Loại Phim',
     users: 'Quản Lý Tài Khoản & Phân Quyền',
     revenue: 'Báo Cáo & Thống Kê Doanh Thu'
   };
   return titles[activeTab.value];
 });
+
+
 
 const getTabDesc = computed(() => {
   const descs = {

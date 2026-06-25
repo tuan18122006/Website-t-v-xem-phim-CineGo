@@ -5,7 +5,7 @@
         <h2 class="title-cine">🎬 Quản Lý Danh Sách Phim</h2>
         <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Phim Mới</button>
       </div>
-      
+
       <!-- Spinner loading dữ liệu -->
       <div v-if="loading" class="loading-state">
         <div class="spinner-cine"></div>
@@ -13,71 +13,69 @@
       </div>
 
       <div v-else class="movies-table-wrapper">
-      <table class="movies-table">
-        <thead>
-          <tr>
-            <th class="col-id">ID</th>
-            <th class="col-poster">Poster</th>
-            <th class="col-title">Tên Phim</th>
-            <th class="col-duration">Thời Lượng</th>
-            <th class="col-rating">Phân Loại</th>
-            <th class="col-genres">Thể Loại</th>
-            <th class="col-status">Trạng Thái</th>
-            <th class="col-actions">Hành Động</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="movie in movies" :key="movie.id" class="table-row">
-            <td class="cell-id">#{{ movie.id }}</td>
-            <td class="cell-poster">
-              <img 
-                :src="getPosterUrl(movie.poster_url)" 
-                class="poster-thumbnail"
-                @error="handleImageError"
-              />
-            </td>
-            <td class="cell-title">{{ movie.title }}</td>
-            <td class="cell-duration">{{ movie.duration }} phút</td>
-            <td class="cell-rating">
-              <span class="rating-pill-cine" :class="getRatingClass(movie.rating)">
-                {{ movie.rating || 'G' }}
-              </span>
-            </td>
-            <td class="cell-genres">
-              <div class="genres-list">
-                <span v-for="g in movie.genres" :key="g.id" class="genre-tag">
-                  {{ g.name }}
+        <table class="movies-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th class="col-poster">Poster</th>
+              <th class="col-title">Tên Phim</th>
+              <th class="col-slug">Slug</th>
+              <th class="col-duration">Thời Lượng</th>
+              <th class="col-rating">Phân Loại</th>
+              <th class="col-genres">Thể Loại</th>
+              <th class="col-status">Trạng Thái</th>
+              <th class="col-url">URL Link</th>
+              <th class="col-actions">Hành Động</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="movie in movies" :key="movie.id" class="table-row">
+              <td class="cell-id">#{{ movie.id }}</td>
+              <td class="cell-poster">
+                <img :src="getPosterUrl(movie.poster_url)" class="poster-thumbnail" @error="handleImageError" />
+              </td>
+              <td class="cell-title">{{ movie.title }}</td>
+              <td class="cell-slug">{{ movie.slug }}</td>
+
+              <td class="cell-duration">{{ movie.duration }} phút</td>
+              <td class="cell-rating">
+                <span class="rating-pill-cine" :class="getRatingClass(movie.rating)">
+                  {{ movie.rating || 'G' }}
                 </span>
-              </div>
-            </td>
-            <td class="cell-status">
-              <span 
-                class="status-pill-cine" 
-                :class="{ 
-                  active: movie.status === 'showing' || movie.status === 'Đang chiếu', 
+              </td>
+              <td class="cell-genres">
+                <div class="genres-list">
+                  <span v-for="g in movie.genres" :key="g.id" class="genre-tag">
+                    {{ g.name }}
+                  </span>
+                </div>
+              </td>
+              <td class="cell-status">
+                <span class="status-pill-cine" :class="{
+                  active: movie.status === 'showing' || movie.status === 'Đang chiếu',
                   upcoming: movie.status === 'upcoming' || movie.status === 'Sắp chiếu',
                   ended: movie.status === 'ended' || movie.status === 'Đã kết thúc'
-                }"
-              >
-                {{ formatStatus(movie.status) }}
-              </span>
-            </td>
-            <td class="cell-actions">
-              <div class="action-buttons-group">
-                <button @click="openEditModal(movie)" class="btn-action edit">✏️ Sửa</button>
-                <button @click="deleteMovie(movie.id)" class="btn-action delete">🗑️ Xóa</button>
-              </div>
-            </td>
-          </tr>
-          
-          <tr v-if="movies.length === 0">
-            <td colspan="8" class="empty-state">
-              📭 Chưa có bộ phim nào được lưu. Hãy bấm nút "Thêm Phim Mới" để bắt đầu!
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+                }">
+                  {{ formatStatus(movie.status) }}
+                </span>
+              </td>
+              <td class="cell-url">{{ movie.trailer_url }}</td>
+              <td class="cell-actions">
+                <div class="action-buttons-group">
+                  <button @click="openEditModal(movie)" class="btn-action edit">✏️ Sửa</button>
+                  <button @click="deleteMovie(movie.id)" class="btn-action delete">🗑️ Xóa</button>
+                </div>
+              </td>
+            </tr>
+
+            <tr v-if="movies.length === 0">
+              <td colspan="8" class="empty-state">
+                📭 Chưa có bộ phim nào được lưu. Hãy bấm nút "Thêm Phim Mới" để bắt đầu!
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- MODAL THÊM / SỬA PHIM (TÔNG MÀU TRẮNG ĐỎ CHỦ ĐẠO) -->
@@ -89,73 +87,56 @@
           </h3>
           <button @click="closeModal" class="btn-close-modal">✕</button>
         </div>
-        
-        <form @submit.prevent="saveMovie" class="movie-form">
-          
+
+        <form @submit.prevent="saveMovie" class="movie-form" novalidate>
           <div class="form-group-large">
             <label class="form-label-large">Tên Phim *</label>
-            <input 
-              v-model="form.title" 
-              type="text" 
-              required 
-              placeholder="Nhập tên phim đầy đủ..." 
-              class="form-input-large" 
-              @input="handleTitleInput" 
-            />
+            <input v-model="form.title" type="text" placeholder="Nhập tên phim đầy đủ..." class="form-input-large"
+              @input="handleTitleInput" />
+            <span v-if="errors.title" class="error-msg">{{ errors.title[0] }}</span>
           </div>
 
           <div class="form-group-large">
             <label class="form-label-large">Slug (Đường dẫn tĩnh) *</label>
-            <input 
-              v-model="form.slug" 
-              type="text" 
-              required 
-              placeholder="duong-dan-tinh-phim" 
-              class="form-input-large input-readonly" 
-            />
+            <input v-model="form.slug" type="text" placeholder="duong-dan-tinh-phim"
+              class="form-input-large input-readonly" />
+            <span v-if="errors.slug" class="error-msg">{{ errors.slug[0] }}</span>
           </div>
 
           <div class="form-row-double">
             <div class="form-group-large">
               <label class="form-label-large">Thời Lượng (Phút) *</label>
-              <input 
-                v-model.number="form.duration" 
-                type="number" 
-                required 
-                min="1" 
-                class="form-input-large" 
-              />
+              <input v-model.number="form.duration" type="number" min="1" class="form-input-large" />
+              <span v-if="errors.duration" class="error-msg">{{ errors.duration[0] }}</span>
             </div>
 
             <div class="form-group-large">
               <label class="form-label-large">Ngày Khởi Chiếu *</label>
-              <input 
-                v-model="form.release_date" 
-                type="date" 
-                required 
-                class="form-input-large" 
-              />
+              <input v-model="form.release_date" type="date" class="form-input-large" />
+              <span v-if="errors.release_date" class="error-msg">{{ errors.release_date[0] }}</span>
             </div>
           </div>
 
           <div class="form-row-double">
             <div class="form-group-large">
               <label class="form-label-large">Giới Hạn Độ Tuổi *</label>
-              <select v-model="form.rating" required class="form-input-large select-cine">
+              <select v-model="form.rating" class="form-input-large select-cine">
                 <option value="G">G - Mọi đối tượng</option>
                 <option value="PG-13">PG-13 - Trên 13 tuổi</option>
                 <option value="T16">T16 - Trên 16 tuổi</option>
                 <option value="T18">T18 - Trên 18 tuổi</option>
               </select>
+              <span v-if="errors.rating" class="error-msg">{{ errors.rating[0] }}</span>
             </div>
 
             <div class="form-group-large">
               <label class="form-label-large">Trạng Thái Chiếu *</label>
-              <select v-model="form.status" required class="form-input-large select-cine">
+              <select v-model="form.status" class="form-input-large select-cine">
                 <option value="Đang chiếu">Đang chiếu</option>
                 <option value="Sắp chiếu">Sắp chiếu</option>
                 <option value="Đã kết thúc">Đã kết thúc</option>
               </select>
+              <span v-if="errors.status" class="error-msg">{{ errors.status[0] }}</span>
             </div>
           </div>
 
@@ -163,27 +144,21 @@
             <label class="form-label-large">Thể Loại Phim * (Chọn ít nhất 1 thể loại)</label>
             <div class="genres-checkboxes-cine">
               <label v-for="genre in genres" :key="genre.id" class="checkbox-label-large">
-                <input 
-                  type="checkbox" 
-                  :value="genre.id" 
-                  v-model="form.genre_ids"
-                  class="checkbox-box-cine"
-                />
+                <input type="checkbox" :value="genre.id" v-model="form.genre_ids" class="checkbox-box-cine" />
                 <span class="checkbox-text">{{ genre.name }}</span>
               </label>
             </div>
+
+            <span v-if="errors?.genre_ids" class="error-msg">
+              {{ errors.genre_ids[0] }}
+            </span>
           </div>
 
           <div class="form-group-large">
             <label class="form-label-large">Chọn Ảnh Poster Phim *</label>
             <div class="file-upload-section">
-              <input 
-                type="file" 
-                accept="image/*" 
-                @change="handleFileChange" 
-                :required="!isEdit" 
-                class="form-input-large file-input" 
-              />
+              <input type="file" accept="image/*" @change="handleFileChange" class="form-input-large file-input" />
+              <span v-if="errors.poster" class="error-msg">{{ errors.poster[0] }}</span>
               <div v-if="imagePreview" class="image-preview-box">
                 <p class="preview-title">Ảnh được chọn:</p>
                 <img :src="getPosterUrl(imagePreview)" class="preview-image-cine" />
@@ -193,22 +168,16 @@
 
           <div class="form-group-large">
             <label class="form-label-large">Trailer URL (YouTube Link)</label>
-            <input 
-              v-model="form.trailer_url" 
-              type="text" 
-              placeholder="Ví dụ: https://www.youtube.com/watch?v=..." 
-              class="form-input-large" 
-            />
+            <input v-model="form.trailer_url" type="text" placeholder="Ví dụ: https://www.youtube.com/watch?v=..."
+              class="form-input-large" />
+            <span v-if="errors.trailer_url" class="error-msg">{{ errors.trailer_url[0] }}</span>
           </div>
 
           <div class="form-group-large">
             <label class="form-label-large">Mô Tả Tóm Tắt Nội Dung</label>
-            <textarea 
-              v-model="form.description" 
-              rows="4" 
-              placeholder="Nhập giới thiệu tóm tắt phim..." 
-              class="form-input-large textarea-cine"
-            ></textarea>
+            <textarea v-model="form.description" rows="4" placeholder="Nhập giới thiệu tóm tắt phim..."
+              class="form-input-large textarea-cine"></textarea>
+            <span v-if="errors.description" class="error-msg">{{ errors.description[0] }}</span>
           </div>
 
           <div class="modal-footer-cine">
@@ -227,6 +196,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import api from '../../api/axios';
+import { toast, confirmDialog } from '../../utils/alert';
 
 const movies = ref([]);
 const genres = ref([]);
@@ -254,10 +224,10 @@ const form = ref({
 // BỘ LỌC TỰ ĐỘNG DỊCH URL CHUẨN XÁC: Đảm bảo ảnh poster được lấy đúng Host API port 8000
 const getPosterUrl = (url) => {
   if (!url) return 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=100&q=80';
-  
+
   // Tránh dịch các URL preview dạng blob tạm thời
   if (url.startsWith('blob:')) return url;
-  
+
   // Dịch port localhost nếu database bị lệch URL do .env cũ
   if (url.startsWith('http://localhost/storage/')) {
     return url.replace('http://localhost/storage/', 'http://127.0.0.1:8000/storage/');
@@ -267,6 +237,11 @@ const getPosterUrl = (url) => {
 
 const handleImageError = (event) => {
   event.target.src = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=100&q=80';
+};
+
+const truncateDescription = (text, length = 50) => {
+  if (!text) return '';
+  return text.length > length ? text.substring(0, length) + '...' : text;
 };
 
 const formatStatus = (status) => {
@@ -292,9 +267,10 @@ const handleFileChange = (event) => {
   }
 };
 
+
 const openCreateModal = () => {
   isEdit.value = false;
-  currentMovieId.value = null;
+  errors.value = {};
   selectedFile.value = null;
   imagePreview.value = '';
   form.value = {
@@ -313,10 +289,11 @@ const openCreateModal = () => {
 
 const openEditModal = (movie) => {
   isEdit.value = true;
+  errors.value = {};
   currentMovieId.value = movie.id;
   selectedFile.value = null;
   imagePreview.value = movie.poster_url || '';
-  
+
   let formattedDate = '';
   if (movie.release_date) {
     const d = new Date(movie.release_date);
@@ -337,12 +314,18 @@ const openEditModal = (movie) => {
   showModal.value = true;
 };
 
+const clearError = (field) => {
+  if (errors.value[field]) {
+    delete errors.value[field];
+  }
+};
+
 const closeModal = () => {
   showModal.value = false;
 };
 
 const handleTitleInput = () => {
-  if (isEdit.value) return; 
+  if (isEdit.value) return;
   form.value.slug = form.value.title
     .toLowerCase()
     .normalize('NFD')
@@ -374,67 +357,67 @@ const fetchGenres = async () => {
   }
 };
 
+const errors = ref({});
+
 const saveMovie = async () => {
-  if (!form.value.genre_ids || form.value.genre_ids.length === 0) {
-    alert('Vui lòng chọn ít nhất một thể loại cho phim!');
-    return;
-  }
-  
+  errors.value = {};
   submitting.value = true;
+
   try {
     const formData = new FormData();
-    formData.append('title', form.value.title);
-    formData.append('slug', form.value.slug);
-    formData.append('description', form.value.description);
-    formData.append('duration', form.value.duration);
-    formData.append('release_date', form.value.release_date);
-    formData.append('trailer_url', form.value.trailer_url);
-    formData.append('rating', form.value.rating); 
-    formData.append('status', form.value.status);
-    
-    form.value.genre_ids.forEach(id => {
-      formData.append('genre_ids[]', id);
-    });
+    formData.append('title', form.value.title || '');
+    formData.append('description', form.value.description || '');
+    formData.append('duration', form.value.duration || '');
+    formData.append('release_date', form.value.release_date || '');
+    formData.append('status', form.value.status || '');
+    formData.append('rating', form.value.rating || '');
+    formData.append('trailer_url', form.value.trailer_url || '');
+
+    if (form.value.genre_ids) {
+      form.value.genre_ids.forEach(id => formData.append('genre_ids[]', id));
+    }
 
     if (selectedFile.value) {
       formData.append('poster', selectedFile.value);
     }
 
-    if (isEdit.value) {
-      formData.append('_method', 'PUT');
-    }
+    if (isEdit.value) formData.append('_method', 'PUT');
 
     const url = isEdit.value ? `/admin/movies/${currentMovieId.value}` : '/admin/movies';
-    
+
     await api.post(url, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+      headers: { 'Content-Type': 'multipart/form-data' }
     });
 
-    alert(isEdit.value ? '✅ Cập nhật thành công!' : '✅ Thêm phim thành công!');
+    toast("Lưu thành công!");
     showModal.value = false;
     await fetchMovies();
   } catch (err) {
-    console.error("Lỗi lưu phim:", err);
-    const errorMsg = err.response?.data?.errors 
-      ? Object.values(err.response.data.errors).flat().join('\n') 
-      : (err.response?.data?.message || err.message);
-    alert('Có lỗi xảy ra:\n' + errorMsg);
+    if (err.response && err.response.status === 422) {
+      errors.value = err.response.data.errors;
+    } else {
+      toast("Có lỗi xảy ra!", "error");
+    }
   } finally {
     submitting.value = false;
   }
 };
 
+
 const deleteMovie = async (id) => {
-  if (!confirm('⚠️ Bạn có chắc chắn muốn xóa bộ phim này? Mọi lịch chiếu và vé đặt sẽ bị xóa.')) return;
+  if (!(await confirmDialog('Bạn có chắc chắn muốn xóa phim này không?', 'Hành động này không thể hoàn tác!'))) {
+    return;
+  }
+
   try {
     await api.delete(`/admin/movies/${id}`);
-    alert('🗑️ Xóa phim thành công khỏi hệ thống!');
+
+    toast("Xóa phim thành công!");
+
     await fetchMovies();
   } catch (err) {
-    console.error('Lỗi xóa phim:', err);
-    alert(err.response?.data?.message || 'Không thể xóa phim này do ràng buộc dữ liệu.');
+    console.error("Lỗi khi xóa:", err);
+    toast("Có lỗi xảy ra khi xóa phim. Vui lòng thử lại!", "error");
   }
 };
 
@@ -479,6 +462,7 @@ onMounted(async () => {
   box-shadow: 0 4px 15px rgba(229, 9, 20, 0.25);
   transition: all 0.2s ease;
 }
+
 .btn-primary-cine:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(229, 9, 20, 0.35);
@@ -495,6 +479,7 @@ onMounted(async () => {
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .btn-secondary-cine:hover {
   background-color: #f1f5f9;
   border-color: #94a3b8;
@@ -510,6 +495,7 @@ onMounted(async () => {
   padding: 60px 0;
   gap: 15px;
 }
+
 .spinner-cine {
   width: 40px;
   height: 40px;
@@ -518,10 +504,17 @@ onMounted(async () => {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
+
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
 }
+
 .loading-state p {
   font-size: 15px;
   color: #64748b;
@@ -533,11 +526,13 @@ onMounted(async () => {
   width: 100%;
   overflow-x: auto;
 }
+
 .movies-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
 }
+
 .movies-table th {
   padding: 16px;
   background-color: #f8fafc;
@@ -546,44 +541,78 @@ onMounted(async () => {
   font-size: 15px;
   font-weight: 800;
 }
+
 .movies-table td {
   padding: 16px;
   border-bottom: 1px solid #e2e8f0;
   font-size: 15px;
 }
+
 .table-row:hover {
   background-color: #fffafb;
 }
 
-.col-id { width: 80px; text-align: center; }
-.col-poster { width: 90px; text-align: center; }
-.col-title { min-width: 200px; }
-.col-duration { width: 130px; }
-.col-rating { width: 120px; text-align: center; }
-.col-genres { min-width: 150px; }
-.col-status { width: 170px; text-align: center; }
-.col-actions { width: 160px; text-align: center; }
+.col-id {
+  width: 80px;
+  text-align: center;
+}
+
+.col-poster {
+  width: 90px;
+  text-align: center;
+}
+
+.col-title {
+  min-width: 200px;
+}
+
+.col-duration {
+  width: 130px;
+}
+
+.col-rating {
+  width: 120px;
+  text-align: center;
+}
+
+.col-genres {
+  min-width: 150px;
+}
+
+.col-status {
+  width: 170px;
+  text-align: center;
+}
+
+.col-actions {
+  width: 160px;
+  text-align: center;
+}
 
 .cell-id {
   font-weight: 800;
   color: #e50914;
   text-align: center;
 }
+
 .poster-thumbnail {
   width: 50px;
   height: 70px;
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid #cbd5e1;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
+
 .cell-title {
   font-weight: 700;
   color: #1e293b;
 }
+
 .cell-duration {
   color: #475569;
 }
+
 .cell-rating {
   text-align: center;
 }
@@ -596,16 +625,29 @@ onMounted(async () => {
   font-weight: 800;
   color: #ffffff;
 }
-.rating-g { background-color: #10b981; }
-.rating-t13 { background-color: #3b82f6; }
-.rating-t16 { background-color: #f59e0b; }
-.rating-t18 { background-color: #ef4444; }
+
+.rating-g {
+  background-color: #10b981;
+}
+
+.rating-t13 {
+  background-color: #3b82f6;
+}
+
+.rating-t16 {
+  background-color: #f59e0b;
+}
+
+.rating-t18 {
+  background-color: #ef4444;
+}
 
 .genres-list {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
 }
+
 .genre-tag {
   background-color: #f1f5f9;
   border: 1px solid #e2e8f0;
@@ -618,6 +660,7 @@ onMounted(async () => {
 .cell-status {
   text-align: center;
 }
+
 .status-pill-cine {
   padding: 10px 20px;
   border-radius: 8px;
@@ -626,14 +669,17 @@ onMounted(async () => {
   display: inline-block;
   white-space: nowrap;
 }
+
 .status-pill-cine.active {
   background-color: #d1fae5;
   color: #065f46;
 }
+
 .status-pill-cine.upcoming {
   background-color: #fef3c7;
   color: #92400e;
 }
+
 .status-pill-cine.ended {
   background-color: #f1f5f9;
   color: #475569;
@@ -642,11 +688,13 @@ onMounted(async () => {
 .cell-actions {
   text-align: center;
 }
+
 .action-buttons-group {
   display: flex;
   justify-content: center;
   gap: 8px;
 }
+
 .btn-action {
   border: 1px solid #cbd5e1;
   background-color: #ffffff;
@@ -657,18 +705,22 @@ onMounted(async () => {
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .btn-action.edit {
   color: #d97706;
   border-color: #fde68a;
 }
+
 .btn-action.edit:hover {
   background-color: #fef3c7;
   border-color: #d97706;
 }
+
 .btn-action.delete {
   color: #dc2626;
   border-color: #fecaca;
 }
+
 .btn-action.delete:hover {
   background-color: #fee2e2;
   border-color: #dc2626;
@@ -732,6 +784,7 @@ onMounted(async () => {
   cursor: pointer;
   transition: color 0.2s ease;
 }
+
 .btn-close-modal:hover {
   color: #e50914;
 }
@@ -766,6 +819,7 @@ onMounted(async () => {
   color: #1e293b;
   transition: all 0.2s ease-in-out;
 }
+
 .form-input-large:focus {
   border-color: #e50914;
   box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
@@ -881,5 +935,13 @@ onMounted(async () => {
   margin-top: 15px;
   border-top: 2px solid #fee2e2;
   padding-top: 20px;
+}
+
+.error-msg {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin-top: 5px;
+  display: block;
+  font-weight: 600;
 }
 </style>

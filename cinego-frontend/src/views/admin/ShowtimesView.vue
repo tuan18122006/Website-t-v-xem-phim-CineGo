@@ -415,6 +415,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import api from '../../api/axios';
+import { toast, confirmDialog } from '../../utils/alert';
 
 const showtimes = ref([]);
 const movies = ref([]);
