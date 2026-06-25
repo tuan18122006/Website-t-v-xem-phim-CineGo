@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import ReviewMovies from '../views/client/ReviewMovies.vue';
 
+
 // Lazy loading views
 const Home = () => import("../views/client/HomeView.vue");
 const MovieDetail = () => import("../views/client/MovieDetailView.vue");
@@ -14,6 +15,8 @@ const ReviewPhim = () => import("../views/client/ReviewPhimView.vue");
 const TopMovies = () => import("../views/client/TopMovies.vue");
 const BlogPhim = () => import("../views/client/BlogPhimView.vue");
 const AboutCineGo = () => import("../views/client/AboutCineGoView.vue");
+const RoomManagement = () => import("../views/admin/RoomManagementView.vue");
+const RoomEditor = () => import("../views/admin/RoomEditorView.vue");
 
 const AdminDashboard = () => import('../views/admin/DashboardView.vue');
 
@@ -104,6 +107,21 @@ const routes = [
     name: "admin-GenreManagement",
     component: () => import("../views/admin/GenreManagement.vue"),
   },
+
+
+{
+  path: '/admin/rooms',
+  name: 'admin-rooms', 
+  component: () => import('../views/admin/RoomManagementView.vue'),
+  meta: { requiresAuth: true, role: "admin" }
+},
+{
+  path: '/admin/rooms/:id/edit', 
+  name: 'admin-room-edit',
+  component: () => import('../views/admin/RoomEditorView.vue'),
+  meta: { requiresAuth: true, role: "admin" }
+},
+
   {
     path: "/admin/movies",
     name: "admin-MoviesView",
@@ -115,6 +133,7 @@ const routes = [
     component: () => import("../views/admin/UserManagement.vue"),
     meta: { requiresAuth: true, role: "admin" },
   },
+  
 
   // Wildcard redirect
   {

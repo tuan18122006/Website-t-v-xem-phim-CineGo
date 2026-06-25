@@ -9,7 +9,7 @@ use Illuminate\Support\Str;
 
 class GenreController extends Controller
 {
-    
+
     public function index()
     {
         return response()->json([
@@ -22,12 +22,15 @@ class GenreController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255|unique:genres,name',
+        ],[
+            'name.unique' => 'Tên thể loại này đã tồn tại, vui lòng chọn tên khác!',
+            'name.required' => 'Tên thể loại không được để trống.',
         ]);
 
         $genre = Genre::create([
             'name' => $request->name,
-            'slug' => Str::slug($request->name), 
-        ]);
+            'slug' => Str::slug($request->name),
+        ],);
 
         return response()->json([
             'success' => true,
@@ -36,7 +39,7 @@ class GenreController extends Controller
         ], 201);
     }
 
-   
+
     public function update(Request $request, $id)
     {
         $genre = Genre::find($id);
@@ -46,6 +49,9 @@ class GenreController extends Controller
 
         $request->validate([
             'name' => 'required|string|max:255|unique:genres,name,' . $id,
+        ], [
+            'name.unique' => 'Tên thể loại này đã tồn tại, vui lòng chọn tên khác!',
+            'name.required' => 'Tên thể loại không được để trống.',
         ]);
 
         $genre->update([
@@ -60,15 +66,15 @@ class GenreController extends Controller
         ], 200);
     }
 
-  
+
     public function destroy($id)
     {
-        
+
         $genre = Genre::find($id);
         if (!$genre) {
             return response()->json(['message' => 'Không tìm thấy thể loại'], 404);
         }
-        
+
         $genre->delete();
         return response()->json([
             'success' => true,
