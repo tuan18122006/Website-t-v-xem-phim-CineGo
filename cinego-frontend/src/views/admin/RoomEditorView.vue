@@ -151,7 +151,10 @@ const saveSeats = async () => {
     });
     toast("Lưu sơ đồ thành công!");
     router.push({ name: 'admin-dashboard' }); 
-  } catch (err) { toast("Lưu thất bại!", "error"); }
+  } catch (err) { 
+    const msg = err.response?.data?.message || "Lưu thất bại!";
+    toast(msg, "error"); 
+  }
 };
 
 const goBack = () => router.push({ name: 'admin-dashboard' });

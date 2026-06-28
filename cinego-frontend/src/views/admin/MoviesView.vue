@@ -29,13 +29,13 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="movie in movies" :key="movie.id" class="table-row">
+            <tr v-for="movie in paginatedMovies" :key="movie.id" class="table-row">
               <td class="cell-id">#{{ movie.id }}</td>
               <td class="cell-poster">
                 <img :src="getPosterUrl(movie.poster_url)" class="poster-thumbnail" @error="handleImageError" />
               </td>
-              <td class="cell-title">{{ movie.title }}</td>
-              <td class="cell-slug">{{ movie.slug }}</td>
+              <td class="cell-title"><div class="cell-scrollable">{{ movie.title }}</div></td>
+              <td class="cell-slug"><div class="cell-scrollable">{{ movie.slug }}</div></td>
 
               <td class="cell-duration">{{ movie.duration }} phút</td>
               <td class="cell-rating">
@@ -59,7 +59,7 @@
                   {{ formatStatus(movie.status) }}
                 </span>
               </td>
-              <td class="cell-url">{{ movie.trailer_url }}</td>
+              <td class="cell-url"><div class="cell-scrollable">{{ movie.trailer_url }}</div></td>
               <td class="cell-actions">
                 <div class="action-buttons-group">
                   <button @click="openEditModal(movie)" class="btn-action edit">✏️ Sửa</button>
@@ -68,13 +68,20 @@
               </td>
             </tr>
 
-            <tr v-if="movies.length === 0">
-              <td colspan="8" class="empty-state">
+            <tr v-if="paginatedMovies.length === 0">
+              <td colspan="10" class="empty-state">
                 📭 Chưa có bộ phim nào được lưu. Hãy bấm nút "Thêm Phim Mới" để bắt đầu!
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Phân trang -->
+      <div v-if="totalPages > 1" class="pagination-cine">
+        <button @click="currentPage--" :disabled="currentPage === 1" class="btn-page">Trước</button>
+        <span class="page-info">Trang {{ currentPage }} / {{ totalPages }}</span>
+        <button @click="currentPage++" :disabled="currentPage === totalPages" class="btn-page">Sau</button>
       </div>
     </div>
 
@@ -194,7 +201,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import api from '../../api/axios';
 import { toast, confirmDialog } from '../../utils/alert';
 
@@ -205,6 +212,17 @@ const showModal = ref(false);
 const isEdit = ref(false);
 const submitting = ref(false);
 const currentMovieId = ref(null);
+
+// Pagination
+const currentPage = ref(1);
+const itemsPerPage = 8;
+
+const totalPages = computed(() => Math.ceil(movies.value.length / itemsPerPage));
+const paginatedMovies = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return movies.value.slice(start, end);
+});
 
 const selectedFile = ref(null);
 const imagePreview = ref('');
@@ -336,15 +354,15 @@ const handleTitleInput = () => {
     .replace(/-+/g, '-');
 };
 
-const fetchMovies = async () => {
-  loading.value = true;
+const fetchMovies = async (showLoading = true) => {
+  if (showLoading) loading.value = true;
   try {
     const response = await api.get('/admin/movies');
     movies.value = response.data.data || response.data;
   } catch (err) {
     console.error('Lỗi tải danh sách phim:', err);
   } finally {
-    loading.value = false;
+    if (showLoading) loading.value = false;
   }
 };
 
@@ -359,8 +377,46 @@ const fetchGenres = async () => {
 
 const errors = ref({});
 
-const saveMovie = async () => {
+const validateForm = () => {
   errors.value = {};
+  let isValid = true;
+
+  if (!form.value.title || form.value.title.trim() === '') {
+    errors.value.title = ['Vui lòng nhập tên phim.'];
+    isValid = false;
+  }
+
+  if (!form.value.slug || form.value.slug.trim() === '') {
+    errors.value.slug = ['Đường dẫn tĩnh không hợp lệ.'];
+    isValid = false;
+  }
+
+  if (!form.value.duration || form.value.duration <= 0) {
+    errors.value.duration = ['Thời lượng phim phải lớn hơn 0 phút.'];
+    isValid = false;
+  }
+
+  if (!form.value.release_date) {
+    errors.value.release_date = ['Vui lòng chọn ngày khởi chiếu.'];
+    isValid = false;
+  }
+
+  if (!form.value.genre_ids || form.value.genre_ids.length === 0) {
+    errors.value.genre_ids = ['Vui lòng chọn ít nhất 1 thể loại.'];
+    isValid = false;
+  }
+
+  if (!isEdit.value && !selectedFile.value) {
+    errors.value.poster = ['Vui lòng chọn ảnh poster cho phim mới.'];
+    isValid = false;
+  }
+
+  return isValid;
+};
+
+const saveMovie = async () => {
+  if (!validateForm()) return;
+  
   submitting.value = true;
 
   try {
@@ -391,23 +447,29 @@ const saveMovie = async () => {
 
     toast("Lưu thành công!");
     showModal.value = false;
-    await fetchMovies();
+    await fetchMovies(false);
   } catch (err) {
-    if (err.response && err.response.status === 422) {
-      errors.value = err.response.data.errors;
+    console.error("Lỗi khi lưu phim:", err);
+    if (err.response?.status === 422) {
+      errors.value = err.response.data.errors || {};
+      toast("Lỗi xác thực dữ liệu", "error");
     } else {
-      toast("Có lỗi xảy ra!", "error");
+      toast("Không thể lưu phim. Kiểm tra lại!", "error");
     }
   } finally {
     submitting.value = false;
   }
 };
 
-
 const deleteMovie = async (id) => {
-  if (!(await confirmDialog('Bạn có chắc chắn muốn xóa phim này không?', 'Hành động này không thể hoàn tác!'))) {
-    return;
-  }
+  const isConfirm = await confirmDialog(
+    "Xóa bộ phim này?", 
+    "Toàn bộ dữ liệu suất chiếu liên quan cũng có thể bị ảnh hưởng!"
+  );
+  if (!isConfirm) return;
+
+  const originalMovies = [...movies.value];
+  movies.value = movies.value.filter(m => m.id !== id);
 
   try {
     await api.delete(`/admin/movies/${id}`);
@@ -431,12 +493,27 @@ onMounted(async () => {
 .admin-movies-view-container {
   background-color: #ffffff;
   color: #1e293b;
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+  padding: 20px;
+  overflow-x: hidden;
+}
+
+.list-card {
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+  border-radius: 15px;
+  overflow-x: hidden;
 }
 
 .header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
   margin-bottom: 25px;
   border-bottom: 1px solid #e2e8f0;
   padding-bottom: 15px;
@@ -449,7 +526,6 @@ onMounted(async () => {
   text-transform: uppercase;
 }
 
-/* Beautiful CineGo themed Primary button */
 .btn-primary-cine {
   background: linear-gradient(135deg, #e50914 0%, #9b000e 100%);
   color: #ffffff;
@@ -461,6 +537,8 @@ onMounted(async () => {
   cursor: pointer;
   box-shadow: 0 4px 15px rgba(229, 9, 20, 0.25);
   transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-primary-cine:hover {
@@ -525,6 +603,38 @@ onMounted(async () => {
 .movies-table-wrapper {
   width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.pagination-cine {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+.btn-page {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-page:not(:disabled):hover {
+  border-color: #e50914;
+  color: #e50914;
+}
+.btn-page:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.page-info {
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
 }
 
 .movies-table {
@@ -563,7 +673,7 @@ onMounted(async () => {
 }
 
 .col-title {
-  min-width: 200px;
+  width: 200px;
 }
 
 .col-duration {
@@ -685,6 +795,34 @@ onMounted(async () => {
   color: #475569;
 }
 
+.text-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px; /* Có thể dùng rem/em */
+  display: block; /* Sửa từ inline-block thành block để không phá table */
+}
+
+.cell-scrollable {
+  max-width: 200px; /* Giới hạn chiều rộng để ô không phình to */
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px; /* Tránh thanh cuộn đè lên chữ */
+}
+
+/* Tùy chỉnh thanh cuộn siêu mỏng và thanh lịch cho ô */
+.cell-scrollable::-webkit-scrollbar {
+  height: 4px;
+}
+.cell-scrollable::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.cell-scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .cell-actions {
   text-align: center;
 }
@@ -692,6 +830,7 @@ onMounted(async () => {
 .action-buttons-group {
   display: flex;
   justify-content: center;
+  flex-wrap: nowrap; /* Cấm rớt dòng */
   gap: 8px;
 }
 
@@ -704,6 +843,7 @@ onMounted(async () => {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap; /* Chống bóp chữ Sửa, Xóa */
 }
 
 .btn-action.edit {

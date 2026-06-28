@@ -47,7 +47,6 @@
         <div v-else class="movies-carousel">
           <div v-for="(movie, index) in activeMovies" :key="movie.id" class="movie-carousel-card">
             <div class="poster-container">
-              <span class="rank-number">{{ index + 1 }}</span>
               <img :src="movie.poster_url" :alt="movie.title" class="carousel-poster" @click="goToDetail(movie.id)" />
 
               <div class="play-overlay" @click="goToDetail(movie.id)">

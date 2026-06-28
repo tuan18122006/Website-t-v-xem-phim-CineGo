@@ -85,6 +85,15 @@ class RoomController extends Controller
             'seats' => 'required|array',
         ]);
 
+        $room = Room::findOrFail($id);
+
+        if ($room->showtimes()->count() > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Không thể lưu sơ đồ! Rạp này đang có suất chiếu. Vui lòng xóa các suất chiếu trước khi đổi sơ đồ.'
+            ], 400);
+        }
+
         if (empty($request->seats)) {
             return response()->json(['message' => 'Cập nhật thành công']);
         }

@@ -115,11 +115,12 @@ const generateDays = () => {
   for (let i = 0; i < 7; i++) {
     const d = new Date();
     d.setDate(d.getDate() + i);
-    days.push({
-      dateStr: d.toISOString().split('T')[0],
-      weekday: i === 0 ? 'Hôm nay' : weekdays[d.getDay()],
-      dateLabel: d.getDate()
-    });
+      days.push({
+        dateStr: d.toISOString().split('T')[0],
+        weekday: i === 0 ? 'Hôm nay' : weekdays[d.getDay()],
+        dateLabel: d.getDate(),
+        fullLabel: d.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
+      });
   }
   return days;
 };
@@ -148,31 +149,31 @@ const fetchShowtimes = async () => {
 };
 
 const goToDetail = (id) => {
-  router.push(`/phim/${id}`);
+  router.push(`/movie/${id}`);
 };
 
 const bookTicket = (movie, showtime) => {
-  // Build booking data structure compatible with what bookingStore expects
-  const bookingData = {
-    movie: {
-      id: movie.movie_id,
-      title: movie.title,
-      poster_url: movie.poster_url,
-      rating: movie.rating
-    },
-    showtime: {
-      id: showtime.id,
-      start_time: showtime.start_time,
-      format: showtime.format,
-      translation: showtime.translation,
-      room_name: showtime.room_name,
-      // Create a fake ISO string for the date to satisfy SeatSelection logic if needed
-      date: selectedDate.value
-    }
+  // Chuẩn bị dữ liệu movie
+  const movieData = {
+    id: movie.movie_id,
+    title: movie.title,
+    poster_url: movie.poster_url,
+    rating: movie.rating
   };
 
-  bookingStore.setBookingData(bookingData);
-  router.push('/chon-ghe');
+  // Chuẩn bị dữ liệu showtime (cần có field date và dateLabel cho SeatSelection)
+  const dayIndex = availableDays.value.findIndex(d => d.dateStr === selectedDate.value);
+  const selectedDay = dayIndex !== -1 ? availableDays.value[dayIndex] : availableDays.value[0];
+  
+  const showtimeData = {
+    ...showtime,
+    date: selectedDate.value,
+    dateLabel: selectedDay.fullLabel || `${selectedDay.weekday}, ${selectedDay.dateLabel}`
+  };
+
+  bookingStore.selectMovie(movieData);
+  bookingStore.selectShowtime(showtimeData);
+  router.push('/booking/seats');
 };
 
 const getRatingClass = (rating) => {

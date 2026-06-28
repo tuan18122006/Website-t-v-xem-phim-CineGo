@@ -17,7 +17,7 @@
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
       </div>
-      <h2 class="glow-text-mint">ĐẶT VÉ THÀNH CÔNG!</h2>
+      <h2 class="success-title" style="color: var(--text-primary);">ĐẶT VÉ THÀNH CÔNG!</h2>
       <p class="success-subtitle">
         Cảm ơn bạn đã lựa chọn CineGo. Vé của bạn đã được xuất hệ thống.
       </p>
@@ -74,7 +74,7 @@
         </div>
       </div>
 
-      <button @click="backToHome" class="btn-primary">Quay Về Trang Chủ</button>
+      <button @click="backToHome" class="btn-pay-now" style="margin-top: 20px; max-width: 300px;">Quay Về Trang Chủ</button>
     </div>
 
     <div v-else class="payment-checkout-grid">
@@ -232,7 +232,7 @@
 
           <div class="invoice-row invoice-total">
             <span>Tổng cộng:</span>
-            <span class="total-price glow-text-pink">{{
+            <span class="total-price">{{
               formatCurrency(bookingStore.totalAmount)
             }}</span>
           </div>
@@ -254,8 +254,8 @@
     <p>Giỏ hàng trống hoặc hết hạn giữ ghế!</p>
     <router-link
       to="/"
-      class="btn-primary"
-      style="margin-top: 20px; display: inline-block"
+      class="btn-pay-now"
+      style="margin-top: 20px; display: inline-flex; max-width: 300px;"
       >Quay về Trang chủ</router-link
     >
   </div>
@@ -503,7 +503,7 @@ const backToHome = () => {
   color: white;
 }
 .ctrl-qty {
-  color: white;
+  color: var(--text-primary);
   font-weight: 700;
   font-size: 14px;
   min-width: 20px;
@@ -552,7 +552,7 @@ const backToHome = () => {
 .method-name {
   font-size: 14px;
   font-weight: 700;
-  color: white;
+  color: var(--text-primary);
 }
 .method-desc {
   color: var(--text-muted);
@@ -613,7 +613,7 @@ const backToHome = () => {
 .voucher-input {
   flex: 1;
   background: var(--bg-tertiary);
-  color: white;
+  color: var(--text-primary);
   border: 1px solid var(--border-glass);
   padding: 10px 16px;
   border-radius: var(--radius-sm);
@@ -634,13 +634,13 @@ const backToHome = () => {
   transition: var(--transition-smooth);
 }
 .btn-apply-voucher {
-  background: rgba(255, 255, 255, 0.05);
-  color: white;
-  border: 1px solid var(--border-glass);
+  background: transparent;
+  color: var(--accent-pink);
+  border: 1px solid var(--accent-pink);
 }
 .btn-apply-voucher:hover {
-  background: white;
-  color: #0b0816;
+  background: var(--accent-pink);
+  color: white;
 }
 .btn-remove-voucher {
   background: rgba(230, 0, 0, 0.15);
@@ -672,6 +672,7 @@ const backToHome = () => {
 .total-price {
   font-size: 24px;
   font-weight: 800;
+  color: var(--accent-pink);
 }
 .btn-pay-now {
   background: linear-gradient(

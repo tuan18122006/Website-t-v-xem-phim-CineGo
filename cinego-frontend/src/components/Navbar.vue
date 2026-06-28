@@ -16,7 +16,6 @@
         
         <div class="nav-links">
           <router-link to="/mua-ve" class="nav-item">Lịch chiếu</router-link>
-          <router-link to="/mua-ve" class="nav-item">Rạp chiếu</router-link>
           <router-link to="/" class="nav-item">Phim chiếu</router-link>
           <router-link to="/review-phim" class="nav-item">Review phim</router-link>
           <router-link to="/top-phim" class="nav-item">Top phim</router-link>

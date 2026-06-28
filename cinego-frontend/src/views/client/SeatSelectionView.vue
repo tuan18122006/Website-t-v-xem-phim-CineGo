@@ -154,21 +154,11 @@ const getSeatPrice = (type) => {
 // ÁNH XẠ DỮ LIỆU ĐẦU RA (COMPUTED): Chuyển đổi dữ liệu thô sang 5 trường Tech Lead yêu cầu
 const mappedSeats = computed(() => {
   return rawSeatsFromAPI.value.map((seat) => {
-    // Xác định loại ghế dựa trên hàng ghế (Row) theo cấu trúc rạp ban đầu của bạn
-    let seatType = "standard";
-    if (seat.row_name === "J") seatType = "couple";
-    else if (["F", "G", "H"].includes(seat.row_name)) seatType = "vip";
-
-    // Nếu thiết kế sơ đồ rạp có các vị trí lối đi trống, gán trạng thái 'hidden' theo quy định
-    if (seat.is_aisle) {
-      seatType = "hidden";
-    }
-
     return {
       id: seat.id, // 1. ID duy nhất của ghế
       row: seat.row_name, // 2. Tên hàng ghế ('A','B'...)
       number: seat.seat_number, // 3. Số thứ tự cột (1,2,3...)
-      type: seatType, // 4. Khớp enum 4 loại
+      type: seat.type || "standard", // 4. Khớp enum 4 loại từ DB trả về
       is_booked: seat.status === "sold" || seat.status === "holding", // 5. Cấm click nếu đã bán/giữ
     };
   });
@@ -202,13 +192,7 @@ const handleSeatMapClick = async (seat) => {
 
   try {
     if (!isAlreadySelected) {
-      // Gọi API giữ ghế tạm thời
-      await api.post("/seat-holds", {
-        showtime_id: bookingStore.selectedShowtime.id,
-        seat_id: seat.id,
-      });
-
-      // Đẩy ghế vào Store quản lý đơn hàng
+      // OPTIMISTIC UPDATE: Đẩy ghế vào Store quản lý đơn hàng NGAY LẬP TỨC để UI phản hồi ngay (0 độ trễ)
       bookingStore.toggleSeat(seatObj);
 
       // Nếu là ghế đầu tiên khởi tạo bộ đếm 10 phút
@@ -216,13 +200,14 @@ const handleSeatMapClick = async (seat) => {
         bookingStore.setHoldExpiry(10);
         startTimer();
       }
-    } else {
-      // Gọi API hủy giữ ghế khi bấm lại ghế đang chọn
-      await api.post("/seat-holds/release", {
+
+      // Gọi API giữ ghế tạm thời ở background
+      await api.post("/seat-holds", {
         showtime_id: bookingStore.selectedShowtime.id,
         seat_id: seat.id,
       });
-
+    } else {
+      // OPTIMISTIC UPDATE: Bỏ chọn ghế ngay lập tức trên UI
       bookingStore.toggleSeat(seatObj);
 
       // Nếu hủy toàn bộ mảng ghế đang chọn -> Ngắt bộ đếm
@@ -230,8 +215,21 @@ const handleSeatMapClick = async (seat) => {
         bookingStore.holdExpiresAt = null;
         stopTimer();
       }
+
+      // Gọi API hủy giữ ghế ở background
+      await api.post("/seat-holds/release", {
+        showtime_id: bookingStore.selectedShowtime.id,
+        seat_id: seat.id,
+      });
     }
   } catch (error) {
+    // ROLBACK OPTIMISTIC UPDATE: Khôi phục lại trạng thái ban đầu do gọi API thất bại
+    bookingStore.toggleSeat(seatObj);
+    if (bookingStore.selectedSeats.length === 0) {
+      bookingStore.holdExpiresAt = null;
+      stopTimer();
+    }
+
     const errorMsg = error.response?.data?.message || "Có lỗi xảy ra khi xử lý chọn ghế!";
     alert(errorMsg);
     // Tải lại sơ đồ ghế để cập nhật trạng thái mới nhất từ server
