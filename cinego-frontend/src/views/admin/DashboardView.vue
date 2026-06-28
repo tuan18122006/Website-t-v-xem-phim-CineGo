@@ -536,6 +536,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 30px;
+  min-width: 0;
 }
 
 .content-header {

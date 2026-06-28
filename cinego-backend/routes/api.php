@@ -64,6 +64,7 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     // Route của suất chiếu
     Route::get('/showtimes', [ShowtimeController::class, 'index']);
     Route::post('/showtimes', [ShowtimeController::class, 'store']);
+    Route::put('/showtimes/{id}', [ShowtimeController::class, 'update']);
     Route::delete('/showtimes/{id}', [ShowtimeController::class, 'destroy']);
 
     // Route của rooms

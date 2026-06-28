@@ -6,7 +6,6 @@
         <h4>MUA VÉ XEM PHIM</h4>
         <ul>
           <li><router-link to="/mua-ve">Lịch chiếu phim</router-link></li>
-          <li><router-link to="/mua-ve">Rạp chiếu phim</router-link></li>
           <li><a href="#">Phim chiếu rạp</a></li>
           <li><a href="#">Review phim</a></li>
           <li><a href="#">Top phim</a></li>
