@@ -6,7 +6,8 @@
         <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Phòng Chiếu Mới</button>
       </div>
 
-      <table class="movies-table">
+      <div class="table-responsive-wrapper">
+        <table class="movies-table">
         <thead>
           <tr>
             <th>ID</th>
@@ -23,12 +24,15 @@
             <td>{{ room.total_seats }}</td>
             <td><span class="status-pill-cine active">Đang hoạt động</span></td>
             <td>
-              <button @click="goToEdit(room.id)" class="btn-action edit">✏️ Chỉnh sửa sơ đồ ghế</button>
-              <button @click="deleteRoom(room.id)" class="btn-action delete">🗑️ Xóa</button>
+              <div class="action-buttons-group">
+                <button @click="goToEdit(room.id)" class="btn-action edit">✏️ Chỉnh sửa sơ đồ ghế</button>
+                <button @click="deleteRoom(room.id)" class="btn-action delete">🗑️ Xóa</button>
+              </div>
             </td>
           </tr>
         </tbody>
-      </table>
+        </table>
+      </div>
     </div>
 
     <div v-if="isCreateModalOpen" class="modal-overlay-cine">
@@ -41,15 +45,18 @@
           <div class="form-group-cine">
             <label>Tên Rạp</label>
             <input v-model="newRoomName" placeholder="Ví dụ: Rạp 01" class="input-cine" />
+            <span v-if="errors.newRoomName" class="error-msg">{{ errors.newRoomName[0] }}</span>
           </div>
           <div class="grid-inputs">
             <div class="form-group-cine">
               <label>Số hàng</label>
               <input v-model="newRows" type="number" class="input-cine" />
+              <span v-if="errors.newRows" class="error-msg">{{ errors.newRows[0] }}</span>
             </div>
             <div class="form-group-cine">
               <label>Số cột</label>
               <input v-model="newCols" type="number" class="input-cine" />
+              <span v-if="errors.newCols" class="error-msg">{{ errors.newCols[0] }}</span>
             </div>
           </div>
         </div>
@@ -83,8 +90,32 @@ const fetchRooms = async () => {
   } catch (e) { console.error(e); }
 };
 
+const errors = ref({});
+
+const validateForm = () => {
+  errors.value = {};
+  let isValid = true;
+
+  if (!newRoomName.value || newRoomName.value.trim() === '') {
+    errors.value.newRoomName = ['Vui lòng nhập tên rạp.'];
+    isValid = false;
+  }
+
+  if (!newRows.value || newRows.value <= 0) {
+    errors.value.newRows = ['Số hàng phải lớn hơn 0.'];
+    isValid = false;
+  }
+
+  if (!newCols.value || newCols.value <= 0) {
+    errors.value.newCols = ['Số cột phải lớn hơn 0.'];
+    isValid = false;
+  }
+
+  return isValid;
+};
+
 const saveRoom = async () => {
-  if (!newRoomName.value) return toast("Vui lòng nhập tên rạp!", "warning");
+  if (!validateForm()) return;
   try {
     await api.post('admin/rooms', {
       name: newRoomName.value,
@@ -100,13 +131,14 @@ const saveRoom = async () => {
 const deleteRoom = async (id) => {
   if (!(await confirmDialog("Bạn có chắc chắn muốn xóa rạp này không?", "Hành động này không thể hoàn tác!"))) return;
 
+  const originalRooms = [...rooms.value];
+  rooms.value = rooms.value.filter(r => r.id !== id);
+
   try {
-
     await api.delete(`/admin/rooms/${id}`);
-
     toast("Đã xóa rạp thành công!");
-    fetchRooms();
   } catch (e) {
+    rooms.value = originalRooms;
     console.error("Lỗi chi tiết:", e.response ? e.response.data : e);
     toast("Lỗi khi xóa: " + (e.response?.data?.message || "Vui lòng kiểm tra console"), "error");
   }
@@ -153,6 +185,12 @@ onMounted(fetchRooms);
   margin-bottom: 20px;
 }
 
+.table-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .movies-table {
   width: 100%;
   border-collapse: collapse;
@@ -166,13 +204,33 @@ onMounted(fetchRooms);
   border-bottom: 1px solid #eee;
 }
 
+.cell-title {
+  max-width: 180px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+.cell-title::-webkit-scrollbar {
+  height: 3px;
+}
+.cell-title::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.action-buttons-group {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
 .btn-action {
   padding: 8px 12px;
   border-radius: 6px;
   border: none;
   cursor: pointer;
-  margin-right: 5px;
   font-size: 0.9em;
+  white-space: nowrap;
 }
 
 .edit {
@@ -245,5 +303,36 @@ onMounted(fetchRooms);
   width: 450px;
   visibility: visible !important;
   opacity: 1 !important;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  color: #9ca3af;
+  transition: color 0.3s;
+  padding: 0;
+  margin-top: -5px;
+}
+
+.close-btn:hover {
+  color: #ef4444;
+}
+
+.error-msg {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin-top: 5px;
+  display: block;
+  font-weight: 600;
 }
 </style>

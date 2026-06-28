@@ -1,57 +1,27 @@
 <template>
   <div class="um-container">
-    <!-- CỘT TRÁI: SIDEBAR ĐIỀU HƯỚNG VẬN HÀNH (ĐÃ KHÔI PHỤC THEO YÊU CẦU) -->
-    <div class="um-sidebar">
-      <div class="sidebar-header">
-        <IconShield class="header-logo" />
-        <div>
-          <h3>CineGo Hub</h3>
-          <small>Hệ thống vận hành rạp</small>
-        </div>
-      </div>
-
-      <div class="sidebar-divider"></div>
-
-      <div class="menu-group">
-        <span class="group-title">Quản lý Tài khoản</span>
-        <button
-          v-for="s in sections.slice(0, 3)"
-          :key="s.key"
-          class="menu-item"
-          :class="{ active: activeSection === s.key }"
-          @click="switchSection(s.key)"
-        >
-          <component :is="s.icon" class="menu-icon" />
-          <span>{{ s.label }}</span>
-          <span class="menu-badge">{{ roleCount(s.role) }}</span>
-        </button>
-      </div>
-
-      <div class="menu-group">
-        <span class="group-title">Đối soát & Phê duyệt</span>
-        <button
-          v-for="s in sections.slice(3)"
-          :key="s.key"
-          class="menu-item"
-          :class="{ active: activeSection === s.key }"
-          @click="switchSection(s.key)"
-        >
-          <component :is="s.icon" class="menu-icon" />
-          <span>{{ s.label }}</span>
-          <span class="menu-badge warning-badge" v-if="s.key === 'shift' && shiftAudits.length > 0">
-            {{ shiftAudits.length }}
-          </span>
-          <span class="menu-badge alert-badge" v-if="s.key === 'refund' && pendingRefunds.length > 0">
-            {{ pendingRefunds.length }}
-          </span>
-          <span class="menu-badge empty-badge" v-else-if="s.key === 'shift'">0</span>
-          <span class="menu-badge empty-badge" v-else-if="s.key === 'refund'">0</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- CỘT PHẢI: KHÔNG GIAN LÀM VIỆC CHÍNH -->
+    <!-- KHÔNG GIAN LÀM VIỆC CHÍNH (Đã bỏ sidebar trái) -->
     <div class="um-main">
+      <!-- TOP NAVIGATION TABS -->
+      <div class="top-nav-tabs">
+        <button
+          v-for="s in sections"
+          :key="s.key"
+          class="nav-tab-btn"
+          :class="{ 'nav-tab-active': activeSection === s.key }"
+          @click="switchSection(s.key)"
+        >
+          <component :is="s.icon" class="nav-tab-icon" />
+          <span>{{ s.label }}</span>
+          
+          <!-- Badges -->
+          <span v-if="s.key === 'shift' && shiftAudits.length > 0" class="tab-badge warning-badge">{{ shiftAudits.length }}</span>
+          <span v-else-if="s.key === 'refund' && pendingRefunds.length > 0" class="tab-badge alert-badge">{{ pendingRefunds.length }}</span>
+          <span v-else-if="['customer', 'staff', 'admin'].includes(s.key)" class="tab-badge info-badge">{{ roleCount(s.role) }}</span>
+          <span v-else class="tab-badge empty-badge">0</span>
+        </button>
+      </div>
+
       <!-- HEADER TIÊU ĐỀ PHÂN KHU -->
       <div class="main-header">
         <div class="header-titles">
@@ -115,7 +85,8 @@
       <!-- BẢNG DỮ LIỆU: KHÁCH HÀNG & NHÂN VIÊN -->
       <template v-if="['customer', 'staff'].includes(activeSection)">
         <div class="panel-premium">
-          <table class="data-table-premium">
+          <div class="table-responsive-wrapper">
+            <table class="data-table-premium">
             <thead>
               <tr>
                 <th>{{ activeSection === 'staff' ? 'Nhân viên' : 'Khách hàng' }}</th>
@@ -127,7 +98,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="u in filteredUsers" :key="u.id">
+              <tr v-for="u in paginatedUsers" :key="u.id">
                 <td>
                   <div class="user-identity-cell">
                     <span
@@ -181,7 +152,7 @@
                   </button>
                 </td>
               </tr>
-              <tr v-if="filteredUsers.length === 0">
+              <tr v-if="paginatedUsers.length === 0">
                 <td colspan="6">
                   <div class="empty-state-card">
                     <IconUsers class="empty-icon" />
@@ -190,8 +161,17 @@
                 </td>
               </tr>
             </tbody>
-          </table>
-          <div class="panel-footer">Đang hiển thị {{ filteredUsers.length }} / {{ roleCount(currentSection.role) }} tài khoản</div>
+            </table>
+          </div>
+          <div class="panel-footer" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>Đang hiển thị {{ paginatedUsers.length }} / {{ filteredUsers.length }} tài khoản (Tổng: {{ roleCount(currentSection.role) }})</span>
+            <!-- Phân trang -->
+            <div v-if="totalPages > 1" class="pagination-cine">
+              <button @click="currentPage--" :disabled="currentPage === 1" class="btn-page">Trước</button>
+              <span class="page-info">Trang {{ currentPage }} / {{ totalPages }}</span>
+              <button @click="currentPage++" :disabled="currentPage === totalPages" class="btn-page">Sau</button>
+            </div>
+          </div>
         </div>
       </template>
 
@@ -378,37 +358,41 @@
           <h3>{{ isEdit ? 'Cập nhật thông tin' : 'Tạo mới ' + currentSection.addLabel }}</h3>
           <button class="btn-close-modal" @click="closeModal">✕</button>
         </div>
-        <form @submit.prevent="submitForm" class="form-premium">
+        <form @submit.prevent="submitForm" class="form-premium" novalidate>
           <div class="form-group-premium">
             <label>Họ và tên</label>
-            <input v-model="form.name" type="text" required placeholder="Nguyễn Văn A" class="input-form-premium" />
+            <input v-model="form.name" type="text" placeholder="Nguyễn Văn A" class="input-form-premium" />
+            <span v-if="errors.name" class="error-msg">{{ errors.name[0] }}</span>
           </div>
 
           <div class="form-group-premium">
             <label>Địa chỉ Email</label>
-            <input v-model="form.email" type="email" required placeholder="email@example.com" class="input-form-premium" />
+            <input v-model="form.email" type="email" placeholder="email@example.com" class="input-form-premium" />
+            <span v-if="errors.email" class="error-msg">{{ errors.email[0] }}</span>
           </div>
 
           <div class="form-group-premium">
             <label>Mật khẩu đăng nhập {{ isEdit ? '(để trống nếu không thay đổi)' : '' }}</label>
-            <input v-model="form.password" type="password" :required="!isEdit" placeholder="••••••••" class="input-form-premium" />
+            <input v-model="form.password" type="password" placeholder="••••••••" class="input-form-premium" />
+            <span v-if="errors.password" class="error-msg">{{ errors.password[0] }}</span>
           </div>
 
           <div class="form-row-premium">
             <div class="form-group-premium">
               <label>Số điện thoại liên hệ</label>
               <input v-model="form.phone" type="text" placeholder="0987xxxxxx" class="input-form-premium" />
+              <span v-if="errors.phone" class="error-msg">{{ errors.phone[0] }}</span>
             </div>
             <div class="form-group-premium">
               <label>Tuổi</label>
-              <input v-model="form.age" type="number" min="0" max="120" placeholder="Nhập số tuổi" class="input-form-premium" />
+              <input v-model="form.age" type="number" placeholder="Nhập số tuổi" class="input-form-premium" />
             </div>
           </div>
 
           <div class="form-row-premium">
             <div class="form-group-premium">
               <label>Vai trò truy cập</label>
-              <select v-model="form.role" required class="select-form-premium">
+              <select v-model="form.role" class="select-form-premium">
                 <option value="admin">Quản trị viên (Admin)</option>
                 <option value="staff">Nhân viên rạp (Staff)</option>
                 <option value="customer">Khách hàng rạp (User)</option>
@@ -416,7 +400,7 @@
             </div>
             <div class="form-group-premium">
               <label>Trạng thái kích hoạt</label>
-              <select v-model="form.status" required class="select-form-premium">
+              <select v-model="form.status" class="select-form-premium">
                 <option value="active">Hoạt động bình thường</option>
                 <option value="locked">Khóa tài khoản</option>
               </select>
@@ -678,6 +662,7 @@ const isEdit = ref(false);
 const editingId = ref(null);
 const loading = ref(false);
 const error = ref(null);
+const errors = ref({});
 
 const search = ref('');
 const statusFilter = ref('');
@@ -882,6 +867,21 @@ const filteredUsers = computed(() => {
   });
 });
 
+// Pagination
+const currentPage = ref(1);
+const itemsPerPage = 10;
+
+const totalPages = computed(() => Math.ceil(filteredUsers.value.length / itemsPerPage));
+const paginatedUsers = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return filteredUsers.value.slice(start, end);
+});
+
+watch([search, statusFilter, tierFilter, activeSection], () => {
+  currentPage.value = 1;
+});
+
 const isSelf = (u) => authStore.user?.id === u.id;
 
 const resetForm = () => {
@@ -926,13 +926,58 @@ const openEdit = (u) => {
 
 const closeModal = () => { showModal.value = false; error.value = null; };
 
+const validateForm = () => {
+  errors.value = {};
+  let isValid = true;
+
+  if (!form.value.name || form.value.name.trim() === '') {
+    errors.value.name = ['Vui lòng nhập họ và tên.'];
+    isValid = false;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!form.value.email || !emailRegex.test(form.value.email)) {
+    errors.value.email = ['Email không hợp lệ.'];
+    isValid = false;
+  }
+
+  if (!isEdit.value && (!form.value.password || form.value.password.length < 6)) {
+    errors.value.password = ['Mật khẩu phải có ít nhất 6 ký tự.'];
+    isValid = false;
+  }
+  
+  if (isEdit.value && form.value.password && form.value.password.length < 6) {
+    errors.value.password = ['Mật khẩu phải có ít nhất 6 ký tự.'];
+    isValid = false;
+  }
+
+  if (form.value.phone && !/^[0-9]{10,11}$/.test(form.value.phone)) {
+    errors.value.phone = ['Số điện thoại không hợp lệ (10-11 số).'];
+    isValid = false;
+  }
+
+  return isValid;
+};
+
 const submitForm = async () => {
+  if (!validateForm()) return;
+
   loading.value = true; error.value = null;
   try {
-    if (isEdit.value) await api.put(`/admin/users/${editingId.value}`, form.value);
+    if (isEdit.value) {
+      // Cập nhật lướt qua (Optimistic cho Edit)
+      const u = allUsers.value.find(user => user.id === editingId.value);
+      if (u) {
+        u.name = form.value.name;
+        u.phone = form.value.phone;
+      }
+      await api.put(`/admin/users/${editingId.value}`, form.value);
+    }
     else await api.post('/admin/users', form.value);
+    
     closeModal();
-    await fetchUsers();
+    fetchUsers(); // Sync ngầm
+
   } catch (err) {
     error.value = err.response?.data?.message
       || Object.values(err.response?.data?.errors || {})[0]?.[0]
@@ -960,11 +1005,24 @@ const toggleStatus = async (u) => {
     );
     if (!confirmed) return;
   }
+  const originalStatus = u.status;
+  const originalReason = u.lock_reason;
+  
+  // OPTIMISTIC UPDATE: Đổi trạng thái ngay trên UI
+  u.status = u.status === 'locked' ? 'active' : 'locked';
+  if (u.status === 'locked') u.lock_reason = lockReason;
+  else u.lock_reason = null;
+
   try { 
     await api.patch(`/admin/users/${u.id}/status`, { lock_reason: lockReason }); 
-    await fetchUsers(); 
+    fetchUsers(); // Background sync
   }
-  catch (err) { error.value = 'Không đổi được trạng thái.'; }
+  catch (err) { 
+    // ROLLBACK
+    u.status = originalStatus;
+    u.lock_reason = originalReason;
+    error.value = 'Không đổi được trạng thái.'; 
+  }
 };
 
 const promoteToStaff = async (u) => {
@@ -977,9 +1035,18 @@ const changeRole = async (u, role) => {
   if (isSelf(u)) { error.value = 'Không thể tự đổi vai trò của chính bạn.'; return; }
   if (u.role === role) return;
   const confirmed = await showCustomConfirm('Thay đổi quyền truy cập', `Đổi vai trò "${u.name}" thành ${roleLabel(role)}?`);
-  if (!confirmed) return;
-  try { await api.patch(`/admin/users/${u.id}/role`, { role }); await fetchUsers(); }
-  catch (err) { error.value = 'Không đổi được vai trò.'; }
+  const originalRole = u.role;
+  // OPTIMISTIC UPDATE
+  u.role = role;
+
+  try { 
+    await api.patch(`/admin/users/${u.id}/role`, { role }); 
+    fetchUsers(); 
+  }
+  catch (err) { 
+    u.role = originalRole;
+    error.value = 'Không đổi được vai trò.'; 
+  }
 };
 
 const openDetail = async (u) => {
@@ -1118,9 +1185,10 @@ onMounted(fetchUsers);
 </script>
 
 <style scoped>
-/* BỐ CỤC HAI CỘT HIỆN ĐẠI (SPLIT DASHBOARD PANELS) */
+/* BỐ CỤC CHÍNH (KHÔNG CÒN SIDEBAR TRÁI) */
 .um-container {
   display: flex;
+  flex-direction: column;
   min-height: calc(100vh - 64px);
   background: #fdfdfd;
   font-family: 'Inter', sans-serif;
@@ -1135,140 +1203,105 @@ onMounted(fetchUsers);
   display: inline-block;
 }
 
-/* 1. SIDEBAR TRÁI */
-.um-sidebar {
-  width: 260px;
-  background: #111111;
-  color: #ffffff;
-  padding: 24px 16px;
+/* TOP NAV TABS (MỚI) */
+.top-nav-tabs {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
-  flex-shrink: 0;
-}
-
-.sidebar-header {
-  display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
-  padding: 8px;
+  margin-bottom: 28px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.header-logo {
-  width: 32px;
-  height: 32px;
-  color: #e50914;
-}
-
-.sidebar-header h3 {
-  font-size: 16px;
-  font-weight: 800;
-  margin: 0;
-  letter-spacing: 0.5px;
-}
-
-.sidebar-header small {
-  color: #94a3b8;
-  font-size: 11px;
-}
-
-.sidebar-divider {
-  height: 1px;
-  background: rgba(255,255,255,0.08);
-  margin: 8px 0;
-}
-
-.menu-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.group-title {
-  font-size: 11px;
-  font-weight: 800;
-  color: #64748b;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  padding-left: 12px;
-  margin-bottom: 4px;
-}
-
-.menu-item {
+.nav-tab-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: transparent;
-  border: none;
-  color: #cbd5e1;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 30px;
+  color: #475569;
+  font-size: 14px;
   font-weight: 600;
-  font-size: 13px;
-  padding: 12px 14px;
-  border-radius: 10px;
   cursor: pointer;
-  text-align: left;
   transition: all 0.25s ease;
-  width: 100%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
-.menu-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #ffffff;
+.nav-tab-btn:hover {
+  background: #f8fafc;
+  color: #1e293b;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
 }
 
-.menu-item.active {
-  background: #e50914;
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(229, 9, 20, 0.35);
+.nav-tab-active {
+  background: #e50914 !important;
+  color: #ffffff !important;
+  border-color: #e50914 !important;
+  box-shadow: 0 4px 12px rgba(229, 9, 20, 0.25) !important;
 }
 
-.menu-icon {
-  width: 18px;
-  height: 18px;
-  opacity: 0.8;
+.nav-tab-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.85;
 }
 
-.menu-item.active .menu-icon {
+.nav-tab-active .nav-tab-icon {
   opacity: 1;
 }
 
-.menu-badge {
-  margin-left: auto;
-  font-size: 10px;
-  font-weight: 800;
-  background: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-  padding: 2px 7px;
+.tab-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
   border-radius: 20px;
-  min-width: 22px;
-  text-align: center;
+  margin-left: 4px;
 }
 
-.menu-item.active .menu-badge {
-  background: rgba(255, 255, 255, 0.25);
+.info-badge {
+  background: #f1f5f9;
+  color: #475569;
+}
+.nav-tab-active .info-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
 }
 
 .warning-badge {
-  background: rgba(245, 158, 11, 0.2) !important;
-  color: #f59e0b !important;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+.nav-tab-active .warning-badge {
+  background: #ffffff;
+  color: #d97706;
 }
 
 .alert-badge {
-  background: rgba(229, 9, 20, 0.2) !important;
-  color: #ff3344 !important;
-  border: 1px solid rgba(229, 9, 20, 0.3);
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+.nav-tab-active .alert-badge {
+  background: #ffffff;
+  color: #dc2626;
 }
 
 .empty-badge {
-  opacity: 0.4;
+  opacity: 0;
+  width: 0;
+  padding: 0;
+  margin: 0;
 }
 
 /* 2. KHÔNG GIAN MAIN PHẢI */
 .um-main {
   flex: 1;
   padding: 32px;
-  background: #f8fafc;
+  background: transparent;
   overflow-y: auto;
 }
 
@@ -1493,6 +1526,12 @@ onMounted(fetchUsers);
   overflow: hidden;
 }
 
+.table-responsive-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .data-table-premium {
   width: 100%;
   border-collapse: collapse;
@@ -1565,6 +1604,21 @@ onMounted(fetchUsers);
 .identity-meta small {
   color: #64748b;
   font-size: 11.5px;
+  white-space: nowrap;
+  overflow-x: auto;
+  max-width: 140px;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+/* Tùy chỉnh thanh cuộn mini */
+.identity-meta small::-webkit-scrollbar,
+.lock-reason-banner::-webkit-scrollbar {
+  height: 3px;
+}
+.identity-meta small::-webkit-scrollbar-thumb,
+.lock-reason-banner::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 
 .avatar-premium {
@@ -1647,13 +1701,23 @@ onMounted(fetchUsers);
   border-radius: 4px;
   max-width: 150px;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-x: auto;
   border: 1px dashed rgba(239, 68, 68, 0.15);
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 3px;
 }
 
 .action-buttons-cell > * {
   margin-left: 6px;
+}
+
+.action-buttons-cell {
+  white-space: nowrap;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: nowrap; /* Cấm rớt dòng */
 }
 
 .btn-action-icon {
@@ -1706,12 +1770,42 @@ onMounted(fetchUsers);
 .btn-action-text.red { color: #e50914; }
 
 .panel-footer {
-  padding: 16px 24px;
+  padding: 16px 20px;
   background: #f8fafc;
-  border-top: 1px solid #f1f5f9;
-  font-size: 12px;
+  font-size: 13px;
   color: #64748b;
   font-weight: 600;
+  border-top: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+/* Phân trang */
+.pagination-cine {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.btn-page {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-page:not(:disabled):hover {
+  border-color: #e50914;
+  color: #e50914;
+}
+.btn-page:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.page-info {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
 }
 
 .security-info-banner {
@@ -2600,6 +2694,13 @@ onMounted(fetchUsers);
   padding: 12px 16px;
   margin-bottom: 16px;
   font-size: 13px;
+  font-weight: 600;
+}
+.error-msg {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin-top: 5px;
+  display: block;
   font-weight: 600;
 }
 </style>

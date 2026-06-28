@@ -128,6 +128,79 @@ class ShowtimeController extends Controller
         ], 201);
     }
 
+    public function update(Request $request, $id)
+    {
+        $showtime = Showtime::find($id);
+        if (!$showtime) {
+            return response()->json(['message' => 'Không tìm thấy suất chiếu'], 404);
+        }
+
+        $request->validate([
+            'movie_id' => 'required|exists:movies,id',
+            'room_id' => 'required|exists:rooms,id',
+            'start_time' => 'required|date',
+            'end_time' => 'required|date|after:start_time',
+            'format' => 'required|string',
+            'translation' => 'required|string',
+            'standard_price' => 'required|numeric|min:0',
+            'vip_price' => 'required|numeric|min:0',
+            'couple_price' => 'required|numeric|min:0',
+        ]);
+
+        $start = Carbon::parse($request->start_time);
+        $end   = Carbon::parse($request->end_time);
+
+        // Kiểm tra trùng lịch bỏ qua suất chiếu hiện tại
+        $conflict = Showtime::where('room_id', $request->room_id)
+            ->where('status', 'active')
+            ->where('id', '!=', $id)
+            ->where('start_time', '<', $end)
+            ->where('end_time', '>', $start)
+            ->with('movie:id,title')
+            ->first();
+
+        if ($conflict) {
+            $clashName = $conflict->movie ? $conflict->movie->title : 'một suất chiếu khác';
+
+            return response()->json([
+                'success' => false,
+                'message' => "Phòng đang chiếu \"{$clashName}\" từ "
+                    . $conflict->start_time->format('H:i d/m/Y') . ' đến '
+                    . $conflict->end_time->format('H:i d/m/Y')
+                    . '. Vui lòng chọn khung giờ khác!',
+            ], 422);
+        }
+
+        $showtime->update([
+            'movie_id' => $request->movie_id,
+            'room_id' => $request->room_id,
+            'start_time' => $start,
+            'end_time' => $end,
+            'format' => $request->format,
+            'translation' => $request->translation,
+        ]);
+
+        // Cập nhật giá vé
+        $prices = [
+            'standard' => $request->standard_price,
+            'vip' => $request->vip_price,
+            'couple' => $request->couple_price,
+        ];
+
+        foreach ($prices as $type => $price) {
+            \Illuminate\Support\Facades\DB::table('price_configs')->updateOrInsert(
+                ['showtime_id' => $showtime->id, 'seat_type' => $type],
+                ['price' => $price, 'updated_at' => now()]
+            );
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cập nhật suất chiếu thành công',
+            'data' => $showtime
+        ], 200);
+    }
+
     public function destroy($id)
     {
         $showtime = Showtime::find($id);
@@ -198,7 +271,7 @@ class ShowtimeController extends Controller
                 'row_name' => $seat->row,
                 'seat_number' => $seat->number,
                 'status' => $status,
-                'is_aisle' => ($seat->number === 3 || $seat->number === 10), // Cột 3 và 10 là lối đi
+                'type' => $seat->type, // Lấy đúng type từ Admin Map thay vì hardcode
             ];
         });
 

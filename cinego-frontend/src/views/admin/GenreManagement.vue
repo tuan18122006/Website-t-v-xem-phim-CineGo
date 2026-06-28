@@ -13,7 +13,7 @@
           <div class="input-group">
             <label class="form-label">Tên thể loại *</label>
             <input v-model="form.name" type="text" class="form-input-large" placeholder="Nhập tên thể loại phim..." />
-            <span v-if="errors?.name" class="error-msg" style="color: red; font-size: 0.8rem;">
+            <span v-if="errors?.name" class="error-msg">
               {{ errors.name[0] }}
             </span>
           </div>
@@ -134,22 +134,34 @@ const formatDate = (dateString) => {
   });
 };
 
-const fetchGenres = async () => {
-  loading.value = true;
+const fetchGenres = async (showLoading = true) => {
+  if (showLoading) loading.value = true;
   try {
     const response = await api.get('/admin/genres');
     genres.value = response.data.data || response.data;
   } catch (error) {
     console.error('Lỗi tải danh sách thể loại:', error);
   } finally {
-    loading.value = false;
+    if (showLoading) loading.value = false;
   }
 };
 
 const errors = ref({});
 
-const saveGenre = async () => {
+const validateForm = () => {
   errors.value = {};
+  let isValid = true;
+
+  if (!form.value.name || form.value.name.trim() === '') {
+    errors.value.name = ['Vui lòng nhập tên thể loại.'];
+    isValid = false;
+  }
+
+  return isValid;
+};
+
+const saveGenre = async () => {
+  if (!validateForm()) return;
 
   try {
     const payload = {
@@ -164,7 +176,7 @@ const saveGenre = async () => {
       toast('Thêm thành công!');
     }
     resetForm();
-    await fetchGenres();
+    await fetchGenres(false);
   } catch (error) {
     if (error.response?.status === 422) {
       errors.value = error.response.data.errors;
@@ -184,11 +196,15 @@ const editGenre = (genre) => {
 
 const deleteGenre = async (id) => {
   if (await confirmDialog('Bạn có chắc chắn muốn xóa thể loại này không?', 'Tất cả các liên kết phim liên quan sẽ bị ảnh hưởng.')) {
+    
+    const originalGenres = [...genres.value];
+    genres.value = genres.value.filter(g => g.id !== id);
+
     try {
       await api.delete(`/admin/genres/${id}`);
       toast('Đã xóa thể loại thành công!');
-      await fetchGenres();
     } catch (error) {
+      genres.value = originalGenres;
       console.error('Lỗi xóa thể loại:', error);
       toast(error.response?.data?.message || 'Không thể xóa thể loại này!', 'error');
     }
@@ -423,6 +439,7 @@ onMounted(fetchGenres);
 .table-responsive {
   width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .genre-table {
@@ -492,6 +509,19 @@ onMounted(fetchGenres);
   padding: 6px 12px;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
+  display: block;
+  max-width: 150px;
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+.slug-tag::-webkit-scrollbar {
+  height: 3px;
+}
+.slug-tag::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 
 .cell-date {
@@ -502,6 +532,7 @@ onMounted(fetchGenres);
 .action-buttons-group {
   display: flex;
   justify-content: center;
+  flex-wrap: nowrap; /* Cấm rớt dòng */
   gap: 10px;
 }
 
@@ -514,6 +545,7 @@ onMounted(fetchGenres);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .btn-action.edit {
@@ -541,5 +573,12 @@ onMounted(fetchGenres);
   padding: 40px;
   color: #94a3b8;
   font-size: 15px;
+}
+.error-msg {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin-top: 5px;
+  display: block;
+  font-weight: 600;
 }
 </style>

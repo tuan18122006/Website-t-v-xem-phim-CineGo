@@ -1,16 +1,6 @@
 <template>
-  <div 
-    class="seat-map-container" 
-    :class="{ 'disable-scroll': isSelectionLocked }"
-  >
-    <!-- Nút Bật/Tắt khóa màn hình dành cho Mobile -->
-    <div v-if="mode === 'admin'" class="mobile-lock-toggle">
-      <label class="switch">
-        <input type="checkbox" v-model="isSelectionLocked" />
-        <span class="slider round"></span>
-      </label>
-      <span class="lock-label">Khóa Cuộn (Quét ghế Mobile)</span>
-    </div>
+    <div class="seat-map-container">
+    <!-- Đã bỏ công tắc khóa cuộn theo yêu cầu -->
 
     <div class="screen-indicator">MÀN HÌNH CHÍNH</div>
     
@@ -18,8 +8,8 @@
     <div 
       class="cinema-floor" 
       ref="floorRef"
-      @mousedown="handleMouseDown"
-      @touchstart="handleTouchStart"
+      @pointerdown="handlePointerDown"
+      :style="mode === 'admin' ? 'touch-action: none;' : ''"
     >
       <!-- Vùng Chọn (Selection Box) màu xanh -->
       <div 
@@ -83,7 +73,6 @@ const props = defineProps({
 const emit = defineEmits(['seat-clicked', 'selection-changed']);
 
 const floorRef = ref(null);
-const isSelectionLocked = ref(false);
 
 const sortedSeats = computed(() => {
   return [...props.seats].sort((a, b) => {
@@ -110,6 +99,7 @@ const box = reactive({
 let seatDOMElements = [];
 let isDragging = false;
 let startSelectionIds = new Set();
+let localAdminSelectedIds = new Set(); // Set cục bộ không kích hoạt Reactivity của Vue
 
 // --- LOGIC VẼ KHUNG CHỌN ---
 
@@ -127,15 +117,20 @@ const initDrag = (clientX, clientY) => {
   box.width = 0;
   box.height = 0;
 
-  // Sao chép lại mảng ghế đang chọn ban đầu
   startSelectionIds = new Set(adminSelectedIds.value);
+  localAdminSelectedIds = new Set(adminSelectedIds.value); // Copy state hiện tại
 
-  // Cache lại toàn bộ vị trí của các ghế trên màn hình để tính toán va chạm siêu nhanh
+  // Cache lại toàn bộ vị trí của các ghế theo offset tương đối (Rất nhanh, không dính lỗi Scroll)
   seatDOMElements = Array.from(floorRef.value.querySelectorAll('.seat-item')).map(el => {
     return {
       el: el,
       id: parseInt(el.getAttribute('data-seat-id')),
-      rect: el.getBoundingClientRect()
+      rect: {
+        left: el.offsetLeft,
+        top: el.offsetTop,
+        right: el.offsetLeft + el.offsetWidth,
+        bottom: el.offsetTop + el.offsetHeight
+      }
     };
   });
 };
@@ -152,34 +147,39 @@ const updateDrag = (clientX, clientY) => {
   box.width = Math.abs(currentX - box.startX);
   box.height = Math.abs(currentY - box.startY);
 
-  // Tọa độ tuyệt đối của hộp chọn trên màn hình
+  // Chỉ bắt đầu tính va chạm (quét) nếu người dùng kéo một khoảng > 5px (Tránh nhầm với Click đơn lẻ)
+  if (box.width < 5 && box.height < 5) return;
+
+  // Tọa độ tương đối của hộp chọn so với sàn
   const boxRect = {
-    left: floorRect.left + box.left,
-    right: floorRect.left + box.left + box.width,
-    top: floorRect.top + box.top,
-    bottom: floorRect.top + box.top + box.height
+    left: box.left,
+    right: box.left + box.width,
+    top: box.top,
+    bottom: box.top + box.height
   };
+
+  const BUFFER = 5; // Giảm tầm quét để không bị dính sang ghế bên cạnh khi quét hẹp
 
   // NATIVE DOM MANIPULATION: 
   // Bypass Vue Reactivity để đổi màu class CSS trực tiếp (Giúp đạt 60FPS không giật lag)
   for (let i = 0; i < seatDOMElements.length; i++) {
     const seat = seatDOMElements[i];
     
-    // Kiểm tra Box Intersection (Thuật toán 2 hình chữ nhật giao nhau)
+    // Kiểm tra Box Intersection với Buffer dãn vùng Hit Area
     const isIntersecting = !(
-      boxRect.right < seat.rect.left || 
-      boxRect.left > seat.rect.right || 
-      boxRect.bottom < seat.rect.top || 
-      boxRect.top > seat.rect.bottom
+      boxRect.right < seat.rect.left - BUFFER || 
+      boxRect.left > seat.rect.right + BUFFER || 
+      boxRect.bottom < seat.rect.top - BUFFER || 
+      boxRect.top > seat.rect.bottom + BUFFER
     );
 
     if (isIntersecting) {
-      adminSelectedIds.value.add(seat.id);
+      localAdminSelectedIds.add(seat.id);
       seat.el.classList.add('seat-admin-selected');
     } else {
       // Nếu lúc đầu chưa được chọn thì bỏ class
       if (!startSelectionIds.has(seat.id)) {
-        adminSelectedIds.value.delete(seat.id);
+        localAdminSelectedIds.delete(seat.id);
         seat.el.classList.remove('seat-admin-selected');
       }
     }
@@ -191,70 +191,52 @@ const endDrag = () => {
   isDragging = false;
   box.show = false;
   
-  // Đồng bộ mảng Selection với Vue
+  // Xong quá trình kéo mới đồng bộ ngược lại vào Vue State (1 lần duy nhất để không gây lag)
+  adminSelectedIds.value = new Set(localAdminSelectedIds);
   emit('selection-changed', Array.from(adminSelectedIds.value));
 };
 
-// --- MOUSE EVENTS ---
-const handleMouseDown = (e) => {
-  if (e.button !== 0) return; // Chỉ chuột trái
-  if (e.target.closest('.seat-item')) return; // Nếu bấm trực tiếp vào ghế thì để click xử lý
+// --- POINTER EVENTS (THAY THẾ CHUỘT & CẢM ỨNG CÙNG LÚC) ---
+const handlePointerDown = (e) => {
+  if (props.mode !== 'admin') return;
+  // Cho phép quét mọi nơi (Bao gồm cả đè lên ghế)
+  
+  // Captures pointer cho phép kéo ra ngoài vùng cinema-floor vẫn bắt được
+  e.target.setPointerCapture(e.pointerId);
+  
   initDrag(e.clientX, e.clientY);
-  window.addEventListener('mousemove', handleMouseMove);
-  window.addEventListener('mouseup', handleMouseUp);
+  e.target.addEventListener('pointermove', handlePointerMove);
+  e.target.addEventListener('pointerup', handlePointerUp);
+  e.target.addEventListener('pointercancel', handlePointerUp);
 };
 
-const handleMouseMove = (e) => {
+const handlePointerMove = (e) => {
   if (!isDragging) return;
-  e.preventDefault(); // Tránh bôi đen text ngoài ý muốn
   updateDrag(e.clientX, e.clientY);
 };
 
-const handleMouseUp = () => {
+const handlePointerUp = (e) => {
   endDrag();
-  window.removeEventListener('mousemove', handleMouseMove);
-  window.removeEventListener('mouseup', handleMouseUp);
-};
-
-// --- TOUCH EVENTS (MOBILE) ---
-const handleTouchStart = (e) => {
-  if (e.target.closest('.seat-item')) return;
-  if (!isSelectionLocked.value) return; // Nếu chưa khóa cuộn thì ko cho quét
-  
-  const touch = e.touches[0];
-  initDrag(touch.clientX, touch.clientY);
-  window.addEventListener('touchmove', handleTouchMove, { passive: false });
-  window.addEventListener('touchend', handleTouchEnd);
-};
-
-const handleTouchMove = (e) => {
-  if (!isDragging) return;
-  e.preventDefault(); // Chặn cuộn trang
-  const touch = e.touches[0];
-  updateDrag(touch.clientX, touch.clientY);
-};
-
-const handleTouchEnd = () => {
-  endDrag();
-  window.removeEventListener('touchmove', handleTouchMove);
-  window.removeEventListener('touchend', handleTouchEnd);
+  e.target.releasePointerCapture(e.pointerId);
+  e.target.removeEventListener('pointermove', handlePointerMove);
+  e.target.removeEventListener('pointerup', handlePointerUp);
+  e.target.removeEventListener('pointercancel', handlePointerUp);
 };
 
 onBeforeUnmount(() => {
-  window.removeEventListener('mousemove', handleMouseMove);
-  window.removeEventListener('mouseup', handleMouseUp);
-  window.removeEventListener('touchmove', handleTouchMove);
-  window.removeEventListener('touchend', handleTouchEnd);
+  // Clearup
 });
 
 
-// --- CLICK TỪNG GHẾ ---
 const handleSeatClick = (seat, event) => {
   if (props.mode === 'client') {
     if (seat.is_booked || seat.type === 'hidden' || seat.type === 'couple_hidden') return;
     emit('seat-clicked', seat);
   } else if (props.mode === 'admin') {
-    // Click đơn lẻ (Có thể giữ CTRL / SHIFT để chọn nhiều)
+    // Tránh việc Click đơn lẻ bị ảnh hưởng nếu người dùng vừa vuốt quét (Dựa vào diện tích hộp)
+    if (box.width > 5 || box.height > 5) return;
+
+    // Click đơn lẻ
     if (adminSelectedIds.value.has(seat.id)) {
       adminSelectedIds.value.delete(seat.id);
     } else {
@@ -320,19 +302,6 @@ const getSeatClass = (seat) => {
 }
 .disable-scroll { touch-action: none; }
 
-.mobile-lock-toggle {
-  display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
-  background: rgba(255, 255, 255, 0.1); padding: 10px 20px;
-  border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);
-}
-.lock-label { color: #fbbf24; font-size: 14px; font-weight: 700; }
-.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #475569; transition: .4s; border-radius: 24px; }
-.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-input:checked + .slider { background-color: #ef4444; }
-input:checked + .slider:before { transform: translateX(20px); }
-
 .screen-indicator {
   width: 80%; max-width: 600px; height: 50px;
   background: linear-gradient(to bottom, #ef4444, #7f1d1d);
@@ -349,15 +318,14 @@ input:checked + .slider:before { transform: translateX(20px); }
   position: relative;
 }
 
-/* HỘP QUÉT CHỌN (BLUE BOX) */
+/* HỘP QUÉT CHỌN (GRAY DASHED BOX) */
 .selection-box {
   position: absolute;
-  background: rgba(59, 130, 246, 0.3); /* Màu xanh dương trong suốt */
-  border: 1px solid #3b82f6;
-  border-radius: 2px;
+  background: rgba(156, 163, 175, 0.15); /* Màu xám trong suốt */
+  border: 2px dashed #9ca3af; /* Viền đứt xám xám */
+  border-radius: 4px;
   pointer-events: none; /* Xuyên thấu sự kiện chuột */
   z-index: 100;
-  backdrop-filter: blur(1px);
 }
 
 .decorative-aisle {

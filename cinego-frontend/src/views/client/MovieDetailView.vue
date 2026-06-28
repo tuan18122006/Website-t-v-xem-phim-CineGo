@@ -9,7 +9,7 @@
       </div>
 
       <div class="info-container">
-        <h1 class="movie-title glow-text-pink">{{ movie.title }}</h1>
+        <h1 class="movie-title">{{ movie.title }}</h1>
 
         <div class="genres-row">
           <span v-for="g in movie.genres" :key="g.id || g" class="detail-genre">

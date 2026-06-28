@@ -72,10 +72,11 @@
     <!-- ===== TICKET GRID ===== -->
     <div v-else class="stv-grid">
       <article
-        v-for="st in filteredShowtimes"
+        v-for="st in paginatedShowtimes"
         :key="st.id"
         class="ticket"
         :class="{ 'ticket--off': st.status !== 'active' }"
+        @click="openDetailModal(st)"
       >
         <!-- Cuống vé: giờ bắt đầu -->
         <div class="ticket__stub">
@@ -115,17 +116,83 @@
             <span class="tg tg--trans">💬 {{ st.translation }}</span>
           </div>
 
-          <!-- Chi tiết Giá vé -->
-          <div class="ticket__prices" v-if="st.prices && Object.keys(st.prices).length">
-            <span class="price-pill" title="Ghế Thường">Thuờng: {{ formatPrice(st.prices.standard) }}</span>
-            <span class="price-pill vip" title="Ghế VIP">VIP: {{ formatPrice(st.prices.vip) }}</span>
-            <span class="price-pill couple" title="Ghế Đôi">Đôi: {{ formatPrice(st.prices.couple) }}</span>
-          </div>
+
         </div>
 
-        <button class="ticket__del" @click="deleteShowtime(st.id)" title="Xóa suất chiếu">🗑️</button>
+        <div class="ticket__actions">
+          <button class="ticket__btn ticket__btn--edit" @click.stop="openEditModal(st)" title="Sửa suất chiếu">✏️</button>
+          <button class="ticket__btn ticket__btn--del" @click.stop="deleteShowtime(st.id)" title="Xóa suất chiếu">🗑️</button>
+        </div>
       </article>
     </div>
+
+    <!-- Phân trang -->
+    <div v-if="totalPages > 1" class="pagination-cine">
+      <button @click="currentPage--" :disabled="currentPage === 1" class="btn-page">Trước</button>
+      <span class="page-info">Trang {{ currentPage }} / {{ totalPages }}</span>
+      <button @click="currentPage++" :disabled="currentPage === totalPages" class="btn-page">Sau</button>
+    </div>
+
+    <!-- ===== MODAL: CHI TIẾT SUẤT CHIẾU ===== -->
+    <transition name="modal-fade">
+      <div v-if="showDetailModal" class="stv-backdrop" @click.self="closeDetailModal">
+        <div class="stv-modal">
+          <div class="stv-modal__marquee">
+            <div class="stv-modal__marquee-dots"></div>
+            <h3>🔍 Chi Tiết Suất Chiếu #{{ selectedDetail?.id }}</h3>
+            <button class="stv-modal__close" @click="closeDetailModal" aria-label="Đóng">✕</button>
+          </div>
+          
+          <div class="stv-form" v-if="selectedDetail">
+            <div class="stv-field">
+              <label>Tên phim</label>
+              <div class="stv-input stv-input--readonly">{{ selectedDetail.movie_title }}</div>
+            </div>
+            <div class="stv-grid2">
+              <div class="stv-field">
+                <label>Phòng chiếu</label>
+                <div class="stv-input stv-input--readonly">{{ selectedDetail.room_name }}</div>
+              </div>
+              <div class="stv-field">
+                <label>Trạng thái</label>
+                <div class="stv-input stv-input--readonly">{{ selectedDetail.status === 'active' ? 'Đang hoạt động' : 'Đã hủy' }}</div>
+              </div>
+            </div>
+            <div class="stv-grid2">
+              <div class="stv-field">
+                <label>Giờ chiếu</label>
+                <div class="stv-input stv-input--readonly">{{ timeOnly(selectedDetail.start_time) }} - {{ dateOnly(selectedDetail.start_time) }}</div>
+              </div>
+              <div class="stv-field">
+                <label>Định dạng</label>
+                <div class="stv-input stv-input--readonly">{{ selectedDetail.format }} • {{ selectedDetail.translation }}</div>
+              </div>
+            </div>
+            <div class="stv-field stv-field--price" v-if="selectedDetail.prices && Object.keys(selectedDetail.prices).length">
+              <label>Giá vé cấu hình</label>
+              <div class="price-inputs">
+                <div class="price-col">
+                  <span>Standard</span>
+                  <div class="stv-input stv-input--readonly">{{ formatPrice(selectedDetail.prices.standard) }}</div>
+                </div>
+                <div class="price-col">
+                  <span>VIP</span>
+                  <div class="stv-input stv-input--readonly">{{ formatPrice(selectedDetail.prices.vip) }}</div>
+                </div>
+                <div class="price-col">
+                  <span>Couple</span>
+                  <div class="stv-input stv-input--readonly">{{ formatPrice(selectedDetail.prices.couple) }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="stv-form__footer">
+              <button type="button" class="stv-btn stv-btn--ghost" @click="closeDetailModal">Đóng</button>
+              <button type="button" class="stv-btn stv-btn--solid" @click="openEditModal(selectedDetail); closeDetailModal()">Sửa Suất Chiếu</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
 
     <!-- ===== MODAL: TẠO SUẤT CHIẾU ===== -->
     <transition name="modal-fade">
@@ -134,7 +201,7 @@
           <!-- Marquee header -->
           <div class="stv-modal__marquee">
             <div class="stv-modal__marquee-dots"></div>
-            <h3>✨ Lên Lịch Suất Chiếu Mới</h3>
+            <h3>{{ editingId ? '✨ Cập Nhật Suất Chiếu' : '✨ Lên Lịch Suất Chiếu Mới' }}</h3>
             <button class="stv-modal__close" @click="closeModal" aria-label="Đóng">✕</button>
           </div>
 
@@ -153,19 +220,19 @@
 
             <div class="stv-field">
               <label>Chọn phim <i>*</i></label>
-              <select v-model="form.movie_id" required class="stv-input stv-input--select" @change="onMovieChange">
+              <select v-model="form.movie_id" class="stv-input stv-input--select" @change="onMovieChange">
                 <option value="" disabled>— Chọn phim cần chiếu —</option>
                 <option v-for="movie in movies" :key="movie.id" :value="movie.id">
                   {{ movie.title }} • {{ movie.duration }} phút
                 </option>
               </select>
+              <span v-if="errors.movie_id" class="error-msg">{{ errors.movie_id[0] }}</span>
             </div>
 
             <div class="stv-field">
               <label>Phòng chiếu <i>*</i></label>
               <select
                 v-model="form.room_id"
-                required
                 class="stv-input stv-input--select"
                 :class="{ 'is-error': formError }"
                 @change="formError = ''"
@@ -175,6 +242,7 @@
                   {{ room.name }} • {{ room.total_seats }} ghế
                 </option>
               </select>
+              <span v-if="errors.room_id" class="error-msg">{{ errors.room_id[0] }}</span>
             </div>
 
             <div class="stv-grid2">
@@ -183,22 +251,22 @@
                 <input
                   v-model="form.start_time"
                   type="datetime-local"
-                  required
                   class="stv-input"
                   :class="{ 'is-error': formError }"
                   @change="onStartTimeChange"
                 />
+                <span v-if="errors.start_time" class="error-msg">{{ errors.start_time[0] }}</span>
               </div>
               <div class="stv-field">
                 <label>Giờ kết thúc <span class="stv-auto">tự tính</span></label>
-                <input v-model="form.end_time" type="datetime-local" required readonly class="stv-input stv-input--readonly" />
+                <input v-model="form.end_time" type="datetime-local" readonly class="stv-input stv-input--readonly" />
               </div>
             </div>
 
             <div class="stv-grid2">
               <div class="stv-field">
                 <label>Định dạng <i>*</i></label>
-                <select v-model="form.format" required class="stv-input stv-input--select">
+                <select v-model="form.format" class="stv-input stv-input--select">
                   <option value="2D">2D</option>
                   <option value="3D">3D</option>
                   <option value="IMAX">IMAX</option>
@@ -206,7 +274,7 @@
               </div>
               <div class="stv-field">
                 <label>Dịch thuật <i>*</i></label>
-                <select v-model="form.translation" required class="stv-input stv-input--select">
+                <select v-model="form.translation" class="stv-input stv-input--select">
                   <option value="Phụ đề">Phụ đề (Vietsub)</option>
                   <option value="Thuyết minh">Thuyết minh</option>
                 </select>
@@ -219,17 +287,18 @@
               <div class="price-inputs">
                 <div class="price-col">
                   <span>Standard</span>
-                  <input v-model="form.standard_price" type="number" required class="stv-input" />
+                  <input :value="formatInput(form.standard_price)" @input="form.standard_price = parseInput($event.target.value)" type="text" class="stv-input" />
                 </div>
                 <div class="price-col">
                   <span>VIP</span>
-                  <input v-model="form.vip_price" type="number" required class="stv-input" />
+                  <input :value="formatInput(form.vip_price)" @input="form.vip_price = parseInput($event.target.value)" type="text" class="stv-input" />
                 </div>
                 <div class="price-col">
                   <span>Couple</span>
-                  <input v-model="form.couple_price" type="number" required class="stv-input" />
+                  <input :value="formatInput(form.couple_price)" @input="form.couple_price = parseInput($event.target.value)" type="text" class="stv-input" />
                 </div>
               </div>
+              <span v-if="errors.prices" class="error-msg">{{ errors.prices[0] }}</span>
             </div>
 
             <!-- Preview vé trực tiếp -->
@@ -263,7 +332,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import api from '../../api/axios';
 import { toast, confirmDialog } from '../../utils/alert';
 
@@ -272,6 +341,9 @@ const movies = ref([]);
 const rooms = ref([]);
 const loading = ref(false);
 const showModal = ref(false);
+const showDetailModal = ref(false);
+const selectedDetail = ref(null);
+const editingId = ref(null);
 const submitting = ref(false);
 const formError = ref('');
 
@@ -333,6 +405,21 @@ const filteredShowtimes = computed(() => {
 
 const previewMovie = computed(() => movies.value.find(m => m.id === form.value.movie_id) || null);
 
+// Pagination
+const currentPage = ref(1);
+const itemsPerPage = 12;
+
+const totalPages = computed(() => Math.ceil(filteredShowtimes.value.length / itemsPerPage));
+const paginatedShowtimes = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return filteredShowtimes.value.slice(start, end);
+});
+
+watch([searchQuery, formatFilter], () => {
+  currentPage.value = 1;
+});
+
 /* ---------- Helpers ---------- */
 const timeOnly = (dt) => {
   if (!dt) return '--:--';
@@ -358,8 +445,19 @@ const formatPrice = (price) => {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
 };
 
+const formatInput = (val) => {
+  if (!val && val !== 0) return '';
+  return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+};
+
+const parseInput = (val) => {
+  if (!val) return 0;
+  return parseInt(val.toString().replace(/[^\d]/g, '')) || 0;
+};
+
 /* ---------- Modal ---------- */
 const openCreateModal = () => {
+  editingId.value = null;
   form.value = { 
     movie_id: '', room_id: '', start_time: '', end_time: '', 
     format: '2D', translation: 'Phụ đề',
@@ -369,7 +467,40 @@ const openCreateModal = () => {
   showModal.value = true;
 };
 
-const closeModal = () => { showModal.value = false; };
+const openEditModal = (st) => {
+  editingId.value = st.id;
+  // Bỏ múi giờ Z đi để render được trên datetime-local
+  const tzOffset = new Date().getTimezoneOffset() * 60000;
+  
+  form.value = {
+    movie_id: st.movie_id,
+    room_id: st.room_id,
+    start_time: st.start_time ? new Date(new Date(st.start_time).getTime() - tzOffset).toISOString().slice(0, 16) : '',
+    end_time: st.end_time ? new Date(new Date(st.end_time).getTime() - tzOffset).toISOString().slice(0, 16) : '',
+    format: st.format || '2D',
+    translation: st.translation || 'Phụ đề',
+    standard_price: st.prices?.standard || 80000,
+    vip_price: st.prices?.vip || 100000,
+    couple_price: st.prices?.couple || 150000
+  };
+  formError.value = '';
+  showModal.value = true;
+};
+
+const closeModal = () => { 
+  showModal.value = false; 
+  editingId.value = null;
+};
+
+const openDetailModal = (st) => {
+  selectedDetail.value = st;
+  showDetailModal.value = true;
+};
+
+const closeDetailModal = () => {
+  showDetailModal.value = false;
+  selectedDetail.value = null;
+};
 
 const onMovieChange = () => { formError.value = ''; calculateEndTime(); };
 const onStartTimeChange = () => { formError.value = ''; calculateEndTime(); };
@@ -385,15 +516,15 @@ const calculateEndTime = () => {
 };
 
 /* ---------- API ---------- */
-const fetchShowtimes = async () => {
-  loading.value = true;
+const fetchShowtimes = async (showLoading = true) => {
+  if (showLoading) loading.value = true;
   try {
     const res = await api.get('/admin/showtimes');
     showtimes.value = res.data;
   } catch (err) {
     console.error('Fetch showtimes error:', err);
   } finally {
-    loading.value = false;
+    if (showLoading) loading.value = false;
   }
 };
 
@@ -415,14 +546,55 @@ const fetchRooms = async () => {
   }
 };
 
+const errors = ref({});
+
+const validateForm = () => {
+  errors.value = {};
+  let isValid = true;
+
+  if (!form.value.movie_id) {
+    errors.value.movie_id = ['Vui lòng chọn phim.'];
+    isValid = false;
+  }
+  
+  if (!form.value.room_id) {
+    errors.value.room_id = ['Vui lòng chọn phòng chiếu.'];
+    isValid = false;
+  }
+  
+  if (!form.value.start_time) {
+    errors.value.start_time = ['Vui lòng chọn thời gian bắt đầu.'];
+    isValid = false;
+  }
+  
+  const sp = parseInput(form.value.standard_price);
+  const vp = parseInput(form.value.vip_price);
+  const cp = parseInput(form.value.couple_price);
+  
+  if (!sp || sp <= 0 || !vp || vp <= 0 || !cp || cp <= 0) {
+    errors.value.prices = ['Vui lòng nhập giá vé hợp lệ lớn hơn 0 cho tất cả các loại vé.'];
+    isValid = false;
+  }
+  
+  return isValid;
+};
+
 const saveShowtime = async () => {
+  if (!validateForm()) return;
+
   submitting.value = true;
   formError.value = '';
   try {
-    await api.post('/admin/showtimes', form.value);
-    toast('Thêm suất chiếu mới thành công!');
+    if (editingId.value) {
+      await api.put(`/admin/showtimes/${editingId.value}`, form.value);
+      toast('Cập nhật suất chiếu thành công!');
+    } else {
+      await api.post('/admin/showtimes', form.value);
+      toast('Thêm suất chiếu mới thành công!');
+    }
     showModal.value = false;
-    await fetchShowtimes();
+    // Cập nhật lại danh sách ngầm (không báo loading để tránh giật lag toàn trang)
+    await fetchShowtimes(false);
   } catch (err) {
     console.error('Save showtime error:', err);
     const res = err.response?.data;
@@ -438,11 +610,17 @@ const saveShowtime = async () => {
 
 const deleteShowtime = async (id) => {
   if (!(await confirmDialog('Bạn có chắc chắn muốn xóa suất chiếu này?', 'Hành động này không thể hoàn tác!'))) return;
+  
+  // OPTIMISTIC DELETE: Xóa ngay lập tức trên UI để người dùng thấy phản hồi tức thì
+  const originalShowtimes = [...showtimes.value];
+  showtimes.value = showtimes.value.filter(s => s.id !== id);
+
   try {
     await api.delete(`/admin/showtimes/${id}`);
     toast('Xóa suất chiếu thành công!');
-    await fetchShowtimes();
   } catch (err) {
+    // ROLBACK: Trả lại dữ liệu nếu API xóa thất bại
+    showtimes.value = originalShowtimes;
     console.error('Delete showtime error:', err);
     toast('Không thể xóa suất chiếu này!', 'error');
   }
@@ -695,6 +873,7 @@ onMounted(async () => {
   box-shadow: 0 6px 22px rgba(15, 23, 42, 0.07);
   transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.26s;
   overflow: hidden;
+  cursor: pointer;
 }
 .ticket:hover {
   transform: translateY(-5px);
@@ -799,6 +978,37 @@ onMounted(async () => {
 .ticket__status.is-on .ticket__status-dot { animation: livepulse 1.5s ease-in-out infinite; }
 @keyframes livepulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(4, 120, 87, 0.5); } 50% { box-shadow: 0 0 0 5px rgba(4, 120, 87, 0); } }
 
+/* Phân trang */
+.pagination-cine {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 16px 0;
+}
+.btn-page {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-page:not(:disabled):hover {
+  border-color: #e50914;
+  color: #e50914;
+}
+.btn-page:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.page-info {
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+}
+
 /* Timeline */
 .ticket__timeline {
   display: flex;
@@ -840,21 +1050,27 @@ onMounted(async () => {
 .tg--format { background: #fee2e2; color: #b91c1c; }
 .tg--trans { background: #eef6f1; color: #047857; }
 
-.ticket__del {
+.ticket__actions {
   position: absolute;
   top: 12px; right: 12px;
-  width: 32px; height: 32px;
-  border: none; border-radius: 9px;
-  background: #fff;
-  border: 1px solid #fde0e2;
-  cursor: pointer;
-  font-size: 14px;
+  display: flex; gap: 6px;
   opacity: 0;
   transform: translateY(-4px);
   transition: all 0.2s;
 }
-.ticket:hover .ticket__del { opacity: 1; transform: translateY(0); }
-.ticket__del:hover { background: #fee2e2; border-color: #e50914; }
+.ticket:hover .ticket__actions { opacity: 1; transform: translateY(0); }
+
+.ticket__btn {
+  width: 32px; height: 32px;
+  border: none; border-radius: 9px;
+  background: #fff;
+  border: 1px solid #fde0e2;
+  cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.ticket__btn--edit:hover { background: #f0fdf4; border-color: #22c55e; }
+.ticket__btn--del:hover { background: #fee2e2; border-color: #e50914; }
 
 /* ===================== MODAL ===================== */
 .stv-backdrop {
@@ -965,6 +1181,22 @@ onMounted(async () => {
   padding: 3px 10px; border-radius: 999px;
   background: #9b000e; color: #fff;
 }
+
+.price-inputs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+.price-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.price-col span {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #475569;
+}
 .stv-preview__line { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
 .stv-preview__line strong { font-size: 15.5px; color: #1e293b; }
 .stv-preview__fmt {
@@ -1070,4 +1302,11 @@ onMounted(async () => {
 }
 @keyframes banner-sheen { 0% { left: -120%; } 60%, 100% { left: 130%; } }
 @keyframes icon-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+.error-msg {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin-top: 5px;
+  display: block;
+  font-weight: 600;
+}
 </style>
