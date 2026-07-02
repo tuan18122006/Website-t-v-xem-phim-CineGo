@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\SeatHoldController;
 use App\Http\Controllers\Api\BookingController;
+use App\Http\Controllers\Api\DashboardController;
 
 
 // Đăng ký / Đăng nhập
@@ -40,6 +41,10 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'userProfile']);
+
+    // Dashboard thống kê
+    Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
+    Route::get('/dashboard/revenue', [DashboardController::class, 'revenue']);
 
     // Quản lý tài khoản User
     Route::get('/users', [UserController::class, 'index']);
