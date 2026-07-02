@@ -96,32 +96,41 @@
 
       <!-- TAB 1: DASHBOARD STATS & CHARTS -->
       <div v-show="activeTab === 'stats'" class="dashboard-tab-content">
-        <!-- Widgets thông số -->
+        <!-- Widgets thông số THẬT -->
         <div class="stats-widgets">
-          <div class="widget-card glass-panel">
-            <div class="widget-icon bg-pink">🎬</div>
-            <div class="widget-info">
-              <span class="widget-label">Tổng Số Phim</span>
-              <span class="widget-value">{{ moviesCount }}</span>
-              <span class="widget-trend">+3 phim đang chiếu</span>
-            </div>
-          </div>
-
-          <div class="widget-card glass-panel">
-            <div class="widget-icon bg-violet">🕒</div>
-            <div class="widget-info">
-              <span class="widget-label">Suất Chiếu Hôm Nay</span>
-              <span class="widget-value">{{ showtimesCount }}</span>
-              <span class="widget-trend">Phân bổ 2 phòng chiếu</span>
-            </div>
-          </div>
-
           <div class="widget-card glass-panel">
             <div class="widget-icon bg-mint">💰</div>
             <div class="widget-info">
-              <span class="widget-label">Doanh Thu Tuần</span>
-              <span class="widget-value">42.5 M</span>
-              <span class="widget-trend trend-up">+18.4% so với tuần trước</span>
+              <span class="widget-label">Tổng Doanh Thu</span>
+              <span class="widget-value">{{ formatCurrency(totalRevenue) }}</span>
+              <span class="widget-trend">Từ các đơn đã thanh toán</span>
+            </div>
+          </div>
+
+          <div class="widget-card glass-panel">
+            <div class="widget-icon bg-pink">🎟️</div>
+            <div class="widget-info">
+              <span class="widget-label">Vé Đã Bán</span>
+              <span class="widget-value">{{ totalTickets.toLocaleString('vi-VN') }}</span>
+              <span class="widget-trend">Tổng số vé xuất thành công</span>
+            </div>
+          </div>
+
+          <div class="widget-card glass-panel">
+            <div class="widget-icon bg-violet">🍿</div>
+            <div class="widget-info">
+              <span class="widget-label">Bắp Nước Đã Bán</span>
+              <span class="widget-value">{{ totalCombos.toLocaleString('vi-VN') }}</span>
+              <span class="widget-trend">Tổng số combo bắp &amp; nước</span>
+            </div>
+          </div>
+
+          <div class="widget-card glass-panel">
+            <div class="widget-icon bg-pink">🕒</div>
+            <div class="widget-info">
+              <span class="widget-label">Suất Chiếu Hôm Nay</span>
+              <span class="widget-value">{{ todayShowtimes }}</span>
+              <span class="widget-trend">Lịch chiếu trong ngày</span>
             </div>
           </div>
         </div>
@@ -129,93 +138,78 @@
         <!-- Biểu đồ doanh thu dạng SVG -->
         <div class="reports-grid">
           <div class="report-card glass-panel">
-            <h3 class="card-title">Thống Kê Doanh Thu 7 Ngày Qua (VNĐ)</h3>
-            
+            <div class="chart-head">
+              <h3 class="card-title">Doanh Thu Theo {{ revenuePeriod === 'day' ? '7 Ngày Qua' : '6 Tháng Qua' }} (VNĐ)</h3>
+              <div class="period-toggle">
+                <button :class="{ active: revenuePeriod === 'day' }" @click="revenuePeriod = 'day'">Ngày</button>
+                <button :class="{ active: revenuePeriod === 'month' }" @click="revenuePeriod = 'month'">Tháng</button>
+              </div>
+            </div>
+
+            <p class="chart-total">
+              Tổng: <strong>{{ formatCurrency(revenueTotal) }}</strong>
+            </p>
+
             <div class="chart-container">
-              <svg viewBox="0 0 600 240" class="svg-chart">
-                <!-- Grid Lines -->
-                <line x1="50" y1="30" x2="550" y2="30" stroke="rgba(0,0,0,0.05)" stroke-width="1" />
-                <line x1="50" y1="80" x2="550" y2="80" stroke="rgba(0,0,0,0.05)" stroke-width="1" />
-                <line x1="50" y1="130" x2="550" y2="130" stroke="rgba(0,0,0,0.05)" stroke-width="1" />
-                <line x1="50" y1="180" x2="550" y2="180" stroke="rgba(0,0,0,0.1)" stroke-width="1.5" />
-                
-                <!-- Revenue Area (Gradient Fill) -->
+              <svg :viewBox="`0 0 ${chart.W} ${chart.H}`" class="svg-chart">
                 <defs>
                   <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="var(--accent-pink)" stop-opacity="0.25"/>
-                    <stop offset="100%" stop-color="var(--accent-violet)" stop-opacity="0.0"/>
+                    <stop offset="0%" stop-color="var(--accent-pink)" stop-opacity="0.25" />
+                    <stop offset="100%" stop-color="var(--accent-violet)" stop-opacity="0.0" />
                   </linearGradient>
                 </defs>
-                <path d="M 50 180 L 120 140 L 190 155 L 260 110 L 330 90 L 400 120 L 470 65 L 540 50 L 540 180 Z" fill="url(#chartGrad)" />
-                
-                <!-- Revenue Line -->
-                <path d="M 50 180 L 120 140 L 190 155 L 260 110 L 330 90 L 400 120 L 470 65 L 540 50" fill="none" stroke="var(--accent-pink)" stroke-width="3.5" stroke-linecap="round" />
-                
-                <!-- Dots -->
-                <circle cx="120" cy="140" r="4.5" fill="var(--accent-pink)" />
-                <circle cx="190" cy="155" r="4.5" fill="var(--accent-pink)" />
-                <circle cx="260" cy="110" r="4.5" fill="var(--accent-pink)" />
-                <circle cx="330" cy="90" r="4.5" fill="var(--accent-pink)" />
-                <circle cx="400" cy="120" r="4.5" fill="var(--accent-pink)" />
-                <circle cx="470" cy="65" r="4.5" fill="var(--accent-pink)" />
-                <circle cx="540" cy="50" r="5" fill="var(--accent-pink)" stroke="#ffffff" stroke-width="2" />
-                
-                <!-- Axis Labels -->
-                <text x="50" y="198" fill="var(--text-secondary)" font-size="10" text-anchor="middle">Thứ 2</text>
-                <text x="120" y="198" fill="var(--text-secondary)" font-size="10" text-anchor="middle">Thứ 3</text>
-                <text x="190" y="198" fill="var(--text-secondary)" font-size="10" text-anchor="middle">Thứ 4</text>
-                <text x="260" y="198" fill="var(--text-secondary)" font-size="10" text-anchor="middle">Thứ 5</text>
-                <text x="330" y="198" fill="var(--text-secondary)" font-size="10" text-anchor="middle">Thứ 6</text>
-                <text x="400" y="198" fill="var(--text-secondary)" font-size="10" text-anchor="middle">Thứ 7</text>
-                <text x="470" y="198" fill="var(--text-secondary)" font-size="10" text-anchor="middle">Chủ Nhật</text>
-                <text x="540" y="198" fill="var(--accent-pink)" font-size="10" font-weight="bold" text-anchor="middle">Hôm nay</text>
-                
-                <text x="40" y="34" fill="var(--text-muted)" font-size="10" text-anchor="end">10 Triệu</text>
-                <text x="40" y="84" fill="var(--text-muted)" font-size="10" text-anchor="end">6 Triệu</text>
-                <text x="40" y="134" fill="var(--text-muted)" font-size="10" text-anchor="end">3 Triệu</text>
-                <text x="40" y="184" fill="var(--text-muted)" font-size="10" text-anchor="end">0đ</text>
+
+                <!-- Lưới ngang + nhãn trục Y -->
+                <g v-for="(t, i) in chart.yTicks" :key="'y' + i">
+                  <line x1="55" :y1="t.y" x2="580" :y2="t.y" stroke="rgba(0,0,0,0.06)" stroke-width="1" />
+                  <text x="48" :y="t.y + 3" fill="var(--text-muted)" font-size="10" text-anchor="end">
+                    {{ compactVND(t.val) }}
+                  </text>
+                </g>
+
+                <!-- Vùng tô + đường doanh thu -->
+                <path v-if="chart.area" :d="chart.area" fill="url(#chartGrad)" />
+                <path
+                  v-if="chart.line"
+                  :d="chart.line"
+                  fill="none"
+                  stroke="var(--accent-pink)"
+                  stroke-width="3"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+
+                <!-- Điểm + nhãn trục X -->
+                <g v-for="(p, i) in chart.points" :key="'p' + i">
+                  <circle :cx="p.x" :cy="p.y" r="4.5" fill="var(--accent-pink)" stroke="#fff" stroke-width="1.5">
+                    <title>{{ p.label }}: {{ formatCurrency(p.revenue) }}</title>
+                  </circle>
+                  <text :x="p.x" :y="chart.baseY + 18" fill="var(--text-secondary)" font-size="10" text-anchor="middle">
+                    {{ p.label }}
+                  </text>
+                </g>
               </svg>
             </div>
           </div>
 
           <div class="report-card glass-panel">
-            <h3 class="card-title">Top Phim Ăn Khách Tuần Này</h3>
-            <div class="movie-ranks-list">
-              <div class="rank-item">
-                <span class="rank-num bg-pink">1</span>
+            <h3 class="card-title">Top Phim Bán Chạy Nhất</h3>
+            <div v-if="topMovies.length" class="movie-ranks-list">
+              <div v-for="(m, i) in topMovies" :key="m.id" class="rank-item">
+                <span class="rank-num" :class="['bg-pink', 'bg-violet', 'bg-tertiary'][i] || 'bg-tertiary'">{{ i + 1 }}</span>
                 <div class="rank-info">
-                  <h4>Doctor Strange: Đa Vũ Trụ Hỗn Loạn</h4>
-                  <span class="rank-category">Hành Động, Sci-Fi</span>
+                  <h4 :title="m.title">{{ m.title }}</h4>
+                  <span class="rank-category">{{ m.genres || 'Chưa phân loại' }}</span>
                 </div>
                 <div class="rank-sales">
-                  <span class="sales-value">18.4M</span>
-                  <span class="sales-tickets">224 vé</span>
+                  <span class="sales-value">{{ compactVND(m.revenue) }}</span>
+                  <span class="sales-tickets">{{ m.tickets }} vé</span>
                 </div>
               </div>
-
-              <div class="rank-item">
-                <span class="rank-num bg-violet">2</span>
-                <div class="rank-info">
-                  <h4>Avatar: Dòng Chảy Của Nước</h4>
-                  <span class="rank-category">Kỳ Ảo, Viễn Tưởng</span>
-                </div>
-                <div class="rank-sales">
-                  <span class="sales-value">15.1M</span>
-                  <span class="sales-tickets">160 vé</span>
-                </div>
-              </div>
-
-              <div class="rank-item">
-                <span class="rank-num bg-tertiary">3</span>
-                <div class="rank-info">
-                  <h4>Kẻ Kiến Tạo (The Creator)</h4>
-                  <span class="rank-category">Hành Động, Drama</span>
-                </div>
-                <div class="rank-sales">
-                  <span class="sales-value">9.0M</span>
-                  <span class="sales-tickets">112 vé</span>
-                </div>
-              </div>
+            </div>
+            <div v-else class="ranks-empty">
+              <span>🎬</span>
+              <p>Chưa có dữ liệu bán vé để xếp hạng.</p>
             </div>
           </div>
         </div>
@@ -291,6 +285,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
+import api from '../../api/axios';
 import MoviesView from './MoviesView.vue';
 import ShowtimesView from './ShowtimesView.vue';
 import GenreManagement from './GenreManagement.vue';
@@ -309,6 +304,53 @@ watch(activeTab, (newVal) => {
 const moviesCount = ref(0);
 const showtimesCount = ref(0);
 const bookings = ref([]);
+
+/* ===== DASHBOARD THỐNG KÊ THẬT ===== */
+const statsLoading = ref(false);
+const totalRevenue = ref(0);
+const totalTickets = ref(0);
+const totalCombos = ref(0);
+const todayShowtimes = ref(0);
+const topMovies = ref([]);
+
+const revenuePeriod = ref('day'); // 'day' | 'month'
+const revenueSeries = ref([]);    // [{ label, revenue }]
+const revenueTotal = ref(0);
+
+// Rút gọn tiền tệ cho nhãn: 1500000 -> "1.5 Tr", 2000000000 -> "2 Tỷ"
+const compactVND = (val) => {
+  const v = Number(val) || 0;
+  if (v >= 1e9) return (v / 1e9).toFixed(v % 1e9 === 0 ? 0 : 1) + ' Tỷ';
+  if (v >= 1e6) return (v / 1e6).toFixed(v % 1e6 === 0 ? 0 : 1) + ' Tr';
+  if (v >= 1e3) return Math.round(v / 1e3) + 'K';
+  return String(v);
+};
+
+// Dựng dữ liệu vẽ biểu đồ đường SVG từ revenueSeries
+const chart = computed(() => {
+  const data = revenueSeries.value;
+  const W = 600, H = 240, padL = 55, padR = 20, padT = 25, padB = 40;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const baseY = padT + innerH;
+  const n = data.length;
+  const max = Math.max(...data.map(d => d.revenue), 1);
+
+  const points = data.map((d, i) => {
+    const x = n > 1 ? padL + (innerW / (n - 1)) * i : padL + innerW / 2;
+    const y = baseY - (d.revenue / max) * innerH;
+    return { x, y, label: d.label, revenue: d.revenue };
+  });
+
+  const line = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  const area = points.length
+    ? `${line} L ${points[points.length - 1].x.toFixed(1)} ${baseY} L ${points[0].x.toFixed(1)} ${baseY} Z`
+    : '';
+
+  const yTicks = [1, 0.5, 0].map(f => ({ y: baseY - f * innerH, val: max * f }));
+
+  return { points, line, area, yTicks, baseY, W, H };
+});
 
 const getTabTitle = computed(() => {
   const titles = {
@@ -347,19 +389,40 @@ const handleLogout = async () => {
   router.push('/');
 };
 
-const fetchDashboardStats = async () => {
+const fetchOverview = async () => {
+  statsLoading.value = true;
   try {
-    const moviesRes = await api.get('/admin/movies');
-    moviesCount.value = moviesRes.data.length;
-    
-    const showtimesRes = await api.get('/admin/showtimes');
-    showtimesCount.value = showtimesRes.data.length;
+    const res = await api.get('/admin/dashboard/overview');
+    const d = res.data;
+    totalRevenue.value = d.total_revenue;
+    totalTickets.value = d.total_tickets;
+    totalCombos.value = d.total_combos;
+    moviesCount.value = d.movies_count;
+    showtimesCount.value = d.today_showtimes;
+    todayShowtimes.value = d.today_showtimes;
+    topMovies.value = d.top_movies || [];
   } catch (err) {
-    console.error('Fetch dashboard stats error:', err);
-    moviesCount.value = 5;
-    showtimesCount.value = 8;
+    console.error('Fetch dashboard overview error:', err);
+  } finally {
+    statsLoading.value = false;
   }
 };
+
+const fetchRevenue = async () => {
+  try {
+    const res = await api.get('/admin/dashboard/revenue', {
+      params: { period: revenuePeriod.value },
+    });
+    revenueSeries.value = res.data.series || [];
+    revenueTotal.value = res.data.total || 0;
+  } catch (err) {
+    console.error('Fetch revenue chart error:', err);
+    revenueSeries.value = [];
+    revenueTotal.value = 0;
+  }
+};
+
+watch(revenuePeriod, fetchRevenue);
 
 const fetchBookings = () => {
   // Populate realistic booking histories
@@ -372,7 +435,8 @@ const fetchBookings = () => {
 };
 
 onMounted(() => {
-  fetchDashboardStats();
+  fetchOverview();
+  fetchRevenue();
   fetchBookings();
 });
 </script>
@@ -663,6 +727,63 @@ onMounted(() => {
   padding-left: 10px;
   color: #1e293b;
 }
+
+.chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.period-toggle {
+  display: inline-flex;
+  background: #f4f1f4;
+  border-radius: 8px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.period-toggle button {
+  border: none;
+  background: transparent;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #64748b;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.period-toggle button.active {
+  background: #fff;
+  color: var(--accent-pink);
+  box-shadow: 0 2px 8px rgba(216, 45, 139, 0.15);
+}
+
+.chart-total {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: -6px 0 0;
+}
+.chart-total strong {
+  color: #1e293b;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.ranks-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 10px;
+  color: var(--text-muted);
+  text-align: center;
+}
+.ranks-empty span { font-size: 34px; }
+.ranks-empty p { font-size: 13px; }
 
 .chart-container {
   width: 100%;
