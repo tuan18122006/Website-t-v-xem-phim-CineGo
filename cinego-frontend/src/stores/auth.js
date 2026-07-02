@@ -22,67 +22,40 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await api.post('/login', { email, password });
         const { token, user } = response.data;
-        
-        this.token = token;
-        this.user = user;
-        
-        localStorage.setItem('cinego_token', token);
-        localStorage.setItem('cinego_user', JSON.stringify(user));
-        
+        this._persist(token, user);
         return true;
       } catch (err) {
-        this.error = err.response?.data?.message || 'Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin!';
-        // Fallback mock nếu API chưa sẵn sàng hoặc đang test giao diện
-        if (err.message.includes('Network Error') || err.response?.status === 404) {
-          console.warn('Backend not running or route not found. Using Mock Login for demo.');
-          let mockUser = { id: 1, name: 'Khách hàng Demo', email: email, role: 'customer' };
-          if (email.includes('admin')) {
-            mockUser = { id: 99, name: 'Quản trị viên', email: email, role: 'admin' };
-          }
-          
-          this.token = 'mock_sanctum_token_123456';
-          this.user = mockUser;
-          
-          localStorage.setItem('cinego_token', this.token);
-          localStorage.setItem('cinego_user', JSON.stringify(this.user));
-          return true;
-        }
+        this.error = this._extractError(err, 'Đăng nhập thất bại. Vui lòng thử lại!');
         throw err;
       } finally {
         this.loading = false;
       }
     },
-    
+
     async register(name, email, password, password_confirmation) {
       this.loading = true;
       this.error = null;
       try {
-        const response = await api.post('/register', { 
-          name, 
-          email, 
-          password, 
-          password_confirmation 
+        const response = await api.post('/register', {
+          name,
+          email,
+          password,
+          password_confirmation,
         });
         const { token, user } = response.data;
-        
-        this.token = token;
-        this.user = user;
-        
-        localStorage.setItem('cinego_token', token);
-        localStorage.setItem('cinego_user', JSON.stringify(user));
-        
+        this._persist(token, user);
         return true;
       } catch (err) {
-        this.error = err.response?.data?.message || 'Đăng ký tài khoản thất bại!';
+        this.error = this._extractError(err, 'Đăng ký tài khoản thất bại. Vui lòng thử lại!');
         throw err;
       } finally {
         this.loading = false;
       }
     },
-    
+
     async logout() {
       try {
-        if (this.token && !this.token.startsWith('mock_')) {
+        if (this.token) {
           await api.post('/logout');
         }
       } catch (err) {
@@ -94,17 +67,38 @@ export const useAuthStore = defineStore('auth', {
         localStorage.removeItem('cinego_user');
       }
     },
-    
+
     async fetchUser() {
       if (!this.token) return;
       try {
-        if (this.token.startsWith('mock_')) return;
-        const response = await api.get('/user');
+        const response = await api.get('/me');
         this.user = response.data;
         localStorage.setItem('cinego_user', JSON.stringify(this.user));
       } catch (err) {
         console.error('Fetch user error:', err);
       }
+    },
+
+    // Lưu token + user vào state và localStorage
+    _persist(token, user) {
+      this.token = token;
+      this.user = user;
+      localStorage.setItem('cinego_token', token);
+      localStorage.setItem('cinego_user', JSON.stringify(user));
+    },
+
+    // Trích thông báo lỗi thân thiện từ response của Laravel
+    _extractError(err, fallback) {
+      const data = err.response?.data;
+      if (data?.errors) {
+        const first = Object.values(data.errors).flat()[0];
+        if (first) return first;
+      }
+      if (data?.message) return data.message;
+      if (err.message?.includes('Network Error')) {
+        return 'Không kết nối được máy chủ. Vui lòng kiểm tra kết nối và thử lại!';
+      }
+      return fallback;
     }
   }
 });

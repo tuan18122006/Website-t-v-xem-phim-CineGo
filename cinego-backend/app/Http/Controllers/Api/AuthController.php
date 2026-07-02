@@ -16,6 +16,14 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
+        ], [
+            'name.required'      => 'Vui lòng nhập họ tên.',
+            'email.required'     => 'Vui lòng nhập email.',
+            'email.email'        => 'Email không đúng định dạng.',
+            'email.unique'       => 'Email này đã được đăng ký. Vui lòng dùng email khác hoặc đăng nhập.',
+            'password.required'  => 'Vui lòng nhập mật khẩu.',
+            'password.min'       => 'Mật khẩu phải có ít nhất 8 ký tự.',
+            'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
         ]);
 
         $user = User::create([
@@ -39,26 +47,27 @@ class AuthController extends Controller
         $request->validate([
             'email' => 'required|email',
             'password' => 'required',
+        ], [
+            'email.required'    => 'Vui lòng nhập email.',
+            'email.email'       => 'Email không đúng định dạng.',
+            'password.required' => 'Vui lòng nhập mật khẩu.',
         ]);
 
         $user = User::where('email', $request->email)->first();
 
+        // Sai email hoặc sai mật khẩu -> báo lỗi 422
         if (! $user || ! Hash::check($request->password, $user->password)) {
             throw ValidationException::withMessages([
-                'email' => ['Thông tin tài khoản hoặc mật khẩu không chính xác!'],
+                'email' => ['Email hoặc mật khẩu không chính xác!'],
             ]);
         }
 
-        // ... sau khi check Hash::check thành công
-
+        // Tài khoản bị khóa thì chặn đăng nhập
         if ($user->status === 'locked') {
             throw ValidationException::withMessages([
                 'email' => ['Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên!'],
             ]);
         }
-
-        $token = $user->createToken('auth_token')->plainTextToken;
-
 
         $token = $user->createToken('auth_token')->plainTextToken;
 

@@ -106,12 +106,6 @@ const handleRegister = async () => {
     }
   } catch (err) {
     error.value = authStore.error || 'Đăng ký thất bại. Vui lòng kiểm tra lại!';
-    // Fallback Mock Register for demo UI
-    if (err.message?.includes('Network Error') || err.response?.status === 404) {
-      console.warn('Backend not running. Fallback to mock login.');
-      await authStore.login(email.value, password.value);
-      router.push('/');
-    }
   } finally {
     loading.value = false;
   }
@@ -169,7 +163,7 @@ const handleRegister = async () => {
 
 .form-input {
   background: var(--bg-tertiary);
-  color: red;
+  color: var(--text-primary);
   border: 1px solid var(--border-glass);
   padding: 14px 18px;
   border-radius: var(--radius-md);
