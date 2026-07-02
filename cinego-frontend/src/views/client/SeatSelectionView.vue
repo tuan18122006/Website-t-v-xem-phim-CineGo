@@ -17,13 +17,13 @@
 
       <div class="seats-legend">
         <div class="legend-item">
-          <span class="legend-box seat-standard"></span> Standard (75k)
+          <span class="legend-box seat-standard"></span> Standard ({{ priceK(seatPrices.standard) }})
         </div>
         <div class="legend-item">
-          <span class="legend-box seat-vip"></span> VIP (95k)
+          <span class="legend-box seat-vip"></span> VIP ({{ priceK(seatPrices.vip) }})
         </div>
         <div class="legend-item">
-          <span class="legend-box seat-couple"></span> Couple (140k)
+          <span class="legend-box seat-couple"></span> Couple ({{ priceK(seatPrices.couple) }})
         </div>
         <div class="legend-item">
           <span class="legend-box seat-selected"></span> Đang chọn
@@ -134,6 +134,7 @@ const router = useRouter();
 const bookingStore = useBookingStore();
 
 const rawSeatsFromAPI = ref([]); // Nơi lưu mảng gốc tải về từ database
+const seatPrices = ref({ standard: 75000, vip: 95000, couple: 140000 }); // Giá thật lấy từ cấu hình của suất chiếu
 const countdownText = ref("10:00");
 let timerInterval = null;
 
@@ -144,12 +145,13 @@ const formatCurrency = (val) => {
   }).format(val);
 };
 
-// Map các loại loại ghế tương ứng với mức giá đã cài đặt
+// Lấy giá theo loại ghế từ bảng giá THẬT của suất chiếu (admin cấu hình)
 const getSeatPrice = (type) => {
-  if (type === "couple") return 140000;
-  if (type === "vip") return 95000;
-  return 75000;
+  return seatPrices.value[type] ?? seatPrices.value.standard ?? 0;
 };
+
+// Định dạng gọn cho chú thích: 75000 -> "75k"
+const priceK = (val) => `${Math.round((val || 0) / 1000)}k`;
 
 // ÁNH XẠ DỮ LIỆU ĐẦU RA (COMPUTED): Chuyển đổi dữ liệu thô sang 5 trường Tech Lead yêu cầu
 const mappedSeats = computed(() => {
@@ -275,7 +277,17 @@ const fetchSeatStatus = async () => {
     const response = await api.get(
       `/showtimes/${bookingStore.selectedShowtime.id}/seats`,
     );
-    rawSeatsFromAPI.value = response.data || [];
+    const data = response.data;
+    if (Array.isArray(data)) {
+      // Dạng cũ: chỉ là mảng ghế
+      rawSeatsFromAPI.value = data;
+    } else {
+      // Dạng mới: { seats, prices }
+      rawSeatsFromAPI.value = data.seats || [];
+      if (data.prices) {
+        seatPrices.value = { ...seatPrices.value, ...data.prices };
+      }
+    }
   } catch (err) {
     console.warn("Fetch seats API error, using fallback mock data structures:");
 
