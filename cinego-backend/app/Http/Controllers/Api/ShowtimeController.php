@@ -14,7 +14,11 @@ class ShowtimeController extends Controller
 {
     public function index()
     {
-        $showtimes = Showtime::with(['movie', 'room', 'priceConfigs'])->get()->map(function ($st) {
+        $showtimes = Showtime::with(['movie', 'room', 'priceConfigs'])
+            ->orderByDesc('start_time')
+            ->orderByDesc('id')
+            ->get()
+            ->map(function ($st) {
             $prices = [];
             foreach ($st->priceConfigs as $config) {
                 $prices[$config->seat_type] = $config->price;
@@ -221,9 +225,16 @@ class ShowtimeController extends Controller
      */
     public function getSeats($id)
     {
-        $showtime = Showtime::find($id);
+        $showtime = Showtime::with('priceConfigs')->find($id);
         if (!$showtime) {
             return response()->json(['message' => 'Không tìm thấy suất chiếu'], 404);
+        }
+
+        // Bảng giá theo loại ghế của SUẤT CHIẾU này (admin cấu hình ở Phần 2).
+        // Nếu suất nào chưa có cấu hình thì dùng giá mặc định để không vỡ luồng đặt vé.
+        $prices = ['standard' => 75000, 'vip' => 95000, 'couple' => 140000];
+        foreach ($showtime->priceConfigs as $config) {
+            $prices[$config->seat_type] = (float) $config->price;
         }
 
         $now = Carbon::now();
@@ -256,7 +267,7 @@ class ShowtimeController extends Controller
             ->toArray();
 
         // 6. Định dạng đầu ra khớp chính xác với frontend yêu cầu
-        $formattedSeats = $seats->map(function ($seat) use ($bookedSeatIds, $heldSeatIds) {
+        $formattedSeats = $seats->map(function ($seat) use ($bookedSeatIds, $heldSeatIds, $prices) {
             $status = 'available';
             if ($seat->status === 'broken') {
                 $status = 'broken';
@@ -272,10 +283,14 @@ class ShowtimeController extends Controller
                 'seat_number' => $seat->number,
                 'status' => $status,
                 'type' => $seat->type, // Lấy đúng type từ Admin Map thay vì hardcode
+                'price' => $prices[$seat->type] ?? 0, // Giá thật theo cấu hình của suất
             ];
         });
 
-        return response()->json($formattedSeats, 200);
+        return response()->json([
+            'seats' => $formattedSeats,
+            'prices' => $prices,
+        ], 200);
     }
 
     public function getShowtimesByMovie(Request $request, $id)
