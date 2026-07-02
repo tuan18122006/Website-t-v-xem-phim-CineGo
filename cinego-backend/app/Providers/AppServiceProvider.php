@@ -25,5 +25,10 @@ class AppServiceProvider extends ServiceProvider
         Gate::define('admin-only', function (User $user) {
             return $user->role === 'admin';
         });
+
+        // Nhân viên hỗ trợ HOẶC admin: dùng cho các công cụ vận hành như tra cứu đơn hàng
+        Gate::define('staff-or-admin', function (User $user) {
+            return in_array($user->role, ['staff', 'admin'], true);
+        });
     }
 }

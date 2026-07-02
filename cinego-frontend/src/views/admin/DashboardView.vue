@@ -66,6 +66,15 @@
 
         <button
           class="nav-link"
+          :class="{ active: activeTab === 'lookup' }"
+          @click="activeTab = 'lookup'"
+        >
+          <span class="nav-icon">🔎</span>
+          <span>Tra Cứu Đơn / Hỗ Trợ</span>
+        </button>
+
+        <button
+          class="nav-link"
           :class="{ active: activeTab === 'revenue' }"
           @click="activeTab = 'revenue'"
         >
@@ -239,6 +248,11 @@
         <UserManagement />
       </div>
 
+      <!-- TAB: TRA CỨU ĐƠN / HỖ TRỢ KHÁCH -->
+      <div v-show="activeTab === 'lookup'">
+        <BookingLookupView />
+      </div>
+
       <!-- TAB 4: REVENUE TRANSACTION REPORT -->
       <div v-show="activeTab === 'revenue'" class="revenue-tab-content">
         <div class="glass-panel detailed-report">
@@ -290,7 +304,8 @@ import MoviesView from './MoviesView.vue';
 import ShowtimesView from './ShowtimesView.vue';
 import GenreManagement from './GenreManagement.vue';
 import UserManagement from './UserManagement.vue';
-import RoomsView from './RoomManagementView.vue'; 
+import BookingLookupView from './BookingLookupView.vue';
+import RoomsView from './RoomManagementView.vue';
 import RoomManagementView from './RoomManagementView.vue';
 import RoomEditorView from './RoomEditorView.vue';
 
@@ -360,6 +375,7 @@ const getTabTitle = computed(() => {
     rooms: 'Quản Lý Phòng Chiếu & Ghế',
     genres: 'Quản Lý Thể Loại Phim',
     users: 'Quản Lý Tài Khoản & Phân Quyền',
+    lookup: 'Tra Cứu Đơn Hàng & Hỗ Trợ Khách',
     revenue: 'Báo Cáo & Thống Kê Doanh Thu'
   };
   return titles[activeTab.value];
@@ -375,6 +391,7 @@ const getTabDesc = computed(() => {
     rooms: 'Thiết kế trực quan sơ đồ không gian rạp, quản lý các loại ghế (Thường, VIP, Đôi) và lối đi.',
     genres: 'Quản lý danh mục thể loại phim của hệ thống CineGo.',
     users: 'Thêm, sửa, phân quyền (Admin/Staff/User) và khóa/mở khóa tài khoản người dùng.',
+    lookup: 'Tìm đơn theo SĐT/email/mã đơn khi khách quên mã vé, xem ghế & bắp nước đã mua để hỗ trợ.',
     revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.'
   };
   return descs[activeTab.value];
