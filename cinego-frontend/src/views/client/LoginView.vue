@@ -136,7 +136,7 @@ const handleLogin = async () => {
 
 .form-input {
   background: var(--bg-tertiary);
-  color: red;
+  color: var(--text-primary);
   border: 1px solid var(--border-glass);
   padding: 14px 18px;
   border-radius: var(--radius-md);
