@@ -10,6 +10,7 @@ use App\Models\Review;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 
@@ -25,8 +26,8 @@ class UserController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -45,7 +46,16 @@ class UserController extends Controller
             $query->where('membership_tier', $request->membership_tier);
         }
 
-        $users = $query->orderBy('id', 'desc')->get();
+        $users = $query->orderBy('id', 'desc')->get()->map(function ($u) {
+            if ($u->avatar_url) {
+                // Nếu path lưu trong DB chưa có http, tự tạo URL đầy đủ
+                $u->avatar_url = str_starts_with($u->avatar_url, 'http') ? $u->avatar_url : url($u->avatar_url);
+            } else {
+                $u->avatar_url = url('/storage/avatars/default.png');
+            }
+            return $u;
+        });
+
         return response()->json(['success' => true, 'data' => $users], 200);
     }
 
@@ -53,6 +63,12 @@ class UserController extends Controller
     public function show($id)
     {
         $user = User::with('bookings')->findOrFail($id);
+
+        if ($user->avatar_url) {
+            $user->avatar_url = str_starts_with($user->avatar_url, 'http') ? $user->avatar_url : url($user->avatar_url);
+        } else {
+            $user->avatar_url = url('/storage/avatars/default.png');
+        }
 
         $bookings = $user->bookings;
         $bookingIds = $bookings->pluck('id');
@@ -281,5 +297,122 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $user->delete();
         return response()->json(['success' => true, 'message' => 'Đã xóa tài khoản!'], 200);
+    }
+
+    // Lấy thông tin tài khoản hiện tại (Đã ép hàm url() bảo mật)
+    public function profile(Request $request)
+    {
+        $user = $request->user();
+        if ($user->avatar_url) {
+            $user->avatar_url = str_starts_with($user->avatar_url, 'http') ? $user->avatar_url : url($user->avatar_url);
+        } else {
+            $user->avatar_url = url('/storage/avatars/default.png');
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $user
+        ], 200);
+    }
+
+    // Cập nhật thông tin profile cá nhân
+    public function updateProfile(Request $request, $id)
+    {
+        if ($request->user()->id != $id && $request->user()->role !== 'admin') {
+            return response()->json(['success' => false, 'message' => 'Hành động không hợp lệ!'], 403);
+        }
+
+        $user = User::findOrFail($id);
+
+        $request->validate([
+            'name'  => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+        ]);
+
+        $user->name = $request->name;
+        $user->phone = $request->phone;
+
+        if ($request->has('birthday')) {
+            $user->birthday = $request->birthday;
+        }
+
+        $user->save();
+
+        if ($user->avatar_url) {
+            $user->avatar_url = str_starts_with($user->avatar_url, 'http') ? $user->avatar_url : url($user->avatar_url);
+        } else {
+            $user->avatar_url = url('/storage/avatars/default.png');
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cập nhật thông tin tài khoản thành công!',
+            'data'    => $user
+        ], 200);
+    }
+
+    // Thay đổi mật khẩu (có chặn trùng mật khẩu cũ)
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'old_password' => 'required|string',
+            'new_password' => 'required|string|min:8',
+        ]);
+
+        $user = $request->user();
+
+        if (!Hash::check($request->old_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mật khẩu hiện tại nhập không chính xác!'
+            ], 422);
+        }
+
+        if (Hash::check($request->new_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mật khẩu mới không được trùng với mật khẩu hiện tại!'
+            ], 422);
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Thay đổi mật khẩu tài khoản thành công!'
+        ], 200);
+    }
+
+    // Tải ảnh đại diện
+    public function uploadAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $user = $request->user();
+
+        if ($request->hasFile('avatar')) {
+            // SỬA ĐOẠN NÀY: Xóa file ảnh cũ an toàn bằng cách lấy tên file gốc
+            if ($user->avatar_url) {
+                $fileName = basename($user->avatar_url); // Lấy chính xác tên file (vd: abc.png)
+                Storage::disk('public')->delete('avatars/' . $fileName);
+            }
+
+            // Tiến hành lưu ảnh mới vào thư mục storage/app/public/avatars
+            $path = $request->file('avatar')->store('avatars', 'public');
+
+            // Lưu path ngắn vào DB
+            $user->avatar_url = '/storage/' . $path;
+            $user->save();
+
+            return response()->json([
+                'success' => true,
+                'avatar_url' => url($user->avatar_url) // Trả ra ngoài đầy đủ link chạy được luôn
+            ], 200);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Không tìm thấy file ảnh tải lên!'], 400);
     }
 }

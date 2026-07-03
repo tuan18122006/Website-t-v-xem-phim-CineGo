@@ -89,6 +89,23 @@ class AuthController extends Controller
 
     public function userProfile(Request $request)
     {
-        return response()->json($request->user());
+        // Lấy thông tin user mới nhất từ Database để đảm bảo có cột avatar_url
+        $user = \App\Models\User::findOrFail($request->user()->id);
+
+        // Nếu có avatar, tự động biến đổi thành link HTTP đầy đủ cho Frontend hiển thị
+        if ($user->avatar_url) {
+            $user->avatar_url = str_starts_with($user->avatar_url, 'http')
+                ? $user->avatar_url
+                : url($user->avatar_url);
+        } else {
+            // Nếu chưa up ảnh, trả về ảnh mặc định hệ thống
+            $user->avatar_url = url('/storage/avatars/default.png');
+        }
+
+        // Trả về đúng cấu trúc gói data giống như UserController
+        return response()->json([
+            'success' => true,
+            'data' => $user
+        ], 200);
     }
 }

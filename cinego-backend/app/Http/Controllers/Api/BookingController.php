@@ -148,4 +148,50 @@ class BookingController extends Controller
             ], 422);
         }
     }
+
+    public function userHistory(Request $request)
+    {
+        $userId = auth()->id();
+
+        // Eager load các mối quan hệ dựa theo logic database của con
+        $bookings = Booking::with([
+            'showtime.movie:id,title',
+            'showtime.room:id,name',
+            'bookingDetails.seat' // Lấy chi tiết vé kèm thông tin hàng và số ghế
+        ])
+        ->where('user_id', $userId)
+        ->orderBy('id', 'desc')
+        ->get();
+
+        // Biến đổi dữ liệu sang định dạng mà Frontend Vue 3 đang chờ
+        $formattedTickets = $bookings->map(function ($booking) {
+            
+            // Duyệt qua mảng chi tiết hóa đơn để gom lại các chuỗi tên ghế (Ví dụ: "H8", "H9")
+            $seatsList = $booking->bookingDetails->map(function ($detail) {
+                if ($detail->seat) {
+                    return $detail->seat->row . $detail->seat->number;
+                }
+                return null;
+            })->filter()->values()->toArray();
+
+            return [
+                'id'           => $booking->id,
+                'booking_code' => $booking->booking_code,
+                'movie_title'  => $booking->showtime->movie->title ?? 'Phim hệ thống',
+                'room_name'    => $booking->showtime->room->name ?? 'Phòng chiếu CineGo',
+                // Định dạng giờ chiếu (H:i) và ngày chiếu (Y-m-d) để Vue so sánh bộ lọc tự động
+                'start_time'   => $booking->showtime->start_time ? Carbon::parse($booking->showtime->start_time)->format('H:i') : '00:00',
+                'date'         => $booking->showtime->date ? Carbon::parse($booking->showtime->date)->format('Y-m-d') : Carbon::now()->format('Y-m-d'),
+                'seats'        => count($seatsList) > 0 ? $seatsList : ['Không rõ'],
+                'total_price'  => $booking->total_amount,
+                'status'       => $booking->payment_status, // Trả về 'paid' hoặc 'cancelled'
+                'status_label' => $booking->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa hoàn tất'
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data'    => $formattedTickets
+        ], 200);
+    }
 }
