@@ -203,5 +203,10 @@ class DatabaseSeeder extends Seeder
                 ]);
             }
         }
+
+        // 8. Gọi thêm các Seeder phim khác (Dune, Godzilla, v.v.)
+        $this->call([
+            MovieSeeder::class,
+        ]);
     }
 }

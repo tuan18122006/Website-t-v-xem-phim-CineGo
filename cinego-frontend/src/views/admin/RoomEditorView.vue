@@ -19,8 +19,11 @@
         <button @click="changeType('standard')" class="tool-btn standard-btn">Trở thành Ghế Thường</button>
         <button @click="changeType('vip')" class="tool-btn vip-btn">Trở thành VIP</button>
         <button @click="changeType('couple')" class="tool-btn couple-btn">Trở thành Ghế Đôi</button>
-        <button @click="changeType('hidden')" class="tool-btn hidden-btn">Tạo Lối đi (Khoảng trống)</button>
+        <button @click="changeType('hidden')" class="tool-btn hidden-btn">Khoảng Trống Bỏ Đi</button>
+        <button @click="addGapCol" class="tool-btn gap-col-btn">Chèn Lối đi Dọc</button>
+        <button @click="addGapRow" class="tool-btn gap-row-btn">Chèn Lối đi Ngang</button>
       </div>
+      <button @click="removeGaps" class="tool-btn gap-clear-btn" v-if="layout.gap_cols.length || layout.gap_rows.length">Xóa toàn bộ Lối đi</button>
     </div>
 
     <div class="glass-panel editor-card">
@@ -30,6 +33,7 @@
         <SeatMap 
           ref="seatMapRef"
           :seats="seats" 
+          :layout="layout"
           mode="admin" 
           @selection-changed="handleSelectionChanged"
         />
@@ -49,6 +53,7 @@ const route = useRoute();
 const router = useRouter();
 const roomId = route.params.id;
 const seats = ref([]);
+const layout = ref({ gap_cols: [], gap_rows: [] });
 const roomName = ref('...');
 const loading = ref(true);
 
@@ -59,6 +64,7 @@ const fetchRoomDetails = async () => {
   try {
     const res = await api.get(`/admin/rooms/${roomId}`);
     roomName.value = res.data.data.room.name;
+    layout.value = res.data.data.room.layout || { gap_cols: [], gap_rows: [] };
     seats.value = res.data.data.seats;
     loading.value = false;
   } catch (err) { console.error(err); }
@@ -144,10 +150,42 @@ const changeType = (targetType) => {
   }
 };
 
+const addGapCol = () => {
+  if (currentSelectedIds.value.length === 0) return;
+  const cols = new Set();
+  currentSelectedIds.value.forEach(id => {
+    const seat = seats.value.find(s => s.id === id);
+    if(seat) cols.add(seat.number);
+  });
+  cols.forEach(c => {
+    if(!layout.value.gap_cols.includes(c)) layout.value.gap_cols.push(c);
+  });
+  if (seatMapRef.value) seatMapRef.value.clearSelection();
+};
+
+const addGapRow = () => {
+  if (currentSelectedIds.value.length === 0) return;
+  const rows = new Set();
+  currentSelectedIds.value.forEach(id => {
+    const seat = seats.value.find(s => s.id === id);
+    if(seat) rows.add(seat.row);
+  });
+  rows.forEach(r => {
+    if(!layout.value.gap_rows.includes(r)) layout.value.gap_rows.push(r);
+  });
+  if (seatMapRef.value) seatMapRef.value.clearSelection();
+};
+
+const removeGaps = () => {
+  layout.value.gap_cols = [];
+  layout.value.gap_rows = [];
+};
+
 const saveSeats = async () => {
   try {
     await api.put(`/admin/rooms/${roomId}/update-seat-map`, {
-      seats: seats.value.map(s => ({ id: s.id, type: s.type }))
+      seats: seats.value.map(s => ({ id: s.id, type: s.type })),
+      layout: layout.value
     });
     toast("Lưu sơ đồ thành công!");
     router.push({ name: 'admin-dashboard' }); 
@@ -190,6 +228,9 @@ onMounted(fetchRoomDetails);
 .vip-btn { background: linear-gradient(145deg, #ef4444, #b91c1c); border: 1px solid #f87171; }
 .couple-btn { background: linear-gradient(145deg, #ec4899, #be185d); border: 1px solid #f472b6; }
 .hidden-btn { background: transparent; border: 2px dashed #64748b; color: #cbd5e1; }
+.gap-col-btn { background: linear-gradient(145deg, #3b82f6, #1d4ed8); border: 1px solid #60a5fa; }
+.gap-row-btn { background: linear-gradient(145deg, #8b5cf6, #6d28d9); border: 1px solid #a78bfa; }
+.gap-clear-btn { background: linear-gradient(145deg, #f59e0b, #d97706); border: 1px solid #fbbf24; margin-left: 20px;}
 
 .editor-card { padding: 30px; overflow-x: auto; min-height: 500px; }
 .seat-map-wrapper { display: flex; justify-content: center; }

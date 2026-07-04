@@ -80,7 +80,10 @@
                       @click="bookTicket(movie, st)"
                     >
                       <div class="st-time">{{ st.start_time }} <span class="st-end">~ {{ st.end_time }}</span></div>
-                      <div class="st-format">{{ st.format }} • {{ st.translation }}</div>
+                      <div class="st-format">
+                        {{ st.format }} • {{ st.translation }}
+                        <span v-if="st.is_sneak_show" class="sneak-badge-client">🔥 Suất chiếu sớm</span>
+                      </div>
                     </button>
                   </div>
                 </div>
