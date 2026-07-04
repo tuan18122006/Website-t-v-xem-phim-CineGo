@@ -202,8 +202,8 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import api from '../../api/axios';
 import { toast, confirmDialog } from '../../utils/alert';
+import api from '../../api/axios';
 
 const movies = ref([]);
 const genres = ref([]);
@@ -242,15 +242,15 @@ const form = ref({
 // BỘ LỌC TỰ ĐỘNG DỊCH URL CHUẨN XÁC: Đảm bảo ảnh poster được lấy đúng Host API port 8000
 const getPosterUrl = (url) => {
   if (!url) return 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=100&q=80';
-
-  // Tránh dịch các URL preview dạng blob tạm thời
+  
+  if (url.startsWith('http')) return url;
   if (url.startsWith('blob:')) return url;
 
-  // Dịch port localhost nếu database bị lệch URL do .env cũ
-  if (url.startsWith('http://localhost/storage/')) {
-    return url.replace('http://localhost/storage/', 'http://127.0.0.1:8000/storage/');
-  }
-  return url;
+  // Lấy tên file hoặc đường dẫn sau thư mục posters
+  const cleanPath = url.replace(/^(.*\/storage\/)/, '');
+
+  // Trỏ đúng về port 8000 của Backend
+  return `http://127.0.0.1:8000/storage/${cleanPath}`;
 };
 
 const handleImageError = (event) => {
@@ -377,45 +377,10 @@ const fetchGenres = async () => {
 
 const errors = ref({});
 
-const validateForm = () => {
-  errors.value = {};
-  let isValid = true;
-
-  if (!form.value.title || form.value.title.trim() === '') {
-    errors.value.title = ['Vui lòng nhập tên phim.'];
-    isValid = false;
-  }
-
-  if (!form.value.slug || form.value.slug.trim() === '') {
-    errors.value.slug = ['Đường dẫn tĩnh không hợp lệ.'];
-    isValid = false;
-  }
-
-  if (!form.value.duration || form.value.duration <= 0) {
-    errors.value.duration = ['Thời lượng phim phải lớn hơn 0 phút.'];
-    isValid = false;
-  }
-
-  if (!form.value.release_date) {
-    errors.value.release_date = ['Vui lòng chọn ngày khởi chiếu.'];
-    isValid = false;
-  }
-
-  if (!form.value.genre_ids || form.value.genre_ids.length === 0) {
-    errors.value.genre_ids = ['Vui lòng chọn ít nhất 1 thể loại.'];
-    isValid = false;
-  }
-
-  if (!isEdit.value && !selectedFile.value) {
-    errors.value.poster = ['Vui lòng chọn ảnh poster cho phim mới.'];
-    isValid = false;
-  }
-
-  return isValid;
-};
 
 const saveMovie = async () => {
-  if (!validateForm()) return;
+  // 1. XÓA SẠCH LỖI CŨ NGAY KHI BẤM NÚT
+  errors.value = {}; 
   
   submitting.value = true;
 
@@ -450,11 +415,12 @@ const saveMovie = async () => {
     await fetchMovies(false);
   } catch (err) {
     console.error("Lỗi khi lưu phim:", err);
+    // 2. NẾU LỖI LÀ 422, LẤY LỖI TỪ BACKEND GÁN VÀO BIẾN ERRORS
     if (err.response?.status === 422) {
       errors.value = err.response.data.errors || {};
-      toast("Lỗi xác thực dữ liệu", "error");
+      toast("Vui lòng kiểm tra lại thông tin!", "error");
     } else {
-      toast("Không thể lưu phim. Kiểm tra lại!", "error");
+      toast("Có lỗi xảy ra, vui lòng thử lại!", "error");
     }
   } finally {
     submitting.value = false;

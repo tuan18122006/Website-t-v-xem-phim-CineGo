@@ -64,6 +64,16 @@
           <span>Quản Lý Tài Khoản</span>
         </button>
 
+         <button class="nav-link" :class="{ active: activeTab === 'combos' }" @click="activeTab = 'combos'">
+          <span class="nav-icon">🍿</span>
+          <span>Quản Lý Đồ Ăn Và Combo</span>
+        </button>
+         
+        <button class="nav-link" :class="{ active: activeTab === 'vouchers' }" @click="activeTab = 'vouchers'">
+          <span class="nav-icon">🎟️</span>
+          <span>Quản Lý Mã Giảm Giá</span>
+        </button>
+
         <button
           class="nav-link"
           :class="{ active: activeTab === 'lookup' }"
@@ -239,6 +249,14 @@
         <RoomsView />
       </div>
 
+      <div v-show="activeTab === 'combos'">
+        <ComboSelection />
+      </div>
+
+      <div v-show="activeTab === 'vouchers'">
+        <VoucherManager />
+      </div>
+
       <div v-show="activeTab === 'genres'">
         <GenreManagement />
       </div>
@@ -308,6 +326,10 @@ import BookingLookupView from './BookingLookupView.vue';
 import RoomsView from './RoomManagementView.vue';
 import RoomManagementView from './RoomManagementView.vue';
 import RoomEditorView from './RoomEditorView.vue';
+import ComboSelection from './ComboSelection.vue'; 
+import VoucherManager from './VoucherManager.vue';
+
+
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -376,7 +398,9 @@ const getTabTitle = computed(() => {
     genres: 'Quản Lý Thể Loại Phim',
     users: 'Quản Lý Tài Khoản & Phân Quyền',
     lookup: 'Tra Cứu Đơn Hàng & Hỗ Trợ Khách',
-    revenue: 'Báo Cáo & Thống Kê Doanh Thu'
+    revenue: 'Báo Cáo & Thống Kê Doanh Thu',
+    combos: 'Quản Lý Combo và Đồ ăn',
+
   };
   return titles[activeTab.value];
 });
@@ -392,7 +416,9 @@ const getTabDesc = computed(() => {
     genres: 'Quản lý danh mục thể loại phim của hệ thống CineGo.',
     users: 'Thêm, sửa, phân quyền (Admin/Staff/User) và khóa/mở khóa tài khoản người dùng.',
     lookup: 'Tìm đơn theo SĐT/email/mã đơn khi khách quên mã vé, xem ghế & bắp nước đã mua để hỗ trợ.',
-    revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.'
+    revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.',
+    combos: 'Thêm, sửa, xóa, combo và đồ ăn kiểm kê số lượng tồn trong kho',
+
   };
   return descs[activeTab.value];
 });

@@ -10,6 +10,7 @@ const SeatSelection = () => import("../views/client/SeatSelectionView.vue");
 const Payment = () => import("../views/client/PaymentView.vue");
 const Login = () => import("../views/client/LoginView.vue");
 const Register = () => import("../views/client/RegisterView.vue");
+const PaymentResult = () => import("../views/client/PaymentResultView.vue");
 const QuickBooking = () => import("../views/client/QuickBookingView.vue");
 const ReviewPhim = () => import("../views/client/ReviewPhimView.vue");
 const TopMovies = () => import("../views/client/TopMoviesView.vue");
@@ -59,6 +60,11 @@ const routes = [
     name: "payment",
     component: Payment,
     meta: { requiresAuth: true },
+  },
+  {
+    path: "/payment-result",
+    name: "payment-result",
+    component: PaymentResult,
   },
   {
     path: "/login",
@@ -128,11 +134,24 @@ const routes = [
     component: () => import("../views/admin/MoviesView.vue"),
   },
   {
+    path: "/admin/combos",
+    name: "admin-ComboManagement",
+    component: () => import("../views/admin/ComboSelection.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
+    path: "/admin/vouchers",
+    name: "admin-VoucherManagement",
+    component: () => import("../views/admin/VoucherManager.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
     path: "/admin/users",
     name: "admin-UserManagement",
     component: () => import("../views/admin/UserManagement.vue"),
     meta: { requiresAuth: true, role: "admin" },
   },
+
   
 
   // Wildcard redirect
