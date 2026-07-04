@@ -38,13 +38,13 @@
     <div v-if="isCreateModalOpen" class="modal-overlay-cine">
       <div class="glass-panel modal-content-cine">
         <div class="modal-header">
-          <h3 style="margin: 0;">➕ Thêm Rạp Mới</h3>
+          <h3 style="margin: 0;">➕ Thêm Phòng Chiếu Mới</h3>
           <button class="close-btn" @click="isCreateModalOpen = false">×</button>
         </div>
         <div class="modal-body">
           <div class="form-group-cine">
-            <label>Tên Rạp</label>
-            <input v-model="newRoomName" placeholder="Ví dụ: Rạp 01" class="input-cine" />
+            <label>Tên Phòng Chiếu</label>
+            <input v-model="newRoomName" placeholder="Ví dụ: Phòng 01" class="input-cine" />
             <span v-if="errors.newRoomName" class="error-msg">{{ errors.newRoomName[0] }}</span>
           </div>
           <div class="grid-inputs">
@@ -63,7 +63,7 @@
         <br>
         <div class="modal-footer">
           <button @click="isCreateModalOpen = false" class="btn-secondary-cine">Hủy</button>
-          <button @click="saveRoom" class="btn-primary-cine">Lưu Rạp</button>
+          <button @click="saveRoom" class="btn-primary-cine">Lưu Phòng Chiếu</button>
         </div>
       </div>
     </div>
@@ -97,7 +97,7 @@ const validateForm = () => {
   let isValid = true;
 
   if (!newRoomName.value || newRoomName.value.trim() === '') {
-    errors.value.newRoomName = ['Vui lòng nhập tên rạp.'];
+    errors.value.newRoomName = ['Vui lòng nhập tên phòng chiếu.'];
     isValid = false;
   }
 

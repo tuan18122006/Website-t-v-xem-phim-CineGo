@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\SeatHoldController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\BookingLookupController;
+use App\Http\Controllers\Api\PricingRuleController;
 
 
 // Đăng ký / Đăng nhập
@@ -71,7 +72,12 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     Route::put('/movies/{id}', [MovieController::class, 'update']);
     Route::delete('/movies/{id}', [MovieController::class, 'destroy']);
 
+    // Cấu hình giá vé
+    Route::get('/pricing-rules', [PricingRuleController::class, 'index']);
+    Route::put('/pricing-rules', [PricingRuleController::class, 'update']);
+
     // Route của suất chiếu
+    Route::get('/showtimes/suggest-price', [ShowtimeController::class, 'suggestPrice']);
     Route::get('/showtimes', [ShowtimeController::class, 'index']);
     Route::post('/showtimes', [ShowtimeController::class, 'store']);
     Route::put('/showtimes/{id}', [ShowtimeController::class, 'update']);
