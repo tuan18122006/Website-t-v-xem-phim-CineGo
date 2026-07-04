@@ -190,6 +190,27 @@
       </div>
     </section>
 
+    <section class="home-featured-comments-section">
+      <div class="home-featured-comments-container">
+        <h2 class="home-featured-comments-title">Bình luận tiêu biểu</h2>
+        <div class="home-featured-comments-grid">
+          <div v-for="comment in featuredComments" :key="comment.id" class="home-featured-comment-card">
+            <div class="comment-card-header">
+              <div class="comment-user-block">
+                <span class="comment-avatar">{{ getInitials(comment.userName) }}</span>
+                <div>
+                  <p class="comment-movie">{{ comment.movieTitle }}</p>
+                  <p class="comment-user">{{ comment.userName }} • {{ comment.timeAgo }}</p>
+                </div>
+              </div>
+              <span class="comment-rating">{{ comment.rating }}/5</span>
+            </div>
+            <p class="comment-text">{{ comment.comment }}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- TRAILER MODAL -->
     <div v-if="isTrailerOpen" class="trailer-modal-backdrop" @click.self="closeTrailer">
       <div class="trailer-modal-content">
@@ -231,6 +252,92 @@ const genreList = ref([
   { id: 4, name: 'Kinh Dị' },
   { id: 5, name: 'Phiêu Lưu' }
 ]);
+
+const featuredComments = ref([]);
+
+const allFeaturedComments = [
+  {
+    id: 'f-1',
+    movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
+    userName: 'Thanh Hòa',
+    timeAgo: '2 giờ trước',
+    rating: 5,
+    comment: 'Kỹ xảo cực đã, xem rạp xin luôn trải nghiệm này.'
+  },
+  {
+    id: 'f-2',
+    movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
+    userName: 'Minh Quân',
+    timeAgo: '4 giờ trước',
+    rating: 4,
+    comment: 'Cốt truyện phức tạp nhưng vẫn rất cuốn. Nên xem vài lần mới hiểu hết.'
+  },
+  {
+    id: 'f-3',
+    movieTitle: 'Avatar: Dòng Chảy Của Nước',
+    userName: 'Thu Trang',
+    timeAgo: '30 phút trước',
+    rating: 5,
+    comment: 'Màu sắc và không gian nước rất đẹp, như bước vào một thế giới khác.'
+  },
+  {
+    id: 'f-4',
+    movieTitle: 'Avatar: Dòng Chảy Của Nước',
+    userName: 'Phúc Lộc',
+    timeAgo: '1 giờ trước',
+    rating: 5,
+    comment: 'Cảnh hành động hoành tráng quá! Nhạc phim cũng rất phù hợp.'
+  },
+  {
+    id: 'f-5',
+    movieTitle: 'Kẻ Kiến Tạo (The Creator)',
+    userName: 'Hà Vy',
+    timeAgo: '15 phút trước',
+    rating: 4,
+    comment: 'Đề tài AI rất hợp thời, cảm xúc nhẹ nhàng mà vẫn sâu sắc.'
+  },
+  {
+    id: 'f-6',
+    movieTitle: 'Kẻ Kiến Tạo (The Creator)',
+    userName: 'Tuấn Anh',
+    timeAgo: '3 giờ trước',
+    rating: 5,
+    comment: 'Diễn xuất nhập vai, kịch bản có nhiều twist bất ngờ.'
+  },
+  {
+    id: 'f-7',
+    movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
+    userName: 'Lan Anh',
+    timeAgo: '2 ngày trước',
+    rating: 5,
+    comment: 'Thích nhất phần xây dựng đa vũ trụ, mọi thứ rất mượt.'
+  },
+  {
+    id: 'f-8',
+    movieTitle: 'Avatar: Dòng Chảy Của Nước',
+    userName: 'Phương Nam',
+    timeAgo: '5 giờ trước',
+    rating: 4,
+    comment: 'Tiết tấu vừa phải, phù hợp đi xem cùng gia đình.'
+  },
+  {
+    id: 'f-9',
+    movieTitle: 'Kẻ Kiến Tạo (The Creator)',
+    userName: 'Kim Ngọc',
+    timeAgo: '7 giờ trước',
+    rating: 5,
+    comment: 'Khoa học viễn tưởng và triết lý kết hợp rất tốt.'
+  }
+];
+
+const shuffleArray = (arr) => {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+};
 
 const filters = ref({
   genre_id: '',
@@ -397,7 +504,15 @@ const scrollUpcoming = (direction) => {
   }
 };
 
+const getInitials = (name) => {
+  if (!name) return 'U';
+  const parts = name.trim().split(' ').filter(Boolean);
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+};
+
 onMounted(() => {
+  featuredComments.value = shuffleArray(allFeaturedComments).slice(0, 5);
   fetchMovies();
   slideInterval = setInterval(nextSlide, 5000);
 });
@@ -411,4 +526,119 @@ onUnmounted(() => {
 
 <style scoped>
 @import '../../assets/css/pages/home-view.css';
+
+.home-featured-comments-section {
+  padding: 48px 0 28px;
+  background: radial-gradient(circle at top left, rgba(96, 165, 250, 0.16), transparent 34%),
+    radial-gradient(circle at top right, rgba(236, 72, 153, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 1) 100%);
+}
+
+.home-featured-comments-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.home-featured-comments-title {
+  font-size: 30px;
+  font-weight: 900;
+  color: #dc2626;
+  margin-bottom: 22px;
+  letter-spacing: -0.04em;
+  text-shadow: 0 4px 18px rgba(220, 38, 38, 0.12);
+}
+
+.home-featured-comments-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.home-featured-comment-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(252, 232, 255, 0.92));
+  border: 1px solid rgba(168, 85, 247, 0.24);
+  border-radius: 32px;
+  box-shadow: 0 20px 55px rgba(59, 130, 246, 0.14);
+  padding: 28px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.home-featured-comment-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 28px 78px rgba(59, 130, 246, 0.22);
+}
+
+.comment-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.comment-user-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.comment-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ec4899 0%, #f97316 100%);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 14px;
+  box-shadow: 0 12px 28px rgba(236, 72, 153, 0.18);
+}
+
+.comment-movie {
+  font-size: 15px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0 0 6px;
+}
+
+.comment-user {
+  font-size: 13px;
+  color: #7c3aed;
+  margin: 0;
+}
+
+.comment-rating {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  height: 36px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ec4899 0%, #f59e0b 100%);
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.comment-text {
+  color: #334155;
+  font-size: 15px;
+  line-height: 1.9;
+  margin: 0;
+}
+
+@media (max-width: 1024px) {
+  .home-featured-comments-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .home-featured-comments-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

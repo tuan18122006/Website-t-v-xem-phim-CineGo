@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ShowtimeController;
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\SeatHoldController;
+use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\BookingLookupController;
@@ -20,6 +21,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/movies', [MovieController::class, 'index']);
 Route::get('/movies/search', [MovieController::class, 'search']);
 Route::get('/movies/{id}', [MovieController::class, 'show']);
+Route::get('/movies/{movieId}/reviews', [ReviewController::class, 'index']);
 
 // Suất chiếu & Sơ đồ ghế công khai
 Route::get('/showtimes/by-date', [ShowtimeController::class, 'getShowtimesByDate']);
@@ -38,6 +40,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/seat-holds/release', [SeatHoldController::class, 'release']);
 
     Route::post('/bookings', [BookingController::class, 'store']);
+    Route::post('/movies/{movieId}/reviews', [ReviewController::class, 'store']);
+    Route::put('/movies/{movieId}/reviews/{reviewId}', [ReviewController::class, 'update']);
+    Route::delete('/movies/{movieId}/reviews/{reviewId}', [ReviewController::class, 'destroy']);
 });
 
 // =========================================================================
