@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+﻿@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
 
 :root {
   --bg-primary: #ffffff;
@@ -166,3 +166,6 @@ textarea {
 .pulse-active {
   animation: pulse-glow 2s infinite ease-in-out;
 }
+
+.sneak-badge-client { background-color: #ff4757; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; vertical-align: text-top; white-space: nowrap; }
+

@@ -31,7 +31,11 @@ class RoomController extends Controller
         $room = Room::create([
             'name' => $request->name,
             'total_seats' => $request->rows * $request->cols,
-            'status' => 'active'
+            'status' => 'active',
+            'layout' => [
+                'gap_cols' => [],
+                'gap_rows' => []
+            ]
         ]);
 
         $rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
@@ -94,8 +98,17 @@ class RoomController extends Controller
             ], 400);
         }
 
-        if (empty($request->seats)) {
+        if (empty($request->seats) && !$request->has('layout')) {
             return response()->json(['message' => 'Cập nhật thành công']);
+        }
+
+        if ($request->has('layout')) {
+            $room->layout = $request->layout;
+            $room->save();
+        }
+
+        if (empty($request->seats)) {
+            return response()->json(['message' => 'Cập nhật layout thành công']);
         }
 
         $cases = [];
