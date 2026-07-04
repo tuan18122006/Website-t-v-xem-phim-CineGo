@@ -47,7 +47,7 @@
         <div v-else class="movies-carousel">
           <div v-for="(movie, index) in activeMovies" :key="movie.id" class="movie-carousel-card">
             <div class="poster-container">
-              <img :src="movie.poster_url" :alt="movie.title" class="carousel-poster" @click="goToDetail(movie.id)" />
+              <img :src="getPosterUrl(movie.poster_url)" :alt="movie.title" class="carousel-poster" @click="goToDetail(movie.id)" />
 
               <div class="play-overlay" @click="goToDetail(movie.id)">
                 <div class="play-icon-btn" @click.stop="openTrailer(movie.trailer_url)">
@@ -90,7 +90,7 @@
           <div class="movies-carousel-light" ref="upcomingCarouselRef">
             <div v-for="movie in upcomingMovies" :key="'upcoming-' + movie.id" class="movie-card-light">
               <div class="poster-container-light">
-                <img :src="movie.poster_url" :alt="movie.title" class="poster-light" @click="goToDetail(movie.id)" />
+                <img :src="getPosterUrl(movie.poster_url)" :alt="movie.title" class="poster-light" @click="goToDetail(movie.id)" />
 
                 <div class="play-overlay" @click="goToDetail(movie.id)">
                   <div class="play-icon-btn" @click.stop="openTrailer(movie.trailer_url)">
@@ -169,7 +169,7 @@
         <div v-else class="cg-filter-movies-grid">
           <div v-for="movie in filteredMovies" :key="'filter-' + movie.id" class="cg-filter-movie-card">
             <div class="cg-filter-poster-box">
-              <img :src="movie.poster_url" :alt="movie.title" class="cg-filter-movie-poster" @click="goToDetail(movie.id)" />
+              <img :src="getPosterUrl(movie.poster_url)" :alt="movie.title" class="cg-filter-movie-poster" @click="goToDetail(movie.id)" />
               <div class="cg-filter-play-overlay" @click="goToDetail(movie.id)">
                 <div class="cg-filter-play-icon-btn" @click.stop="openTrailer(movie.trailer_url)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
@@ -290,9 +290,13 @@ const closeTrailer = () => {
 const activeMovies = computed(() => {
   return movies.value.filter(movie => {
     if (!movie.status) return false;
-    // Chuẩn hóa chữ thường, đổi gạch dưới thành gạch ngang để khớp chính xác cấu trúc filter
-    const s = movie.status.toLowerCase().replace(/[\s_]/g, '-');
-    return s === 'showing' || s === 'now-showing' || s === 'now_showing';
+    // Chuyển về chữ thường để so sánh
+    const s = movie.status.toLowerCase();
+    return s === 'showing' || 
+           s === 'now-showing' || 
+           s === 'now_showing' || 
+           s === 'đang-chiếu' || // Thêm trường hợp này
+           s === 'đang chiếu';   // Và trường hợp này
   });
 });
 
@@ -300,10 +304,28 @@ const activeMovies = computed(() => {
 const upcomingMovies = computed(() => {
   return movies.value.filter(movie => {
     if (!movie.status) return false;
+    
+    // Chuẩn hóa trạng thái về dạng chữ thường và thay thế khoảng trắng/gạch dưới bằng gạch ngang
     const s = movie.status.toLowerCase().replace(/[\s_]/g, '-');
-    return s === 'upcoming' || s === 'coming-soon' || s === 'coming_soon';
+    
+    // Thêm các từ khóa tiếng Việt vào điều kiện lọc
+    return s === 'upcoming' || 
+           s === 'coming-soon' || 
+           s === 'coming-soon' || 
+           s === 'sắp-chiếu' || 
+           s === 'sap-chieu';
   });
 });
+
+const getPosterUrl = (url) => {
+  if (!url) return 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=100&q=80';
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('blob:')) return url;
+  
+  // Trỏ về port 8000 của Laravel
+  const cleanPath = url.replace(/^(.*\/storage\/)/, '');
+  return `http://127.0.0.1:8000/storage/${cleanPath}`;
+};
 
 const getRatingClass = (rating) => {
   if (!rating) return 'rating-g';
