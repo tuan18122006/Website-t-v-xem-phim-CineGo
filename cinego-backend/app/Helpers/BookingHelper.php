@@ -16,8 +16,8 @@ class BookingHelper
         
         // Fallback pricing if price configs are missing
         $defaultPrices = [
-            'standard' => 75000.00,
-            'vip' => 95000.00,
+            'standard' => 80000.00,
+            'vip' => 100000.00,
             'couple' => 140000.00,
         ];
 
