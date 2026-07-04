@@ -229,6 +229,11 @@
           <span v-if="submitting" class="btn-spinner"></span>
           <span v-else>Thanh Toán Hóa Đơn</span>
         </button>
+
+        <button type="button" :disabled="submitting" @click="goBackToSeats" class="btn-cancel-payment">
+          Quay Lại Chọn Ghế
+        </button>
+
       </div>
     </div>
   </div>
@@ -262,6 +267,14 @@ const formatCurrency = (val) => {
     style: "currency",
     currency: "VND",
   }).format(val);
+};
+
+const goBackToSeats = () => {
+    // Lệnh này sẽ tự động đưa trình duyệt quay lại trang trước đó (Trang Chọn Ghế)
+    router.back();
+    
+    // Hoặc nếu bạn muốn đẩy chính xác về trang đặt vé/chọn ghế theo tên Route:
+    // router.push({ name: 'select-seats' });
 };
 
 const availableCombos = ref([]);
@@ -475,6 +488,40 @@ const backToHome = () => {
   padding: 16px;
   gap: 20px;
   align-items: center;
+}
+
+.payment-buttons {
+    display: flex;
+    flex-direction: column; /* Xếp dọc nút Hủy nằm dưới nút Thanh Toán */
+    gap: 12px;             /* Khoảng cách giữa 2 nút */
+    margin-top: 15px;
+    width: 100%;
+}
+
+/* Định dạng nút Quay Lại Chọn Ghế */
+.btn-cancel-payment {
+    width: 100%;
+    padding: 12px;
+    background-color: transparent;   /* Nền trong suốt */
+    color: #888888;                  /* Chữ màu xám */
+    border: 1px solid #cccccc;       /* Viền xám mảnh */
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+/* Khi hệ thống đang loading tạo hóa đơn, làm mờ không cho bấm Hủy liên tục */
+.btn-cancel-payment:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Hiệu ứng Hover dành cho nút Hủy */
+.btn-cancel-payment:not(:disabled):hover {
+    background-color: #fcfcfc;
+    color: #333333;                  /* Chữ đậm lên khi hover */
+    border-color: #888888;           /* Viền đậm lên */
 }
 
 .combo-img {
