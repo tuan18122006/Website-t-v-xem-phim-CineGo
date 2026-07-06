@@ -18,4 +18,14 @@ php artisan migrate --seed
 php artisan storage:link
 
 # 7. Chạy server
+cd cinego-backend
 php artisan serve
+cd cinego-frontend
+npm run devn
+
+# 8. Tài khoản test thanh toán
+ Ngân hàng :NCB
+ STK: 9704198526191432198
+ Tên chủ thẻ: NGUYEN VAN A
+ Ngày phát hành: 07/15
+ Mật khẩu OTP: 123456
