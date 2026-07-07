@@ -17,6 +17,7 @@ class Voucher extends Model
         'expires_at',
         'usage_limit',
         'used_count',
+        'is_active',
     ];
 
     protected $casts = [

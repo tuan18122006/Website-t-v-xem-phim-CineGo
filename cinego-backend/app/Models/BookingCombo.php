@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BookingCombo extends Model
 {
-    protected $fillable = ['booking_id', 'combo_id', 'quantity', 'price'];
+    protected $fillable = ['booking_id', 'combo_id', 'quantity', 'price_at_purchase','subtotal'];
 
     public function booking(): BelongsTo
     {

@@ -37,13 +37,17 @@
         </div>
         
         <template v-if="authStore.isAuthenticated">
-          <div class="user-profile">
+          <router-link to="/profile" class="user-profile">
             <span class="user-name">{{ authStore.user?.name }}</span>
-            <span class="user-role">{{ authStore.user?.role === 'admin' ? 'Admin' : 'Thành viên' }}</span>
-          </div>
+            <span class="user-role">{{ authStore.user?.role === 'admin' ? 'Admin' : (authStore.user?.role === 'staff' ? 'Nhân viên' : 'Thành viên') }}</span>
+          </router-link>
           <!-- Admin shortcut link -->
           <router-link v-if="authStore.isAdmin" to="/admin/dashboard" class="btn-admin-panel">
             Admin Panel
+          </router-link>
+          <!-- Staff shortcut link -->
+          <router-link v-if="authStore.isStaff" to="/staff/dashboard" class="btn-admin-panel">
+            Staff Panel
           </router-link>
           <button @click="handleLogout" class="btn-logout">
             Đăng xuất
@@ -257,6 +261,7 @@ const handleLogout = async () => {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  text-decoration: none;
 }
 
 .user-name {
