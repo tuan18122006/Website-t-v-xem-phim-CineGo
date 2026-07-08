@@ -1,0 +1,458 @@
+<style>
+  :root {
+    --gallery: #e7e3db;
+    --gallery-2: #dcd7cd;
+    --ink: #1c1917;
+    --muted: #6f6a63;
+    --hair: #cfc9bd;
+    --cgv-red: #e30613;
+    --cgv-dark: #16110f;
+    --bp-indigo: #17233f;
+    --bp-teal: #0fb5a6;
+    --paper: #ffffff;
+    --font-ui: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-cond: "Arial Narrow", "Helvetica Neue Condensed", "Helvetica Neue", Arial, sans-serif;
+    --font-mono: "Courier New", ui-monospace, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  .stage {
+    min-height: 100%;
+    background:
+      radial-gradient(120% 80% at 50% -10%, var(--gallery) 0%, var(--gallery-2) 70%);
+    color: var(--ink);
+    font-family: var(--font-ui);
+    padding: 48px 24px 80px;
+  }
+
+  .wrap { max-width: 1040px; margin: 0 auto; }
+
+  /* ---------- Page intro ---------- */
+  .intro { margin-bottom: 40px; }
+  .intro__eyebrow {
+    font-size: 12px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+    color: var(--cgv-red);
+  }
+  .intro h1 {
+    font-family: var(--font-cond);
+    font-weight: 800; font-size: clamp(30px, 5vw, 46px);
+    letter-spacing: 0.5px; margin: 10px 0 8px; text-wrap: balance;
+  }
+  .intro p { max-width: 62ch; margin: 0; color: var(--muted); font-size: 15px; line-height: 1.6; }
+
+  /* ---------- Design block ---------- */
+  .design { margin-top: 46px; }
+  .design__bar {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+    padding-bottom: 14px; margin-bottom: 26px;
+    border-bottom: 1px solid var(--hair);
+  }
+  .design__id {
+    display: flex; align-items: baseline; gap: 12px;
+  }
+  .design__num {
+    font-family: var(--font-cond); font-weight: 800; font-size: 40px; line-height: 1;
+    color: var(--ink); opacity: 0.22;
+  }
+  .design__meta h2 { margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.2px; }
+  .design__meta p { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
+  .print-btn {
+    border: 1px solid var(--ink); background: transparent; color: var(--ink);
+    font-family: var(--font-ui); font-size: 13px; font-weight: 700;
+    padding: 9px 16px; border-radius: 999px; cursor: pointer;
+    transition: background .15s, color .15s; white-space: nowrap;
+  }
+  .print-btn:hover { background: var(--ink); color: #fff; }
+  .print-btn:focus-visible { outline: 3px solid var(--cgv-red); outline-offset: 2px; }
+
+  .tickets { display: flex; flex-wrap: wrap; gap: 26px; align-items: flex-start; }
+
+  /* barcode (shared) */
+  .barcode { display: flex; align-items: stretch; height: 46px; gap: 0; background: #fff; }
+  .barcode span { display: block; }
+  .barcode--tall { height: 100%; }
+
+  /* =================================================================
+     MẪU 1 — CGV "CUỐNG VÉ KÉP" (đỏ / đen)
+     ================================================================= */
+  .t1-movie {
+    width: 460px; max-width: 100%;
+    display: grid; grid-template-columns: 118px 1fr;
+    background: #fff; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 22px 50px rgba(20,10,8,.22);
+    font-family: var(--font-ui);
+  }
+  .t1-stub {
+    background: linear-gradient(160deg, var(--cgv-red) 0%, #a30810 100%);
+    color: #fff; padding: 18px 12px; position: relative;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    text-align: center;
+  }
+  .t1-stub::after {
+    content: ""; position: absolute; top: 0; bottom: 0; right: -1px; width: 2px;
+    background-image: radial-gradient(circle, rgba(255,255,255,.9) 1.6px, transparent 1.8px);
+    background-size: 2px 11px; background-repeat: repeat-y;
+  }
+  .t1-stub__label { font-size: 10px; font-weight: 700; letter-spacing: 2px; opacity: .85; }
+  .t1-stub__seat { font-family: var(--font-cond); font-weight: 800; font-size: 52px; line-height: .9; letter-spacing: 1px; }
+  .t1-stub__type { font-size: 11px; font-weight: 700; background: rgba(255,255,255,.2); padding: 3px 9px; border-radius: 999px; }
+  .t1-body { padding: 16px 18px 14px; display: flex; flex-direction: column; gap: 12px; }
+  .t1-brand { display: flex; align-items: center; justify-content: space-between; }
+  .t1-logo { font-family: var(--font-cond); font-weight: 800; font-size: 19px; letter-spacing: .5px; }
+  .t1-logo b { color: var(--cgv-red); }
+  .t1-brand small { font-size: 10px; color: var(--muted); letter-spacing: 1.5px; font-weight: 700; }
+  .t1-title { font-family: var(--font-cond); font-weight: 800; font-size: 23px; line-height: 1.05; text-transform: uppercase; }
+  .t1-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+  .t1-cell span { display: block; font-size: 9.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .t1-cell b { font-size: 14px; }
+  .t1-foot { border-top: 1px dashed var(--hair); padding-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .t1-foot .barcode { flex: 1; }
+  .t1-code { font-family: var(--font-mono); font-size: 12px; font-weight: 700; text-align: right; }
+  .t1-code small { display: block; color: var(--muted); font-weight: 400; font-size: 10px; }
+
+  .t1-combo {
+    width: 300px; max-width: 100%;
+    background: var(--cgv-dark); color: #fff; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 22px 50px rgba(20,10,8,.28); font-family: var(--font-ui);
+  }
+  .t1-combo__top {
+    background: linear-gradient(160deg, var(--cgv-red), #7d060d); padding: 14px 18px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .t1-combo__top b { font-family: var(--font-cond); font-weight: 800; font-size: 18px; letter-spacing: 1px; }
+  .t1-combo__top span { font-size: 26px; }
+  .t1-combo__mid { padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+  .t1-combo__name { font-size: 16px; font-weight: 800; }
+  .t1-combo__line { display: flex; justify-content: space-between; font-size: 12.5px; color: #d9d2cf; }
+  .t1-combo__line b { color: #fff; }
+  .t1-combo__bc { background: #fff; margin: 4px 18px 16px; border-radius: 6px; padding: 7px; }
+
+  /* =================================================================
+     MẪU 2 — BOARDING PASS (indigo / teal)
+     ================================================================= */
+  .t2-movie {
+    width: 620px; max-width: 100%;
+    display: grid; grid-template-columns: 1fr 150px;
+    background: #fbfcfe; border-radius: 16px; overflow: hidden;
+    box-shadow: 0 22px 50px rgba(16,22,40,.22);
+    border: 1px solid #e6eaf2; font-family: var(--font-ui);
+  }
+  .t2-main { padding: 20px 22px; display: flex; flex-direction: column; gap: 16px; }
+  .t2-head { display: flex; align-items: center; justify-content: space-between; }
+  .t2-brand { font-family: var(--font-cond); font-weight: 800; font-size: 20px; letter-spacing: .5px; color: var(--bp-indigo); }
+  .t2-brand b { color: var(--bp-teal); }
+  .t2-tag { font-size: 10px; font-weight: 800; letter-spacing: 2px; color: var(--bp-teal); text-transform: uppercase; }
+  .t2-route { display: flex; align-items: center; gap: 14px; }
+  .t2-route__movie { font-family: var(--font-cond); font-weight: 800; font-size: 25px; line-height: 1; text-transform: uppercase; color: var(--bp-indigo); }
+  .t2-route__dash { flex: 1; height: 2px; background: repeating-linear-gradient(90deg, var(--bp-indigo) 0 6px, transparent 6px 12px); opacity: .3; }
+  .t2-route__ico { font-size: 20px; }
+  .t2-info { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .t2-info > div span { display: block; font-size: 9px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .t2-info > div b { font-size: 15px; color: var(--bp-indigo); }
+  .t2-passenger { border-top: 1px solid #e6eaf2; padding-top: 12px; display: flex; justify-content: space-between; font-size: 12px; }
+  .t2-passenger span { color: var(--muted); }
+  .t2-passenger b { color: var(--bp-indigo); }
+  .t2-stub {
+    background: var(--bp-indigo); color: #fff; position: relative;
+    padding: 20px 14px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center;
+  }
+  .t2-stub::before {
+    content: ""; position: absolute; left: -1px; top: 0; bottom: 0; width: 2px;
+    background-image: radial-gradient(circle, #fbfcfe 1.6px, transparent 1.8px);
+    background-size: 2px 12px;
+  }
+  .t2-stub__seat span { font-size: 9px; letter-spacing: 1.5px; opacity: .7; font-weight: 700; }
+  .t2-stub__seat b { font-family: var(--font-cond); font-size: 44px; line-height: .9; display: block; }
+  .t2-stub__bc { background: #fff; padding: 6px; border-radius: 5px; height: 90px; width: 44px; }
+  .t2-stub__bc .barcode { flex-direction: column; height: 100%; }
+  .t2-stub__code { font-family: var(--font-mono); font-size: 10px; letter-spacing: .5px; }
+
+  .t2-combo {
+    width: 300px; max-width: 100%;
+    display: grid; grid-template-columns: 1fr 74px;
+    background: #fbfcfe; border: 1px solid #e6eaf2; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 18px 40px rgba(16,22,40,.18);
+  }
+  .t2-combo__main { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+  .t2-combo__tag { font-size: 9px; font-weight: 800; letter-spacing: 2px; color: var(--bp-teal); text-transform: uppercase; }
+  .t2-combo__name { font-weight: 800; font-size: 15px; color: var(--bp-indigo); line-height: 1.15; }
+  .t2-combo__row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); }
+  .t2-combo__row b { color: var(--bp-indigo); }
+  .t2-combo__stub { background: var(--bp-teal); color: #06322d; display: flex; align-items: center; justify-content: center; }
+  .t2-combo__stub b { font-family: var(--font-cond); font-weight: 800; font-size: 20px; writing-mode: vertical-rl; letter-spacing: 2px; }
+
+  /* =================================================================
+     MẪU 3 — HÓA ĐƠN NHIỆT (thermal, trắng / mực đen)
+     ================================================================= */
+  .t3-movie, .t3-combo {
+    width: 300px; max-width: 100%;
+    background: #fff; color: #111; font-family: var(--font-mono);
+    padding: 20px 20px 16px;
+    box-shadow: 0 18px 40px rgba(0,0,0,.14);
+    position: relative;
+  }
+  /* zig-zag torn bottom edge */
+  .t3-movie::after, .t3-combo::after {
+    content: ""; position: absolute; left: 0; right: 0; bottom: -8px; height: 8px;
+    background: linear-gradient(135deg, #fff 33%, transparent 0) -10px 0,
+               linear-gradient(-135deg, #fff 33%, transparent 0) -10px 0;
+    background-size: 16px 16px; background-repeat: repeat-x;
+    filter: drop-shadow(0 2px 1px rgba(0,0,0,.08));
+  }
+  .t3-center { text-align: center; }
+  .t3-logo { font-family: var(--font-cond); font-weight: 800; font-size: 26px; letter-spacing: 2px; }
+  .t3-logo b { color: var(--cgv-red); }
+  .t3-sub { font-size: 10.5px; letter-spacing: .5px; color: #333; margin-top: 2px; }
+  .t3-rule { border: 0; border-top: 1px dashed #9a9a9a; margin: 12px 0; }
+  .t3-title { text-align: center; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: .5px; line-height: 1.2; }
+  .t3-line { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; padding: 3px 0; }
+  .t3-line span { color: #555; }
+  .t3-line b { text-align: right; }
+  .t3-seatbig { text-align: center; font-family: var(--font-cond); font-weight: 800; font-size: 40px; letter-spacing: 2px; margin: 4px 0; }
+  .t3-total { display: flex; justify-content: space-between; font-size: 14px; font-weight: 700; padding-top: 4px; }
+  .t3-bc { margin: 12px auto 6px; background: #fff; }
+  .t3-code { text-align: center; font-size: 12px; letter-spacing: 2px; font-weight: 700; }
+  .t3-foot { text-align: center; font-size: 10.5px; color: #444; margin-top: 8px; line-height: 1.5; }
+
+  /* ---------- print ---------- */
+  @media print {
+    @page { margin: 12mm; }
+    .intro, .design__bar, .print-btn { display: none !important; }
+    .stage { background: #fff; padding: 0; }
+    body[data-printing] .design:not([data-active]) { display: none; }
+    body[data-printing] .tickets { gap: 30px; }
+    .t1-movie, .t1-combo, .t2-movie, .t2-combo, .t3-movie, .t3-combo { box-shadow: none; break-inside: avoid; }
+  }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="stage">
+  <div class="wrap">
+    <header class="intro">
+      <div class="intro__eyebrow">CineGo · Xưởng thiết kế vé</div>
+      <h1>Ba mẫu vé để bạn chọn</h1>
+      <p>
+        Mỗi mẫu gồm <strong>vé xem phim</strong> và <strong>vé bắp nước</strong> dùng chung một tông thiết kế,
+        có mã vạch (barcode CSS) và tối ưu để in ra giấy. Xem cả ba, bấm <em>“In thử”</em> để soi bản in,
+        rồi cho tôi biết mẫu bạn muốn dùng — tôi sẽ ghép mẫu đó vào trang chi tiết đơn với dữ liệu thật.
+      </p>
+    </header>
+
+    <!-- ============ MẪU 1 ============ -->
+    <section class="design" data-design="1">
+      <div class="design__bar">
+        <div class="design__id">
+          <div class="design__num">01</div>
+          <div class="design__meta">
+            <h2>Cuống vé kép — kiểu rạp CGV</h2>
+            <p>Đỏ · đen · đường răng cưa xé cuống. Số ghế cỡ lớn, cảm giác vé rạp truyền thống.</p>
+          </div>
+        </div>
+        <button class="print-btn" data-print="1">🖨️ In thử mẫu 01</button>
+      </div>
+
+      <div class="tickets">
+        <!-- Vé xem phim -->
+        <article class="t1-movie">
+          <div class="t1-stub">
+            <span class="t1-stub__label">GHẾ</span>
+            <span class="t1-stub__seat">G7</span>
+            <span class="t1-stub__type">VIP</span>
+          </div>
+          <div class="t1-body">
+            <div class="t1-brand">
+              <span class="t1-logo">Cine<b>Go</b></span>
+              <small>VÉ XEM PHIM</small>
+            </div>
+            <div class="t1-title">Dune: Hành Tinh Cát — Phần Hai</div>
+            <div class="t1-grid">
+              <div class="t1-cell"><span>Rạp / Phòng</span><b>Vincom BT · P.03</b></div>
+              <div class="t1-cell"><span>Suất chiếu</span><b>19:30 · 08/07/2026</b></div>
+              <div class="t1-cell"><span>Định dạng</span><b>2D · Phụ đề</b></div>
+              <div class="t1-cell"><span>Giá vé</span><b>95.000đ</b></div>
+            </div>
+            <div class="t1-foot">
+              <div class="barcode" data-code="TC-9F3K2A"></div>
+              <div class="t1-code">TC-9F3K2A<small>CG-582910</small></div>
+            </div>
+          </div>
+        </article>
+
+        <!-- Vé bắp nước -->
+        <article class="t1-combo">
+          <div class="t1-combo__top">
+            <b>VÉ BẮP NƯỚC</b>
+            <span>🍿</span>
+          </div>
+          <div class="t1-combo__mid">
+            <div class="t1-combo__name">CineGo Combo 1</div>
+            <div class="t1-combo__line"><span>Bắp (lớn) + 2 Coca-Cola</span></div>
+            <div class="t1-combo__line"><span>Số lượng</span><b>× 1</b></div>
+            <div class="t1-combo__line"><span>Thành tiền</span><b>89.000đ</b></div>
+          </div>
+          <div class="t1-combo__bc"><div class="barcode" data-code="CB-77120"></div></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ MẪU 2 ============ -->
+    <section class="design" data-design="2">
+      <div class="design__bar">
+        <div class="design__id">
+          <div class="design__num">02</div>
+          <div class="design__meta">
+            <h2>Boarding pass — kiểu vé máy bay</h2>
+            <p>Chàm · xanh ngọc. Bố cục ngang, cuống phải có mã vạch dọc, hiện đại và nhiều thông tin.</p>
+          </div>
+        </div>
+        <button class="print-btn" data-print="2">🖨️ In thử mẫu 02</button>
+      </div>
+
+      <div class="tickets">
+        <!-- Vé xem phim -->
+        <article class="t2-movie">
+          <div class="t2-main">
+            <div class="t2-head">
+              <span class="t2-brand">Cine<b>Go</b></span>
+              <span class="t2-tag">Movie Boarding Pass</span>
+            </div>
+            <div class="t2-route">
+              <span class="t2-route__movie">Dune 2</span>
+              <span class="t2-route__dash"></span>
+              <span class="t2-route__ico">🎬</span>
+              <span class="t2-route__dash"></span>
+              <span class="t2-route__movie">P.03</span>
+            </div>
+            <div class="t2-info">
+              <div><span>Rạp</span><b>Vincom BT</b></div>
+              <div><span>Ngày</span><b>08/07/26</b></div>
+              <div><span>Giờ</span><b>19:30</b></div>
+              <div><span>Định dạng</span><b>2D · Sub</b></div>
+            </div>
+            <div class="t2-passenger">
+              <span>Khách hàng: <b>Đỗ Việt Dũng</b></span>
+              <span>Giá: <b>95.000đ</b></span>
+            </div>
+          </div>
+          <div class="t2-stub">
+            <div class="t2-stub__seat"><span>GHẾ</span><b>G7</b></div>
+            <div class="t2-stub__bc"><div class="barcode barcode--tall" data-code="TC-9F3K2A"></div></div>
+            <div class="t2-stub__code">TC-9F3K2A</div>
+          </div>
+        </article>
+
+        <!-- Vé bắp nước -->
+        <article class="t2-combo">
+          <div class="t2-combo__main">
+            <span class="t2-combo__tag">Snack Pass</span>
+            <span class="t2-combo__name">CineGo Combo 1<br>Bắp lớn + 2 Coca</span>
+            <div class="t2-combo__row"><span>Số lượng</span><b>× 1</b></div>
+            <div class="t2-combo__row"><span>Thành tiền</span><b>89.000đ</b></div>
+            <div class="t2-combo__row"><span>Mã</span><b>CB-77120</b></div>
+          </div>
+          <div class="t2-combo__stub"><b>🍿 BẮP NƯỚC</b></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ MẪU 3 ============ -->
+    <section class="design" data-design="3">
+      <div class="design__bar">
+        <div class="design__id">
+          <div class="design__num">03</div>
+          <div class="design__meta">
+            <h2>Hóa đơn nhiệt — kiểu in tại quầy</h2>
+            <p>Trắng · mực đen · font máy đánh chữ, đường kẻ đứt, mép xé. Sát nhất với vé in máy nhiệt thật.</p>
+          </div>
+        </div>
+        <button class="print-btn" data-print="3">🖨️ In thử mẫu 03</button>
+      </div>
+
+      <div class="tickets">
+        <!-- Vé xem phim -->
+        <article class="t3-movie">
+          <div class="t3-center">
+            <div class="t3-logo">Cine<b>Go</b></div>
+            <div class="t3-sub">CGV Vincom Bà Triệu · Phòng 03</div>
+          </div>
+          <hr class="t3-rule">
+          <div class="t3-title">Dune: Hành Tinh Cát — Phần Hai</div>
+          <div class="t3-seatbig">GHẾ G7</div>
+          <hr class="t3-rule">
+          <div class="t3-line"><span>Suất chiếu</span><b>19:30 · 08/07/2026</b></div>
+          <div class="t3-line"><span>Định dạng</span><b>2D · Phụ đề</b></div>
+          <div class="t3-line"><span>Loại ghế</span><b>VIP</b></div>
+          <div class="t3-line"><span>Khách hàng</span><b>Đỗ Việt Dũng</b></div>
+          <hr class="t3-rule">
+          <div class="t3-total"><span>GIÁ VÉ</span><span>95.000đ</span></div>
+          <div class="t3-bc barcode" data-code="TC-9F3K2A"></div>
+          <div class="t3-code">* TC-9F3K2A *</div>
+          <div class="t3-foot">Mã đơn CG-582910<br>Xuất trình vé này tại cửa soát vé</div>
+        </article>
+
+        <!-- Vé bắp nước -->
+        <article class="t3-combo">
+          <div class="t3-center">
+            <div class="t3-logo">Cine<b>Go</b></div>
+            <div class="t3-sub">PHIẾU BẮP NƯỚC · QUẦY F&amp;B</div>
+          </div>
+          <hr class="t3-rule">
+          <div class="t3-title">🍿 CineGo Combo 1</div>
+          <hr class="t3-rule">
+          <div class="t3-line"><span>Nội dung</span><b>Bắp lớn + 2 Coca</b></div>
+          <div class="t3-line"><span>Số lượng</span><b>× 1</b></div>
+          <hr class="t3-rule">
+          <div class="t3-total"><span>THÀNH TIỀN</span><span>89.000đ</span></div>
+          <div class="t3-bc barcode" data-code="CB-77120"></div>
+          <div class="t3-code">* CB-77120 *</div>
+          <div class="t3-foot">Đổi phiếu tại quầy bắp nước<br>Cảm ơn quý khách!</div>
+        </article>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script>
+  // Sinh mã vạch (barcode) giả từ chuỗi mã — các thanh đen/trắng xen kẽ, độ rộng thay đổi.
+  function drawBarcode(el) {
+    const code = el.getAttribute('data-code') || 'CINEGO';
+    let h = 2166136261;
+    for (let i = 0; i < code.length; i++) { h ^= code.charCodeAt(i); h = Math.imul(h, 16777619); }
+    const rng = () => { h ^= h << 13; h ^= h >>> 17; h ^= h << 5; return ((h >>> 0) % 1000) / 1000; };
+    const vertical = getComputedStyle(el).flexDirection === 'column';
+    const widths = [1, 1, 2, 2, 3];
+    let html = '';
+    for (let i = 0; i < 46; i++) {
+      const w = widths[Math.floor(rng() * widths.length)];
+      const black = i % 2 === 0;
+      const size = (w * 1.4).toFixed(1) + 'px';
+      if (vertical) {
+        html += '<span style="height:' + size + ';width:100%;background:' + (black ? '#111' : 'transparent') + '"></span>';
+      } else {
+        html += '<span style="width:' + size + ';background:' + (black ? '#111' : 'transparent') + '"></span>';
+      }
+    }
+    el.innerHTML = html;
+  }
+  document.querySelectorAll('.barcode').forEach(drawBarcode);
+
+  // In thử từng mẫu: chỉ hiện mẫu được chọn khi in.
+  function printDesign(id) {
+    const target = document.querySelector('.design[data-design="' + id + '"]');
+    if (!target) return;
+    document.querySelectorAll('.design').forEach(d => d.removeAttribute('data-active'));
+    target.setAttribute('data-active', '');
+    document.body.setAttribute('data-printing', '');
+    window.print();
+  }
+  window.addEventListener('afterprint', () => {
+    document.body.removeAttribute('data-printing');
+    document.querySelectorAll('.design').forEach(d => d.removeAttribute('data-active'));
+  });
+  document.querySelectorAll('.print-btn').forEach(btn => {
+    btn.addEventListener('click', () => printDesign(btn.getAttribute('data-print')));
+  });
+</script>
