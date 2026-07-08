@@ -127,34 +127,12 @@
               </div>
             </section>
 
-            <!-- Ghế đã mua -->
+            <!-- Vé của khách: vé xem phim (mỗi ghế 1 vé) + vé bắp nước (mỗi combo 1 phiếu) -->
             <section class="lk-section">
-              <h4 class="lk-section__title">💺 Ghế đã mua ({{ detail.seat_count }})</h4>
-              <div class="lk-seats">
-                <span
-                  v-for="(s, i) in detail.seats"
-                  :key="i"
-                  class="lk-seat"
-                  :class="`lk-seat--${s.type}`"
-                  :title="`${typeLabel(s.type)} • ${formatCurrency(s.price)}${s.is_checked_in ? ' • Đã soát vé' : ''}`"
-                >
-                  {{ s.label }}
-                  <em v-if="s.is_checked_in" class="lk-seat__in">✓</em>
-                </span>
-              </div>
-            </section>
-
-            <!-- Bắp nước -->
-            <section class="lk-section">
-              <h4 class="lk-section__title">🍿 Bắp nước ({{ detail.combo_count }})</h4>
-              <div v-if="detail.combos.length" class="lk-combos">
-                <div v-for="(c, i) in detail.combos" :key="i" class="lk-combo">
-                  <span class="lk-combo__name">{{ c.name }}</span>
-                  <span class="lk-combo__qty">x{{ c.quantity }}</span>
-                  <span class="lk-combo__price">{{ formatCurrency(c.price * c.quantity) }}</span>
-                </div>
-              </div>
-              <p v-else class="muted lk-empty-line">Khách không mua bắp nước.</p>
+              <h4 class="lk-section__title">
+                🎟️ Vé của khách — {{ detail.seat_count }} vé phim · {{ detail.combo_count }} phiếu bắp nước
+              </h4>
+              <TicketPrintable :booking="detail" />
             </section>
 
             <!-- Thanh toán -->
@@ -174,72 +152,18 @@
           </div>
 
           <div class="lk-modal__foot" v-if="detail">
-            <button class="btn-print" @click="printInvoice">🖨️ In Hóa Đơn</button>
-            <button class="btn-ghost" style="margin-left: auto;" @click="closeDetail">Đóng</button>
+            <button class="btn-ghost" @click="closeDetail">Đóng</button>
           </div>
         </div>
       </div>
     </transition>
-
-    <!-- KHU VỰC IN ẨN (Chỉ hiển thị khi bấm nút In) -->
-    <div id="print-area-invoice" class="print-area" v-if="detail">
-      <div class="receipt">
-        <!-- VÉ XEM PHIM -->
-        <h2 class="receipt-brand">CINEGO</h2>
-        <p class="receipt-subtitle">VÉ XEM PHIM</p>
-        <div class="receipt-divider"></div>
-        <h3 class="receipt-movie">{{ detail.movie.title }}</h3>
-        <p><strong>Ngày:</strong> {{ detail.showtime_at?.split(' - ')[1] }}</p>
-        <p><strong>Giờ:</strong> {{ detail.showtime_at?.split(' - ')[0] }}</p>
-        <p><strong>Phòng:</strong> {{ detail.room_name }}</p>
-        <p><strong>Ghế:</strong> {{ detail.seats.map(s => s.label).join(', ') }}</p>
-        <div class="receipt-divider"></div>
-        <div class="receipt-qr">
-          <img :src="`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${detail.booking_code}`" alt="QR" />
-        </div>
-        <p class="receipt-code">{{ detail.booking_code }}</p>
-
-        <!-- NGẮT TRANG (NẾU CÓ BẮP NƯỚC) -->
-        <div class="page-break" v-if="detail.combos.length"></div>
-
-        <!-- PHIẾU BẮP NƯỚC -->
-        <template v-if="detail.combos.length">
-          <h2 class="receipt-brand" style="margin-top: 20px;">CINEGO</h2>
-          <p class="receipt-subtitle">PHIẾU BẮP NƯỚC</p>
-          <div class="receipt-divider"></div>
-          <p><strong>Mã đơn:</strong> {{ detail.booking_code }}</p>
-          <div class="receipt-divider"></div>
-          <div class="receipt-item" v-for="(c, i) in detail.combos" :key="i">
-            <span class="item-name">{{ c.name }}</span>
-            <span class="item-qty">x{{ c.quantity }}</span>
-          </div>
-        </template>
-
-        <!-- TỔNG TIỀN -->
-        <div class="receipt-divider"></div>
-        <div class="receipt-item">
-          <span>Tạm tính:</span>
-          <span class="item-qty">{{ formatCurrency(detail.subtotal) }}</span>
-        </div>
-        <div class="receipt-item" v-if="detail.discount_amount > 0">
-          <span>Khuyến mãi:</span>
-          <span class="item-qty">-{{ formatCurrency(detail.discount_amount) }}</span>
-        </div>
-        <div class="receipt-item" style="font-size: 16px; font-weight: bold; margin-top: 5px; border-top: 1px dashed #000; padding-top: 5px;">
-          <span>TỔNG TIỀN:</span>
-          <span class="item-qty">{{ formatCurrency(detail.total_amount) }}</span>
-        </div>
-        
-        <p class="receipt-footer">Cảm ơn quý khách đã sử dụng dịch vụ!</p>
-      </div>
-    </div>
-    <!-- KẾT THÚC KHU VỰC IN ẨN -->
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import api from '../../api/axios';
+import TicketPrintable from '../../components/TicketPrintable.vue';
 
 const query = ref('');
 const loading = ref(false);
@@ -310,149 +234,7 @@ const closeDetail = () => {
   showDetail.value = false;
   detail.value = null;
 };
-
-// --- XỬ LÝ IN ẤN ---
-const printInvoice = () => {
-  document.body.classList.add('printing-invoice');
-  window.print();
-  // Delay remove class để browser kịp render
-  setTimeout(() => {
-    document.body.classList.remove('printing-invoice');
-  }, 500);
-};
 </script>
-
-<style scoped>
-/* Nút In */
-.btn-print {
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: none;
-  font-weight: 700;
-  font-size: 13.5px;
-  cursor: pointer;
-  background: #f1f5f9;
-  color: #334155;
-  transition: var(--transition-smooth);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.btn-print:hover {
-  background: #e2e8f0;
-}
-
-/* ------------------------------ */
-/* --- STYLES IN ẤN (RECEIPT) --- */
-/* ------------------------------ */
-
-.print-area {
-  display: none; /* Ẩn ở chế độ màn hình thường */
-}
-
-/* Định dạng tờ hóa đơn (Receipt) */
-.receipt {
-  width: 80mm; /* Khổ máy in nhiệt K80 */
-  padding: 0;
-  margin: 0 auto;
-  font-family: 'Courier New', Courier, monospace, sans-serif;
-  color: #000;
-  background: #fff;
-}
-.receipt-brand {
-  text-align: center;
-  font-size: 24px;
-  font-weight: bold;
-  margin: 0 0 5px;
-}
-.receipt-subtitle {
-  text-align: center;
-  font-size: 16px;
-  font-weight: bold;
-  margin: 0 0 10px;
-}
-.receipt-movie {
-  font-size: 18px;
-  font-weight: bold;
-  text-align: center;
-  margin: 10px 0;
-}
-.receipt-divider {
-  border-top: 1px dashed #000;
-  margin: 10px 0;
-}
-.receipt p {
-  margin: 4px 0;
-  font-size: 14px;
-}
-.receipt-qr {
-  text-align: center;
-  margin: 10px 0;
-}
-.receipt-qr img {
-  width: 120px;
-  height: 120px;
-}
-.receipt-code {
-  text-align: center;
-  font-size: 16px;
-  font-weight: bold;
-  letter-spacing: 2px;
-}
-.receipt-footer {
-  text-align: center;
-  font-size: 12px;
-  margin-top: 15px;
-  font-style: italic;
-}
-.receipt-item {
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-  margin-bottom: 5px;
-}
-.item-name { flex: 1; }
-.item-qty { font-weight: bold; }
-
-/* Media query dành cho máy in */
-@media print {
-  /* Ngắt trang nếu có bắp nước */
-  .page-break {
-    page-break-before: always;
-    margin-top: 10px;
-  }
-
-  /* Ẩn toàn bộ ứng dụng */
-  body * {
-    visibility: hidden;
-  }
-  
-  /* Xóa margin/padding mặc định của trang web khi in */
-  @page {
-    margin: 0;
-    size: 80mm auto; /* Khổ in K80 */
-  }
-
-  body {
-    margin: 0;
-    padding: 0;
-    background: #fff;
-  }
-
-  /* Hiển thị Invoice */
-  body.printing-invoice #print-area-invoice,
-  body.printing-invoice #print-area-invoice * {
-    visibility: visible;
-    display: block;
-  }
-  body.printing-invoice #print-area-invoice {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 80mm;
-  }
-}
-</style>
 
 <style scoped>
 .lookup { display: flex; flex-direction: column; gap: 22px; }
@@ -558,7 +340,7 @@ const printInvoice = () => {
   display: flex; align-items: flex-start; justify-content: center;
   padding: 40px 20px; overflow-y: auto;
 }
-.lk-modal { width: 100%; max-width: 560px; background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35); }
+.lk-modal { width: 100%; max-width: 760px; background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35); }
 .lk-modal__head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 18px 22px; color: #fff;
