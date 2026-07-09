@@ -2,8 +2,18 @@
   <div v-if="movie" class="movie-detail-view">
     <div class="detail-header glass-panel">
       <div class="poster-container">
-        <img :src="movie.poster_url" :alt="movie.title" class="detail-poster" />
+
+        <img
+    :src="getPosterUrl(movie.poster_url)"
+    :alt="movie.title"
+    class="detail-poster"
+/>
+
+
+
         <span class="detail-rating-badge" :class="getRatingClass(movie.rating)">
+
+
           {{ movie.rating }}
         </span>
       </div>
@@ -204,6 +214,18 @@ const defaultDays = () => {
   }
   return days;
 };
+
+const getPosterUrl = (url) => {
+  if (!url)
+    return 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=100&q=80';
+
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('blob:')) return url;
+
+  const cleanPath = url.replace(/^(.*\/storage\/)/, '');
+  return `http://127.0.0.1:8000/storage/${cleanPath}`;
+};
+
 
 // State phục vụ việc gửi bình luận / review lên DB
 const myReview = ref({

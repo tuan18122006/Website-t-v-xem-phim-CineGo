@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\SeatHoldController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\BookingLookupController;
+use App\Http\Controllers\Api\ComboController;
 use App\Http\Controllers\Api\PricingRuleController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\VoucherController;
@@ -46,6 +47,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Đăng xuất & hồ sơ cho MỌI user đã đăng nhập (khách hàng, staff, admin)
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'userProfile']);
+    Route::post('/bookings', [BookingController::class, 'store']);
+    Route::post('/seat-holds', [SeatHoldController::class, 'hold']);
+    Route::post('/seat-holds/release', [SeatHoldController::class, 'release']);
 
     // Cập nhật tài khoản, mật khẩu, avatar
     Route::put('/user/profile', [UserController::class, 'updateProfile']);
@@ -113,6 +117,18 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     Route::put('/rooms/{id}/update-seat-map', [RoomController::class, 'updateSeatMap']);
     Route::get('/rooms', [RoomController::class, 'index']);
     Route::delete('/rooms/{id}', [RoomController::class, 'destroy']);
+    //
+    Route::apiResource('combos', ComboController::class);
+    //
+    Route::apiResource('vouchers', VoucherController::class);
+    //
+    Route::get('combos/{combo}/items', [ComboItemController::class, 'getItems']);
+
+    Route::post('combo-items', [ComboItemController::class, 'store']);
+
+    Route::put('combo-items/{id}', [ComboItemController::class, 'update']);
+
+    Route::delete('combo-items/{id}', [ComboItemController::class, 'destroy']);
 
     // Route quản lý Combos
     Route::get('/combos', [App\Http\Controllers\Api\ComboController::class, 'index']);
@@ -139,3 +155,6 @@ Route::middleware(['auth:sanctum', 'can:staff-or-admin'])->prefix('staff')->grou
     Route::get('/bookings/{id}', [BookingLookupController::class, 'show']);
 });
 
+Route::get('/combos', [ComboController::class, 'index']);
+Route::post('/vouchers/verify', [VoucherController::class, 'verify']);
+Route::get('/payment/vnpay/return', [PaymentController::class, 'vnpayReturn']);
