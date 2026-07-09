@@ -14,15 +14,17 @@ class ShowtimeController extends Controller
 {
     public function index()
     {
-        $showtimes = Showtime::with(['movie', 'room', 'priceConfigs'])
+        $showtimes = Showtime::with(['movie', 'room'])
             ->orderByDesc('start_time')
             ->orderByDesc('id')
             ->get()
             ->map(function ($st) {
-            $prices = [];
-            foreach ($st->priceConfigs as $config) {
-                $prices[$config->seat_type] = $config->price;
-            }
+            $snapshot = $st->pricing_snapshot ?? [];
+            $prices = [
+                'standard' => $snapshot['standard_price'] ?? $snapshot['standard'] ?? 50000,
+                'vip' => $snapshot['vip_price'] ?? $snapshot['vip'] ?? 70000,
+                'couple' => $snapshot['couple_price'] ?? $snapshot['couple'] ?? 120000,
+            ];
 
             return [
                 'id' => $st->id,
@@ -36,6 +38,7 @@ class ShowtimeController extends Controller
                 'movie_title' => $st->movie ? $st->movie->title : 'Không xác định',
                 'room_name' => $st->room ? $st->room->name : 'Không xác định',
                 'prices' => $prices,
+                'pricing_snapshot' => $snapshot,
             ];
         });
 
@@ -51,9 +54,6 @@ class ShowtimeController extends Controller
             'end_time' => 'required|date|after:start_time',
             'format' => 'required|string',
             'translation' => 'required|string',
-            'standard_price' => 'required|numeric|min:0',
-            'vip_price' => 'required|numeric|min:0',
-            'couple_price' => 'required|numeric|min:0',
         ]);
 
         // Chuẩn hóa thời gian về 'Y-m-d H:i:s' để so sánh chính xác trong DB
@@ -90,6 +90,23 @@ class ShowtimeController extends Controller
             ], 422);
         }
 
+        $movie = \App\Models\Movie::find($request->movie_id);
+        $isSneakShow = false;
+        if ($movie && $movie->release_date && $start->startOfDay()->lt(Carbon::parse($movie->release_date)->startOfDay())) {
+            $isSneakShow = true;
+        }
+
+        $rule = \App\Models\PricingRule::first();
+        $snapshot = $rule ? $rule->toArray() : [
+            'standard_price' => 50000,
+            'vip_price' => 70000,
+            'couple_price' => 120000,
+            'weekend_surcharge' => 10000,
+            'happy_hour_discount' => 10000,
+            'format_3d_surcharge' => 30000,
+            'sneak_show_surcharge' => 20000
+        ];
+
         $showtime = Showtime::create([
             'movie_id' => $request->movie_id,
             'room_id' => $request->room_id,
@@ -97,32 +114,9 @@ class ShowtimeController extends Controller
             'end_time' => $end,
             'format' => $request->format,
             'translation' => $request->translation,
-            'status' => 'active'
-        ]);
-
-        // Tạo 3 cấu hình giá vé cơ bản
-        \Illuminate\Support\Facades\DB::table('price_configs')->insert([
-            [
-                'showtime_id' => $showtime->id,
-                'seat_type' => 'standard',
-                'price' => $request->standard_price,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'showtime_id' => $showtime->id,
-                'seat_type' => 'vip',
-                'price' => $request->vip_price,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'showtime_id' => $showtime->id,
-                'seat_type' => 'couple',
-                'price' => $request->couple_price,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
+            'status' => 'active',
+            'is_sneak_show' => $isSneakShow,
+            'pricing_snapshot' => $snapshot
         ]);
 
         return response()->json([
@@ -146,9 +140,6 @@ class ShowtimeController extends Controller
             'end_time' => 'required|date|after:start_time',
             'format' => 'required|string',
             'translation' => 'required|string',
-            'standard_price' => 'required|numeric|min:0',
-            'vip_price' => 'required|numeric|min:0',
-            'couple_price' => 'required|numeric|min:0',
         ]);
 
         $start = Carbon::parse($request->start_time);
@@ -175,6 +166,12 @@ class ShowtimeController extends Controller
             ], 422);
         }
 
+        $movie = \App\Models\Movie::find($request->movie_id);
+        $isSneakShow = false;
+        if ($movie && $movie->release_date && $start->startOfDay()->lt(Carbon::parse($movie->release_date)->startOfDay())) {
+            $isSneakShow = true;
+        }
+
         $showtime->update([
             'movie_id' => $request->movie_id,
             'room_id' => $request->room_id,
@@ -182,21 +179,11 @@ class ShowtimeController extends Controller
             'end_time' => $end,
             'format' => $request->format,
             'translation' => $request->translation,
+            'is_sneak_show' => $isSneakShow
         ]);
 
-        // Cập nhật giá vé
-        $prices = [
-            'standard' => $request->standard_price,
-            'vip' => $request->vip_price,
-            'couple' => $request->couple_price,
-        ];
-
-        foreach ($prices as $type => $price) {
-            \Illuminate\Support\Facades\DB::table('price_configs')->updateOrInsert(
-                ['showtime_id' => $showtime->id, 'seat_type' => $type],
-                ['price' => $price, 'updated_at' => now()]
-            );
-        }
+        // Không thay đổi pricing_snapshot khi update để bảo toàn lịch sử giá
+        // (Hoặc nếu muốn update thì có thể update tùy logic nghiệp vụ sau này)
 
         return response()->json([
             'success' => true,
@@ -318,6 +305,7 @@ class ShowtimeController extends Controller
                         'start_time' => \Carbon\Carbon::parse($showtime->start_time)->format('H:i'),
                         'available_seats' => 85,
                         'room_name' => $showtime->room->name,
+                        'is_sneak_show' => $showtime->is_sneak_show,
                     ];
                 })->values()
             ];
@@ -379,7 +367,8 @@ class ShowtimeController extends Controller
                         'end_time' => \Carbon\Carbon::parse($st->end_time)->format('H:i'),
                         'format' => $st->format,
                         'translation' => $st->translation,
-                        'room_name' => $st->room->name
+                        'room_name' => $st->room->name,
+                        'is_sneak_show' => $st->is_sneak_show
                     ];
                 })->values()
             ];
@@ -388,6 +377,72 @@ class ShowtimeController extends Controller
         return response()->json([
             'success' => true,
             'data' => $grouped
+        ]);
+    }
+
+    public function suggestPrice(Request $request)
+    {
+        $request->validate([
+            'movie_id' => 'required|exists:movies,id',
+            'start_time' => 'required|date',
+            'format' => 'required|string'
+        ]);
+
+        $movie = \App\Models\Movie::find($request->movie_id);
+        $start = Carbon::parse($request->start_time);
+        
+        $rule = \App\Models\PricingRule::first();
+        if (!$rule) {
+            $rule = new \App\Models\PricingRule([
+                'standard_price' => 50000,
+                'vip_price' => 70000,
+                'couple_price' => 120000,
+                'weekend_surcharge' => 10000,
+                'happy_hour_discount' => 10000,
+                'format_3d_surcharge' => 30000,
+                'sneak_show_surcharge' => 20000
+            ]);
+        }
+
+        $basePrices = [
+            'standard' => $rule->standard_price,
+            'vip' => $rule->vip_price,
+            'couple' => $rule->couple_price
+        ];
+
+        $appliedRules = [];
+        $isSneakShow = false;
+
+        if ($movie && $movie->release_date && $start->startOfDay()->lt(Carbon::parse($movie->release_date)->startOfDay())) {
+            $isSneakShow = true;
+            $appliedRules[] = 'Suất chiếu sớm (+' . number_format($rule->sneak_show_surcharge) . 'đ)';
+            foreach ($basePrices as $k => $v) $basePrices[$k] += $rule->sneak_show_surcharge;
+        }
+
+        if ($start->isWeekend()) {
+            $appliedRules[] = 'Cuối tuần (+' . number_format($rule->weekend_surcharge) . 'đ)';
+            foreach ($basePrices as $k => $v) $basePrices[$k] += $rule->weekend_surcharge;
+        }
+
+        if ($start->hour < 17) {
+            $appliedRules[] = 'Giờ vàng trước 17h (-' . number_format($rule->happy_hour_discount) . 'đ)';
+            foreach ($basePrices as $k => $v) $basePrices[$k] -= $rule->happy_hour_discount;
+        }
+
+        if (strtoupper($request->format) === '3D') {
+            $appliedRules[] = 'Định dạng 3D (+' . number_format($rule->format_3d_surcharge) . 'đ)';
+            foreach ($basePrices as $k => $v) $basePrices[$k] += $rule->format_3d_surcharge;
+        }
+
+        if (empty($appliedRules)) {
+            $appliedRules[] = 'Giá tiêu chuẩn';
+        }
+
+        return response()->json([
+            'success' => true,
+            'is_sneak_show' => $isSneakShow,
+            'suggested_prices' => $basePrices,
+            'applied_rules' => $appliedRules
         ]);
     }
 }
