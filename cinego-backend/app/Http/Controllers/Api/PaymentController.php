@@ -8,7 +8,6 @@ use App\Services\VNPayService;
 use App\Services\BookingService;
 use App\Models\Booking;
 use Illuminate\Support\Facades\Mail;
-use App\Mail\OrderSuccessMail;
 use App\Mail\BookingSuccessMail;
 
 class PaymentController extends Controller
@@ -82,7 +81,7 @@ class PaymentController extends Controller
             if ($booking) {
                 $this->bookingService->markAsFailed($booking);
             }
-            return redirect($frontendUrl . '/payment-result?status=invalid');
+            return redirect($frontendUrl . '/payment/result?status=invalid');
         }
 
         if (($vnpParams['vnp_ResponseCode'] ?? null) === '00') {
@@ -90,11 +89,6 @@ class PaymentController extends Controller
             $this->bookingService->markAsPaid($booking);
 
             Mail::to($booking->user->email)
-                ->send(new OrderSuccessMail($booking));
-
-            return redirect(
-                $frontendUrl .
-                    '/payment-result?status=success&code=' .
                 ->send(new BookingSuccessMail($booking));
 
             return redirect(
@@ -105,6 +99,6 @@ class PaymentController extends Controller
         }
 
         $this->bookingService->markAsFailed($booking);
-        return redirect($frontendUrl . '/payment-result?status=failed');
+        return redirect($frontendUrl . '/payment/result?status=failed');
     }
 }
