@@ -10,51 +10,62 @@ export const useBookingStore = defineStore('booking', {
     appliedVoucher: null,
     holdExpiresAt: null, // Hạn giữ ghế (timestamp)
   }),
-  
+
   getters: {
     subtotalSeats: (state) => {
+      // Đảm bảo state.selectedSeats luôn là một mảng
+      if (!state.selectedSeats) return 0;
       return state.selectedSeats.reduce((total, seat) => {
-        // Lấy giá từ seat.price_config hoặc mặc định dựa vào loại ghế
-        const price = seat.price || 
-                      (seat.type === 'vip' ? 95000 : seat.type === 'couple' ? 140000 : 75000);
+        const price = seat.price || (seat.type === "vip" ? 95000 : seat.type === "couple" ? 140000 : 75000);
         return total + price;
       }, 0);
     },
-    
+
     subtotalCombos: (state) => {
+      // Đảm bảo state.selectedCombos luôn là một mảng
+      if (!state.selectedCombos) return 0;
       return state.selectedCombos.reduce((total, item) => {
-        return total + (item.combo.price * item.quantity);
+        return total + (item.combo?.price || 0) * (item.quantity || 0);
       }, 0);
     },
-    
+
     subtotal: (getters) => {
       return getters.subtotalSeats + getters.subtotalCombos;
     },
-    
-    discountAmount: (state, getters) => {
-      if (!state.appliedVoucher) return 0;
-      const { discount_type, discount_value, min_spend, max_discount } = state.appliedVoucher;
-      
-      if (getters.subtotal < min_spend) return 0;
-      
+
+    discountAmount(state) {
+      // 1. Kiểm tra nếu chưa có voucher hoặc subtotal không hợp lệ
+      if (!state.appliedVoucher || typeof this.subtotal !== 'number') {
+        return 0;
+      }
+
+      const voucher = state.appliedVoucher;
+
+      // 2. Sử dụng Optional Chaining (?) để tránh lỗi nếu voucher thiếu thuộc tính
+      const minSpend = voucher.min_spend || 0;
+      if (this.subtotal < minSpend) {
+        return 0;
+      }
+
       let discount = 0;
-      if (discount_type === 'percentage') {
-        discount = (getters.subtotal * discount_value) / 100;
-        if (max_discount && discount > max_discount) {
-          discount = max_discount;
+      if (voucher.discount_type === "percentage") {
+        discount = (this.subtotal * (voucher.discount_value || 0)) / 100;
+        if (voucher.max_discount && discount > voucher.max_discount) {
+          discount = voucher.max_discount;
         }
       } else {
-        discount = discount_value;
+        discount = voucher.discount_value || 0;
       }
-      return Math.min(discount, getters.subtotal);
+
+      return Math.min(discount, this.subtotal);
     },
-    
+
     totalAmount: (getters) => {
       const total = getters.subtotal - getters.discountAmount;
       return Math.max(0, total);
     }
   },
-  
+
   actions: {
     selectMovie(movie) {
       this.selectedMovie = movie;
@@ -65,7 +76,7 @@ export const useBookingStore = defineStore('booking', {
       this.appliedVoucher = null;
       this.holdExpiresAt = null;
     },
-    
+
     selectShowtime(showtime) {
       this.selectedShowtime = showtime;
       this.selectedSeats = [];
@@ -73,7 +84,7 @@ export const useBookingStore = defineStore('booking', {
       this.appliedVoucher = null;
       this.holdExpiresAt = null;
     },
-    
+
     toggleSeat(seat) {
       const index = this.selectedSeats.findIndex(s => s.id === seat.id);
       if (index > -1) {
@@ -82,7 +93,7 @@ export const useBookingStore = defineStore('booking', {
         this.selectedSeats.push(seat);
       }
     },
-    
+
     addCombo(combo) {
       const existing = this.selectedCombos.find(c => c.combo.id === combo.id);
       if (existing) {
@@ -91,7 +102,7 @@ export const useBookingStore = defineStore('booking', {
         this.selectedCombos.push({ combo, quantity: 1 });
       }
     },
-    
+
     removeCombo(combo) {
       const index = this.selectedCombos.findIndex(c => c.combo.id === combo.id);
       if (index > -1) {
@@ -103,7 +114,7 @@ export const useBookingStore = defineStore('booking', {
         }
       }
     },
-    
+
     updateComboQuantity(comboId, quantity) {
       const item = this.selectedCombos.find(c => c.combo.id === comboId);
       if (item) {
@@ -113,19 +124,19 @@ export const useBookingStore = defineStore('booking', {
         }
       }
     },
-    
+
     applyVoucher(voucher) {
       this.appliedVoucher = voucher;
     },
-    
+
     removeVoucher() {
       this.appliedVoucher = null;
     },
-    
+
     setHoldExpiry(minutes = 10) {
       this.holdExpiresAt = Date.now() + minutes * 60 * 1000;
     },
-    
+
     clearBooking() {
       this.selectedMovie = null;
       this.selectedShowtime = null;
