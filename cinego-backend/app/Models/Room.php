@@ -7,7 +7,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Room extends Model
 {
-    protected $fillable = ['name', 'total_seats', 'status'];
+    protected $fillable = ['name', 'total_seats', 'status', 'layout'];
+
+    protected $casts = [
+        'layout' => 'array',
+    ];
 
     public function seats(): HasMany
     {

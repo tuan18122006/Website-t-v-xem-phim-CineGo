@@ -282,4 +282,98 @@ class UserController extends Controller
         $user->delete();
         return response()->json(['success' => true, 'message' => 'Đã xóa tài khoản!'], 200);
     }
+
+    // Cập nhật thông tin profile cá nhân
+    public function updateProfile(Request $request)
+    {
+        $user = clone $request->user();
+
+        $request->validate([
+            'name'  => 'required|string|max:255',
+            'phone' => 'nullable|string|max:20',
+        ]);
+
+        $user->name = $request->name;
+        $user->phone = $request->phone;
+
+        if ($request->has('birthday')) {
+            $user->birthday = $request->birthday;
+        }
+
+        $user->save();
+
+        if ($user->avatar_url) {
+            $user->avatar_url = str_starts_with($user->avatar_url, 'http') ? $user->avatar_url : url($user->avatar_url);
+        } else {
+            $user->avatar_url = url('/storage/avatars/default.png');
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cập nhật thông tin tài khoản thành công!',
+            'data'    => $user
+        ], 200);
+    }
+
+    // Thay đổi mật khẩu (có chặn trùng mật khẩu cũ)
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'old_password' => 'required|string',
+            'new_password' => 'required|string|min:8',
+        ]);
+
+        $user = clone $request->user();
+
+        if (!Hash::check($request->old_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mật khẩu hiện tại nhập không chính xác!'
+            ], 422);
+        }
+
+        if (Hash::check($request->new_password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Mật khẩu mới không được trùng với mật khẩu hiện tại!'
+            ], 422);
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Thay đổi mật khẩu tài khoản thành công!'
+        ], 200);
+    }
+
+    // Tải ảnh đại diện
+    public function uploadAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $user = clone $request->user();
+
+        if ($request->hasFile('avatar')) {
+            if ($user->avatar_url) {
+                $fileName = basename($user->avatar_url);
+                \Illuminate\Support\Facades\Storage::disk('public')->delete('avatars/' . $fileName);
+            }
+
+            $path = $request->file('avatar')->store('avatars', 'public');
+
+            $user->avatar_url = '/storage/' . $path;
+            $user->save();
+
+            return response()->json([
+                'success' => true,
+                'avatar_url' => url($user->avatar_url)
+            ], 200);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Không tìm thấy file ảnh tải lên!'], 400);
+    }
 }

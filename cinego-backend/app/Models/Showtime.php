@@ -8,11 +8,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Showtime extends Model
 {
-    protected $fillable = ['movie_id', 'room_id', 'start_time', 'end_time', 'format', 'translation', 'status'];
+    protected $fillable = ['movie_id', 'room_id', 'start_time', 'end_time', 'format', 'translation', 'status', 'is_sneak_show', 'pricing_snapshot'];
 
     protected $casts = [
         'start_time' => 'datetime',
         'end_time' => 'datetime',
+        'is_sneak_show' => 'boolean',
+        'pricing_snapshot' => 'array',
     ];
 
     public function movie(): BelongsTo

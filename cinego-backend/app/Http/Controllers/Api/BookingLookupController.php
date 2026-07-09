@@ -92,7 +92,7 @@ class BookingLookupController extends Controller
             return [
                 'name'     => $c->combo?->name ?? 'Combo',
                 'quantity' => (int) $c->quantity,
-                'price'    => (float) $c->price,
+                'price'    => (float) $c->price_at_purchase,
             ];
         });
 
@@ -126,6 +126,45 @@ class BookingLookupController extends Controller
             'booking_status' => $b->booking_status,
             'voucher_code'   => $b->voucher?->code,
             'created_at'     => $b->created_at?->format('H:i - d/m/Y'),
+        ], 200);
+    }
+
+    /**
+     * Soát vé / Quét mã QR
+     */
+    public function verify(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string',
+        ]);
+
+        $booking = Booking::where('booking_code', $request->code)->first();
+
+        if (!$booking) {
+            return response()->json(['message' => 'Mã vé không tồn tại trong hệ thống.'], 404);
+        }
+
+        if ($booking->payment_status !== 'paid') {
+            return response()->json(['message' => 'Đơn hàng này chưa được thanh toán thành công.'], 400);
+        }
+
+        if ($booking->booking_status === 'completed') {
+            return response()->json(['message' => 'Vé này đã được sử dụng (soát vé rồi).'], 400);
+        }
+
+        // Cập nhật trạng thái vé
+        $booking->booking_status = 'completed';
+        $booking->save();
+
+        // Cập nhật chi tiết ghế đã soát
+        $booking->bookingDetails()->update(['is_checked_in' => true]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Soát vé hợp lệ.',
+            'data' => [
+                'booking_code' => $booking->booking_code
+            ]
         ], 200);
     }
 }
