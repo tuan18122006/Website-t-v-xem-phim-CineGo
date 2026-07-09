@@ -76,26 +76,6 @@
 
         <button
           class="nav-link"
-          :class="{ active: activeTab === 'combos' }"
-          @click="activeTab = 'combos'"
-        >
-          <span class="nav-icon">🍿</span>
-          <span>Quản Lý Bắp Nước</span>
-        </button>
-
-        <button
-          class="nav-link"
-          :class="{ active: activeTab === 'vouchers' }"
-          @click="activeTab = 'vouchers'"
-        >
-          <span class="nav-icon">🎫</span>
-          <span>Quản Lý Voucher</span>
-        </button>
-
-
-
-        <button
-          class="nav-link"
           :class="{ active: activeTab === 'revenue' }"
           @click="activeTab = 'revenue'"
         >
@@ -278,16 +258,8 @@
       </div>
 
       <!-- TAB: COMBO MANAGEMENT -->
-      <div v-show="activeTab === 'combos'">
-        <ComboManagementView />
-      </div>
-
-      <!-- TAB: VOUCHER MANAGEMENT -->
-      <div v-show="activeTab === 'vouchers'">
-        <VoucherManager />
-      </div>
-
-
+     
+    
 
       <!-- TAB 4: REVENUE TRANSACTION REPORT -->
       <div v-show="activeTab === 'revenue'" class="revenue-tab-content">
