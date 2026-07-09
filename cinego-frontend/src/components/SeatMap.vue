@@ -28,17 +28,18 @@
         <div class="aisle-text">LỐI VÀO</div>
       </div>
 
-      <div class="seats-grid">
+      <div class="seats-grid" :style="gridStyle">
         <div 
           v-for="seat in sortedSeats" 
           :key="seat.id"
           :data-seat-id="seat.id"
           :class="getSeatClass(seat)"
+          :style="{ gridArea: getPhysicalGridPos(seat) }"
           @click="handleSeatClick(seat, $event)"
           class="seat-item"
         >
           <span v-if="seat.type !== 'hidden' && seat.type !== 'couple_hidden'" class="seat-label">
-            {{ seat.row }}{{ seat.number }}
+            {{ seat.row }}{{ displayNumbers.get(seat.id) }}
           </span>
         </div>
       </div>
@@ -67,7 +68,8 @@ import { computed, ref, reactive, onBeforeUnmount } from 'vue';
 const props = defineProps({
   seats: { type: Array, required: true },
   mode: { type: String, default: 'client' },
-  selectedSeatIds: { type: Array, default: () => [] } 
+  selectedSeatIds: { type: Array, default: () => [] },
+  layout: { type: Object, default: () => ({ gap_cols: [], gap_rows: [] }) }
 });
 
 const emit = defineEmits(['seat-clicked', 'selection-changed']);
@@ -79,6 +81,69 @@ const sortedSeats = computed(() => {
     if (a.row === b.row) return a.number - b.number;
     return a.row.localeCompare(b.row);
   });
+});
+
+const rowLetters = computed(() => {
+  const rows = new Set(props.seats.map(s => s.row));
+  return Array.from(rows).sort();
+});
+
+const displayNumbers = computed(() => {
+  const map = new Map();
+  const seatsByRow = {};
+  
+  props.seats.forEach(seat => {
+    if (!seatsByRow[seat.row]) seatsByRow[seat.row] = [];
+    seatsByRow[seat.row].push(seat);
+  });
+
+  for (const row in seatsByRow) {
+    let currentDisplayNum = 1;
+    const sorted = seatsByRow[row].sort((a, b) => a.number - b.number);
+    sorted.forEach(seat => {
+      if (seat.type !== 'hidden' && seat.type !== 'couple_hidden') {
+        map.set(seat.id, currentDisplayNum);
+        currentDisplayNum++;
+      }
+    });
+  }
+  return map;
+});
+
+const getPhysicalGridPos = (seat) => {
+  const layout = props.layout || { gap_cols: [], gap_rows: [] };
+  const gapCols = layout.gap_cols || [];
+  const gapRows = layout.gap_rows || [];
+
+  let physicalCol = seat.number;
+  gapCols.forEach(gapCol => {
+    if (seat.number > gapCol) physicalCol++;
+  });
+
+  let rowIndex = rowLetters.value.indexOf(seat.row) + 1;
+  let physicalRow = rowIndex;
+  
+  gapRows.forEach(gapRow => {
+    let gapRowIndex = rowLetters.value.indexOf(gapRow) + 1;
+    if (rowIndex > gapRowIndex) physicalRow++;
+  });
+
+  return `${physicalRow} / ${physicalCol}`;
+};
+
+const gridStyle = computed(() => {
+  const layout = props.layout || { gap_cols: [], gap_rows: [] };
+  const gapCols = layout.gap_cols || [];
+  
+  let maxCol = 10;
+  if (props.seats && props.seats.length > 0) {
+      maxCol = Math.max(...props.seats.map(s => s.number));
+  }
+  const maxPhysicalCol = maxCol + gapCols.length;
+  
+  return {
+    gridTemplateColumns: `repeat(${maxPhysicalCol}, minmax(40px, 1fr))`
+  };
 });
 
 // --- ADMIN STATE ---
@@ -346,7 +411,7 @@ const getSeatClass = (seat) => {
 @keyframes slide-down { 0% { top: -100%; } 100% { top: 200%; } }
 
 .seats-grid {
-  display: grid; grid-template-columns: repeat(10, minmax(40px, 1fr)); gap: 15px;
+  display: grid; gap: 15px;
 }
 
 /* TỐI ƯU HIỆU NĂNG: Bỏ transition nặng, dùng will-change */
