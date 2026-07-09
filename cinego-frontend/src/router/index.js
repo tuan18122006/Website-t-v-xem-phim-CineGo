@@ -8,6 +8,7 @@ const Home = () => import("../views/client/HomeView.vue");
 const MovieDetail = () => import("../views/client/MovieDetailView.vue");
 const SeatSelection = () => import("../views/client/SeatSelectionView.vue");
 const Payment = () => import("../views/client/PaymentView.vue");
+const PaymentResult = () => import("../views/client/PaymentResultView.vue");
 const Login = () => import("../views/client/LoginView.vue");
 const Register = () => import("../views/client/RegisterView.vue");
 const PaymentResult = () => import("../views/client/PaymentResultView.vue");
@@ -48,6 +49,12 @@ const routes = [
     name: 'review-movies',
     component: ReviewMovies
   },
+  {
+    path: '/profile',
+    name: 'profile',
+    component: () => import("../views/client/ProfileView.vue"),
+    meta: { requiresAuth: true }
+  },
 
   {
     path: '/booking/seats',
@@ -63,6 +70,7 @@ const routes = [
   },
   {
     path: "/payment-result",
+    path: "/payment/result",
     name: "payment-result",
     component: PaymentResult,
   },
@@ -143,6 +151,8 @@ const routes = [
     path: "/admin/vouchers",
     name: "admin-VoucherManagement",
     component: () => import("../views/admin/VoucherManager.vue"),
+    name: "admin-Combos",
+    component: () => import("../views/admin/ComboManagementView.vue"),
     meta: { requiresAuth: true, role: "admin" },
   },
   {
@@ -152,7 +162,24 @@ const routes = [
     meta: { requiresAuth: true, role: "admin" },
   },
 
+  {
+    path: "/admin/vouchers",
+    name: "admin-VoucherManagement",
+    component: () => import("../views/admin/VoucherManager.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
   
+
+  {
+    path: "/staff",
+    redirect: "/staff/dashboard",
+  },
+  {
+    path: "/staff/dashboard",
+    name: "staff-dashboard",
+    component: () => import("../views/staff/StaffDashboardView.vue"),
+    meta: { requiresAuth: true, role: "staff" },
+  },
 
   // Wildcard redirect
   {
@@ -185,6 +212,9 @@ router.beforeEach(async (to, from, next) => {
     // Nếu đã đăng nhập nhưng cần check quyền
     if (requiredRole === "admin" && !authStore.isAdmin) {
       // Không có quyền Admin -> chuyển về Trang chủ
+      next({ name: "home" });
+    } else if (requiredRole === "staff" && (!authStore.isAdmin && !authStore.isStaff)) {
+      // Không có quyền Staff hoặc Admin -> chuyển về Trang chủ
       next({ name: "home" });
     } else {
       next();

@@ -127,34 +127,12 @@
               </div>
             </section>
 
-            <!-- Ghế đã mua -->
+            <!-- Vé của khách: vé xem phim (mỗi ghế 1 vé) + vé bắp nước (mỗi combo 1 phiếu) -->
             <section class="lk-section">
-              <h4 class="lk-section__title">💺 Ghế đã mua ({{ detail.seat_count }})</h4>
-              <div class="lk-seats">
-                <span
-                  v-for="(s, i) in detail.seats"
-                  :key="i"
-                  class="lk-seat"
-                  :class="`lk-seat--${s.type}`"
-                  :title="`${typeLabel(s.type)} • ${formatCurrency(s.price)}${s.is_checked_in ? ' • Đã soát vé' : ''}`"
-                >
-                  {{ s.label }}
-                  <em v-if="s.is_checked_in" class="lk-seat__in">✓</em>
-                </span>
-              </div>
-            </section>
-
-            <!-- Bắp nước -->
-            <section class="lk-section">
-              <h4 class="lk-section__title">🍿 Bắp nước ({{ detail.combo_count }})</h4>
-              <div v-if="detail.combos.length" class="lk-combos">
-                <div v-for="(c, i) in detail.combos" :key="i" class="lk-combo">
-                  <span class="lk-combo__name">{{ c.name }}</span>
-                  <span class="lk-combo__qty">x{{ c.quantity }}</span>
-                  <span class="lk-combo__price">{{ formatCurrency(c.price * c.quantity) }}</span>
-                </div>
-              </div>
-              <p v-else class="muted lk-empty-line">Khách không mua bắp nước.</p>
+              <h4 class="lk-section__title">
+                🎟️ Vé của khách — {{ detail.seat_count }} vé phim · {{ detail.combo_count }} phiếu bắp nước
+              </h4>
+              <TicketPrintable :booking="detail" />
             </section>
 
             <!-- Thanh toán -->
@@ -173,7 +151,7 @@
             </section>
           </div>
 
-          <div class="lk-modal__foot">
+          <div class="lk-modal__foot" v-if="detail">
             <button class="btn-ghost" @click="closeDetail">Đóng</button>
           </div>
         </div>
@@ -185,6 +163,7 @@
 <script setup>
 import { ref } from 'vue';
 import api from '../../api/axios';
+import TicketPrintable from '../../components/TicketPrintable.vue';
 
 const query = ref('');
 const loading = ref(false);
@@ -361,7 +340,7 @@ const closeDetail = () => {
   display: flex; align-items: flex-start; justify-content: center;
   padding: 40px 20px; overflow-y: auto;
 }
-.lk-modal { width: 100%; max-width: 560px; background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35); }
+.lk-modal { width: 100%; max-width: 760px; background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 30px 70px rgba(0, 0, 0, 0.35); }
 .lk-modal__head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 18px 22px; color: #fff;

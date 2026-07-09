@@ -214,7 +214,7 @@
           </div>
           <div class="invoice-row text-discount" v-if="bookingStore.appliedVoucher && bookingStore.discountAmount > 0">
             <span>Giảm giá:</span>
-            <span>-{{ formatCurrency(bookingStore.discountAmount) }}</span>
+            <span>- {{ Number(bookingStore.discountAmount).toLocaleString('vi-VN') }}đ</span>
           </div>
 
           <div class="invoice-row invoice-total">
@@ -226,6 +226,11 @@
         </div>
 
         <button @click="submitBooking" :disabled="submitting" class="btn-pay-now">
+        <button
+          @click="handlePaymentAction"
+          class="btn-pay-now"
+          :disabled="submitting"
+        >
           <span v-if="submitting" class="btn-spinner"></span>
           <span v-else>Thanh Toán Hóa Đơn</span>
         </button>
@@ -327,6 +332,18 @@ const handleApplyVoucher = async () => {
   }
 };
 
+const availableCombos = ref([]);
+
+const fetchCombos = async () => {
+  try {
+    const res = await api.get('/combos/active');
+    if (res.data && res.data.data) {
+      availableCombos.value = res.data.data;
+    }
+  } catch (err) {
+    console.error("Lỗi khi tải combo:", err);
+  }
+};
 
 const paymentMethods = [
   {
@@ -394,13 +411,24 @@ const removeVoucher = () => {
   voucherSuccess.value = false;
 };
 
-// LUỒNG XỬ LÝ CHỐT VÉ CHÍNH THỨC & GỌI CỔNG THANH TOÁN BAO PHỦ LỖI TỪ ĐỐI TÁC THỨ 3
-const submitBooking = async () => {
+const showQRModal = ref(false);
+
+const handlePaymentAction = () => {
+  if (selectedPaymentMethod.value === "vnpay") {
+    // VNPay -> gọi API thanh toán luôn
+    confirmPayment();
+  } else {
+    // Các phương thức khác (Momo, v.v...) hiển thị QR giả lập
+    showQRModal.value = true;
+  }
+};
+
+const confirmPayment = async () => {
   submitting.value = true;
   try {
     const payload = {
       showtime_id: bookingStore.selectedShowtime.id,
-      seat_ids: bookingStore.selectedSeats.map((s) => s.id), // Đồng bộ danh sách chuỗi ID chuẩn của SeatMap
+      seat_ids: bookingStore.selectedSeats.map((s) => s.id),
       combos: bookingStore.selectedCombos.map((c) => ({
         id: c.combo.id,
         quantity: c.quantity,
@@ -416,20 +444,31 @@ const submitBooking = async () => {
     if (response.data.payment_url) {
       window.location.href = response.data.payment_url;
       return;
+    let response;
+    if (selectedPaymentMethod.value === "vnpay") {
+      // VNPay route
+      response = await api.post("/payments/create", payload);
+      if (response.data && response.data.payment_url) {
+        window.location.href = response.data.payment_url;
+        return;
+      }
+    } else {
+      // Offline/Static QR route
+      response = await api.post("/bookings", payload);
+      bookingCode.value = response.data.booking_code || "CG-" + Math.floor(100000 + Math.random() * 900000);
+      bookingSuccess.value = true;
+      showQRModal.value = false;
     }
-
-    // Trường hợp test môi trường local / API mô phỏng thành công
-    bookingCode.value =
-      response.data.booking_code ||
-      "CG-" + Math.floor(100000 + Math.random() * 900000);
-    bookingSuccess.value = true;
   } catch (err) {
     console.error(err);
     alert(
       err.response?.data?.message ||
       "Giao dịch thất bại. Thời gian giữ ghế đã hết hạn, vui lòng thao tác lại!",
+        "Giao dịch thất bại. Thời gian giữ ghế đã hết hạn, vui lòng thao tác lại!"
     );
-    router.push("/");
+    if (!selectedPaymentMethod.value === "vnpay") {
+       router.push("/");
+    }
   } finally {
     submitting.value = false;
   }
@@ -439,6 +478,9 @@ const backToHome = () => {
   bookingStore.clearBooking();
   router.push("/");
 };
+onMounted(() => {
+  fetchCombos();
+});
 </script>
 
 <style scoped>
@@ -1066,5 +1108,42 @@ const backToHome = () => {
   100% {
     background-position: 0 50%;
   }
+.qr-code-box {
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  margin: 10px auto;
+}
+.qr-img {
+  width: 250px;
+  height: 250px;
+  object-fit: contain;
+}
+.payment-info-box {
+  background: var(--bg-tertiary);
+  padding: 16px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+.info-row span {
+  color: var(--text-muted);
+}
+.info-row strong {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: right;
+}
+.text-pink {
+  color: var(--accent-pink) !important;
 }
 </style>
