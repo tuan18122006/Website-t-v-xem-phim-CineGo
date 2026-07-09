@@ -82,7 +82,10 @@
           <div class="showtimes-grid">
             <button v-for="showtime in room.showtimes" :key="showtime.id" class="showtime-btn"
               :class="{ active: selectedShowtime?.id === showtime.id }" @click="selectShowtime(showtime)">
-              <span class="time-label">{{ showtime.start_time }}</span>
+              <span class="time-label">
+                {{ showtime.start_time }}
+                <span v-if="showtime.is_sneak_show" class="sneak-badge-client" style="font-size: 10px; margin-left: 4px;">🔥 Sớm</span>
+              </span>
               <span class="seat-available">Trống {{ showtime.available_seats || 85 }} ghế</span>
             </button>
           </div>

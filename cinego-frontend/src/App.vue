@@ -1,18 +1,17 @@
 <template>
   <div class="app-wrapper">
-    <!-- Navbar chỉ hiện ở các trang client, tự động ẩn ở trang quản lý Admin -->
-    <Navbar v-if="!isAdminRoute" />
-    
-    <main :class="isAdminRoute ? 'admin-main-wrapper' : 'main-content'">
+    <!-- Navbar/Footer chỉ hiện ở trang client; tự động ẩn ở khu vực quản trị (Admin & Staff) -->
+    <Navbar v-if="!isBackofficeRoute" />
+
+    <main :class="isBackofficeRoute ? 'admin-main-wrapper' : 'main-content'">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />
         </transition>
       </router-view>
     </main>
-    
-    <!-- Footer lớn chuyên nghiệp mặc định ở các trang client, tự động ẩn ở trang Admin -->
-    <Footer v-if="!isAdminRoute" />
+
+    <Footer v-if="!isBackofficeRoute" />
   </div>
 </template>
 
@@ -23,7 +22,10 @@ import Navbar from './components/Navbar.vue';
 import Footer from './components/Footer.vue';
 
 const route = useRoute();
-const isAdminRoute = computed(() => route.path.startsWith('/admin'));
+// Khu vực quản trị dùng layout riêng (sidebar riêng), không dùng Navbar/Footer của khách
+const isBackofficeRoute = computed(
+  () => route.path.startsWith('/admin') || route.path.startsWith('/staff')
+);
 </script>
 
 <style>
