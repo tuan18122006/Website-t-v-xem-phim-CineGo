@@ -252,10 +252,9 @@
                       {{ formatDate(ticket.date) }} <br />
                       <strong>{{ ticket.room_name }}</strong>
                     </td>
-                    <td class="txt-red bold-text">
-                      {{ ticket.seats.join(", ") }}
-                    </td>
-                    <td class="bold-text">
+<td class="txt-red bold-text">
+                  {{ ticket.seats ? ticket.seats.map(seat => typeof seat === 'object' ? `${seat.row}${seat.number}` : seat).join(", ") : '' }}
+                </td>                    <td class="bold-text">
                       {{ formatPrice(ticket.total_price) }}đ
                     </td>
                     <td>
@@ -283,6 +282,7 @@
               </table>
             </div>
           </div>
+          
         </div>
       </main>
     </div>
@@ -317,6 +317,7 @@
         </div>
       </div>
     </div>
+    
   </div>
 </template>
 

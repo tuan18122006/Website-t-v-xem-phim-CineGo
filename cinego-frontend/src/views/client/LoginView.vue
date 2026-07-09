@@ -73,9 +73,16 @@ const handleLogin = async () => {
   try {
     const success = await authStore.login(email.value, password.value);
     if (success) {
-      // Chuyển hướng về trang trước đó yêu cầu đăng nhập, hoặc trang chủ
-      const redirectPath = route.query.redirect || '/';
-      router.push(redirectPath);
+      // Chuyển hướng về trang trước đó yêu cầu đăng nhập, hoặc trang chủ/admin/staff tùy theo vai trò
+      if (route.query.redirect) {
+        router.push(route.query.redirect);
+      } else if (authStore.isAdmin) {
+        router.push('/admin');
+      } else if (authStore.isStaff) {
+        router.push('/staff');
+      } else {
+        router.push('/');
+      }
     }
   } catch (err) {
     error.value = authStore.error;

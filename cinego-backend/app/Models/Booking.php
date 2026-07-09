@@ -11,6 +11,7 @@ class Booking extends Model
     protected $fillable = [
         'booking_code',
         'user_id',
+        'vnp_txn_ref',
         'showtime_id',
         'voucher_id',
         'subtotal',
