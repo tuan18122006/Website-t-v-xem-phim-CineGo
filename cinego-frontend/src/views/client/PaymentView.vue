@@ -225,12 +225,7 @@
           </div>
         </div>
 
-        <button @click="submitBooking" :disabled="submitting" class="btn-pay-now">
-        <button
-          @click="handlePaymentAction"
-          class="btn-pay-now"
-          :disabled="submitting"
-        >
+        <button type="button" @click="handlePaymentAction" class="btn-pay-now" :disabled="submitting">
           <span v-if="submitting" class="btn-spinner"></span>
           <span v-else>Thanh Toán Hóa Đơn</span>
         </button>
@@ -275,33 +270,14 @@ const formatCurrency = (val) => {
 };
 
 const goBackToSeats = () => {
-    // Lệnh này sẽ tự động đưa trình duyệt quay lại trang trước đó (Trang Chọn Ghế)
-    router.back();
-    
-    // Hoặc nếu bạn muốn đẩy chính xác về trang đặt vé/chọn ghế theo tên Route:
-    // router.push({ name: 'select-seats' });
+  // Lệnh này sẽ tự động đưa trình duyệt quay lại trang trước đó (Trang Chọn Ghế)
+  router.back();
+
+  // Hoặc nếu bạn muốn đẩy chính xác về trang đặt vé/chọn ghế theo tên Route:
+  // router.push({ name: 'select-seats' });
 };
 
-const availableCombos = ref([]);
 const loadingCombos = ref(true);
-
-const fetchCombos = async () => {
-  try {
-    const response = await api.get('/combos');
-    console.log("API response:", response.data);
-    availableCombos.value = response.data.data || response.data;
-  } catch (error) {
-    console.error("Lỗi:", error);
-  } finally {
-    loadingCombos.value = false;
-  }
-};
-
-onMounted(() => {
-  fetchCombos();
-});
-
-
 const verifyVoucher = async () => {
   try {
     const response = await api.post('/vouchers/verify', {
@@ -335,13 +311,18 @@ const handleApplyVoucher = async () => {
 const availableCombos = ref([]);
 
 const fetchCombos = async () => {
+  loadingCombos.value = true;
+
   try {
-    const res = await api.get('/combos/active');
-    if (res.data && res.data.data) {
-      availableCombos.value = res.data.data;
-    }
+    const res = await api.get("/combos/active");
+
+    console.log("Danh sách combo:", res.data?.data);
+
+    availableCombos.value = res.data?.data || [];
   } catch (err) {
     console.error("Lỗi khi tải combo:", err);
+  } finally {
+    loadingCombos.value = false;
   }
 };
 
@@ -423,52 +404,52 @@ const handlePaymentAction = () => {
   }
 };
 
+// ... (các hàm khác ở trên)
+
 const confirmPayment = async () => {
   submitting.value = true;
+
   try {
     const payload = {
-      showtime_id: bookingStore.selectedShowtime.id,
-      seat_ids: bookingStore.selectedSeats.map((s) => s.id),
-      combos: bookingStore.selectedCombos.map((c) => ({
-        id: c.combo.id,
-        quantity: c.quantity,
+      showtime_id: bookingStore.selectedShowtime?.id,
+
+      seat_ids: bookingStore.selectedSeats.map((seat) => seat.id),
+
+      combos: bookingStore.selectedCombos.map((item) => ({
+        id: item.combo.id,
+        quantity: item.quantity,
       })),
+
       voucher_id: bookingStore.appliedVoucher?.id || null,
+
       payment_method: selectedPaymentMethod.value,
+
       total_amount: bookingStore.totalAmount,
     };
 
+    console.log("Payload gửi thanh toán:", payload);
+
     const response = await api.post("/payments/create", payload);
 
-    // Nếu API trả về đường dẫn URL (Đối với môi trường thật của VNPay / MoMo)
-    if (response.data.payment_url) {
+    console.log("Response thanh toán:", response.data);
+
+    if (response.data?.payment_url) {
       window.location.href = response.data.payment_url;
       return;
-    let response;
-    if (selectedPaymentMethod.value === "vnpay") {
-      // VNPay route
-      response = await api.post("/payments/create", payload);
-      if (response.data && response.data.payment_url) {
-        window.location.href = response.data.payment_url;
-        return;
-      }
-    } else {
-      // Offline/Static QR route
-      response = await api.post("/bookings", payload);
-      bookingCode.value = response.data.booking_code || "CG-" + Math.floor(100000 + Math.random() * 900000);
-      bookingSuccess.value = true;
-      showQRModal.value = false;
     }
+
+    bookingSuccess.value = true;
+    bookingCode.value =
+      response.data?.booking_code ||
+      response.data?.data?.booking_code ||
+      "";
   } catch (err) {
-    console.error(err);
+    console.error("Lỗi thanh toán:", err.response?.data || err);
+
     alert(
       err.response?.data?.message ||
-      "Giao dịch thất bại. Thời gian giữ ghế đã hết hạn, vui lòng thao tác lại!",
-        "Giao dịch thất bại. Thời gian giữ ghế đã hết hạn, vui lòng thao tác lại!"
+      "Giao dịch thất bại. Vui lòng thử lại!"
     );
-    if (!selectedPaymentMethod.value === "vnpay") {
-       router.push("/");
-    }
   } finally {
     submitting.value = false;
   }
@@ -478,13 +459,14 @@ const backToHome = () => {
   bookingStore.clearBooking();
   router.push("/");
 };
+
 onMounted(() => {
   fetchCombos();
 });
+
 </script>
 
 <style scoped>
-/* Toàn bộ CSS Scoped nguyên bản từ dự án CineGo của Thắng được giữ nguyên vẹn */
 .payment-view {
   min-height: 500px;
 }
@@ -533,37 +515,44 @@ onMounted(() => {
 }
 
 .payment-buttons {
-    display: flex;
-    flex-direction: column; /* Xếp dọc nút Hủy nằm dưới nút Thanh Toán */
-    gap: 12px;             /* Khoảng cách giữa 2 nút */
-    margin-top: 15px;
-    width: 100%;
+  display: flex;
+  flex-direction: column;
+  /* Xếp dọc nút Hủy nằm dưới nút Thanh Toán */
+  gap: 12px;
+  /* Khoảng cách giữa 2 nút */
+  margin-top: 15px;
+  width: 100%;
 }
 
 /* Định dạng nút Quay Lại Chọn Ghế */
 .btn-cancel-payment {
-    width: 100%;
-    padding: 12px;
-    background-color: transparent;   /* Nền trong suốt */
-    color: #888888;                  /* Chữ màu xám */
-    border: 1px solid #cccccc;       /* Viền xám mảnh */
-    border-radius: 6px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.2s ease;
+  width: 100%;
+  padding: 12px;
+  background-color: transparent;
+  /* Nền trong suốt */
+  color: #888888;
+  /* Chữ màu xám */
+  border: 1px solid #cccccc;
+  /* Viền xám mảnh */
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 /* Khi hệ thống đang loading tạo hóa đơn, làm mờ không cho bấm Hủy liên tục */
 .btn-cancel-payment:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Hiệu ứng Hover dành cho nút Hủy */
 .btn-cancel-payment:not(:disabled):hover {
-    background-color: #fcfcfc;
-    color: #333333;                  /* Chữ đậm lên khi hover */
-    border-color: #888888;           /* Viền đậm lên */
+  background-color: #fcfcfc;
+  color: #333333;
+  /* Chữ đậm lên khi hover */
+  border-color: #888888;
+  /* Viền đậm lên */
 }
 
 .combo-img {
@@ -1108,18 +1097,22 @@ onMounted(() => {
   100% {
     background-position: 0 50%;
   }
+}
+
 .qr-code-box {
   background: white;
   padding: 16px;
   border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   margin: 10px auto;
 }
+
 .qr-img {
   width: 250px;
   height: 250px;
   object-fit: contain;
 }
+
 .payment-info-box {
   background: var(--bg-tertiary);
   padding: 16px;
@@ -1130,19 +1123,23 @@ onMounted(() => {
   flex-direction: column;
   gap: 8px;
 }
+
 .info-row {
   display: flex;
   justify-content: space-between;
   font-size: 14px;
 }
+
 .info-row span {
   color: var(--text-muted);
 }
+
 .info-row strong {
   color: var(--text-primary);
   font-weight: 600;
   text-align: right;
 }
+
 .text-pink {
   color: var(--accent-pink) !important;
 }
