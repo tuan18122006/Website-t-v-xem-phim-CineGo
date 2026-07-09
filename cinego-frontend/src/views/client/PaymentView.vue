@@ -308,6 +308,39 @@ const handleApplyVoucher = async () => {
   }
 };
 
+const getComboImageUrl = (imageUrl) => {
+  if (!imageUrl) {
+    return fallbackComboImage;
+  }
+
+  if (imageUrl.startsWith("blob:") || imageUrl.startsWith("data:")) {
+    return imageUrl;
+  }
+
+  if (imageUrl.startsWith("http://localhost/storage/")) {
+    return imageUrl.replace("http://localhost", BACKEND_URL);
+  }
+
+  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+    return imageUrl;
+  }
+
+  if (imageUrl.startsWith("/storage/")) {
+    return `${BACKEND_URL}${imageUrl}`;
+  }
+
+  if (imageUrl.startsWith("storage/")) {
+    return `${BACKEND_URL}/${imageUrl}`;
+  }
+
+  return `${BACKEND_URL}/storage/${imageUrl}`;
+};
+
+const handleComboImageError = (event) => {
+  event.target.onerror = null;
+  event.target.src = fallbackComboImage;
+};
+
 const availableCombos = ref([]);
 
 const fetchCombos = async () => {
