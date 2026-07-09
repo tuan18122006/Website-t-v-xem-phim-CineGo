@@ -11,7 +11,6 @@ const Payment = () => import("../views/client/PaymentView.vue");
 const PaymentResult = () => import("../views/client/PaymentResultView.vue");
 const Login = () => import("../views/client/LoginView.vue");
 const Register = () => import("../views/client/RegisterView.vue");
-const PaymentResult = () => import("../views/client/PaymentResultView.vue");
 const QuickBooking = () => import("../views/client/QuickBookingView.vue");
 const ReviewPhim = () => import("../views/client/ReviewPhimView.vue");
 const TopMovies = () => import("../views/client/TopMoviesView.vue");
@@ -69,7 +68,6 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: "/payment-result",
     path: "/payment/result",
     name: "payment-result",
     component: PaymentResult,
