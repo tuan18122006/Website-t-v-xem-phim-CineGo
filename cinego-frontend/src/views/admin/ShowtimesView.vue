@@ -12,12 +12,33 @@
           <p class="stv-hero__desc">
             Xếp phim vào phòng đúng giờ — hệ thống <b>tự động chống trùng lịch</b> trong cùng một phòng.
           </p>
+          <div v-if="currentPricing.standard_price" class="stv-hero__pricing-note" style="margin-top: 15px; padding: 12px 15px; background: rgba(0,0,0,0.4); border-radius: 8px; border-left: 4px solid var(--accent-pink); font-size: 0.95rem; color: #eee; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <strong style="color: white; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Giá cơ sở:</strong> 
+              <span style="background: rgba(229,9,20,0.2); border: 1px solid rgba(229,9,20,0.5); padding: 3px 8px; border-radius: 6px; color: #fff;">Thường <b style="margin-left:4px; font-size: 1.05rem;">{{ formatPrice(currentPricing.standard_price) }}</b></span>
+              <span style="background: rgba(255,215,0,0.2); border: 1px solid rgba(255,215,0,0.5); padding: 3px 8px; border-radius: 6px; color: #fff;">VIP <b style="margin-left:4px; color: var(--accent-gold); font-size: 1.05rem;">{{ formatPrice(currentPricing.vip_price) }}</b></span>
+              <span style="background: rgba(100,255,218,0.15); border: 1px solid rgba(100,255,218,0.4); padding: 3px 8px; border-radius: 6px; color: #fff;">Couple <b style="margin-left:4px; color: #64ffda; font-size: 1.05rem;">{{ formatPrice(currentPricing.couple_price) }}</b></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <strong style="color: white; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Quy tắc phụ thu:</strong>
+              <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; color: #ddd; font-size: 0.9rem;">Cuối tuần <b style="color: var(--accent-pink); margin-left:4px;">+{{ formatPrice(currentPricing.weekend_surcharge) }}</b></span>
+              <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; color: #ddd; font-size: 0.9rem;">Giờ vàng <b style="color: #64ffda; margin-left:4px;">-{{ formatPrice(currentPricing.happy_hour_discount) }}</b></span>
+              <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; color: #ddd; font-size: 0.9rem;">3D <b style="color: var(--accent-pink); margin-left:4px;">+{{ formatPrice(currentPricing.format_3d_surcharge) }}</b></span>
+              <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; color: #ddd; font-size: 0.9rem;">Chiếu sớm <b style="color: var(--accent-pink); margin-left:4px;">+{{ formatPrice(currentPricing.sneak_show_surcharge) }}</b></span>
+            </div>
+          </div>
         </div>
 
-        <button class="stv-hero__cta" @click="openCreateModal">
-          <span class="stv-hero__cta-plus">＋</span>
-          <span>Thêm Suất Chiếu</span>
-        </button>
+        <div style="display: flex; gap: 10px;">
+          <button class="stv-hero__cta" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white;" @click="openPricingModal">
+            <span class="stv-hero__cta-plus">⚙️</span>
+            <span>Cấu Hình Giá</span>
+          </button>
+          <button class="stv-hero__cta" @click="openCreateModal">
+            <span class="stv-hero__cta-plus">＋</span>
+            <span>Thêm Suất Chiếu</span>
+          </button>
+        </div>
       </div>
 
       <div class="stv-hero__stats">
@@ -34,6 +55,16 @@
           <span class="stv-stat__label">Chiếu hôm nay</span>
         </div>
       </div>
+
+      <div class="stv-hero__timeline-filters">
+        <button v-for="t in timelineOptions" :key="t.value" 
+          @click="timelineFilter = t.value"
+          :class="['stv-timeline-btn', timelineFilter === t.value ? 'stv-timeline-btn--active' : '']">
+          {{ t.label }}
+        </button>
+      </div>
+
+
     </header>
 
     <!-- ===== TOOLBAR: tìm kiếm + lọc định dạng ===== -->
@@ -144,6 +175,13 @@
           </div>
           
           <div class="stv-form" v-if="selectedDetail">
+            <div style="margin-bottom: 15px;">
+              <span v-if="getShowtimeStatus(selectedDetail.start_time, selectedDetail.end_time)"
+                    style="padding: 4px 10px; border-radius: 12px; color: white; font-size: 0.8rem; font-weight: bold; display: inline-block;"
+                    :style="{ backgroundColor: getShowtimeStatus(selectedDetail.start_time, selectedDetail.end_time).color }">
+                Trạng thái: {{ getShowtimeStatus(selectedDetail.start_time, selectedDetail.end_time).label }}
+              </span>
+            </div>
             <div class="stv-field">
               <label>Tên phim</label>
               <div class="stv-input stv-input--readonly">{{ selectedDetail.movie_title }}</div>
@@ -168,20 +206,23 @@
                 <div class="stv-input stv-input--readonly">{{ selectedDetail.format }} • {{ selectedDetail.translation }}</div>
               </div>
             </div>
-            <div class="stv-field stv-field--price" v-if="selectedDetail.prices && Object.keys(selectedDetail.prices).length">
-              <label>Giá vé cấu hình</label>
-              <div class="price-inputs">
-                <div class="price-col">
-                  <span>Standard</span>
-                  <div class="stv-input stv-input--readonly">{{ formatPrice(selectedDetail.prices.standard) }}</div>
+            <div class="stv-field stv-field--price">
+              <label>Cấu hình giá tại thời điểm chiếu</label>
+              <div style="font-size: 0.95rem; margin-top: 5px;">
+                <p style="margin: 0; color: #555; text-transform: uppercase; font-size: 0.8rem; margin-bottom: 5px; font-weight: bold;">Giá cơ sở</p>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                  <span style="background: rgba(229,9,20,0.1); padding: 4px 8px; border-radius: 4px; color: var(--accent-pink);">Thường: <b>{{ formatPrice(selectedDetail.pricing_snapshot?.standard_price || 0) }}</b></span>
+                  <span style="background: rgba(255,215,0,0.2); border: 1px solid rgba(255,215,0,0.3); padding: 4px 8px; border-radius: 4px; color: #b8860b;">VIP: <b>{{ formatPrice(selectedDetail.pricing_snapshot?.vip_price || 0) }}</b></span>
+                  <span style="background: rgba(0,150,136,0.1); padding: 4px 8px; border-radius: 4px; color: #00796b;">Couple: <b>{{ formatPrice(selectedDetail.pricing_snapshot?.couple_price || 0) }}</b></span>
                 </div>
-                <div class="price-col">
-                  <span>VIP</span>
-                  <div class="stv-input stv-input--readonly">{{ formatPrice(selectedDetail.prices.vip) }}</div>
-                </div>
-                <div class="price-col">
-                  <span>Couple</span>
-                  <div class="stv-input stv-input--readonly">{{ formatPrice(selectedDetail.prices.couple) }}</div>
+              </div>
+              <div style="font-size: 0.95rem; margin-top: 10px;">
+                <p style="margin: 0; color: #555; text-transform: uppercase; font-size: 0.8rem; margin-bottom: 5px; font-weight: bold;">Phụ thu đã lưu</p>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 0.85rem;">
+                  <span style="color: #444; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">Cuối tuần: <b style="color: var(--accent-pink);">+{{ formatPrice(selectedDetail.pricing_snapshot?.weekend_surcharge || 0) }}</b></span>
+                  <span style="color: #444; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">Giờ vàng: <b style="color: #00796b;">-{{ formatPrice(selectedDetail.pricing_snapshot?.happy_hour_discount || 0) }}</b></span>
+                  <span style="color: #444; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">3D: <b style="color: var(--accent-pink);">+{{ formatPrice(selectedDetail.pricing_snapshot?.format_3d_surcharge || 0) }}</b></span>
+                  <span style="color: #444; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">Chiếu sớm: <b style="color: var(--accent-pink);">+{{ formatPrice(selectedDetail.pricing_snapshot?.sneak_show_surcharge || 0) }}</b></span>
                 </div>
               </div>
             </div>
@@ -190,6 +231,74 @@
               <button type="button" class="stv-btn stv-btn--solid" @click="openEditModal(selectedDetail); closeDetailModal()">Sửa Suất Chiếu</button>
             </div>
           </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ===== MODAL: CẤU HÌNH GIÁ HỆ THỐNG ===== -->
+    <transition name="modal-fade">
+      <div v-if="showPricingModal" class="stv-backdrop" @click.self="closePricingModal">
+        <div class="stv-modal stv-modal--pricing">
+          <div class="stv-modal__marquee">
+            <div class="stv-modal__marquee-dots"></div>
+            <h3>⚙️ Cấu Hình Giá Hệ Thống</h3>
+            <button class="stv-modal__close" @click="closePricingModal" aria-label="Đóng">✕</button>
+          </div>
+
+          <div v-if="loadingPricing" class="pricing-loading" style="padding: 30px; text-align: center; color: white;">
+            Đang tải dữ liệu...
+          </div>
+          <form v-else @submit.prevent="savePricingConfig" class="stv-form">
+            <h4 style="color: var(--accent-pink); margin-bottom: 10px;">1. Giá Vé Cơ Sở</h4>
+            <div class="stv-grid2">
+              <div class="stv-field">
+                <label>Ghế Thường (VNĐ)</label>
+                <input type="text" :value="formatInput(pricingForm.standard_price)" @input="pricingForm.standard_price = parseInput($event.target.value)" class="stv-input" />
+                <span v-if="pricingErrors.standard_price" class="error-msg">{{ pricingErrors.standard_price[0] }}</span>
+              </div>
+              <div class="stv-field">
+                <label>Ghế VIP (VNĐ)</label>
+                <input type="text" :value="formatInput(pricingForm.vip_price)" @input="pricingForm.vip_price = parseInput($event.target.value)" class="stv-input" />
+                <span v-if="pricingErrors.vip_price" class="error-msg">{{ pricingErrors.vip_price[0] }}</span>
+              </div>
+              <div class="stv-field">
+                <label>Ghế Đôi (VNĐ)</label>
+                <input type="text" :value="formatInput(pricingForm.couple_price)" @input="pricingForm.couple_price = parseInput($event.target.value)" class="stv-input" />
+                <span v-if="pricingErrors.couple_price" class="error-msg">{{ pricingErrors.couple_price[0] }}</span>
+              </div>
+            </div>
+
+            <h4 style="color: var(--accent-pink); margin-top: 15px; margin-bottom: 10px;">2. Quy Tắc Phụ Thu</h4>
+            <div class="stv-grid2">
+              <div class="stv-field">
+                <label>Phụ thu cuối tuần (VNĐ)</label>
+                <input type="text" :value="formatInput(pricingForm.weekend_surcharge)" @input="pricingForm.weekend_surcharge = parseInput($event.target.value)" class="stv-input" />
+                <span v-if="pricingErrors.weekend_surcharge" class="error-msg">{{ pricingErrors.weekend_surcharge[0] }}</span>
+              </div>
+              <div class="stv-field">
+                <label>Giảm giá giờ vàng (VNĐ)</label>
+                <input type="text" :value="formatInput(pricingForm.happy_hour_discount)" @input="pricingForm.happy_hour_discount = parseInput($event.target.value)" class="stv-input" />
+                <span v-if="pricingErrors.happy_hour_discount" class="error-msg">{{ pricingErrors.happy_hour_discount[0] }}</span>
+              </div>
+              <div class="stv-field">
+                <label>Phụ thu Phim 3D (VNĐ)</label>
+                <input type="text" :value="formatInput(pricingForm.format_3d_surcharge)" @input="pricingForm.format_3d_surcharge = parseInput($event.target.value)" class="stv-input" />
+                <span v-if="pricingErrors.format_3d_surcharge" class="error-msg">{{ pricingErrors.format_3d_surcharge[0] }}</span>
+              </div>
+              <div class="stv-field">
+                <label>Phụ thu chiếu sớm (VNĐ)</label>
+                <input type="text" :value="formatInput(pricingForm.sneak_show_surcharge)" @input="pricingForm.sneak_show_surcharge = parseInput($event.target.value)" class="stv-input" />
+                <span v-if="pricingErrors.sneak_show_surcharge" class="error-msg">{{ pricingErrors.sneak_show_surcharge[0] }}</span>
+              </div>
+            </div>
+
+            <div class="stv-modal__actions" style="margin-top: 20px;">
+              <button type="button" class="stv-btn stv-btn--outline" @click="closePricingModal">Hủy bỏ</button>
+              <button type="submit" class="stv-btn stv-btn--solid" :disabled="savingPricing">
+                {{ savingPricing ? 'Đang lưu...' : 'Lưu Cấu Hình' }}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
     </transition>
@@ -281,25 +390,7 @@
               </div>
             </div>
 
-            <!-- CẤU HÌNH GIÁ VÉ -->
-            <div class="stv-field stv-field--price">
-              <label>Cấu hình giá vé (VNĐ) <i>*</i></label>
-              <div class="price-inputs">
-                <div class="price-col">
-                  <span>Standard</span>
-                  <input :value="formatInput(form.standard_price)" @input="form.standard_price = parseInput($event.target.value)" type="text" class="stv-input" />
-                </div>
-                <div class="price-col">
-                  <span>VIP</span>
-                  <input :value="formatInput(form.vip_price)" @input="form.vip_price = parseInput($event.target.value)" type="text" class="stv-input" />
-                </div>
-                <div class="price-col">
-                  <span>Couple</span>
-                  <input :value="formatInput(form.couple_price)" @input="form.couple_price = parseInput($event.target.value)" type="text" class="stv-input" />
-                </div>
-              </div>
-              <span v-if="errors.prices" class="error-msg">{{ errors.prices[0] }}</span>
-            </div>
+
 
             <!-- Preview vé trực tiếp -->
             <transition name="preview-pop">
@@ -346,10 +437,36 @@ const selectedDetail = ref(null);
 const editingId = ref(null);
 const submitting = ref(false);
 const formError = ref('');
+const appliedRules = ref([]);
+const isSneakShow = ref(false);
+
+const currentPricing = ref({});
+const showPricingModal = ref(false);
+const loadingPricing = ref(false);
+const savingPricing = ref(false);
+const pricingForm = ref({});
+const pricingErrors = ref({});
 
 const searchQuery = ref('');
 const formatFilter = ref('Tất cả');
 const formatOptions = ['Tất cả', 'Hôm nay', '2D', '3D', 'IMAX'];
+
+const timelineFilter = ref('upcoming');
+const timelineOptions = [
+  { label: 'Sắp diễn ra', value: 'upcoming' },
+  { label: 'Đang diễn ra', value: 'ongoing' },
+  { label: 'Đã kết thúc', value: 'past' }
+];
+
+const getShowtimeStatus = (startStr, endStr) => {
+  if (!startStr || !endStr) return null;
+  const st = new Date(startStr).getTime();
+  const et = new Date(endStr).getTime();
+  const ct = new Date().getTime();
+  if (st > ct) return { label: 'Sắp chiếu', color: '#ff9800' };
+  if (st <= ct && et >= ct) return { label: 'Đang chiếu', color: '#4caf50' };
+  return { label: 'Đã kết thúc', color: '#9e9e9e' };
+};
 
 const form = ref({
   movie_id: '',
@@ -357,10 +474,7 @@ const form = ref({
   start_time: '',
   end_time: '',
   format: '2D',
-  translation: 'Phụ đề',
-  standard_price: 80000,
-  vip_price: 100000,
-  couple_price: 150000
+  translation: 'Phụ đề'
 });
 
 /* ---------- Computed ---------- */
@@ -379,7 +493,7 @@ const filteredShowtimes = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
   const now = new Date();
   
-  return showtimes.value.filter(s => {
+  let result = showtimes.value.filter(s => {
     let matchFormat = false;
     
     if (formatFilter.value === 'Tất cả') {
@@ -396,11 +510,45 @@ const filteredShowtimes = computed(() => {
     }
 
     const matchSearch = !q
-      || (s.movie_title || '').toLowerCase().includes(q)
-      || (s.room_name || '').toLowerCase().includes(q);
-    
-    return matchFormat && matchSearch;
+      || (s.movie_title && s.movie_title.toLowerCase().includes(q))
+      || (s.room_name && s.room_name.toLowerCase().includes(q));
+
+    let matchTimeline = true;
+    if (s.start_time && s.end_time) {
+      const st = new Date(s.start_time).getTime();
+      const et = new Date(s.end_time).getTime();
+      const ct = now.getTime();
+      if (timelineFilter.value === 'upcoming') {
+        matchTimeline = st > ct;
+      } else if (timelineFilter.value === 'ongoing') {
+        matchTimeline = st <= ct && et >= ct;
+      } else if (timelineFilter.value === 'past') {
+        matchTimeline = et < ct;
+      }
+    }
+
+    return matchFormat && matchSearch && matchTimeline;
   });
+
+  result.sort((a, b) => {
+    if (!a.start_time || !b.start_time) return 0;
+    const aStart = new Date(a.start_time).getTime();
+    const bStart = new Date(b.start_time).getTime();
+    const aEnd = new Date(a.end_time).getTime();
+    const bEnd = new Date(b.end_time).getTime();
+    
+    if (timelineFilter.value === 'upcoming') {
+      return aStart - bStart;
+    } else if (timelineFilter.value === 'past') {
+      return bEnd - aEnd;
+    } else if (timelineFilter.value === 'ongoing') {
+      return aEnd - bEnd;
+    } else {
+      return bStart - aStart;
+    }
+  });
+
+  return result;
 });
 
 const previewMovie = computed(() => movies.value.find(m => m.id === form.value.movie_id) || null);
@@ -451,8 +599,9 @@ const formatInput = (val) => {
 };
 
 const parseInput = (val) => {
-  if (!val) return 0;
-  return parseInt(val.toString().replace(/[^\d]/g, '')) || 0;
+  if (val === '' || val === null || val === undefined) return '';
+  const parsed = parseInt(val.toString().replace(/[^\d]/g, ''));
+  return isNaN(parsed) ? '' : parsed;
 };
 
 /* ---------- Modal ---------- */
@@ -460,32 +609,32 @@ const openCreateModal = () => {
   editingId.value = null;
   form.value = { 
     movie_id: '', room_id: '', start_time: '', end_time: '', 
-    format: '2D', translation: 'Phụ đề',
-    standard_price: 80000, vip_price: 100000, couple_price: 150000 
+    format: '2D', translation: 'Phụ đề'
   };
   formError.value = '';
+  appliedRules.value = [];
+  isSneakShow.value = false;
   showModal.value = true;
 };
 
 const openEditModal = (st) => {
   editingId.value = st.id;
-  // Bỏ múi giờ Z đi để render được trên datetime-local
   const tzOffset = new Date().getTimezoneOffset() * 60000;
+  const startStr = st.start_time ? new Date(new Date(st.start_time).getTime() - tzOffset).toISOString().slice(0, 16) : '';
+  const endStr = st.end_time ? new Date(new Date(st.end_time).getTime() - tzOffset).toISOString().slice(0, 16) : '';
   
   form.value = {
     movie_id: st.movie_id,
     room_id: st.room_id,
-    start_time: st.start_time ? new Date(new Date(st.start_time).getTime() - tzOffset).toISOString().slice(0, 16) : '',
-    end_time: st.end_time ? new Date(new Date(st.end_time).getTime() - tzOffset).toISOString().slice(0, 16) : '',
-    format: st.format || '2D',
-    translation: st.translation || 'Phụ đề',
-    standard_price: st.prices?.standard || 80000,
-    vip_price: st.prices?.vip || 100000,
-    couple_price: st.prices?.couple || 150000
+    start_time: startStr,
+    end_time: endStr,
+    format: st.format,
+    translation: st.translation
   };
   formError.value = '';
   showModal.value = true;
 };
+
 
 const closeModal = () => { 
   showModal.value = false; 
@@ -502,7 +651,84 @@ const closeDetailModal = () => {
   selectedDetail.value = null;
 };
 
-const onMovieChange = () => { formError.value = ''; calculateEndTime(); };
+const openPricingModal = () => {
+  pricingForm.value = { ...currentPricing.value };
+  pricingErrors.value = {};
+  showPricingModal.value = true;
+};
+
+const closePricingModal = () => {
+  showPricingModal.value = false;
+};
+
+const validatePricingForm = () => {
+  pricingErrors.value = {};
+  let isValid = true;
+  
+  const fields = ['standard_price', 'vip_price', 'couple_price', 'weekend_surcharge', 'happy_hour_discount', 'format_3d_surcharge', 'sneak_show_surcharge'];
+  const labels = {
+    standard_price: 'Giá vé Thường',
+    vip_price: 'Giá vé VIP',
+    couple_price: 'Giá vé Đôi',
+    weekend_surcharge: 'Phụ thu cuối tuần',
+    happy_hour_discount: 'Giảm giá giờ vàng',
+    format_3d_surcharge: 'Phụ thu 3D',
+    sneak_show_surcharge: 'Phụ thu chiếu sớm'
+  };
+
+  fields.forEach(field => {
+    const val = pricingForm.value[field];
+    
+    // Check required
+    if (val === '' || val === null || val === undefined) {
+      pricingErrors.value[field] = [`Vui lòng nhập ${labels[field]}.`];
+      isValid = false;
+    } else {
+      const num = parseInt(val);
+      if (num > 1000000000) {
+        pricingErrors.value[field] = [`${labels[field]} không được vượt quá 1 tỷ VNĐ.`];
+        isValid = false;
+      } else if (['standard_price', 'vip_price', 'couple_price'].includes(field)) {
+        if (num <= 0) {
+          pricingErrors.value[field] = [`${labels[field]} phải lớn hơn 0.`];
+          isValid = false;
+        }
+      } else {
+        if (num < 0) {
+          pricingErrors.value[field] = [`${labels[field]} không được nhỏ hơn 0.`];
+          isValid = false;
+        }
+      }
+    }
+  });
+
+  return isValid;
+};
+
+const savePricingConfig = async () => {
+  if (!validatePricingForm()) return;
+  pricingErrors.value = {};
+  savingPricing.value = true;
+  try {
+    const res = await api.put('/admin/pricing-rules', pricingForm.value);
+    if (res.data.success) {
+      toast('Cập nhật cấu hình giá thành công!');
+      currentPricing.value = { ...res.data.data };
+      closePricingModal();
+    }
+  } catch (err) {
+    console.error('Lỗi lưu cấu hình:', err);
+    if (err.response?.data?.errors) {
+      pricingErrors.value = err.response.data.errors;
+    } else {
+      toast('Có lỗi xảy ra khi lưu!', 'error');
+    }
+  } finally {
+    savingPricing.value = false;
+  }
+};
+
+const onMovieChange = () => { formError.value = ''; calculateEndTime(); suggestPrice(); };
 const onStartTimeChange = () => { formError.value = ''; calculateEndTime(); };
 
 const calculateEndTime = () => {
@@ -525,6 +751,17 @@ const fetchShowtimes = async (showLoading = true) => {
     console.error('Fetch showtimes error:', err);
   } finally {
     if (showLoading) loading.value = false;
+  }
+};
+
+const preloadPricing = async () => {
+  try {
+    const res = await api.get('/admin/pricing-rules');
+    if (res.data.success && res.data.data) {
+      currentPricing.value = { ...res.data.data };
+    }
+  } catch (err) {
+    console.error(err);
   }
 };
 
@@ -567,15 +804,7 @@ const validateForm = () => {
     isValid = false;
   }
   
-  const sp = parseInput(form.value.standard_price);
-  const vp = parseInput(form.value.vip_price);
-  const cp = parseInput(form.value.couple_price);
-  
-  if (!sp || sp <= 0 || !vp || vp <= 0 || !cp || cp <= 0) {
-    errors.value.prices = ['Vui lòng nhập giá vé hợp lệ lớn hơn 0 cho tất cả các loại vé.'];
-    isValid = false;
-  }
-  
+
   return isValid;
 };
 
@@ -626,10 +855,16 @@ const deleteShowtime = async (id) => {
   }
 };
 
+
 onMounted(async () => {
-  await fetchShowtimes();
-  await fetchMovies();
-  await fetchRooms();
+  // Thay vì chờ tuần tự (mất 4x thời gian), ta gộp lại chạy song song cùng 1 lúc
+  // Tổng thời gian tải trang sẽ giảm xuống chỉ bằng thời gian của API phản hồi lâu nhất
+  await Promise.all([
+    preloadPricing(),
+    fetchShowtimes(),
+    fetchMovies(),
+    fetchRooms()
+  ]);
 });
 </script>
 
@@ -736,6 +971,41 @@ onMounted(async () => {
   border-radius: 50%;
   background: linear-gradient(135deg, #e50914, #9b000e);
   color: #fff; font-size: 18px; font-weight: 700;
+}
+
+.stv-hero__timeline-filters {
+  margin-top: 45px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.stv-timeline-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  padding: 10px 24px;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  backdrop-filter: blur(8px);
+}
+.stv-timeline-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+.stv-timeline-btn--active {
+  background: var(--accent-pink);
+  border-color: #ff8fa3;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 4px 15px rgba(255, 90, 100, 0.4);
 }
 
 .stv-hero__stats {
