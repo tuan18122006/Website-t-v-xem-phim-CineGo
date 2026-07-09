@@ -76,12 +76,23 @@
 
         <button
           class="nav-link"
-          :class="{ active: activeTab === 'lookup' }"
-          @click="activeTab = 'lookup'"
+          :class="{ active: activeTab === 'combos' }"
+          @click="activeTab = 'combos'"
         >
-          <span class="nav-icon">🔎</span>
-          <span>Tra Cứu Đơn / Hỗ Trợ</span>
+          <span class="nav-icon">🍿</span>
+          <span>Quản Lý Bắp Nước</span>
         </button>
+
+        <button
+          class="nav-link"
+          :class="{ active: activeTab === 'vouchers' }"
+          @click="activeTab = 'vouchers'"
+        >
+          <span class="nav-icon">🎫</span>
+          <span>Quản Lý Voucher</span>
+        </button>
+
+
 
         <button
           class="nav-link"
@@ -266,10 +277,17 @@
         <UserManagement />
       </div>
 
-      <!-- TAB: TRA CỨU ĐƠN / HỖ TRỢ KHÁCH -->
-      <div v-show="activeTab === 'lookup'">
-        <BookingLookupView />
+      <!-- TAB: COMBO MANAGEMENT -->
+      <div v-show="activeTab === 'combos'">
+        <ComboManagementView />
       </div>
+
+      <!-- TAB: VOUCHER MANAGEMENT -->
+      <div v-show="activeTab === 'vouchers'">
+        <VoucherManager />
+      </div>
+
+
 
       <!-- TAB 4: REVENUE TRANSACTION REPORT -->
       <div v-show="activeTab === 'revenue'" class="revenue-tab-content">
@@ -322,14 +340,12 @@ import MoviesView from './MoviesView.vue';
 import ShowtimesView from './ShowtimesView.vue';
 import GenreManagement from './GenreManagement.vue';
 import UserManagement from './UserManagement.vue';
-import BookingLookupView from './BookingLookupView.vue';
 import RoomsView from './RoomManagementView.vue';
 import RoomManagementView from './RoomManagementView.vue';
 import RoomEditorView from './RoomEditorView.vue';
 import ComboSelection from './ComboSelection.vue'; 
+import ComboManagementView from './ComboManagementView.vue';
 import VoucherManager from './VoucherManager.vue';
-
-
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -398,9 +414,9 @@ const getTabTitle = computed(() => {
     genres: 'Quản Lý Thể Loại Phim',
     users: 'Quản Lý Tài Khoản & Phân Quyền',
     lookup: 'Tra Cứu Đơn Hàng & Hỗ Trợ Khách',
-    revenue: 'Báo Cáo & Thống Kê Doanh Thu',
     combos: 'Quản Lý Combo và Đồ ăn',
-
+    vouchers: 'Quản Lý Mã Giảm Giá (Vouchers)',
+    revenue: 'Báo Cáo & Thống Kê Doanh Thu'
   };
   return titles[activeTab.value];
 });
@@ -416,9 +432,9 @@ const getTabDesc = computed(() => {
     genres: 'Quản lý danh mục thể loại phim của hệ thống CineGo.',
     users: 'Thêm, sửa, phân quyền (Admin/Staff/User) và khóa/mở khóa tài khoản người dùng.',
     lookup: 'Tìm đơn theo SĐT/email/mã đơn khi khách quên mã vé, xem ghế & bắp nước đã mua để hỗ trợ.',
-    revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.',
     combos: 'Thêm, sửa, xóa, combo và đồ ăn kiểm kê số lượng tồn trong kho',
-
+    vouchers: 'Tạo mã giảm giá, giới hạn số lần dùng, thiết lập điều kiện tối thiểu.',
+    revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.'
   };
   return descs[activeTab.value];
 });
@@ -674,6 +690,8 @@ onMounted(() => {
   font-size: 13px;
   font-weight: 700;
   transition: var(--transition-smooth);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .btn-back-client:hover {
