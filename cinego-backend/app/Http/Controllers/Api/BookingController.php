@@ -39,22 +39,22 @@ class BookingController extends Controller
         ]);
 
         try {
+            // Gọi service để tạo booking
             $booking = $this->bookingService->createBooking(
                 $request->showtime_id,
                 $request->seat_ids,
                 $request->combos ?? [],
                 $request->payment_method,
                 auth()->id(),
-                'paid' // giữ nguyên hành vi cũ: đặt vé xong là paid ngay
-            );
-                $request->voucher_id,
-                'paid' // Thanh toán trực tiếp tại quầy hoặc mã QR tĩnh coi như paid ngay cho demo
+                'paid',               // status thanh toán
+                $request->voucher_id  // truyền voucher_id vào đây
             );
 
             // Gửi Email xác nhận đặt vé thành công
             try {
                 if ($booking->user && $booking->user->email) {
-                    \Illuminate\Support\Facades\Mail::to($booking->user->email)->send(new \App\Mail\BookingSuccessMail($booking));
+                    \Illuminate\Support\Facades\Mail::to($booking->user->email)
+                        ->send(new \App\Mail\BookingSuccessMail($booking));
                 }
             } catch (\Exception $mailEx) {
                 \Illuminate\Support\Facades\Log::error('Failed to send booking success email: ' . $mailEx->getMessage());
@@ -72,7 +72,6 @@ class BookingController extends Controller
             ], 422);
         }
     }
-}
 
     /**
      * Lấy lịch sử đặt vé của user đang đăng nhập
@@ -88,9 +87,9 @@ class BookingController extends Controller
             'bookingDetails.seat',
             'bookingCombos.combo'
         ])
-        ->where('user_id', $userId)
-        ->orderBy('id', 'desc')
-        ->get();
+            ->where('user_id', $userId)
+            ->orderBy('id', 'desc')
+            ->get();
 
         $formattedTickets = $bookings->map(function ($booking) {
             $seatsList = $booking->bookingDetails->map(function ($detail) {
@@ -102,7 +101,7 @@ class BookingController extends Controller
             })->filter()->values()->toArray();
 
             $totalTicketPrice = $booking->bookingDetails->sum('price');
-            $totalComboPrice = $booking->bookingCombos->sum(function($bc) {
+            $totalComboPrice = $booking->bookingCombos->sum(function ($bc) {
                 return $bc->price_at_purchase * $bc->quantity;
             });
 
@@ -118,7 +117,7 @@ class BookingController extends Controller
                 'total_ticket_price' => $totalTicketPrice,
                 'total_combo_price'  => $totalComboPrice,
                 'subtotal'       => $booking->subtotal,
-                'discount_amount'=> $booking->discount_amount,
+                'discount_amount' => $booking->discount_amount,
                 'total_price'    => $booking->total_amount,
                 'payment_method' => $booking->payment_method,
                 'created_at'     => $booking->created_at ? $booking->created_at->format('H:i d/m/Y') : '',

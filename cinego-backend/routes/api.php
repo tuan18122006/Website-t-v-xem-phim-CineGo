@@ -12,12 +12,6 @@ use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\BookingLookupController;
 use App\Http\Controllers\Api\ComboController;
-use App\Http\Controllers\Api\VoucherController;
-use App\Http\Controllers\Api\PaymentController;
-use App\Http\Controllers\Api\ComboItemController;
-
-
-
 use App\Http\Controllers\Api\PricingRuleController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\VoucherController;
