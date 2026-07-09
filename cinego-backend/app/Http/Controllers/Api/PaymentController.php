@@ -9,6 +9,7 @@ use App\Services\BookingService;
 use App\Models\Booking;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\OrderSuccessMail;
+use App\Mail\BookingSuccessMail;
 
 class PaymentController extends Controller
 {
@@ -94,6 +95,11 @@ class PaymentController extends Controller
             return redirect(
                 $frontendUrl .
                     '/payment-result?status=success&code=' .
+                ->send(new BookingSuccessMail($booking));
+
+            return redirect(
+                $frontendUrl .
+                    '/payment/result?status=success&code=' .
                     $booking->booking_code
             );
         }
