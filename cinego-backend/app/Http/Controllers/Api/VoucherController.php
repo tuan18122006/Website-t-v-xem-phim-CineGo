@@ -123,20 +123,13 @@ class VoucherController extends Controller
         return response()->json($voucher);
     }
     // 4. Xóa mã giảm giá
-    public function destroy($id)
+   public function destroy($id)
     {
         $voucher = Voucher::findOrFail($id);
-
         if ($voucher->bookings()->exists()) {
-            return response()->json([
-                'message' => 'Mã giảm giá đã được sử dụng trong đơn đặt vé nên không thể xóa.'
-            ], 409);
+            return response()->json(['message' => 'Mã giảm giá đã được sử dụng, không thể xóa.'], 409);
         }
-
         $voucher->delete();
-
-        return response()->json([
-            'message' => 'Xóa mã giảm giá thành công.'
-        ]);
+        return response()->json(['message' => 'Xóa mã giảm giá thành công.']);
     }
 }
