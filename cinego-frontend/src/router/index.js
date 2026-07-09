@@ -141,6 +141,14 @@ const routes = [
   },
   {
     path: "/admin/combos",
+    name: "admin-ComboManagement",
+    component: () => import("../views/admin/ComboSelection.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
+    path: "/admin/vouchers",
+    name: "admin-VoucherManagement",
+    component: () => import("../views/admin/VoucherManager.vue"),
     name: "admin-Combos",
     component: () => import("../views/admin/ComboManagementView.vue"),
     meta: { requiresAuth: true, role: "admin" },
@@ -151,6 +159,7 @@ const routes = [
     component: () => import("../views/admin/UserManagement.vue"),
     meta: { requiresAuth: true, role: "admin" },
   },
+
   {
     path: "/admin/vouchers",
     name: "admin-VoucherManagement",
