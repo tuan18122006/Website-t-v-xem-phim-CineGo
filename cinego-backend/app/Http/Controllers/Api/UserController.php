@@ -299,30 +299,10 @@ class UserController extends Controller
         return response()->json(['success' => true, 'message' => 'Đã xóa tài khoản!'], 200);
     }
 
-    // Lấy thông tin tài khoản hiện tại (Đã ép hàm url() bảo mật)
-    public function profile(Request $request)
-    {
-        $user = $request->user();
-        if ($user->avatar_url) {
-            $user->avatar_url = str_starts_with($user->avatar_url, 'http') ? $user->avatar_url : url($user->avatar_url);
-        } else {
-            $user->avatar_url = url('/storage/avatars/default.png');
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $user
-        ], 200);
-    }
-
     // Cập nhật thông tin profile cá nhân
-    public function updateProfile(Request $request, $id)
+    public function updateProfile(Request $request)
     {
-        if ($request->user()->id != $id && $request->user()->role !== 'admin') {
-            return response()->json(['success' => false, 'message' => 'Hành động không hợp lệ!'], 403);
-        }
-
-        $user = User::findOrFail($id);
+        $user = clone $request->user();
 
         $request->validate([
             'name'  => 'required|string|max:255',
@@ -359,7 +339,7 @@ class UserController extends Controller
             'new_password' => 'required|string|min:8',
         ]);
 
-        $user = $request->user();
+        $user = clone $request->user();
 
         if (!Hash::check($request->old_password, $user->password)) {
             return response()->json([
@@ -391,25 +371,22 @@ class UserController extends Controller
             'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        $user = $request->user();
+        $user = clone $request->user();
 
         if ($request->hasFile('avatar')) {
-            // SỬA ĐOẠN NÀY: Xóa file ảnh cũ an toàn bằng cách lấy tên file gốc
             if ($user->avatar_url) {
-                $fileName = basename($user->avatar_url); // Lấy chính xác tên file (vd: abc.png)
-                Storage::disk('public')->delete('avatars/' . $fileName);
+                $fileName = basename($user->avatar_url);
+                \Illuminate\Support\Facades\Storage::disk('public')->delete('avatars/' . $fileName);
             }
 
-            // Tiến hành lưu ảnh mới vào thư mục storage/app/public/avatars
             $path = $request->file('avatar')->store('avatars', 'public');
 
-            // Lưu path ngắn vào DB
             $user->avatar_url = '/storage/' . $path;
             $user->save();
 
             return response()->json([
                 'success' => true,
-                'avatar_url' => url($user->avatar_url) // Trả ra ngoài đầy đủ link chạy được luôn
+                'avatar_url' => url($user->avatar_url)
             ], 200);
         }
 

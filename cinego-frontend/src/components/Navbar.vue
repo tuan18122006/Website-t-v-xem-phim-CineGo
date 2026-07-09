@@ -69,36 +69,21 @@
         </div>
 
         <template v-if="authStore.isAuthenticated">
-          <div class="user-dropdown-wrapper">
-            <div class="user-profile-trigger">
-              <div class="user-profile">
-                <span class="user-name">{{ authStore.user?.name }} ▾</span>
-                <span class="user-role">{{
-                  authStore.user?.role === "admin" ? "Admin" : "Thành viên"
-                }}</span>
-              </div>
-            </div>
-
-            <div class="dropdown-menu-content">
-              <router-link to="/profile" class="dropdown-link">
-                📂 Hồ sơ
-              </router-link>
-
-              <router-link
-                v-if="authStore.isAdmin"
-                to="/admin/dashboard"
-                class="dropdown-link admin-link"
-              >
-                ⚙️ Admin Panel
-              </router-link>
-
-              <hr class="dropdown-divider" />
-
-              <button @click="handleLogout" class="dropdown-logout-btn">
-                🚪 Đăng xuất
-              </button>
-            </div>
-          </div>
+          <router-link to="/profile" class="user-profile">
+            <span class="user-name">{{ authStore.user?.name }}</span>
+            <span class="user-role">{{ authStore.user?.role === 'admin' ? 'Admin' : (authStore.user?.role === 'staff' ? 'Nhân viên' : 'Thành viên') }}</span>
+          </router-link>
+          <!-- Admin shortcut link -->
+          <router-link v-if="authStore.isAdmin" to="/admin/dashboard" class="btn-admin-panel">
+            Admin Panel
+          </router-link>
+          <!-- Staff shortcut link -->
+          <router-link v-if="authStore.isStaff" to="/staff/dashboard" class="btn-admin-panel">
+            Staff Panel
+          </router-link>
+          <button @click="handleLogout" class="btn-logout">
+            Đăng xuất
+          </button>
         </template>
 
         <template v-else>
@@ -313,6 +298,7 @@ const handleLogout = async () => {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  text-decoration: none;
 }
 
 .user-name {

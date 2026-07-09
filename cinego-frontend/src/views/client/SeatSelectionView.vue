@@ -1,11 +1,6 @@
 <template>
   <div class="seat-selection-view" v-if="bookingStore.selectedShowtime">
     <div class="selection-grid-container glass-panel">
-      <div class="screen-wrapper">
-        <div class="screen-curved">MÀN HÌNH</div>
-        <div class="screen-glow"></div>
-      </div>
-
       <div class="seats-map-wrapper w-100 my-4">
         <SeatMap
           :seats="mappedSeats"
@@ -124,6 +119,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from "vue";
 import { useRouter } from "vue-router";
+import Swal from 'sweetalert2';
 import { useBookingStore } from "../../stores/booking";
 import api from "../../api/axios";
 
@@ -174,8 +170,15 @@ const selectedSeatIds = computed(() => {
 // HỨNG SỰ KIỆN TỪ SEATMAP: Xử lý kích hoạt khi bấm chọn ghế trên giao diện 3D
 const handleSeatMapClick = async (seat) => {
   if (!localStorage.getItem('cinego_token')) {
-    alert("Vui lòng đăng nhập trước khi thực hiện đặt vé!");
-    router.push("/login");
+    Swal.fire({
+      title: 'Thông báo',
+      text: 'Vui lòng đăng nhập trước khi thực hiện đặt vé!',
+      icon: 'warning',
+      confirmButtonText: 'Đăng nhập',
+      confirmButtonColor: '#e50914'
+    }).then(() => {
+      router.push("/login");
+    });
     return;
   }
 
@@ -233,7 +236,12 @@ const handleSeatMapClick = async (seat) => {
     }
 
     const errorMsg = error.response?.data?.message || "Có lỗi xảy ra khi xử lý chọn ghế!";
-    alert(errorMsg);
+    Swal.fire({
+      title: 'Lỗi chọn ghế',
+      text: errorMsg,
+      icon: 'error',
+      confirmButtonColor: '#e50914'
+    });
     // Tải lại sơ đồ ghế để cập nhật trạng thái mới nhất từ server
     fetchSeatStatus();
   }
@@ -246,8 +254,14 @@ const updateTimer = () => {
       countdownText.value = "00:00";
       stopTimer();
       bookingStore.clearBooking();
-      alert("Hết thời gian giữ ghế. Vui lòng đặt vé lại!");
-      router.push("/");
+      Swal.fire({
+        title: 'Hết thời gian',
+        text: 'Hết thời gian giữ ghế. Vui lòng đặt vé lại!',
+        icon: 'warning',
+        confirmButtonColor: '#e50914'
+      }).then(() => {
+        router.push("/");
+      });
     } else {
       const minutes = Math.floor(diff / 60000);
       const seconds = Math.floor((diff % 60000) / 1000);
@@ -328,9 +342,68 @@ onUnmounted(() => {
   stopTimer();
 });
 
+const validateSeatSelection = () => {
+  if (bookingStore.selectedSeats.length > 8) {
+    Swal.fire({
+      title: 'Giới hạn số lượng',
+      text: 'Bạn chỉ được chọn tối đa 8 ghế trong một lần giao dịch để đảm bảo công bằng.',
+      icon: 'info',
+      confirmButtonColor: '#e50914'
+    });
+    return false;
+  }
+
+  const rows = {};
+  mappedSeats.value.forEach(seat => {
+    if (!rows[seat.row]) rows[seat.row] = [];
+    rows[seat.row].push(seat);
+  });
+
+  for (const rowKey in rows) {
+    const rowSeats = rows[rowKey].sort((a, b) => parseInt(a.number) - parseInt(b.number));
+    
+    const hasSelected = rowSeats.some(s => selectedSeatIds.value.includes(s.id));
+    if (!hasSelected) continue;
+
+    for (let i = 0; i < rowSeats.length; i++) {
+      const currentSeat = rowSeats[i];
+      const isSelected = selectedSeatIds.value.includes(currentSeat.id);
+      
+      if (!currentSeat.is_booked && !isSelected) {
+        const leftNeighbor = i > 0 ? rowSeats[i - 1] : null;
+        const rightNeighbor = i < rowSeats.length - 1 ? rowSeats[i + 1] : null;
+
+        const isLeftEmpty = leftNeighbor && !leftNeighbor.is_booked && !selectedSeatIds.value.includes(leftNeighbor.id);
+        const isRightEmpty = rightNeighbor && !rightNeighbor.is_booked && !selectedSeatIds.value.includes(rightNeighbor.id);
+
+        const isIsolated = !isLeftEmpty && !isRightEmpty;
+
+        if (isIsolated) {
+          const leftCaused = leftNeighbor && selectedSeatIds.value.includes(leftNeighbor.id);
+          const rightCaused = rightNeighbor && selectedSeatIds.value.includes(rightNeighbor.id);
+
+          if (leftCaused || rightCaused) {
+            Swal.fire({
+              title: 'Quy định rạp',
+              text: 'Không được để trống 1 ghế đơn lẻ ở giữa các ghế đã chọn hoặc ở sát rìa hàng ghế.',
+              icon: 'warning',
+              confirmButtonColor: '#e50914'
+            });
+            return false;
+          }
+        }
+      }
+    }
+  }
+
+  return true;
+};
+
 const proceedToPayment = () => {
   if (bookingStore.selectedSeats.length > 0) {
-    router.push("/booking/payment");
+    if (validateSeatSelection()) {
+      router.push("/booking/payment");
+    }
   }
 };
 </script>
@@ -356,46 +429,6 @@ const proceedToPayment = () => {
   align-items: center;
   overflow-x: auto;
   width: 100%;
-}
-
-.screen-wrapper {
-  perspective: 400px;
-  margin-bottom: 60px;
-  width: 80%;
-  max-width: 600px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.screen-curved {
-  width: 100%;
-  height: 24px;
-  background: rgba(255, 255, 255, 0.9);
-  border-radius: 50% / 100% 100% 0 0;
-  transform: rotateX(-15deg);
-  box-shadow: 0 10px 40px rgba(255, 255, 255, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: #0b0816;
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.8em;
-  padding-left: 0.8em;
-}
-
-.screen-glow {
-  width: 80%;
-  height: 60px;
-  background: radial-gradient(
-    ellipse at top,
-    rgba(255, 255, 255, 0.15) 0%,
-    rgba(255, 255, 255, 0) 70%
-  );
-  margin-top: 4px;
-  filter: blur(8px);
 }
 
 .seats-legend {
