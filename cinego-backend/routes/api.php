@@ -118,10 +118,6 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     Route::get('/rooms', [RoomController::class, 'index']);
     Route::delete('/rooms/{id}', [RoomController::class, 'destroy']);
     //
-    Route::apiResource('combos', ComboController::class);
-    //
-    Route::apiResource('vouchers', VoucherController::class);
-    //
     Route::get('combos/{combo}/items', [ComboItemController::class, 'getItems']);
 
     Route::post('combo-items', [ComboItemController::class, 'store']);

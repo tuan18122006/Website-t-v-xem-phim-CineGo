@@ -64,15 +64,7 @@
           <span>Quản Lý Tài Khoản</span>
         </button>
 
-         <button class="nav-link" :class="{ active: activeTab === 'combos' }" @click="activeTab = 'combos'">
-          <span class="nav-icon">🍿</span>
-          <span>Quản Lý Đồ Ăn Và Combo</span>
-        </button>
-         
-        <button class="nav-link" :class="{ active: activeTab === 'vouchers' }" @click="activeTab = 'vouchers'">
-          <span class="nav-icon">🎟️</span>
-          <span>Quản Lý Mã Giảm Giá</span>
-        </button>
+
 
         <button
           class="nav-link"
@@ -105,7 +97,7 @@
       </header>
 
       <!-- TAB 1: DASHBOARD STATS & CHARTS -->
-      <div v-show="activeTab === 'stats'" class="dashboard-tab-content">
+      <div v-if="activeTab === 'stats'" class="dashboard-tab-content">
         <!-- Widgets thông số THẬT -->
         <div class="stats-widgets">
           <div class="widget-card glass-panel">
@@ -226,43 +218,33 @@
       </div>
 
       <!-- TAB 2: DYNAMIC MOVIES CRUD -->
-      <div v-show="activeTab === 'movies'">
+      <div v-if="activeTab === 'movies'">
         <MoviesView />
       </div>
 
       <!-- TAB 3: DYNAMIC SHOWTIMES CRUD -->
-      <div v-show="activeTab === 'showtimes'">
+      <div v-if="activeTab === 'showtimes'">
         <ShowtimesView />
       </div>
 
       <!-- TAB: QUẢN LÝ RẠP & GHẾ -->
-      <div v-show="activeTab === 'rooms'">
+      <div v-if="activeTab === 'rooms'">
         <RoomsView />
       </div>
 
-      <div v-show="activeTab === 'combos'">
-        <ComboSelection />
-      </div>
 
-      <div v-show="activeTab === 'vouchers'">
-        <VoucherManager />
-      </div>
 
-      <div v-show="activeTab === 'genres'">
+      <div v-if="activeTab === 'genres'">
         <GenreManagement />
       </div>
 
       <!-- TAB: USER MANAGEMENT -->
-      <div v-show="activeTab === 'users'">
+      <div v-if="activeTab === 'users'">
         <UserManagement />
       </div>
 
-      <!-- TAB: COMBO MANAGEMENT -->
-     
-    
-
       <!-- TAB 4: REVENUE TRANSACTION REPORT -->
-      <div v-show="activeTab === 'revenue'" class="revenue-tab-content">
+      <div v-if="activeTab === 'revenue'" class="revenue-tab-content">
         <div class="glass-panel detailed-report">
           <div class="report-header">
             <h3>Báo Cáo Chi Tiết Hóa Đơn Đặt Vé</h3>
@@ -315,7 +297,6 @@ import UserManagement from './UserManagement.vue';
 import RoomsView from './RoomManagementView.vue';
 import RoomManagementView from './RoomManagementView.vue';
 import RoomEditorView from './RoomEditorView.vue';
-import ComboSelection from './ComboSelection.vue'; 
 import ComboManagementView from './ComboManagementView.vue';
 import VoucherManager from './VoucherManager.vue';
 
