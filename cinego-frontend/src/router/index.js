@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import ReviewMovies from '../views/client/ReviewMovies.vue';
+import TicketDetailView from "../views/client/TicketDetailView.vue";
 
 
 // Lazy loading views
@@ -43,7 +44,7 @@ const routes = [
     name: 'top-movies',
     component: TopMovies
   },
-    {
+  {
     path: '/review-movies',
     name: 'review-movies',
     component: ReviewMovies
@@ -60,6 +61,11 @@ const routes = [
     name: 'seat-selection',
     component: SeatSelection,
     meta: { requiresAuth: true },
+  },
+  {
+    path: "/ticket/:bookingCode",
+    name: "ticket-detail",
+    component: TicketDetailView,
   },
   {
     path: "/booking/payment",
@@ -121,18 +127,18 @@ const routes = [
   },
 
 
-{
-  path: '/admin/rooms',
-  name: 'admin-rooms', 
-  component: () => import('../views/admin/RoomManagementView.vue'),
-  meta: { requiresAuth: true, role: "admin" }
-},
-{
-  path: '/admin/rooms/:id/edit', 
-  name: 'admin-room-edit',
-  component: () => import('../views/admin/RoomEditorView.vue'),
-  meta: { requiresAuth: true, role: "admin" }
-},
+  {
+    path: '/admin/rooms',
+    name: 'admin-rooms',
+    component: () => import('../views/admin/RoomManagementView.vue'),
+    meta: { requiresAuth: true, role: "admin" }
+  },
+  {
+    path: '/admin/rooms/:id/edit',
+    name: 'admin-room-edit',
+    component: () => import('../views/admin/RoomEditorView.vue'),
+    meta: { requiresAuth: true, role: "admin" }
+  },
 
   {
     path: "/admin/movies",
@@ -166,7 +172,7 @@ const routes = [
     component: () => import("../views/admin/VoucherManager.vue"),
     meta: { requiresAuth: true, role: "admin" },
   },
-  
+
 
   {
     path: "/staff",
