@@ -130,6 +130,7 @@ import { useRouter } from "vue-router";
 import Swal from 'sweetalert2';
 import { useBookingStore } from "../../stores/booking";
 import api from "../../api/axios";
+import echo from "../../api/echo";
 
 // IMPORT THÀNH PHẦN THEO ĐÚNG YÊU CẦU CỦA TECH LEAD
 import SeatMap from "../../components/SeatMap.vue";
@@ -351,10 +352,26 @@ onMounted(() => {
   if (bookingStore.holdExpiresAt) {
     startTimer();
   }
+
+  // Subscribe to real-time seat updates
+  if (bookingStore.selectedShowtime?.id) {
+    echo.channel(`showtime.${bookingStore.selectedShowtime.id}`)
+      .listen('SeatLocked', (e) => {
+        const seat = rawSeatsFromAPI.value.find(s => s.id === e.seatId);
+        if (seat) seat.status = 'holding';
+      })
+      .listen('SeatUnlocked', (e) => {
+        const seat = rawSeatsFromAPI.value.find(s => s.id === e.seatId);
+        if (seat) seat.status = 'available';
+      });
+  }
 });
 
 onUnmounted(() => {
   stopTimer();
+  if (bookingStore.selectedShowtime?.id) {
+    echo.leaveChannel(`showtime.${bookingStore.selectedShowtime.id}`);
+  }
 });
 
 const validateSeatSelection = () => {
