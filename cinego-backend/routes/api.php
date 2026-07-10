@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\PricingRuleController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\VoucherController;
 use App\Http\Controllers\Api\ComboItemController;
+use App\Http\Controllers\Api\TicketController;
 
 
 // Đăng ký / Đăng nhập
@@ -158,3 +159,4 @@ Route::middleware(['auth:sanctum', 'can:staff-or-admin'])->prefix('staff')->grou
 Route::get('/combos', [ComboController::class, 'index']);
 Route::post('/vouchers/verify', [VoucherController::class, 'verify']);
 Route::get('/payment/vnpay/return', [PaymentController::class, 'vnpayReturn']);
+Route::get('/tickets/{bookingCode}', [TicketController::class, 'show']);
