@@ -85,8 +85,21 @@
               placeholder="Quét mã QR hoặc nhập mã vé (VD: CG-123456)..." 
               autofocus 
             />
-            <button type="submit" class="btn-scan" :disabled="!scanCode">Xác Nhận</button>
+            <div class="scan-actions">
+              <button type="submit" class="btn-scan" :disabled="!scanCode">Xác Nhận</button>
+              <button type="button" class="btn-camera" @click="showCamera = !showCamera">
+                {{ showCamera ? 'Tắt Camera' : 'Bật Camera' }}
+              </button>
+              <label class="btn-camera" style="display: flex; align-items: center; justify-content: center; cursor: pointer; margin: 0;">
+                Tải Ảnh Lên
+                <qrcode-capture @detect="onDetect" style="display: none;"></qrcode-capture>
+              </label>
+            </div>
           </form>
+
+          <div v-if="showCamera" class="camera-wrapper">
+            <qrcode-stream @detect="onDetect"></qrcode-stream>
+          </div>
 
           <!-- Kết quả quét -->
           <div v-if="scanResult" class="scan-result" :class="scanResult.status">
@@ -107,6 +120,7 @@ import { useAuthStore } from '../../stores/auth';
 import BookingLookupView from '../admin/BookingLookupView.vue';
 import StaffPOSView from './StaffPOSView.vue';
 import api from '../../api/axios';
+import { QrcodeStream, QrcodeCapture } from 'vue-qrcode-reader';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -115,6 +129,22 @@ const activeTab = ref('lookup');
 const scanCode = ref('');
 const scanInput = ref(null);
 const scanResult = ref(null);
+const showCamera = ref(false);
+
+const onDetect = (detectedCodes) => {
+  if (detectedCodes && detectedCodes.length > 0) {
+    let rawValue = detectedCodes[0].rawValue;
+    try {
+      const url = new URL(rawValue);
+      const scanParam = url.searchParams.get('scan');
+      if (scanParam) rawValue = scanParam;
+    } catch(e) {}
+    
+    scanCode.value = rawValue;
+    showCamera.value = false;
+    handleScan();
+  }
+};
 
 watch(activeTab, (newVal) => {
   if (newVal === 'scan') {
@@ -417,7 +447,13 @@ const handleScan = async () => {
   box-shadow: 0 0 0 4px rgba(216, 45, 139, 0.1);
 }
 
+.scan-actions {
+  display: flex;
+  gap: 12px;
+}
+
 .btn-scan {
+  flex: 1;
   background: linear-gradient(135deg, var(--accent-pink), var(--accent-violet));
   color: white;
   border: none;
@@ -426,6 +462,33 @@ const handleScan = async () => {
   font-weight: 700;
   border-radius: 12px;
   cursor: pointer;
+}
+
+.btn-camera {
+  flex: 1;
+  background: white;
+  color: var(--accent-pink);
+  border: 2px solid var(--accent-pink);
+  padding: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-camera:hover {
+  background: var(--accent-pink);
+  color: white;
+}
+
+.camera-wrapper {
+  margin-top: 20px;
+  width: 100%;
+  max-width: 400px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 4px solid var(--accent-pink);
 }
 
 .btn-scan:disabled {

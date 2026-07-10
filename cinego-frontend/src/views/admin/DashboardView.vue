@@ -64,6 +64,8 @@
           <span>Quản Lý Tài Khoản</span>
         </button>
 
+
+
         <button
           class="nav-link"
           :class="{ active: activeTab === 'combos' }"
@@ -236,26 +238,28 @@
       </div>
 
       <!-- TAB 2: DYNAMIC MOVIES CRUD -->
-      <div v-show="activeTab === 'movies'">
+      <div v-if="activeTab === 'movies'">
         <MoviesView />
       </div>
 
       <!-- TAB 3: DYNAMIC SHOWTIMES CRUD -->
-      <div v-show="activeTab === 'showtimes'">
+      <div v-if="activeTab === 'showtimes'">
         <ShowtimesView />
       </div>
 
       <!-- TAB: QUẢN LÝ RẠP & GHẾ -->
-      <div v-show="activeTab === 'rooms'">
+      <div v-if="activeTab === 'rooms'">
         <RoomsView />
       </div>
 
-      <div v-show="activeTab === 'genres'">
+
+
+      <div v-if="activeTab === 'genres'">
         <GenreManagement />
       </div>
 
       <!-- TAB: USER MANAGEMENT -->
-      <div v-show="activeTab === 'users'">
+      <div v-if="activeTab === 'users'">
         <UserManagement />
       </div>
 
@@ -272,7 +276,7 @@
 
 
       <!-- TAB 4: REVENUE TRANSACTION REPORT -->
-      <div v-show="activeTab === 'revenue'" class="revenue-tab-content">
+      <div v-if="activeTab === 'revenue'" class="revenue-tab-content">
         <div class="glass-panel detailed-report">
           <div class="report-header">
             <h3>Báo Cáo Chi Tiết Hóa Đơn Đặt Vé</h3>
@@ -392,6 +396,7 @@ const getTabTitle = computed(() => {
     rooms: 'Quản Lý Phòng Chiếu & Ghế',
     genres: 'Quản Lý Thể Loại Phim',
     users: 'Quản Lý Tài Khoản & Phân Quyền',
+    lookup: 'Tra Cứu Đơn Hàng & Hỗ Trợ Khách',
     combos: 'Quản Lý Bắp Nước (Combos)',
     vouchers: 'Quản Lý Mã Giảm Giá (Vouchers)',
     revenue: 'Báo Cáo & Thống Kê Doanh Thu'
@@ -409,6 +414,7 @@ const getTabDesc = computed(() => {
     rooms: 'Thiết kế trực quan sơ đồ không gian rạp, quản lý các loại ghế (Thường, VIP, Đôi) và lối đi.',
     genres: 'Quản lý danh mục thể loại phim của hệ thống CineGo.',
     users: 'Thêm, sửa, phân quyền (Admin/Staff/User) và khóa/mở khóa tài khoản người dùng.',
+    lookup: 'Tìm đơn theo SĐT/email/mã đơn khi khách quên mã vé, xem ghế & bắp nước đã mua để hỗ trợ.',
     combos: 'Cấu hình giá cả, thêm/sửa/xóa và quản lý trạng thái hiển thị của các gói Bắp & Nước.',
     vouchers: 'Tạo mã giảm giá, giới hạn số lần dùng, thiết lập điều kiện tối thiểu.',
     revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.'
