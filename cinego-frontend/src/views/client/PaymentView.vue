@@ -1,19 +1,9 @@
 <template>
   <div class="payment-view" v-if="bookingStore.selectedSeats.length > 0">
-    <div
-      v-if="bookingSuccess"
-      class="success-receipt-container glass-panel animate-fade-in"
-    >
+    <div v-if="bookingSuccess" class="success-receipt-container glass-panel animate-fade-in">
       <div class="success-icon-wrapper">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="60"
-          height="60"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#00f5a0"
-          stroke-width="2.5"
-        >
+        <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#00f5a0"
+          stroke-width="2.5">
           <polyline points="20 6 9 17 4 12"></polyline>
         </svg>
       </div>
@@ -37,10 +27,8 @@
           </div>
           <div class="receipt-row">
             <strong>Suất chiếu:</strong>
-            <span
-              >{{ bookingStore.selectedShowtime?.start_time }} |
-              {{ bookingStore.selectedShowtime?.date }}</span
-            >
+            <span>{{ bookingStore.selectedShowtime?.start_time }} |
+              {{ bookingStore.selectedShowtime?.date }}</span>
           </div>
           <div class="receipt-row">
             <strong>Phòng chiếu:</strong>
@@ -54,10 +42,7 @@
                 .join(", ")
             }}</span>
           </div>
-          <div
-            class="receipt-row"
-            v-if="bookingStore.selectedCombos.length > 0"
-          >
+          <div class="receipt-row" v-if="bookingStore.selectedCombos.length > 0">
             <strong>Bắp nước:</strong>
             <span>{{
               bookingStore.selectedCombos
@@ -74,82 +59,72 @@
         </div>
       </div>
 
-      <button @click="backToHome" class="btn-pay-now" style="margin-top: 20px; max-width: 300px;">Quay Về Trang Chủ & Xem Lịch Sử</button>
-    </div>
-
-    <!-- Màn hình Thanh Toán QR -->
-    <div v-else-if="showQRModal" class="success-receipt-container glass-panel animate-fade-in">
-      <h2 class="section-title text-center">Thanh toán qua Mã QR</h2>
-      <p class="text-center text-muted mb-4">Vui lòng quét mã QR dưới đây bằng ứng dụng ngân hàng hoặc ví điện tử của bạn để thanh toán.</p>
-      
-      <div class="qr-code-box">
-        <img src="https://api.vietqr.io/image/970436-0123456789-9jS3tXv.jpg?amount=0&addInfo=Thanh+toan+ve+xem+phim+CineGo" alt="Mã QR Thanh Toán" class="qr-img" />
-      </div>
-      
-      <div class="payment-info-box">
-        <div class="info-row">
-          <span>Ngân hàng:</span>
-          <strong>Vietcombank (VCB)</strong>
-        </div>
-        <div class="info-row">
-          <span>Số tài khoản:</span>
-          <strong>0123456789</strong>
-        </div>
-        <div class="info-row">
-          <span>Chủ tài khoản:</span>
-          <strong>CINEGO CINEMAS</strong>
-        </div>
-        <div class="info-row">
-          <span>Số tiền:</span>
-          <strong class="text-pink">{{ formatCurrency(bookingStore.totalAmount) }}</strong>
-        </div>
-        <div class="info-row">
-          <span>Nội dung:</span>
-          <strong>Thanh toan ve xem phim CineGo</strong>
-        </div>
-      </div>
-
-      <div class="d-flex gap-16 mt-4" style="width: 100%; display: flex; gap: 16px;">
-        <button @click="showQRModal = false" class="btn-outline flex-1" style="flex:1">Hủy bỏ</button>
-        <button @click="confirmPayment" :disabled="submitting" class="btn-pay-now flex-1" style="flex:1">
-          <span v-if="submitting" class="btn-spinner"></span>
-          <span v-else>Tôi đã chuyển khoản</span>
-        </button>
-      </div>
+      <button @click="backToHome" class="btn-pay-now" style="margin-top: 20px; max-width: 300px;">Quay Về Trang
+        Chủ</button>
     </div>
 
     <div v-else class="payment-checkout-grid">
       <div class="checkout-main">
         <section class="combos-section glass-panel">
-          <h2 class="section-title gradient-text-accent">
-            Chọn Bắp & Nước (Tùy chọn)
-          </h2>
+          <h2 class="section-title gradient-text-accent">Chọn Bắp & Nước (Tùy chọn)</h2>
+          <template v-if="loadingCombos">
+            <div v-for="i in 3" :key="i" class="combo-item glass-panel skeleton-card">
+              <div class="skeleton skeleton-img"></div>
+
+              <div class="combo-info">
+                <div class="skeleton skeleton-title"></div>
+                <div class="skeleton skeleton-text"></div>
+                <div class="skeleton skeleton-price"></div>
+              </div>
+
+              <div class="combo-action">
+                <div class="skeleton skeleton-btn"></div>
+                <div class="skeleton skeleton-stock"></div>
+              </div>
+            </div>
+          </template>
           <div class="combos-list">
-            <div
-              v-for="combo in availableCombos"
-              :key="combo.id"
-              class="combo-item glass-panel"
-            >
+            <!-- Vòng lặp lấy dữ liệu từ database thông qua biến availableCombos -->
+            <div v-for="combo in availableCombos" :key="combo.id" class="combo-item glass-panel">
+              <!-- Hiển thị ảnh combo -->
               <img :src="combo.image_url" :alt="combo.name" class="combo-img" />
+
+              <!-- Hiển thị thông tin combo -->
               <div class="combo-info">
                 <h3 class="combo-name">{{ combo.name }}</h3>
                 <p class="combo-desc">{{ combo.description }}</p>
-                <span class="combo-price">{{
-                  formatCurrency(combo.price)
-                }}</span>
+                <span class="combo-price">{{ formatCurrency(combo.price) }}</span>
               </div>
-              <div class="combo-controls">
-                <button
-                  @click="bookingStore.removeCombo(combo)"
-                  class="ctrl-btn"
-                >
-                  -
-                </button>
-                <span class="ctrl-qty">{{ getComboQty(combo.id) }}</span>
-                <button @click="bookingStore.addCombo(combo)" class="ctrl-btn">
-                  +
-                </button>
+
+              <!-- Điều khiển số lượng -->
+
+              <div class="combo-action">
+                <div class="combo-controls">
+                  <button @click="bookingStore.removeCombo(combo)" class="ctrl-btn">
+                    -
+                  </button>
+                  <span class="ctrl-qty">
+                    {{ getComboQty(combo.id) }}
+                  </span>
+                  <button @click="bookingStore.addCombo(combo)" class="ctrl-btn" :disabled="isMaxStock(combo)"
+                    :title="isMaxStock(combo) ? 'Đã đạt số lượng tồn kho' : ''">
+                    +
+                  </button>
+
+                </div>
+                <small :class="{
+                  'stock-info': getRemainingStock(combo) > 3,
+                  'stock-low': getRemainingStock(combo) <= 3 && !isMaxStock(combo),
+                  'stock-warning': isMaxStock(combo)
+                }">
+                  {{
+                    isMaxStock(combo)
+                      ? 'Đã đạt số lượng tối đa'
+                      : `Còn lại ${getRemainingStock(combo)} Combo `
+                  }}
+                </small>
               </div>
+
             </div>
           </div>
         </section>
@@ -159,19 +134,10 @@
             Phương Thức Thanh Toán
           </h2>
           <div class="methods-grid">
-            <label
-              v-for="method in paymentMethods"
-              :key="method.id"
-              class="method-card glass-panel"
-              :class="{ active: selectedPaymentMethod === method.id }"
-            >
-              <input
-                type="radio"
-                :value="method.id"
-                v-model="selectedPaymentMethod"
-                name="payment_method"
-                class="hidden-radio"
-              />
+            <label v-for="method in paymentMethods" :key="method.id" class="method-card glass-panel"
+              :class="{ active: selectedPaymentMethod === method.id }">
+              <input type="radio" :value="method.id" v-model="selectedPaymentMethod" name="payment_method"
+                class="hidden-radio" />
               <span class="method-icon" v-html="method.icon"></span>
               <div class="method-info">
                 <span class="method-name">{{ method.name }}</span>
@@ -213,11 +179,7 @@
           </div>
 
           <template v-if="bookingStore.selectedCombos.length > 0">
-            <div
-              class="invoice-row"
-              v-for="item in bookingStore.selectedCombos"
-              :key="item.combo.id"
-            >
+            <div class="invoice-row" v-for="item in bookingStore.selectedCombos" :key="item.combo.id">
               <span>{{ item.combo.name }} (x{{ item.quantity }})</span>
               <span>{{
                 formatCurrency(item.combo.price * item.quantity)
@@ -229,30 +191,17 @@
 
           <div class="voucher-wrapper">
             <div class="voucher-input-group">
-              <input
-                v-model="voucherCode"
-                type="text"
-                placeholder="Nhập mã giảm giá..."
-                class="voucher-input"
-                :disabled="bookingStore.appliedVoucher"
-              />
-              <button
-                v-if="!bookingStore.appliedVoucher"
-                @click="applyVoucher"
-                class="btn-apply-voucher"
-              >
+              <input v-model="voucherCode" type="text" placeholder="Nhập mã giảm giá..." class="voucher-input"
+                :disabled="bookingStore.appliedVoucher" />
+              <button v-if="!bookingStore.appliedVoucher" @click="applyVoucher" class="btn-apply-voucher">
                 Áp Dụng
               </button>
               <button v-else @click="removeVoucher" class="btn-remove-voucher">
                 Hủy
               </button>
             </div>
-            <p
-              v-if="voucherMessage"
-              :class="
-                voucherSuccess ? 'voucher-msg-success' : 'voucher-msg-error'
-              "
-            >
+            <p v-if="voucherMessage" :class="voucherSuccess ? 'voucher-msg-success' : 'voucher-msg-error'
+              ">
               {{ voucherMessage }}
             </p>
           </div>
@@ -263,10 +212,7 @@
             <span>Tạm tính:</span>
             <span>{{ formatCurrency(bookingStore.subtotal) }}</span>
           </div>
-          <div
-            class="invoice-row text-discount"
-            v-if="bookingStore.discountAmount > 0"
-          >
+          <div class="invoice-row text-discount" v-if="bookingStore.appliedVoucher && bookingStore.discountAmount > 0">
             <span>Giảm giá:</span>
             <span>- {{ Number(bookingStore.discountAmount).toLocaleString('vi-VN') }}đ</span>
           </div>
@@ -279,26 +225,23 @@
           </div>
         </div>
 
-        <button
-          @click="handlePaymentAction"
-          class="btn-pay-now"
-          :disabled="submitting"
-        >
+        <button type="button" @click="handlePaymentAction" class="btn-pay-now" :disabled="submitting">
           <span v-if="submitting" class="btn-spinner"></span>
           <span v-else>Thanh Toán Hóa Đơn</span>
         </button>
+
+        <button type="button" :disabled="submitting" @click="goBackToSeats" class="btn-cancel-payment">
+          Quay Lại Chọn Ghế
+        </button>
+
       </div>
     </div>
   </div>
 
   <div v-else class="loading-state">
     <p>Giỏ hàng trống hoặc hết hạn giữ ghế!</p>
-    <router-link
-      to="/"
-      class="btn-pay-now"
-      style="margin-top: 20px; display: inline-flex; max-width: 300px;"
-      >Quay về Trang chủ</router-link
-    >
+    <router-link to="/" class="btn-pay-now" style="margin-top: 20px; display: inline-flex; max-width: 300px;">Quay về
+      Trang chủ</router-link>
   </div>
 </template>
 
@@ -326,16 +269,93 @@ const formatCurrency = (val) => {
   }).format(val);
 };
 
+const goBackToSeats = () => {
+  // Lệnh này sẽ tự động đưa trình duyệt quay lại trang trước đó (Trang Chọn Ghế)
+  router.back();
+
+  // Hoặc nếu bạn muốn đẩy chính xác về trang đặt vé/chọn ghế theo tên Route:
+  // router.push({ name: 'select-seats' });
+};
+
+const loadingCombos = ref(true);
+const verifyVoucher = async () => {
+  try {
+    const response = await api.post('/vouchers/verify', {
+      code: discountCode.value,
+      total_amount: bookingStore.calculateTotal()
+    });
+
+    if (response.data.success) {
+      discountAmount.value = response.data.discount_amount;
+      isVoucherApplied.value = true;
+    }
+  } catch (error) {
+    console.error('Mã giảm giá không hợp lệ:', error);
+    alert('Mã giảm giá không hợp lệ!');
+  }
+};
+
+const handleApplyVoucher = async () => {
+  const response = await api.post('/vouchers/verify', {
+    code: voucherInput.value,
+    subtotal: bookingStore.totalPrice // Tổng tiền gốc
+  });
+
+  if (response.data.success) {
+    discountAmount.value = response.data.discount_amount; // Số tiền được trừ
+    finalTotal.value = response.data.final_total;       // Tổng tiền sau giảm
+    alert('Áp dụng thành công!');
+  }
+};
+
+const getComboImageUrl = (imageUrl) => {
+  if (!imageUrl) {
+    return fallbackComboImage;
+  }
+
+  if (imageUrl.startsWith("blob:") || imageUrl.startsWith("data:")) {
+    return imageUrl;
+  }
+
+  if (imageUrl.startsWith("http://localhost/storage/")) {
+    return imageUrl.replace("http://localhost", BACKEND_URL);
+  }
+
+  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+    return imageUrl;
+  }
+
+  if (imageUrl.startsWith("/storage/")) {
+    return `${BACKEND_URL}${imageUrl}`;
+  }
+
+  if (imageUrl.startsWith("storage/")) {
+    return `${BACKEND_URL}/${imageUrl}`;
+  }
+
+  return `${BACKEND_URL}/storage/${imageUrl}`;
+};
+
+const handleComboImageError = (event) => {
+  event.target.onerror = null;
+  event.target.src = fallbackComboImage;
+};
+
 const availableCombos = ref([]);
 
 const fetchCombos = async () => {
+  loadingCombos.value = true;
+
   try {
-    const res = await api.get('/combos/active');
-    if (res.data && res.data.data) {
-      availableCombos.value = res.data.data;
-    }
+    const res = await api.get("/combos/active");
+
+    console.log("Danh sách combo:", res.data?.data);
+
+    availableCombos.value = res.data?.data || [];
   } catch (err) {
     console.error("Lỗi khi tải combo:", err);
+  } finally {
+    loadingCombos.value = false;
   }
 };
 
@@ -355,30 +375,46 @@ const paymentMethods = [
 ];
 
 const getComboQty = (comboId) => {
-  const item = bookingStore.selectedCombos.find((c) => c.combo.id === comboId);
+  const item = bookingStore.selectedCombos.find(c => c.combo.id === comboId);
   return item ? item.quantity : 0;
+};
+
+const getRemainingStock = (combo) => {
+  const item = bookingStore.selectedCombos.find(
+    (c) => c.combo.id === combo.id
+  );
+
+  const selectedQty = item ? item.quantity : 0;
+
+  return combo.stock - selectedQty;
+};
+
+const isMaxStock = (combo) => {
+  const item = bookingStore.selectedCombos.find(
+    (c) => c.combo.id === combo.id
+  );
+
+  if (!item) return false;
+
+  return item.quantity >= combo.stock;
 };
 
 // Gửi mã voucher lên hệ thống xử lý tính toán
 const applyVoucher = async () => {
-  voucherMessage.value = "";
-  voucherSuccess.value = false;
-
-  if (!voucherCode.value) return;
-  const code = voucherCode.value.toUpperCase();
-
   try {
-    const response = await api.post("/vouchers/verify", {
-      code,
-      subtotal: bookingStore.subtotal,
+    const response = await api.post('/vouchers/verify', {
+      code: voucherCode.value,
+      subtotal: bookingStore.subtotal
     });
-    bookingStore.applyVoucher(response.data);
-    voucherMessage.value = `Áp dụng thành công voucher giảm ${response.data.discount_value}${response.data.discount_type === "percentage" ? "%" : "đ"}!`;
-    voucherSuccess.value = true;
-  } catch (err) {
-    const errorMsg = err.response?.data?.message || "Mã giảm giá không chính xác hoặc đã hết lượt dùng!";
-    voucherMessage.value = errorMsg;
-    voucherSuccess.value = false;
+
+    console.log("Dữ liệu voucher nhận được từ API:", response.data); // Kiểm tra xem giá trị có đúng không
+
+    if (response.data) {
+      bookingStore.applyVoucher(response.data);
+      console.log("Voucher đã lưu vào store:", bookingStore.appliedVoucher); // Kiểm tra lại sau khi lưu
+    }
+  } catch (error) {
+    console.error("Lỗi áp dụng voucher:", error);
   }
 };
 
@@ -401,45 +437,52 @@ const handlePaymentAction = () => {
   }
 };
 
+// ... (các hàm khác ở trên)
+
 const confirmPayment = async () => {
   submitting.value = true;
+
   try {
     const payload = {
-      showtime_id: bookingStore.selectedShowtime.id,
-      seat_ids: bookingStore.selectedSeats.map((s) => s.id),
-      combos: bookingStore.selectedCombos.map((c) => ({
-        id: c.combo.id,
-        quantity: c.quantity,
+      showtime_id: bookingStore.selectedShowtime?.id,
+
+      seat_ids: bookingStore.selectedSeats.map((seat) => seat.id),
+
+      combos: bookingStore.selectedCombos.map((item) => ({
+        id: item.combo.id,
+        quantity: item.quantity,
       })),
+
       voucher_id: bookingStore.appliedVoucher?.id || null,
+
       payment_method: selectedPaymentMethod.value,
+
       total_amount: bookingStore.totalAmount,
     };
 
-    let response;
-    if (selectedPaymentMethod.value === "vnpay") {
-      // VNPay route
-      response = await api.post("/payments/create", payload);
-      if (response.data && response.data.payment_url) {
-        window.location.href = response.data.payment_url;
-        return;
-      }
-    } else {
-      // Offline/Static QR route
-      response = await api.post("/bookings", payload);
-      bookingCode.value = response.data.booking_code || "CG-" + Math.floor(100000 + Math.random() * 900000);
-      bookingSuccess.value = true;
-      showQRModal.value = false;
+    console.log("Payload gửi thanh toán:", payload);
+
+    const response = await api.post("/payments/create", payload);
+
+    console.log("Response thanh toán:", response.data);
+
+    if (response.data?.payment_url) {
+      window.location.href = response.data.payment_url;
+      return;
     }
+
+    bookingSuccess.value = true;
+    bookingCode.value =
+      response.data?.booking_code ||
+      response.data?.data?.booking_code ||
+      "";
   } catch (err) {
-    console.error(err);
+    console.error("Lỗi thanh toán:", err.response?.data || err);
+
     alert(
       err.response?.data?.message ||
-        "Giao dịch thất bại. Thời gian giữ ghế đã hết hạn, vui lòng thao tác lại!"
+      "Giao dịch thất bại. Vui lòng thử lại!"
     );
-    if (!selectedPaymentMethod.value === "vnpay") {
-       router.push("/");
-    }
   } finally {
     submitting.value = false;
   }
@@ -449,52 +492,102 @@ const backToHome = () => {
   bookingStore.clearBooking();
   router.push("/");
 };
+
 onMounted(() => {
   fetchCombos();
 });
+
 </script>
 
 <style scoped>
-/* Toàn bộ CSS Scoped nguyên bản từ dự án CineGo của Thắng được giữ nguyên vẹn */
 .payment-view {
   min-height: 500px;
 }
+
 .payment-checkout-grid {
   display: grid;
   grid-template-columns: 1fr 380px;
   gap: 30px;
   align-items: start;
 }
+
 @media (max-width: 992px) {
   .payment-checkout-grid {
     grid-template-columns: 1fr;
   }
 }
+
 .checkout-main {
   display: flex;
   flex-direction: column;
   gap: 30px;
 }
+
 .section-title {
   font-size: 20px;
   font-weight: 700;
   margin-bottom: 24px;
 }
+
 .combos-section,
 .payment-methods-section {
   padding: 30px;
 }
+
 .combos-list {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
+
 .combo-item {
   display: flex;
   padding: 16px;
   gap: 20px;
   align-items: center;
 }
+
+.payment-buttons {
+  display: flex;
+  flex-direction: column;
+  /* Xếp dọc nút Hủy nằm dưới nút Thanh Toán */
+  gap: 12px;
+  /* Khoảng cách giữa 2 nút */
+  margin-top: 15px;
+  width: 100%;
+}
+
+/* Định dạng nút Quay Lại Chọn Ghế */
+.btn-cancel-payment {
+  width: 100%;
+  padding: 12px;
+  background-color: transparent;
+  /* Nền trong suốt */
+  color: #888888;
+  /* Chữ màu xám */
+  border: 1px solid #cccccc;
+  /* Viền xám mảnh */
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Khi hệ thống đang loading tạo hóa đơn, làm mờ không cho bấm Hủy liên tục */
+.btn-cancel-payment:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Hiệu ứng Hover dành cho nút Hủy */
+.btn-cancel-payment:not(:disabled):hover {
+  background-color: #fcfcfc;
+  color: #333333;
+  /* Chữ đậm lên khi hover */
+  border-color: #888888;
+  /* Viền đậm lên */
+}
+
 .combo-img {
   width: 70px;
   height: 70px;
@@ -502,25 +595,30 @@ onMounted(() => {
   border-radius: var(--radius-sm);
   background: var(--bg-tertiary);
 }
+
 .combo-info {
   flex: 1;
 }
+
 .combo-name {
   font-size: 15px;
   font-weight: 700;
   margin-bottom: 4px;
 }
+
 .combo-desc {
   color: var(--text-muted);
   font-size: 12px;
   line-height: 1.4;
   margin-bottom: 6px;
 }
+
 .combo-price {
   color: var(--accent-pink);
   font-weight: 700;
   font-size: 14px;
 }
+
 .combo-controls {
   display: flex;
   align-items: center;
@@ -530,6 +628,7 @@ onMounted(() => {
   padding: 6px 12px;
   border-radius: var(--radius-full);
 }
+
 .ctrl-btn {
   background: transparent;
   color: var(--text-secondary);
@@ -544,9 +643,11 @@ onMounted(() => {
   align-items: center;
   transition: var(--transition-smooth);
 }
+
 .ctrl-btn:hover {
   color: white;
 }
+
 .ctrl-qty {
   color: var(--text-primary);
   font-weight: 700;
@@ -554,11 +655,13 @@ onMounted(() => {
   min-width: 20px;
   text-align: center;
 }
+
 .methods-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 16px;
 }
+
 .method-card {
   display: flex;
   padding: 20px;
@@ -567,18 +670,22 @@ onMounted(() => {
   cursor: pointer;
   transition: var(--transition-bounce);
 }
+
 .method-card:hover {
   border-color: var(--accent-violet);
   background: rgba(112, 0, 255, 0.05);
 }
+
 .method-card.active {
   border-color: var(--accent-pink);
   background: rgba(255, 0, 127, 0.08);
   box-shadow: var(--shadow-neon-pink);
 }
+
 .hidden-radio {
   display: none;
 }
+
 .method-icon {
   width: 44px;
   height: 44px;
@@ -589,72 +696,86 @@ onMounted(() => {
   align-items: center;
   flex-shrink: 0;
 }
+
 .method-info {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
+
 .method-name {
   font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
 }
+
 .method-desc {
   color: var(--text-muted);
   font-size: 11px;
   line-height: 1.4;
 }
+
 .checkout-sidebar {
   padding: 30px;
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
+
 .sidebar-title {
   font-size: 22px;
   font-weight: 700;
 }
+
 .invoice-details {
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
+
 .invoice-movie-title {
   font-size: 16px;
   font-weight: 700;
   line-height: 1.4;
 }
+
 .invoice-meta {
   color: var(--text-muted);
   font-size: 12px;
   margin-top: 4px;
 }
+
 .invoice-divider {
   height: 1px;
   background: var(--border-glass);
   margin: 6px 0;
 }
+
 .invoice-row {
   display: flex;
   justify-content: space-between;
   font-size: 14px;
   color: var(--text-secondary);
 }
+
 .invoice-seat-names {
   color: var(--accent-mint);
   font-weight: 700;
   font-size: 12px;
   margin-top: -8px;
 }
+
 .voucher-wrapper {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
+
 .voucher-input-group {
   display: flex;
   gap: 10px;
 }
+
 .voucher-input {
   flex: 1;
   background: var(--bg-tertiary);
@@ -664,10 +785,12 @@ onMounted(() => {
   border-radius: var(--radius-sm);
   font-size: 13px;
 }
+
 .voucher-input:focus {
   outline: none;
   border-color: var(--accent-pink);
 }
+
 .btn-apply-voucher,
 .btn-remove-voucher {
   padding: 10px 16px;
@@ -678,53 +801,61 @@ onMounted(() => {
   cursor: pointer;
   transition: var(--transition-smooth);
 }
+
 .btn-apply-voucher {
   background: transparent;
   color: var(--accent-pink);
   border: 1px solid var(--accent-pink);
 }
+
 .btn-apply-voucher:hover {
   background: var(--accent-pink);
   color: white;
 }
+
 .btn-remove-voucher {
   background: rgba(230, 0, 0, 0.15);
   color: #ff5555;
   border: 1px solid rgba(230, 0, 0, 0.2);
 }
+
 .btn-remove-voucher:hover {
   background: #e60000;
   color: white;
 }
+
 .voucher-msg-success {
   color: var(--accent-mint);
   font-size: 12px;
 }
+
 .voucher-msg-error {
   color: #ff5555;
   font-size: 12px;
 }
+
 .text-discount {
   color: var(--accent-mint);
   font-weight: 600;
 }
+
 .invoice-total {
   font-size: 16px;
   font-weight: 700;
   color: white;
   margin-top: 10px;
 }
+
 .total-price {
   font-size: 24px;
   font-weight: 800;
   color: var(--accent-pink);
 }
+
 .btn-pay-now {
-  background: linear-gradient(
-    135deg,
-    var(--accent-pink) 0%,
-    var(--accent-violet) 100%
-  );
+  background: linear-gradient(135deg,
+      var(--accent-pink) 0%,
+      var(--accent-violet) 100%);
   color: white;
   border: none;
   width: 100%;
@@ -739,14 +870,17 @@ onMounted(() => {
   justify-content: center;
   align-items: center;
 }
+
 .btn-pay-now:hover {
   transform: translateY(-2px);
   box-shadow: 0 0 25px rgba(255, 0, 127, 0.5);
 }
+
 .btn-pay-now:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 .btn-spinner {
   width: 20px;
   height: 20px;
@@ -755,6 +889,7 @@ onMounted(() => {
   border-radius: 50%;
   animation: spin 0.8s infinite linear;
 }
+
 .success-receipt-container {
   max-width: 600px;
   margin: 0 auto;
@@ -765,6 +900,7 @@ onMounted(() => {
   gap: 20px;
   text-align: center;
 }
+
 .success-icon-wrapper {
   width: 100px;
   height: 100px;
@@ -776,12 +912,14 @@ onMounted(() => {
   align-items: center;
   box-shadow: var(--shadow-neon-mint);
 }
+
 .success-subtitle {
   color: var(--text-secondary);
   font-size: 14px;
   max-width: 420px;
   line-height: 1.5;
 }
+
 .ticket-receipt {
   background: var(--bg-secondary);
   border: 1px dashed var(--border-glass);
@@ -791,12 +929,14 @@ onMounted(() => {
   text-align: left;
   position: relative;
 }
+
 .receipt-header {
   border-bottom: 1px dashed var(--border-glass);
   padding-bottom: 20px;
   margin-bottom: 20px;
   text-align: center;
 }
+
 .booking-code {
   color: var(--accent-pink);
   font-size: 24px;
@@ -804,6 +944,7 @@ onMounted(() => {
   letter-spacing: 0.05em;
   margin-left: 6px;
 }
+
 .receipt-header p {
   color: var(--text-muted);
   font-size: 11px;
@@ -811,48 +952,58 @@ onMounted(() => {
   letter-spacing: 0.05em;
   margin-top: 6px;
 }
+
 .receipt-body {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
+
 .receipt-row {
   display: flex;
   justify-content: space-between;
   font-size: 14px;
   color: var(--text-secondary);
 }
+
 .receipt-row strong {
   color: var(--text-primary);
   font-weight: 600;
 }
+
 .seat-highlight {
   color: var(--accent-mint);
   font-weight: 700;
 }
+
 .price-highlight {
   font-size: 18px;
   font-weight: 800;
   color: var(--accent-pink);
 }
+
 .animate-fade-in {
   animation: fadeIn 0.6s ease-out;
 }
+
 @keyframes fadeIn {
   from {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
   }
 }
+
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -861,18 +1012,140 @@ onMounted(() => {
   text-align: center;
   padding: 80px;
 }
+
+.ctrl-btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
+.ctrl-btn:disabled:hover {
+  color: var(--text-secondary);
+}
+
+.combo-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 170px;
+}
+
+.stock-info,
+.stock-low,
+.stock-warning {
+  text-align: center;
+}
+
+.stock-info {
+  color: #16a34a;
+}
+
+.stock-low {
+  color: #f59e0b;
+  font-weight: 600;
+}
+
+.stock-warning {
+  color: #ef4444;
+  font-weight: 700;
+}
+
+.payment-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.btn-cancel {
+  width: 100%;
+  margin-top: 12px;
+  height: 48px;
+  border: none;
+  border-radius: 14px;
+  background: #eef2f6;
+  color: #4b5563;
+  font-weight: 600;
+  transition: .25s;
+}
+
+.btn-cancel:hover {
+  background: #dfe6ee;
+}
+
+.skeleton-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.skeleton {
+  border-radius: 8px;
+  background: linear-gradient(90deg,
+      #ececec 25%,
+      #f7f7f7 37%,
+      #ececec 63%);
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease infinite;
+}
+
+.skeleton-img {
+  width: 90px;
+  height: 90px;
+}
+
+.skeleton-title {
+  width: 180px;
+  height: 18px;
+  margin-bottom: 12px;
+}
+
+.skeleton-text {
+  width: 250px;
+  height: 14px;
+  margin-bottom: 12px;
+}
+
+.skeleton-price {
+  width: 90px;
+  height: 18px;
+}
+
+.skeleton-btn {
+  width: 120px;
+  height: 42px;
+  border-radius: 25px;
+  margin-bottom: 12px;
+}
+
+.skeleton-stock {
+  width: 100px;
+  height: 14px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0 50%;
+  }
+}
+
 .qr-code-box {
   background: white;
   padding: 16px;
   border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   margin: 10px auto;
 }
+
 .qr-img {
   width: 250px;
   height: 250px;
   object-fit: contain;
 }
+
 .payment-info-box {
   background: var(--bg-tertiary);
   padding: 16px;
@@ -883,19 +1156,23 @@ onMounted(() => {
   flex-direction: column;
   gap: 8px;
 }
+
 .info-row {
   display: flex;
   justify-content: space-between;
   font-size: 14px;
 }
+
 .info-row span {
   color: var(--text-muted);
 }
+
 .info-row strong {
   color: var(--text-primary);
   font-weight: 600;
   text-align: right;
 }
+
 .text-pink {
   color: var(--accent-pink) !important;
 }

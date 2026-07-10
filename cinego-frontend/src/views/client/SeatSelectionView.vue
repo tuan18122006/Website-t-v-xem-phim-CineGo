@@ -103,6 +103,14 @@
       >
         Tiếp Tục
       </button>
+      <button 
+    type="button" 
+    @click="cancelBooking" 
+    class="btn-cancel-checkout"
+  >
+    Hủy Đặt Vé
+  </button>
+
     </div>
   </div>
   <div v-else class="loading-state">
@@ -122,6 +130,7 @@ import { useRouter } from "vue-router";
 import Swal from 'sweetalert2';
 import { useBookingStore } from "../../stores/booking";
 import api from "../../api/axios";
+import echo from "../../api/echo";
 
 // IMPORT THÀNH PHẦN THEO ĐÚNG YÊU CẦU CỦA TECH LEAD
 import SeatMap from "../../components/SeatMap.vue";
@@ -133,6 +142,13 @@ const rawSeatsFromAPI = ref([]); // Nơi lưu mảng gốc tải về từ datab
 const seatPrices = ref({ standard: 75000, vip: 95000, couple: 140000 }); // Giá thật lấy từ cấu hình của suất chiếu
 const countdownText = ref("10:00");
 let timerInterval = null;
+
+const cancelBooking = () => {
+    if (confirm("Bạn có muốn hủy quá trình chọn ghế không ?")) {
+        const movieId = bookingStore.currentMovieId; 
+        router.push(`/movies/${movieId}`); 
+    }
+};
 
 const formatCurrency = (val) => {
   return new Intl.NumberFormat("vi-VN", {
@@ -336,10 +352,26 @@ onMounted(() => {
   if (bookingStore.holdExpiresAt) {
     startTimer();
   }
+
+  // Subscribe to real-time seat updates
+  if (bookingStore.selectedShowtime?.id) {
+    echo.channel(`showtime.${bookingStore.selectedShowtime.id}`)
+      .listen('SeatLocked', (e) => {
+        const seat = rawSeatsFromAPI.value.find(s => s.id === e.seatId);
+        if (seat) seat.status = 'holding';
+      })
+      .listen('SeatUnlocked', (e) => {
+        const seat = rawSeatsFromAPI.value.find(s => s.id === e.seatId);
+        if (seat) seat.status = 'available';
+      });
+  }
 });
 
 onUnmounted(() => {
   stopTimer();
+  if (bookingStore.selectedShowtime?.id) {
+    echo.leaveChannel(`showtime.${bookingStore.selectedShowtime.id}`);
+  }
 });
 
 const validateSeatSelection = () => {
@@ -608,5 +640,29 @@ const proceedToPayment = () => {
   justify-content: center;
   text-align: center;
   padding: 80px;
+}
+.checkout-actions {
+    display: flex;
+    flex-direction: column; 
+    gap: 12px;             
+    margin-top: 15px;
+    width: 100%;
+}
+
+.btn-cancel-checkout {
+    width: 100%;
+    padding: 12px;
+    background-color: transparent; 
+    color: #6c757d;               
+    border: 1px solid #6c757d;     
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-cancel-checkout:hover {
+    background-color: #f8f9fa;     
+    color: #dc3545;                
+    border-color: #dc3545;         
 }
 </style>

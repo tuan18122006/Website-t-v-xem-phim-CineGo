@@ -15,6 +15,11 @@
         <p class="booking-code" v-if="bookingCode">
           Mã đặt vé: <strong>{{ bookingCode }}</strong>
         </p>
+
+        <div class="qr-wrapper" v-if="bookingCode">
+          <img :src="qrUrl" alt="QR Code" class="qr-image" />
+          <p class="qr-hint">Đưa mã QR này cho nhân viên để nhận vé</p>
+        </div>
       </template>
 
       <template v-else-if="status === 'failed'">
@@ -48,7 +53,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 
 const route = useRoute();
@@ -60,6 +65,12 @@ const bookingCode = ref("");
 onMounted(() => {
   status.value = route.query.status || "invalid";
   bookingCode.value = route.query.code || "";
+});
+
+const qrUrl = computed(() => {
+  if (!bookingCode.value) return '';
+  const staffUrl = `${window.location.origin}/staff/dashboard?scan=${encodeURIComponent(bookingCode.value)}`;
+  return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(staffUrl)}`;
 });
 
 const goHome = () => {
@@ -127,5 +138,29 @@ const goHome = () => {
   font-weight: 700;
   border-radius: var(--radius-md, 12px);
   cursor: pointer;
+}
+
+.qr-wrapper {
+  margin-top: 10px;
+  background: white;
+  padding: 16px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.qr-image {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+}
+
+.qr-hint {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 600;
 }
 </style>

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\SeatHoldController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\BookingLookupController;
+use App\Http\Controllers\Api\ComboController;
 use App\Http\Controllers\Api\PricingRuleController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\VoucherController;
@@ -139,3 +140,5 @@ Route::middleware(['auth:sanctum', 'can:staff-or-admin'])->prefix('staff')->grou
     Route::get('/bookings/{id}', [BookingLookupController::class, 'show']);
 });
 
+// Danh sách combo công khai cho client
+Route::get('/combos', [ComboController::class, 'index']);
