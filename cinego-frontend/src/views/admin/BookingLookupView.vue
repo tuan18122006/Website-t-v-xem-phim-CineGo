@@ -19,7 +19,20 @@
         <button type="submit" class="lookup-search__btn" :disabled="loading">
           {{ loading ? 'Đang tìm…' : 'Tìm kiếm' }}
         </button>
+        <button type="button" class="lookup-camera__btn" @click="showCamera = !showCamera" title="Quét mã QR bằng Camera">
+          📷 Bật Camera
+        </button>
+        <label class="lookup-camera__btn" title="Tải ảnh QR lên" style="display: flex; align-items: center; justify-content: center; cursor: pointer; margin: 0;">
+          🖼️ Tải Ảnh
+          <qrcode-capture @detect="onDetect" style="display: none;"></qrcode-capture>
+        </label>
       </form>
+
+      <!-- Camera wrapper -->
+      <div v-if="showCamera" class="camera-wrapper">
+        <qrcode-stream @detect="onDetect"></qrcode-stream>
+        <button type="button" class="camera-close" @click="showCamera = false">Đóng Camera</button>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -161,14 +174,33 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import api from '../../api/axios';
 import TicketPrintable from '../../components/TicketPrintable.vue';
+import { QrcodeStream, QrcodeCapture } from 'vue-qrcode-reader';
 
+const route = useRoute();
 const query = ref('');
 const loading = ref(false);
 const searched = ref(false);
 const results = ref([]);
+const showCamera = ref(false);
+
+const onDetect = (detectedCodes) => {
+  if (detectedCodes && detectedCodes.length > 0) {
+    let rawValue = detectedCodes[0].rawValue;
+    try {
+      const url = new URL(rawValue);
+      const scanParam = url.searchParams.get('scan');
+      if (scanParam) rawValue = scanParam;
+    } catch(e) {}
+    
+    query.value = rawValue;
+    showCamera.value = false;
+    doSearch();
+  }
+};
 
 const showDetail = ref(false);
 const detail = ref(null);
@@ -213,6 +245,17 @@ const clearSearch = () => {
   results.value = [];
   searched.value = false;
 };
+
+onMounted(() => {
+  if (route.query.scan) {
+    query.value = route.query.scan;
+    doSearch().then(() => {
+      if (results.value.length > 0) {
+        openDetail(results.value[0].id);
+      }
+    });
+  }
+});
 
 const openDetail = async (id) => {
   showDetail.value = true;
@@ -282,6 +325,44 @@ const closeDetail = () => {
 }
 .lookup-search__btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 18px rgba(216, 45, 139, 0.28); }
 .lookup-search__btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.lookup-camera__btn {
+  border: 1.5px solid var(--accent-pink);
+  background: white;
+  color: var(--accent-pink);
+  cursor: pointer;
+  padding: 0 16px; height: 40px; border-radius: 9px;
+  font-weight: 800; font-size: 13.5px;
+  transition: var(--transition-smooth);
+}
+.lookup-camera__btn:hover { background: var(--accent-pink); color: white; }
+
+.camera-wrapper {
+  margin-top: 16px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 4px solid var(--accent-pink);
+  background: #000;
+  position: relative;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.camera-close {
+  position: absolute;
+  bottom: 10px; left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  z-index: 10;
+}
+.camera-close:hover { background: rgba(0,0,0,0.8); }
 
 /* ===== STATES ===== */
 .lookup-state {

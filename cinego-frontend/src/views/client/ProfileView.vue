@@ -326,7 +326,7 @@
         <p class="modal-movie-title" style="font-weight: bold; font-size: 16px;">{{ selectedTicket?.movie_title }}</p>
         <div class="qr-img-wrapper" style="background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: inline-block; margin: 15px 0;">
           <img
-            :src="`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${selectedTicket?.booking_code}`"
+            :src="getQrUrl(selectedTicket?.booking_code)"
             alt="QR Code"
           />
         </div>
@@ -491,6 +491,21 @@ const paginatedTickets = computed(() => {
 watch(subTab, () => {
   historyPage.value = 1;
 });
+
+const statusClass = (status) => {
+  switch (status) {
+    case 'paid': return 'status-paid';
+    case 'pending': return 'status-pending';
+    case 'failed': return 'status-failed';
+    default: return '';
+  }
+};
+
+const getQrUrl = (code) => {
+  if (!code) return '';
+  const url = `${window.location.origin}/staff/dashboard?scan=${encodeURIComponent(code)}`;
+  return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}`;
+};
 
 const fetchUserData = async () => {
   try {
