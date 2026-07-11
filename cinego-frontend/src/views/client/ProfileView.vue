@@ -327,6 +327,7 @@
         <div class="qr-img-wrapper" style="background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: inline-block; margin: 15px 0;">
           <img
             :src="getQrUrl(selectedTicket?.booking_code)"
+            :src="`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${selectedTicket?.booking_code}`"
             alt="QR Code"
           />
         </div>
@@ -627,9 +628,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
-/* ==========================================================================
+/* ====
    CINEGO MODERN PROFILE REDESIGN (WHITE & RED TONE)
-   ========================================================================== */
+   ==== */
 
 .cinego-profile-container {
   --accent-red: #e71a0f;
@@ -648,7 +649,7 @@ onMounted(() => {
   --border-light: #e5e7eb;
 }
 
-/* ================== LAYOUT CHUNG ================== */
+/* ==== LAYOUT CHUNG ==== */
 .cinego-profile-container {
   max-width: 1200px;
   margin: 40px auto 80px;
@@ -681,7 +682,7 @@ onMounted(() => {
   align-items: flex-start;
 }
 
-/* ================== SIDEBAR ================== */
+/* ==== SIDEBAR ==== */
 .cinego-sidebar {
   width: 260px;
   flex-shrink: 0;
@@ -797,7 +798,7 @@ onMounted(() => {
   box-shadow: 0 4px 12px rgba(231, 26, 15, 0.3);
 }
 
-/* ================== NỘI DUNG CHÍNH ================== */
+/* ==== NỘI DUNG CHÍNH ==== */
 .cinego-content-area {
   flex: 1;
   display: flex;
@@ -1064,7 +1065,7 @@ onMounted(() => {
   margin-top: 10px;
 }
 
-/* ================== BẢNG LỊCH SỬ GIAO DỊCH DẠNG CARD ================== */
+/* ==== BẢNG LỊCH SỬ GIAO DỊCH DẠNG CARD ==== */
 .history-filter-toggle {
   display: inline-flex;
   background: #f3f4f6;
@@ -1218,7 +1219,7 @@ onMounted(() => {
   color: #fff;
 }
 
-/* ================== RESPONSIVE ================== */
+/* ==== RESPONSIVE ==== */
 @media (max-width: 900px) {
   .cinego-profile-body {
     flex-direction: column;

@@ -194,6 +194,7 @@ const fetchCombos = async () => {
   } catch (err) {
     console.error('Failed to load combos:', err);
     Swal.fire('Lỗi', 'Không thể tải danh sách Combo: ' + (err.response?.data?.message || err.message), 'error');
+    Swal.fire('Lỗi', 'Không thể tải danh sách Combo.', 'error');
   }
 };
 

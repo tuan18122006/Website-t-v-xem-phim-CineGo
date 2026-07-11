@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\PricingRuleController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\VoucherController;
 use App\Http\Controllers\Api\ComboItemController;
+use App\Http\Controllers\Api\TicketController;
 
 
 // Đăng ký / Đăng nhập
@@ -69,9 +70,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/payments/create', [PaymentController::class, 'createPayment']);
 });
 
-// =========================================================================
+// ===
 // 3. ADMIN ROUTES - QUẢN TRỊ VIÊN (Yêu cầu quyền Admin-only)
-// =========================================================================
+// ===
 Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'userProfile']);
@@ -118,6 +119,10 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     Route::get('/rooms', [RoomController::class, 'index']);
     Route::delete('/rooms/{id}', [RoomController::class, 'destroy']);
     //
+    Route::apiResource('combos', ComboController::class);
+    //
+    Route::apiResource('vouchers', VoucherController::class);
+    //
     Route::get('combos/{combo}/items', [ComboItemController::class, 'getItems']);
 
     Route::post('combo-items', [ComboItemController::class, 'store']);
@@ -141,9 +146,9 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     Route::apiResource('vouchers', VoucherController::class);
 });
 
-// =========================================================================
+// ===
 // 4. STAFF ROUTES - NHÂN VIÊN HỖ TRỢ (staff hoặc admin)
-// =========================================================================
+// ===
 Route::middleware(['auth:sanctum', 'can:staff-or-admin'])->prefix('staff')->group(function () {
     // Tra cứu đơn hàng / Hỗ trợ khách hàng
     Route::get('/bookings/lookup', [BookingLookupController::class, 'search']);
@@ -154,3 +159,4 @@ Route::middleware(['auth:sanctum', 'can:staff-or-admin'])->prefix('staff')->grou
 Route::get('/combos', [ComboController::class, 'index']);
 Route::post('/vouchers/verify', [VoucherController::class, 'verify']);
 Route::get('/payment/vnpay/return', [PaymentController::class, 'vnpayReturn']);
+Route::get('/tickets/{bookingCode}', [TicketController::class, 'show']);

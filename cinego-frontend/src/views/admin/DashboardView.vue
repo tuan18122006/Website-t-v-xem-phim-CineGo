@@ -65,6 +65,15 @@
         </button>
 
 
+         <button class="nav-link" :class="{ active: activeTab === 'combos' }" @click="activeTab = 'combos'">
+          <span class="nav-icon">🍿</span>
+          <span>Quản Lý Đồ Ăn Và Combo</span>
+        </button>
+         
+        <button class="nav-link" :class="{ active: activeTab === 'vouchers' }" @click="activeTab = 'vouchers'">
+          <span class="nav-icon">🎟️</span>
+          <span>Quản Lý Mã Giảm Giá</span>
+        </button>
 
         <button
           class="nav-link"
@@ -98,6 +107,7 @@
 
       <!-- TAB 1: DASHBOARD STATS & CHARTS -->
       <div v-if="activeTab === 'stats'" class="dashboard-tab-content">
+      <div v-show="activeTab === 'stats'" class="dashboard-tab-content">
         <!-- Widgets thông số THẬT -->
         <div class="stats-widgets">
           <div class="widget-card glass-panel">
@@ -235,6 +245,15 @@
 
 
       <div v-if="activeTab === 'genres'">
+      <div v-show="activeTab === 'combos'">
+        <ComboSelection />
+      </div>
+
+      <div v-show="activeTab === 'vouchers'">
+        <VoucherManager />
+      </div>
+
+      <div v-show="activeTab === 'genres'">
         <GenreManagement />
       </div>
 
@@ -242,6 +261,10 @@
       <div v-if="activeTab === 'users'">
         <UserManagement />
       </div>
+
+      <!-- TAB: COMBO MANAGEMENT -->
+     
+    
 
       <!-- TAB 4: REVENUE TRANSACTION REPORT -->
       <div v-if="activeTab === 'revenue'" class="revenue-tab-content">
@@ -297,6 +320,7 @@ import UserManagement from './UserManagement.vue';
 import RoomsView from './RoomManagementView.vue';
 import RoomManagementView from './RoomManagementView.vue';
 import RoomEditorView from './RoomEditorView.vue';
+import ComboSelection from './ComboSelection.vue'; 
 import ComboManagementView from './ComboManagementView.vue';
 import VoucherManager from './VoucherManager.vue';
 
