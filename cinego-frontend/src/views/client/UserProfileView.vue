@@ -252,10 +252,9 @@
                       {{ formatDate(ticket.date) }} <br />
                       <strong>{{ ticket.room_name }}</strong>
                     </td>
-                    <td class="txt-red bold-text">
-                      {{ ticket.seats.join(", ") }}
-                    </td>
-                    <td class="bold-text">
+<td class="txt-red bold-text">
+                  {{ ticket.seats ? ticket.seats.map(seat => typeof seat === 'object' ? `${seat.row}${seat.number}` : seat).join(", ") : '' }}
+                </td>                    <td class="bold-text">
                       {{ formatPrice(ticket.total_price) }}đ
                     </td>
                     <td>
@@ -283,6 +282,7 @@
               </table>
             </div>
           </div>
+          
         </div>
       </main>
     </div>
@@ -298,7 +298,7 @@
         <p class="modal-movie-title">{{ selectedTicket?.movie_title }}</p>
         <div class="qr-img-wrapper">
           <img
-            :src="getQrUrl(selectedTicket?.booking_code)"
+            :src="`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${selectedTicket?.booking_code}`"
             alt="QR Code"
           />
         </div>
@@ -317,6 +317,7 @@
         </div>
       </div>
     </div>
+    
   </div>
 </template>
 
@@ -360,21 +361,6 @@ const filteredTickets = computed(() => {
     }
   });
 });
-
-const statusClass = (status) => {
-  switch (status) {
-    case 'paid': return 'status-paid';
-    case 'pending': return 'status-pending';
-    case 'failed': return 'status-failed';
-    default: return '';
-  }
-};
-
-const getQrUrl = (code) => {
-  if (!code) return '';
-  const url = `${window.location.origin}/staff/dashboard?scan=${encodeURIComponent(code)}`;
-  return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}`;
-};
 
 const fetchUserData = async () => {
   try {

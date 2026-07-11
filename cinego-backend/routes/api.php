@@ -47,12 +47,25 @@ Route::get('/payment/vnpay/return', [PaymentController::class, 'vnpayReturn']);
 // Các API cần đăng nhập
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Đăng xuất & hồ sơ cho MỌI user đã đăng nhập (khách hàng, staff, admin)
     Route::post('/logout', [AuthController::class, 'logout']);
+    
     Route::get('/me', [AuthController::class, 'userProfile']);
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::post('/seat-holds', [SeatHoldController::class, 'hold']);
     Route::post('/seat-holds/release', [SeatHoldController::class, 'release']);
+    
+    Route::prefix('admin')->group(function () {
+        Route::get('/user', [UserController::class, 'profile']);
+        
+        Route::put('/users/{id}', [UserController::class, 'updateProfile']);
+    });
+
+    Route::post('/user/change-password', [UserController::class, 'changePassword']);
+
+    Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
+
+    Route::get('/bookings', [BookingController::class, 'userHistory']);
+
 
     // Cập nhật tài khoản, mật khẩu, avatar
     Route::put('/user/profile', [UserController::class, 'updateProfile']);
@@ -75,6 +88,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/movies/{movieId}/reviews/{reviewId}', [ReviewController::class, 'update']);
     Route::delete('/movies/{movieId}/reviews/{reviewId}', [ReviewController::class, 'destroy']);
 });
+
+// ===
+
 
 // ===
 // 3. ADMIN ROUTES - QUẢN TRỊ VIÊN (Yêu cầu quyền Admin-only)

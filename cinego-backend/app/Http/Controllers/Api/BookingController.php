@@ -134,7 +134,7 @@ class BookingController extends Controller
     /**
      * Lấy lịch sử đặt vé của user đang đăng nhập
      */
-    public function index(Request $request)
+public function index(Request $request)
     {
         $userId = auth()->id();
 
@@ -142,7 +142,7 @@ class BookingController extends Controller
         $bookings = Booking::with([
             'showtime.movie:id,title',
             'showtime.room:id,name',
-            'bookingDetails.seat',
+            'bookingDetails.seat', // Hãy chắc chắn BookingDetail có relationship tên 'seat'
             'bookingCombos.combo'
         ])
             ->where('user_id', $userId)
@@ -150,18 +150,37 @@ class BookingController extends Controller
             ->get();
 
         $formattedTickets = $bookings->map(function ($booking) {
-            $seatsList = $booking->bookingDetails->map(function ($detail) {
-                return $detail->seat ? $detail->seat->row . $detail->seat->number : null;
-            })->filter()->values()->toArray();
+            
+            // XỬ LÝ AN TOÀN TUYỆT ĐỐI CHO SEATS:
+            $seatsList = [];
+            if ($booking->bookingDetails) {
+                foreach ($booking->bookingDetails as $detail) {
+                    // Kiểm tra xem detail và detail->seat có tồn tại không
+                    if ($detail && $detail->seat) {
+                        $seatsList[] = [
+                            'row'    => $detail->seat->row,
+                            'number' => $detail->seat->number,
+                            'type'   => $detail->seat->type ?? 'standard' // Mặc định nếu type null
+                        ];
+                    }
+                }
+            }
 
-            $combosList = $booking->bookingCombos->map(function ($bc) {
-                return $bc->combo ? $bc->combo->name . ' (x' . $bc->quantity . ')' : null;
-            })->filter()->values()->toArray();
+            $combosList = [];
+            if ($booking->bookingCombos) {
+                $combosList = $booking->bookingCombos->map(function ($bc) {
+                    return $bc->combo ? $bc->combo->name . ' (x' . $bc->quantity . ')' : null;
+                })->filter()->values()->toArray();
+            }
 
             $totalTicketPrice = $booking->bookingDetails->sum('price');
             $totalComboPrice = $booking->bookingCombos->sum(function ($bc) {
                 return $bc->price_at_purchase * $bc->quantity;
             });
+            $totalTicketPrice = $booking->bookingDetails ? $booking->bookingDetails->sum('price') : 0;
+            $totalComboPrice = $booking->bookingCombos ? $booking->bookingCombos->sum(function($bc) {
+                return ($bc->price_at_purchase ?? 0) * ($bc->quantity ?? 0);
+            }) : 0;
 
             return [
                 'id'             => $booking->id,
@@ -170,7 +189,7 @@ class BookingController extends Controller
                 'room_name'      => $booking->showtime?->room?->name ?? 'Phòng chiếu CineGo',
                 'start_time'     => $booking->showtime?->start_time ? Carbon::parse($booking->showtime->start_time)->format('H:i') : '00:00',
                 'date'           => $booking->showtime?->start_time ? Carbon::parse($booking->showtime->start_time)->format('Y-m-d') : Carbon::now()->format('Y-m-d'),
-                'seats'          => count($seatsList) > 0 ? $seatsList : ['Không rõ'],
+                'seats'          => $seatsList, 
                 'combos'         => $combosList,
                 'total_ticket_price' => $totalTicketPrice,
                 'total_combo_price'  => $totalComboPrice,

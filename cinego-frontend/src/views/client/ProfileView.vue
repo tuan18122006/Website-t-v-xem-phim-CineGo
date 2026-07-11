@@ -213,20 +213,20 @@
           <div v-if="activeTab === 'history'" class="cinego-section-block">
             <div class="cinego-section-title">
               <h3>Lịch sử giao dịch đặt vé</h3>
-                <div class="history-filter-toggle">
-                  <button
-                    :class="{ active: subTab === 'upcoming' }"
-                    @click="subTab = 'upcoming'"
-                  >
-                    Vé sắp chiếu
-                  </button>
-                  <button
-                    :class="{ active: subTab === 'past' }"
-                    @click="subTab = 'past'"
-                  >
-                    Vé cũ
-                  </button>
-                </div>
+              <div class="history-filter-toggle">
+                <button
+                  :class="{ active: subTab === 'upcoming' }"
+                  @click="subTab = 'upcoming'"
+                >
+                  Vé sắp chiếu
+                </button>
+                <button
+                  :class="{ active: subTab === 'past' }"
+                  @click="subTab = 'past'"
+                >
+                  Vé cũ
+                </button>
+              </div>
             </div>
 
             <div v-if="loadingHistory" class="cinego-loading">
@@ -252,7 +252,17 @@
                       <strong>{{ ticket.room_name }}</strong>
                     </td>
                     <td class="txt-red bold-text">
-                      {{ ticket.seats.join(", ") }}
+                      {{
+                        ticket.seats
+                          ? ticket.seats
+                              .map((seat) =>
+                                typeof seat === "object"
+                                  ? `${seat.row}${seat.number}`
+                                  : seat,
+                              )
+                              .join(", ")
+                          : ""
+                      }}
                     </td>
                     <td class="bold-text">
                       {{ formatPrice(ticket.total_price) }}đ
@@ -266,10 +276,7 @@
                         >
                           Mã QR
                         </button>
-                        <span
-                          v-else
-                          class="badge badge-success"
-                        >
+                        <span v-else class="badge badge-success">
                           Đã chiếu
                         </span>
                         <button
@@ -290,19 +297,29 @@
               </table>
 
               <!-- Pagination Controls -->
-              <div class="pagination-wrapper" style="display: flex; justify-content: center; gap: 10px; margin-top: 20px;">
-                <button 
-                  class="btn-pagination" 
+              <div
+                class="pagination-wrapper"
+                style="
+                  display: flex;
+                  justify-content: center;
+                  gap: 10px;
+                  margin-top: 20px;
+                "
+              >
+                <button
+                  class="btn-pagination"
                   :disabled="historyPage === 1"
                   @click="historyPage--"
                 >
                   Trước
                 </button>
-                <span style="font-size: 14px; font-weight: bold; align-self: center;">
+                <span
+                  style="font-size: 14px; font-weight: bold; align-self: center"
+                >
                   Trang {{ historyPage }} / {{ totalPages }}
                 </span>
-                <button 
-                  class="btn-pagination" 
+                <button
+                  class="btn-pagination"
                   :disabled="historyPage === totalPages"
                   @click="historyPage++"
                 >
@@ -320,30 +337,83 @@
       class="modal-overlay"
       @click.self="isQrModalOpen = false"
     >
-      <div class="modal-content" style="padding: 24px; text-align: center; position: relative;">
-        <button class="btn-close" @click="isQrModalOpen = false" style="position: absolute; top: 10px; right: 10px; background: #e2e8f0; color: #1e293b;">✕</button>
-        <h3 style="font-weight: 800; color: var(--accent-red); margin-bottom: 15px;">MÃ VÉ CINEGO</h3>
-        <p class="modal-movie-title" style="font-weight: bold; font-size: 16px;">{{ selectedTicket?.movie_title }}</p>
-        <div class="qr-img-wrapper" style="background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: inline-block; margin: 15px 0;">
+      <div
+        class="modal-content"
+        style="padding: 24px; text-align: center; position: relative"
+      >
+        <button
+          class="btn-close"
+          @click="isQrModalOpen = false"
+          style="
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #e2e8f0;
+            color: #1e293b;
+          "
+        >
+          ✕
+        </button>
+        <h3
+          style="
+            font-weight: 800;
+            color: var(--accent-red);
+            margin-bottom: 15px;
+          "
+        >
+          MÃ VÉ CINEGO
+        </h3>
+        <p class="modal-movie-title" style="font-weight: bold; font-size: 16px">
+          {{ selectedTicket?.movie_title }}
+        </p>
+        <div
+          class="qr-img-wrapper"
+          style="
+            background: #fff;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            margin: 15px 0;
+          "
+        >
           <img
             :src="getQrUrl(selectedTicket?.booking_code)"
             :src="`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${selectedTicket?.booking_code}`"
             alt="QR Code"
           />
         </div>
-        <p class="modal-code" style="font-size: 14px; margin-bottom: 10px;">
-          Mã đặt vé: <span style="font-weight: 800; font-size: 18px; color: var(--accent-red);">{{ selectedTicket?.booking_code }}</span>
+        <p class="modal-code" style="font-size: 14px; margin-bottom: 10px">
+          Mã đặt vé:
+          <span
+            style="font-weight: 800; font-size: 18px; color: var(--accent-red)"
+            >{{ selectedTicket?.booking_code }}</span
+          >
         </p>
-        <div class="modal-meta-box" style="background: #f8fafc; border-radius: 8px; padding: 12px; text-align: left; font-size: 13px; color: #475569;">
-          <p style="margin: 0 0 5px 0;">
-            Phòng: <strong>{{ selectedTicket?.room_name }}</strong> | Ghế: <strong>{{ selectedTicket?.seats.join(", ") }}</strong>
+        <div
+          class="modal-meta-box"
+          style="
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: left;
+            font-size: 13px;
+            color: #475569;
+          "
+        >
+          <p style="margin: 0 0 5px 0">
+            Phòng: <strong>{{ selectedTicket?.room_name }}</strong> | Ghế:
+            <strong>{{ selectedTicket?.seats.join(", ") }}</strong>
           </p>
-          <p style="margin: 0;">
-            Suất: <strong>{{ selectedTicket?.start_time }}</strong> - Ngày: <strong>{{ formatDate(selectedTicket?.date) }}</strong>
+          <p style="margin: 0">
+            Suất: <strong>{{ selectedTicket?.start_time }}</strong> - Ngày:
+            <strong>{{ formatDate(selectedTicket?.date) }}</strong>
           </p>
         </div>
       </div>
     </div>
+
+
 
     <!-- Modal Chi Tiết Đơn Hàng -->
     <div
@@ -351,86 +421,331 @@
       class="modal-overlay"
       @click.self="isDetailModalOpen = false"
     >
-      <div class="modal-content detail-modal-wrapper" style="max-width: 550px; text-align: left; padding: 0; overflow: hidden; border-radius: 12px;">
-        <div style="background: linear-gradient(135deg, var(--accent-red), #990000); padding: 20px; position: relative; color: white; text-align: center;">
-          <button class="btn-close" @click="isDetailModalOpen = false" style="color: white; background: rgba(0,0,0,0.2); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; top: 15px; right: 15px; font-size: 16px;">✕</button>
-          <h3 style="margin: 0; font-size: 18px; font-weight: 800; letter-spacing: 1px;">CHI TIẾT ĐƠN HÀNG</h3>
-          <p style="margin: 5px 0 0; font-size: 14px; opacity: 0.9;">Mã đơn: <strong>{{ selectedTicket?.booking_code }}</strong></p>
+      <div
+        class="modal-content detail-modal-wrapper hide-scrollbar"
+        style="
+          max-width: 650px;
+          width: 90%;
+          text-align: left;
+          padding: 0;
+          border-radius: 12px;
+          background: white;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+
+          max-height: 85vh;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        "
+      >
+        <div
+          style="
+            background: linear-gradient(135deg, var(--accent-red), #990000);
+            padding: 20px;
+            position: relative;
+            color: white;
+            text-align: center;
+            flex-shrink: 0;
+          "
+        >
+          <button
+            class="btn-close"
+            @click="isDetailModalOpen = false"
+            style="
+              color: white;
+              background: rgba(0, 0, 0, 0.2);
+              border-radius: 50%;
+              width: 30px;
+              height: 30px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              position: absolute;
+              top: 15px;
+              right: 15px;
+              font-size: 16px;
+              border: none;
+              cursor: pointer;
+            "
+          >
+            ✕
+          </button>
+          <h3
+            style="
+              margin: 0;
+              font-size: 19px; /* Tăng nhẹ font chữ tiêu đề */
+              font-weight: 800;
+              letter-spacing: 1px;
+            "
+          >
+            CHI TIẾT ĐƠN HÀNG
+          </h3>
+          <p style="margin: 5px 0 0; font-size: 14px; opacity: 0.9">
+            Mã đơn: <strong>{{ selectedTicket?.booking_code }}</strong>
+          </p>
         </div>
-        
-        <div style="padding: 25px; background: white;">
-          <!-- Thông tin phim & suất chiếu -->
-          <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-            <div style="flex: 1;">
-              <h4 style="font-size: 18px; color: #1e293b; margin: 0 0 8px 0; font-weight: 800;">{{ selectedTicket?.movie_title }}</h4>
-              <p style="margin: 0 0 5px 0; color: #475569; font-size: 14px;">
-                <span style="display: inline-block; width: 85px; color: #94a3b8;">Suất chiếu:</span> 
-                <strong>{{ selectedTicket?.start_time }} - {{ formatDate(selectedTicket?.date) }}</strong>
+
+        <div style="padding: 25px; background: white; flex: 1">
+          <div style="display: flex; gap: 15px; margin-bottom: 20px">
+            <div style="flex: 1">
+              <h4
+                style="
+                  font-size: 19px; /* Tăng kích thước tên phim */
+                  color: #1e293b;
+                  margin: 0 0 8px 0;
+                  font-weight: 800;
+                "
+              >
+                {{ selectedTicket?.movie_title }}
+              </h4>
+              <p style="margin: 0 0 5px 0; color: #475569; font-size: 14.5px">
+                <span style="display: inline-block; width: 95px; color: #94a3b8"
+                  >Suất chiếu:</span
+                >
+                <strong
+                  >{{ selectedTicket?.start_time }} -
+                  {{ formatDate(selectedTicket?.date) }}</strong
+                >
               </p>
-              <p style="margin: 0 0 5px 0; color: #475569; font-size: 14px;">
-                <span style="display: inline-block; width: 85px; color: #94a3b8;">Phòng chiếu:</span> 
+              <p style="margin: 0 0 5px 0; color: #475569; font-size: 14.5px">
+                <span style="display: inline-block; width: 95px; color: #94a3b8"
+                  >Phòng chiếu:</span
+                >
                 <strong>{{ selectedTicket?.room_name }}</strong>
               </p>
-              <p style="margin: 0 0 5px 0; color: #475569; font-size: 14px;">
-                <span style="display: inline-block; width: 85px; color: #94a3b8;">Ghế ngồi:</span> 
-                <span style="color: var(--accent-pink); font-weight: 700;">{{ selectedTicket?.seats.join(", ") }}</span>
-              </p>
-              <p style="margin: 0; color: #475569; font-size: 14px;">
-                <span style="display: inline-block; width: 85px; color: #94a3b8;">Thời gian đặt:</span> 
+              <p style="margin: 0; color: #475569; font-size: 14.5px">
+                <span style="display: inline-block; width: 95px; color: #94a3b8"
+                  >Thời gian đặt:</span
+                >
                 {{ selectedTicket?.created_at }}
               </p>
             </div>
           </div>
 
-          <!-- Bắp nước -->
-          <div v-if="selectedTicket?.combos && selectedTicket.combos.length > 0" style="margin-bottom: 20px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #f1f5f9;">
-            <h5 style="margin: 0 0 10px 0; font-size: 14px; color: #1e293b; font-weight: 700;">🍿 Bắp Nước:</h5>
-            <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #475569;">
-              <li v-for="(combo, idx) in selectedTicket.combos" :key="idx" style="margin-bottom: 4px;">{{ combo }}</li>
+          <div
+            v-if="
+              categorizedSeats.standard.length ||
+              categorizedSeats.vip.length ||
+              categorizedSeats.couple.length
+            "
+            style="
+              margin-bottom: 20px;
+              background: #f8fafc;
+              padding: 15px;
+              border-radius: 8px;
+              border: 1px solid #f1f5f9;
+            "
+          >
+            <h5
+              style="
+                margin: 0 0 10px 0;
+                font-size: 14px;
+                color: #1e293b;
+                font-weight: 700;
+              "
+            >
+              💺 Ghế Ngồi:
+            </h5>
+            <ul
+              style="
+                margin: 0;
+                padding: 0;
+                font-size: 14.5px;
+                color: #475569;
+                list-style-type: none;
+              "
+            >
+              <li
+                v-if="categorizedSeats.standard.length > 0"
+                style="margin-bottom: 6px; display: flex; align-items: center"
+              >
+                <span style="display: inline-block; width: 95px; color: #94a3b8"
+                  >Ghế thường:</span
+                >
+                <strong style="color: var(--accent-pink); font-weight: 700">{{
+                  categorizedSeats.standard.join(", ")
+                }}</strong>
+              </li>
+              <li
+                v-if="categorizedSeats.vip.length > 0"
+                style="margin-bottom: 6px; display: flex; align-items: center"
+              >
+                <span style="display: inline-block; width: 95px; color: #94a3b8"
+                  >Ghế VIP:</span
+                >
+                <strong style="color: #f59e0b; font-weight: 700">{{
+                  categorizedSeats.vip.join(", ")
+                }}</strong>
+              </li>
+              <li
+                v-if="categorizedSeats.couple.length > 0"
+                style="margin-bottom: 0; display: flex; align-items: center"
+              >
+                <span style="display: inline-block; width: 95px; color: #94a3b8"
+                  >Ghế đôi:</span
+                >
+                <strong style="color: #ef4444; font-weight: 700">{{
+                  categorizedSeats.couple.join(", ")
+                }}</strong>
+              </li>
             </ul>
           </div>
 
-          <!-- Hoá đơn thanh toán -->
-          <div style="border-top: 2px dashed #e2e8f0; padding-top: 20px;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14.5px; color: #475569;" v-if="selectedTicket?.total_ticket_price > 0">
+          <div
+            v-if="selectedTicket?.combos && selectedTicket.combos.length > 0"
+            style="
+              margin-bottom: 20px;
+              background: #f8fafc;
+              padding: 15px;
+              border-radius: 8px;
+              border: 1px solid #f1f5f9;
+            "
+          >
+            <h5
+              style="
+                margin: 0 0 10px 0;
+                font-size: 14px;
+                color: #1e293b;
+                font-weight: 700;
+              "
+            >
+              🍿 Bắp Nước:
+            </h5>
+            <ul
+              style="
+                margin: 0;
+                padding-left: 20px;
+                font-size: 14.5px;
+                color: #475569;
+              "
+            >
+              <li
+                v-for="(combo, idx) in selectedTicket.combos"
+                :key="idx"
+                style="margin-bottom: 4px"
+              >
+                {{ combo }}
+              </li>
+            </ul>
+          </div>
+
+          <div style="border-top: 2px dashed #e2e8f0; padding-top: 20px">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 8px;
+                font-size: 14.5px;
+                color: #475569;
+              "
+              v-if="selectedTicket?.total_ticket_price > 0"
+            >
               <span>Tổng tiền vé:</span>
-              <span style="font-weight: 600;">{{ formatPrice(selectedTicket?.total_ticket_price) }}đ</span>
+              <span style="font-weight: 600"
+                >{{ formatPrice(selectedTicket?.total_ticket_price) }}đ</span
+              >
             </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14.5px; color: #475569;" v-if="selectedTicket?.total_combo_price > 0">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 12px;
+                font-size: 14.5px;
+                color: #475569;
+              "
+              v-if="selectedTicket?.total_combo_price > 0"
+            >
               <span>Tổng tiền bắp nước:</span>
-              <span style="font-weight: 600;">{{ formatPrice(selectedTicket?.total_combo_price) }}đ</span>
+              <span style="font-weight: 600"
+                >{{ formatPrice(selectedTicket?.total_combo_price) }}đ</span
+              >
             </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 14.5px; color: #10b981;" v-if="selectedTicket?.discount_amount > 0">
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                margin-bottom: 15px;
+                font-size: 14.5px;
+                color: #10b981;
+              "
+              v-if="selectedTicket?.discount_amount > 0"
+            >
               <span>Mã giảm giá:</span>
-              <span style="font-weight: 600;">-{{ formatPrice(selectedTicket?.discount_amount) }}đ</span>
+              <span style="font-weight: 600"
+                >-{{ formatPrice(selectedTicket?.discount_amount) }}đ</span
+              >
             </div>
-            
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #fff1f2; padding: 15px; border-radius: 8px; border: 1px solid #ffe4e6;">
-              <span style="font-weight: 700; color: #1e293b; font-size: 15px;">Tổng thanh toán:</span>
-              <span style="color: var(--accent-pink); font-size: 20px; font-weight: 800;">{{ formatPrice(selectedTicket?.total_price) }}đ</span>
+
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: #fff1f2;
+                padding: 15px;
+                border-radius: 8px;
+                border: 1px solid #ffe4e6;
+              "
+            >
+              <span style="font-weight: 700; color: #1e293b; font-size: 15px"
+                >Tổng thanh toán:</span
+              >
+              <span
+                style="
+                  color: var(--accent-pink);
+                  font-size: 21px;
+                  font-weight: 800;
+                "
+              >
+                {{ formatPrice(selectedTicket?.total_price) }}đ
+              </span>
             </div>
           </div>
 
-          <!-- Footer trạng thái -->
-          <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; padding-top: 15px; border-top: 1px solid #f1f5f9;">
+          <div
+            style="
+              margin-top: 20px;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              font-size: 14px;
+              padding-top: 15px;
+              border-top: 1px solid #f1f5f9;
+            "
+          >
             <div>
-              <span style="color: #94a3b8;">Hình thức:</span> 
-              <strong style="text-transform: uppercase; color: #334155; margin-left: 5px;">{{ selectedTicket?.payment_method }}</strong>
+              <span style="color: #94a3b8">Hình thức:</span>
+              <strong
+                style="
+                  text-transform: uppercase;
+                  color: #334155;
+                  margin-left: 5px;
+                "
+                >{{ selectedTicket?.payment_method }}</strong
+              >
             </div>
-            <div :style="{
-              padding: '4px 12px', 
-              borderRadius: '20px', 
-              fontSize: '12.5px', 
-              fontWeight: '700',
-              backgroundColor: selectedTicket?.status === 'paid' ? '#d1fae5' : '#fee2e2',
-              color: selectedTicket?.status === 'paid' ? '#059669' : '#dc2626'
-            }">
+            <div
+              :style="{
+                padding: '4px 12px',
+                borderRadius: '20px',
+                fontSize: '12.5px',
+                fontWeight: '700',
+                backgroundColor:
+                  selectedTicket?.status === 'paid' ? '#d1fae5' : '#fee2e2',
+                color:
+                  selectedTicket?.status === 'paid' ? '#059669' : '#dc2626',
+              }"
+            >
               {{ selectedTicket?.status_label }}
             </div>
           </div>
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -452,9 +767,9 @@ const defaultAvatar =
 
 const profileForm = ref({
   id: "",
-  name: "Phạm Đức Thắng",
-  phone: "0966618450",
-  email: "duclaconbo2001@gmail.com",
+  name: "",
+  phone: "",
+  email: "",
   birthday: "",
   avatar_url: "",
 });
@@ -619,7 +934,29 @@ const formatDate = (dateStr) => {
   });
 };
 
-const formatPrice = (price) => (price ? Number(price).toLocaleString("vi-VN") : "0");
+const formatPrice = (price) =>
+  price ? Number(price).toLocaleString("vi-VN") : "0";
+
+const categorizedSeats = computed(() => {
+  const result = { standard: [], vip: [], couple: [] };
+
+  const ticket = selectedTicket?.value ? selectedTicket.value : selectedTicket;
+
+  if (ticket && Array.isArray(ticket.seats)) {
+    ticket.seats.forEach((seat) => {
+      if (seat && typeof seat === "object" && seat.row !== undefined) {
+        // Tạo nhãn hiển thị như "A1", "F5"
+        const seatLabel = `${seat.row}${seat.number}`;
+        const type = String(seat.type).toLowerCase().trim();
+
+        if (type === "vip") result.vip.push(seatLabel);
+        else if (type === "couple") result.couple.push(seatLabel);
+        else result.standard.push(seatLabel);
+      }
+    });
+  }
+  return result;
+});
 
 onMounted(() => {
   fetchUserData();
@@ -653,7 +990,7 @@ onMounted(() => {
 .cinego-profile-container {
   max-width: 1200px;
   margin: 40px auto 80px;
-  font-family: 'Inter', 'Roboto', sans-serif;
+  font-family: "Inter", "Roboto", sans-serif;
   color: var(--text-dark);
   padding: 0 20px;
   min-height: 70vh;
@@ -821,7 +1158,7 @@ onMounted(() => {
 }
 
 .cinego-member-summary-box::before {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   top: 0;
@@ -1026,8 +1363,14 @@ onMounted(() => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .cinego-section-title {
@@ -1048,7 +1391,7 @@ onMounted(() => {
 }
 
 .cinego-section-title h3::after {
-  content: '';
+  content: "";
   position: absolute;
   left: 0;
   bottom: -18px;
@@ -1182,7 +1525,8 @@ onMounted(() => {
 }
 
 /* Cột Phim & Bold */
-.movie-title-cell, .bold-text {
+.movie-title-cell,
+.bold-text {
   font-weight: 800;
   color: var(--text-dark);
 }
@@ -1197,9 +1541,18 @@ onMounted(() => {
   text-align: center;
   letter-spacing: 0.3px;
 }
-.badge-success { background: #dcfce7; color: #166534; }
-.badge-warning { background: #fef9c3; color: #854d0e; }
-.badge-danger { background: #fee2e2; color: #991b1b; }
+.badge-success {
+  background: #dcfce7;
+  color: #166534;
+}
+.badge-warning {
+  background: #fef9c3;
+  color: #854d0e;
+}
+.badge-danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
 
 .btn-table-action {
   background: #fff;
@@ -1245,7 +1598,8 @@ onMounted(() => {
     align-items: flex-start;
     gap: 8px;
   }
-  .info-text, .cinego-input {
+  .info-text,
+  .cinego-input {
     width: 100%;
     max-width: 100%;
   }
@@ -1275,8 +1629,14 @@ onMounted(() => {
 }
 
 @keyframes modalScale {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .modal-header {
