@@ -4,6 +4,9 @@ import ReviewMovies from '../views/client/ReviewMovies.vue';
 import TicketDetailView from "../views/client/TicketDetailView.vue";
 
 const MyBookingsView = () => import('../views/client/MyBookingsView.vue');
+import { createRouter, createWebHistory } from "vue-router";
+import { useAuthStore } from "../stores/auth";
+import ReviewMovies from "../views/client/ReviewMovies.vue";
 
 // Lazy loading views
 const Home = () => import("../views/client/HomeView.vue");
@@ -21,7 +24,7 @@ const AboutCineGo = () => import("../views/client/AboutCineGoView.vue");
 const RoomManagement = () => import("../views/admin/RoomManagementView.vue");
 const RoomEditor = () => import("../views/admin/RoomEditorView.vue");
 
-const AdminDashboard = () => import('../views/admin/DashboardView.vue');
+const AdminDashboard = () => import("../views/admin/DashboardView.vue");
 
 const routes = [
   // Client Routes
@@ -41,14 +44,17 @@ const routes = [
     component: MovieDetail,
   },
   {
-    path: '/top-movies',
-    name: 'top-movies',
-    component: TopMovies
+    path: "/top-movies",
+    name: "top-movies",
+    component: TopMovies,
   },
   {
     path: '/review-movies',
     name: 'review-movies',
     component: ReviewMovies
+    path: "/review-movies",
+    name: "review-movies",
+    component: ReviewMovies,
   },
   {
     path: '/profile',
@@ -63,8 +69,8 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
-    path: '/booking/seats',
-    name: 'seat-selection',
+    path: "/booking/seats",
+    name: "seat-selection",
     component: SeatSelection,
     meta: { requiresAuth: true },
   },
@@ -114,7 +120,6 @@ const routes = [
     name: "ve-cinego",
     component: AboutCineGo,
   },
-
   // Admin Routes
   {
     path: "/admin",
@@ -144,6 +149,17 @@ const routes = [
     name: 'admin-room-edit',
     component: () => import('../views/admin/RoomEditorView.vue'),
     meta: { requiresAuth: true, role: "admin" }
+  {
+    path: "/admin/rooms",
+    name: "admin-rooms",
+    component: () => import("../views/admin/RoomManagementView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
+    path: "/admin/rooms/:id/edit",
+    name: "admin-room-edit",
+    component: () => import("../views/admin/RoomEditorView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
   },
 
   {

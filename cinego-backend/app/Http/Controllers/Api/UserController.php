@@ -10,6 +10,7 @@ use App\Models\Review;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 
@@ -25,8 +26,8 @@ class UserController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('phone', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
             });
         }
 
@@ -45,7 +46,16 @@ class UserController extends Controller
             $query->where('membership_tier', $request->membership_tier);
         }
 
-        $users = $query->orderBy('id', 'desc')->get();
+        $users = $query->orderBy('id', 'desc')->get()->map(function ($u) {
+            if ($u->avatar_url) {
+                // Nếu path lưu trong DB chưa có http, tự tạo URL đầy đủ
+                $u->avatar_url = str_starts_with($u->avatar_url, 'http') ? $u->avatar_url : url($u->avatar_url);
+            } else {
+                $u->avatar_url = url('/storage/avatars/default.png');
+            }
+            return $u;
+        });
+
         return response()->json(['success' => true, 'data' => $users], 200);
     }
 
@@ -53,6 +63,12 @@ class UserController extends Controller
     public function show($id)
     {
         $user = User::with('bookings')->findOrFail($id);
+
+        if ($user->avatar_url) {
+            $user->avatar_url = str_starts_with($user->avatar_url, 'http') ? $user->avatar_url : url($user->avatar_url);
+        } else {
+            $user->avatar_url = url('/storage/avatars/default.png');
+        }
 
         $bookings = $user->bookings;
         $bookingIds = $bookings->pluck('id');
