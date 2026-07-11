@@ -96,6 +96,22 @@
         </div>
       </div>
 
+      <div class="featured-comments-box">
+        <h3 class="featured-comments-title">Bình luận nổi bật</h3>
+        <div class="featured-comments-list">
+          <div v-for="comment in featuredComments" :key="comment.id" class="featured-comment-card">
+            <div class="featured-comment-meta">
+              <div>
+                <p class="featured-comment-movie">{{ comment.movieTitle }}</p>
+                <p class="featured-comment-user">{{ comment.userName }} • {{ comment.timeAgo }}</p>
+              </div>
+              <span class="featured-comment-rating">{{ comment.rating }}/5</span>
+            </div>
+            <p class="featured-comment-text">{{ comment.comment }}</p>
+          </div>
+        </div>
+      </div>
+
       <button
         @click="proceedToPayment"
         :disabled="bookingStore.selectedSeats.length === 0"
@@ -125,7 +141,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from "vue";
+import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useRouter } from "vue-router";
 import Swal from 'sweetalert2';
 import { useBookingStore } from "../../stores/booking";
@@ -141,6 +157,7 @@ const bookingStore = useBookingStore();
 const rawSeatsFromAPI = ref([]); // Nơi lưu mảng gốc tải về từ database
 const seatPrices = ref({ standard: 75000, vip: 95000, couple: 140000 }); // Giá thật lấy từ cấu hình của suất chiếu
 const countdownText = ref("10:00");
+const featuredComments = ref([]);
 let timerInterval = null;
 
 const cancelBooking = () => {
@@ -164,6 +181,15 @@ const getSeatPrice = (type) => {
 
 // Định dạng gọn cho chú thích: 75000 -> "75k"
 const priceK = (val) => `${Math.round((val || 0) / 1000)}k`;
+
+const shuffleArray = (arr) => {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+};
 
 // ÁNH XẠ DỮ LIỆU ĐẦU RA (COMPUTED): Chuyển đổi dữ liệu thô sang 5 trường Tech Lead yêu cầu
 const mappedSeats = computed(() => {
@@ -263,6 +289,150 @@ const handleSeatMapClick = async (seat) => {
   }
 };
 
+const updateFeaturedComments = () => {
+  const movieTitle = bookingStore.selectedMovie?.title || '';
+  const commentsByMovie = {
+    'Doctor Strange: Đa Vũ Trụ Hỗn Loạn': [
+      {
+        id: 'ds-1',
+        movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
+        userName: 'Nguyễn Thùy Linh',
+        timeAgo: '1 giờ trước',
+        rating: 5,
+        comment: 'Cảnh đa vũ trụ cực kỳ mãn nhãn. Rất thích cách kể chuyện và kỹ xảo trong phim này.'
+      },
+      {
+        id: 'ds-2',
+        movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
+        userName: 'Lê Hoàng',
+        timeAgo: '3 giờ trước',
+        rating: 4,
+        comment: 'Âm nhạc và diễn xuất quá tuyệt. Phiên bản này xem rạp là đúng bài.'
+      },
+      {
+        id: 'ds-3',
+        movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
+        userName: 'Trần Thị Mai',
+        timeAgo: '6 giờ trước',
+        rating: 5,
+        comment: 'Đa vũ trụ phức tạp nhưng hấp dẫn. Cảnh hành động quá ngầu.'
+      },
+      {
+        id: 'ds-4',
+        movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
+        userName: 'Phạm Văn Quân',
+        timeAgo: '1 ngày trước',
+        rating: 4,
+        comment: 'Phim rất đáng xem. Mình hơi choáng với nhiều twist nhưng vẫn ấn tượng.'
+      },
+      {
+        id: 'ds-5',
+        movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
+        userName: 'Đỗ Minh Hằng',
+        timeAgo: '1 ngày trước',
+        rating: 5,
+        comment: 'Nội dung đa chiều, diễn viên hóa thân xuất sắc. Mình sẽ xem lại lần nữa.'
+      }
+    ],
+    'Avatar: Dòng Chảy Của Nước': [
+      {
+        id: 'av-1',
+        movieTitle: 'Avatar: Dòng Chảy Của Nước',
+        userName: 'Nguyễn Thùy Linh',
+        timeAgo: '2 giờ trước',
+        rating: 5,
+        comment: 'Cảnh dưới nước đẹp tới mức không thể rời mắt. Xem rạp thì càng mãn nhãn.'
+      },
+      {
+        id: 'av-2',
+        movieTitle: 'Avatar: Dòng Chảy Của Nước',
+        userName: 'Lê Hoàng',
+        timeAgo: '4 giờ trước',
+        rating: 5,
+        comment: 'Cách xử lý kỹ xảo và màu sắc quá đỉnh. Tối đi xem lại ngay!'
+      },
+      {
+        id: 'av-3',
+        movieTitle: 'Avatar: Dòng Chảy Của Nước',
+        userName: 'Trần Thị Mai',
+        timeAgo: '8 giờ trước',
+        rating: 4,
+        comment: 'Cốt truyện sâu sắc, cảm giác như được chìm vào thế giới Pandora.'
+      },
+      {
+        id: 'av-4',
+        movieTitle: 'Avatar: Dòng Chảy Của Nước',
+        userName: 'Phạm Văn Quân',
+        timeAgo: '1 ngày trước',
+        rating: 5,
+        comment: 'Âm thanh và hiệu ứng hoành tráng, rất xứng đáng với thời lượng dài.'
+      },
+      {
+        id: 'av-5',
+        movieTitle: 'Avatar: Dòng Chảy Của Nước',
+        userName: 'Đỗ Minh Hằng',
+        timeAgo: '1 ngày trước',
+        rating: 5,
+        comment: 'Một trải nghiệm giải trí mạnh mẽ, thích hợp đi xem cả gia đình.'
+      }
+    ],
+    'Kẻ Kiến Tạo (The Creator)': [
+      {
+        id: 'tc-1',
+        movieTitle: 'Kẻ Kiến Tạo (The Creator)',
+        userName: 'Nguyễn Thùy Linh',
+        timeAgo: '30 phút trước',
+        rating: 5,
+        comment: 'Tác phẩm rất ấn tượng với chủ đề AI nhân văn. Mình thấy xúc động và suy ngẫm lâu.'
+      },
+      {
+        id: 'tc-2',
+        movieTitle: 'Kẻ Kiến Tạo (The Creator)',
+        userName: 'Lê Hoàng',
+        timeAgo: '2 giờ trước',
+        rating: 4,
+        comment: 'Nhịp phim căng, nhiều pha hành động đỉnh. Cốt truyện khiến mình suy nghĩ rất nhiều.'
+      },
+      {
+        id: 'tc-3',
+        movieTitle: 'Kẻ Kiến Tạo (The Creator)',
+        userName: 'Trần Thị Mai',
+        timeAgo: '5 giờ trước',
+        rating: 5,
+        comment: 'Diễn viên nhí thể hiện rất tốt, cảm xúc truyền tới người xem rất tự nhiên.'
+      },
+      {
+        id: 'tc-4',
+        movieTitle: 'Kẻ Kiến Tạo (The Creator)',
+        userName: 'Phạm Văn Quân',
+        timeAgo: '1 ngày trước',
+        rating: 4,
+        comment: 'Phim nặng đề tài nhưng vẫn dễ theo dõi. Mình đánh giá cao phần kỹ xảo.'
+      },
+      {
+        id: 'tc-5',
+        movieTitle: 'Kẻ Kiến Tạo (The Creator)',
+        userName: 'Đỗ Minh Hằng',
+        timeAgo: '1 ngày trước',
+        rating: 5,
+        comment: 'Rất đáng xem cho những ai muốn xem phim vừa hành động vừa triết lý.'
+      }
+    ],
+  };
+
+  const pickedComments = shuffleArray(commentsByMovie[movieTitle] || []).slice(0, 5);
+  featuredComments.value = pickedComments.length > 0 ? pickedComments : [
+    {
+      id: 'default-1',
+      movieTitle: movieTitle || 'Bộ phim CineGo',
+      userName: 'CineGo User',
+      timeAgo: 'vừa xong',
+      rating: 5,
+      comment: 'Cảm ơn bạn đã chọn CineGo. Các bình luận nổi bật sẽ xuất hiện ở đây khi bạn chọn phim.'
+    }
+  ];
+};
+
 const updateTimer = () => {
   if (bookingStore.holdExpiresAt) {
     const diff = bookingStore.holdExpiresAt - Date.now();
@@ -349,6 +519,7 @@ const fetchSeatStatus = async () => {
 
 onMounted(() => {
   fetchSeatStatus();
+  updateFeaturedComments();
   if (bookingStore.holdExpiresAt) {
     startTimer();
   }
@@ -366,6 +537,14 @@ onMounted(() => {
       });
   }
 });
+
+watch(
+  () => bookingStore.selectedMovie,
+  () => {
+    updateFeaturedComments();
+  },
+  { immediate: true }
+);
 
 onUnmounted(() => {
   stopTimer();
@@ -596,6 +775,76 @@ const proceedToPayment = () => {
   font-size: 22px;
   font-weight: 800;
   color: var(--text-primary);
+}
+
+.featured-comments-box {
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+}
+
+.featured-comments-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 16px;
+}
+
+.featured-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.featured-comment-card {
+  padding: 16px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.featured-comment-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  align-items: flex-start;
+}
+
+.featured-comment-movie {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.featured-comment-user {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.featured-comment-rating {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fd5a6c 0%, #ff947f 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.featured-comment-text {
+  margin: 0;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.7;
 }
 
 .btn-checkout {
