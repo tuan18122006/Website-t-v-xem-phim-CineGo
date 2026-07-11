@@ -45,6 +45,9 @@
           <router-link v-if="authStore.isAdmin" to="/admin/dashboard" class="btn-admin-panel">
             Admin Panel
           </router-link>
+          <router-link to="/lich-su-ve" class="btn-booking-history">
+            Lịch sử vé
+          </router-link>
           <button @click="handleLogout" class="btn-logout">
             Đăng xuất
           </button>

@@ -7,6 +7,7 @@ use App\Models\Booking;
 use App\Models\Movie;
 use App\Models\Review;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class ReviewController extends Controller
 {
@@ -30,9 +31,48 @@ class ReviewController extends Controller
                 $reviewStatus = 'reviewed';
                 $reviewMessage = 'Bạn đã đánh giá phim này rồi.';
             } else {
-                $canReview = true;
-                $reviewStatus = 'eligible';
-                $reviewMessage = 'Bạn đủ điều kiện để đánh giá phim này.';
+                $hasCompletedBooking = Booking::where('user_id', $user->id)
+                    ->where('payment_status', 'paid')
+                    ->where('booking_status', 'confirmed')
+                    ->whereHas('showtime', function ($query) use ($movieId) {
+                        $query->where('movie_id', $movieId)
+                            ->where('end_time', '<=', Carbon::now());
+                    })
+                    ->exists();
+
+                if ($hasCompletedBooking) {
+                    $canReview = true;
+                    $reviewStatus = 'eligible';
+                    $reviewMessage = 'Bạn đủ điều kiện để đánh giá phim này.';
+                } else {
+                    $hasFutureBooking = Booking::where('user_id', $user->id)
+                        ->where('payment_status', 'paid')
+                        ->where('booking_status', 'confirmed')
+                        ->whereHas('showtime', function ($query) use ($movieId) {
+                            $query->where('movie_id', $movieId)
+                                ->where('end_time', '>', Carbon::now());
+                        })
+                        ->exists();
+
+                    if ($hasFutureBooking) {
+                        $reviewStatus = 'waiting';
+                        $reviewMessage = 'Bạn chỉ có thể đánh giá sau khi suất chiếu kết thúc.';
+                    } else {
+                        $hasAnyBooking = Booking::where('user_id', $user->id)
+                            ->whereHas('showtime', function ($query) use ($movieId) {
+                                $query->where('movie_id', $movieId);
+                            })
+                            ->exists();
+
+                        if ($hasAnyBooking) {
+                            $reviewStatus = 'waiting';
+                            $reviewMessage = 'Bạn chỉ có thể đánh giá sau khi suất chiếu kết thúc.';
+                        } else {
+                            $reviewStatus = 'no_ticket';
+                            $reviewMessage = 'Bạn cần mua vé phim này để đánh giá.';
+                        }
+                    }
+                }
             }
         }
 
@@ -74,8 +114,21 @@ class ReviewController extends Controller
             ], 422);
         }
 
-        // Không cần điều kiện đặt vé nữa: chỉ cần đăng nhập và chưa đánh giá phim này.
-        $canReview = true;
+        $hasCompletedBooking = Booking::where('user_id', $user->id)
+            ->where('payment_status', 'paid')
+            ->where('booking_status', 'confirmed')
+            ->whereHas('showtime', function ($query) use ($movieId) {
+                $query->where('movie_id', $movieId)
+                    ->where('end_time', '<=', Carbon::now());
+            })
+            ->exists();
+
+        if (! $hasCompletedBooking) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Bạn chỉ có thể đánh giá sau khi suất chiếu kết thúc.',
+            ], 422);
+        }
 
         $review = Review::create([
             'user_id' => $user->id,

@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import ReviewMovies from '../views/client/ReviewMovies.vue';
-
+const MyBookingsView = () => import('../views/client/MyBookingsView.vue');
 
 // Lazy loading views
 const Home = () => import("../views/client/HomeView.vue");
@@ -47,7 +47,12 @@ const routes = [
     name: 'review-movies',
     component: ReviewMovies
   },
-
+  {
+    path: '/lich-su-ve',
+    name: 'ticket-history',
+    component: MyBookingsView,
+    meta: { requiresAuth: true },
+  },
   {
     path: '/booking/seats',
     name: 'seat-selection',

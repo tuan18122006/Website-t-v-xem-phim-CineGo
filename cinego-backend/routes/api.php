@@ -40,6 +40,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/seat-holds/release', [SeatHoldController::class, 'release']);
 
     Route::post('/bookings', [BookingController::class, 'store']);
+    Route::get('/bookings/history', [BookingController::class, 'history']);
     Route::post('/movies/{movieId}/reviews', [ReviewController::class, 'store']);
     Route::put('/movies/{movieId}/reviews/{reviewId}', [ReviewController::class, 'update']);
     Route::delete('/movies/{movieId}/reviews/{reviewId}', [ReviewController::class, 'destroy']);

@@ -129,7 +129,7 @@
         </div>
       </div>
 
-      <div class="review-form-box">
+      <div ref="reviewSectionRef" class="review-form-box">
         <h4 class="form-title">{{ isEditingReview ? 'Chỉnh sửa đánh giá của bạn' : 'Để lại đánh giá của bạn' }}</h4>
         <div v-if="reviewNotice" class="review-notice" :class="reviewNotice.type">
           {{ reviewNotice.message }}
@@ -240,6 +240,7 @@ const reviewSummary = ref({ average_rating: 0, total_reviews: 0 });
 const reviewsLoading = ref(false);
 const reviewNotice = ref(null);
 const canSubmitReview = ref(false);
+const reviewSectionRef = ref(null);
 
 const calculateReviewSummary = (includeSample = false) => {
   const actualReviews = Array.isArray(reviews.value) ? reviews.value : [];
@@ -478,6 +479,20 @@ const getDisplayName = (name) => {
 
 const sampleReviews = ref([]);
 
+const scrollToReviewSection = () => {
+  if (reviewSectionRef.value) {
+    reviewSectionRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+};
+
+const handleAutoScrollToReview = () => {
+  if (route.query.review === '1' || route.query.review === 'true') {
+    setTimeout(() => {
+      scrollToReviewSection();
+    }, 250);
+  }
+};
+
 watch([reviews, sampleReviews], () => {
   calculateReviewSummary(true);
 }, { deep: true });
@@ -524,6 +539,11 @@ onMounted(async () => {
   await fetchShowtimes();
   sampleReviews.value = getSampleReviews(movie.value?.title);
   calculateReviewSummary(true);
+  handleAutoScrollToReview();
+});
+
+watch(() => route.query.review, () => {
+  handleAutoScrollToReview();
 });
 
 // Chuyển tiếp sang màn hình chọn ghế ngồi thực tế
