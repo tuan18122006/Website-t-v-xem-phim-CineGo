@@ -129,42 +129,96 @@
     <section class="reviews-section glass-panel">
       <h2 class="section-title gradient-text-accent">Đánh Giá Từ Mọt Phim</h2>
 
-      <div class="review-form-box">
-        <h4 class="form-title">Để lại đánh giá của bạn</h4>
-        <div class="rating-input-row">
-          <span>Đánh giá của bạn:</span>
-          <div class="stars-picker">
-            <span v-for="star in 10" :key="star" class="star-pick" :class="{ active: myReview.rating >= star }"
-              @click="myReview.rating = star">★</span>
-          </div>
+      <div class="reviews-summary">
+        <div class="summary-card">
+          <span class="summary-label">Điểm trung bình</span>
+          <strong class="summary-value">{{ reviewSummary.average_rating.toFixed(1) }}/5</strong>
+          <span class="summary-subtext">Dựa trên {{ reviewSummary.total_reviews }} lượt đánh giá</span>
         </div>
-        <div class="comment-input-group">
-          <textarea v-model="myReview.comment" placeholder="Chia sẻ cảm nghĩ của bạn về bộ phim này..."
-            class="review-textarea"></textarea>
-          <button @click="submitReview" class="btn-submit-review">Gửi Review</button>
+        <div class="summary-card">
+          <span class="summary-label">Tổng lượt đánh giá</span>
+          <strong class="summary-value">{{ reviewSummary.total_reviews }}</strong>
+          <span class="summary-subtext">Khách hàng đã chia sẻ cảm nhận</span>
         </div>
       </div>
 
-      <div class="reviews-list">
-        <div v-for="review in (movie.reviews || mockReviews)" :key="review.id" class="review-item-card">
+      <div ref="reviewSectionRef" class="review-form-box">
+        <h4 class="form-title">{{ isEditingReview ? 'Chỉnh sửa đánh giá của bạn' : 'Để lại đánh giá của bạn' }}</h4>
+        <div v-if="reviewNotice" class="review-notice" :class="reviewNotice.type">
+          {{ reviewNotice.message }}
+        </div>
+        <div v-if="canSubmitReview" class="rating-input-row">
+          <span>Đánh giá của bạn:</span>
+          <div class="stars-picker">
+            <span v-for="star in 5" :key="star" class="star-pick" :class="{ active: myReview.rating >= star }"
+              @click="myReview.rating = star">★</span>
+          </div>
+        </div>
+        <div v-if="canSubmitReview" class="comment-input-group">
+          <textarea v-model="myReview.comment" placeholder="Chia sẻ cảm nghĩ của bạn về bộ phim này..."
+            class="review-textarea"></textarea>
+          <div class="review-action-row">
+            <button v-if="isEditingReview" @click="cancelEditReview" class="btn-cancel-review">Hủy</button>
+            <button @click="submitReview" class="btn-submit-review">{{ isEditingReview ? 'Cập nhật' : 'Gửi Review' }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="reviewsLoading" class="loading-state small-state">
+        <div class="spinner"></div>
+        <p>Đang tải đánh giá...</p>
+      </div>
+
+      <div v-else class="reviews-list">
+        <div v-for="review in reviews" :key="review.id" class="review-item-card">
           <div class="review-user-header">
             <div class="user-meta">
-              <span class="user-avatar-text">{{ review.user_name.charAt(0).toUpperCase() }}</span>
+              <span class="user-avatar-text">{{ getDisplayName(review.user?.name || review.user_name || 'U').charAt(0).toUpperCase() }}</span>
               <div>
-                <h5 class="user-name">{{ review.user_name }}</h5>
+                <h5 class="user-name">{{ review.user?.name || review.user_name || 'Khách hàng CineGo' }}</h5>
                 <span class="review-date">{{ formatDate(review.created_at) || 'Vừa xong' }}</span>
               </div>
             </div>
-            <div class="user-stars">
-              <span v-for="s in review.rating" :key="'fill-' + s" class="star-filled">★</span>
-              <span v-for="s in (5 - review.rating)" :key="'empty-' + s" class="star-empty">★</span>
+            <div class="review-actions">
+              <div class="user-stars">
+                <span v-for="s in review.rating" :key="'fill-' + s" class="star-filled">★</span>
+                <span v-for="s in (5 - review.rating)" :key="'empty-' + s" class="star-empty">★</span>
+              </div>
+              <div v-if="canManageReview(review)" class="review-action-buttons">
+                <button @click="startEditReview(review)" class="review-action-btn">Sửa</button>
+              </div>
             </div>
           </div>
           <p class="review-content">{{ review.comment }}</p>
         </div>
 
-        <div v-if="(movie.reviews && movie.reviews.length === 0) && mockReviews.length === 0" class="no-reviews">
+        <div v-if="reviews.length === 0" class="no-reviews">
           Chưa có đánh giá nào. Hãy là người đầu tiên review bộ phim này!
+        </div>
+
+        <div v-if="sampleReviews.length > 0" class="sample-reviews-section">
+          <h3 class="sample-reviews-title">Bình luận tham khảo cho phim này</h3>
+          <div class="sample-reviews-grid">
+            <div v-for="comment in sampleReviews" :key="comment.id" class="sample-review-card">
+              <div class="sample-review-header">
+                <div class="sample-user-meta">
+                  <span class="sample-user-avatar-text">{{ comment.userName.charAt(0).toUpperCase() }}</span>
+                  <div>
+                    <p class="sample-review-user">{{ comment.userName }}</p>
+                    <div class="sample-review-meta">
+                      <span class="sample-review-date">{{ comment.timeAgo }}</span>
+                      <span class="sample-review-rating-badge">{{ comment.rating }}/5</span>
+                    </div>
+                    <div class="sample-review-stars">
+                      <span v-for="star in comment.rating" :key="comment.id + '-filled-' + star" class="sample-star-filled">★</span>
+                      <span v-for="star in (5 - comment.rating)" :key="comment.id + '-empty-' + star" class="sample-star-empty">★</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p class="sample-review-text">{{ comment.comment }}</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -194,6 +248,24 @@ const loadingShowtimes = ref(false);
 const selectedDayIndex = ref(0);
 const selectedShowtime = ref(null);
 const showtimesByRoom = ref([]);
+const reviews = ref([]);
+const reviewSummary = ref({ average_rating: 0, total_reviews: 0 });
+const reviewsLoading = ref(false);
+const reviewNotice = ref(null);
+const canSubmitReview = ref(false);
+const reviewSectionRef = ref(null);
+
+const calculateReviewSummary = (includeSample = false) => {
+  const actualReviews = Array.isArray(reviews.value) ? reviews.value : [];
+  const sampleList = includeSample && Array.isArray(sampleReviews.value) ? sampleReviews.value : [];
+  const combined = [...actualReviews, ...sampleList];
+  const total = combined.length;
+  const sum = combined.reduce((acc, item) => acc + Number(item.rating || 0), 0);
+  reviewSummary.value = {
+    average_rating: total > 0 ? sum / total : 0,
+    total_reviews: total
+  };
+};
 
 const availableDays = ref([]);
 
@@ -229,17 +301,15 @@ const getPosterUrl = (url) => {
 
 // State phục vụ việc gửi bình luận / review lên DB
 const myReview = ref({
-  rating: 10, // CineGo hỗ trợ thang điểm 10 ngôi sao
+  rating: 5,
   comment: ''
 });
+const isEditingReview = ref(false);
+const editingReviewId = ref(null);
 
 // Dữ liệu mồi cục bộ cho thành phần phụ không ảnh hưởng luồng mua vé (Casts/Reviews) nếu DB trống
 const mockCasts = ref([
   { id: 1, name: 'Diễn viên chính', character: 'Vai diễn xuất sắc', avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' }
-]);
-
-const mockReviews = ref([
-  { id: 1, user_name: 'Khách hàng CineGo', rating: 5, comment: 'Hệ thống rạp chiếu phim hiện đại, âm thanh bùng nổ!', created_at: new Date().toISOString() }
 ]);
 
 // 🔥 HÀM LẤY CHI TIẾT PHIM THUẦN TỪ DATABASE
@@ -253,6 +323,7 @@ const fetchMovieDetail = async () => {
     if (resData) {
       movie.value = resData;
       bookingStore.selectMovie(movie.value);
+      await fetchMovieReviews();
       console.log('=== ĐÃ TẢI CHI TIẾT PHIM TỪ DB ===', movie.value);
     } else {
       console.error('Không tìm thấy dữ liệu bộ phim này trong DB.');
@@ -319,36 +390,96 @@ const fetchShowtimes = async () => {
   }
 };
 
-// 🔥 HÀM GỬI REVIEW LƯU TRỰC TIẾP VÀO DATABASE LARAVEL
+const fetchMovieReviews = async () => {
+  if (!movie.value?.id) return;
+  reviewsLoading.value = true;
+
+  try {
+    const response = await api.get(`/movies/${movie.value.id}/reviews`);
+    const resData = response.data?.data || response.data;
+
+    reviews.value = Array.isArray(resData?.reviews) ? resData.reviews : [];
+    reviewNotice.value = {
+      type: resData?.review_status === 'eligible' ? 'success' : 'info',
+      message: resData?.review_message || 'Bạn cần đăng nhập và đủ điều kiện để đánh giá phim này.'
+    };
+    canSubmitReview.value = Boolean(resData?.can_review);
+
+    movie.value.reviews = reviews.value;
+    calculateReviewSummary(true);
+  } catch (err) {
+    console.error('Lỗi khi tải đánh giá phim:', err);
+    reviews.value = [];
+    reviewSummary.value = { average_rating: 0, total_reviews: 0 };
+    reviewNotice.value = { type: 'info', message: 'Không thể tải trạng thái đánh giá.' };
+    canSubmitReview.value = false;
+  } finally {
+    reviewsLoading.value = false;
+  }
+};
+
 const submitReview = async () => {
   if (!myReview.value.comment.trim()) {
     alert('Vui lòng nhập nội dung đánh giá trước khi gửi!');
     return;
   }
-  
+
   try {
     const dataPost = {
-      movie_id: movie.value.id,
       rating: myReview.value.rating,
       comment: myReview.value.comment
     };
-    
-    // Gửi request lên API lưu vào bảng reviews
-    const response = await api.post(`/movies/${movie.value.id}/reviews`, dataPost);
-    const savedReview = response.data?.data || response.data;
-    
-    if (!movie.value.reviews) {
-      movie.value.reviews = [];
+
+    let response;
+    if (isEditingReview.value && editingReviewId.value) {
+      response = await api.put(`/movies/${movie.value.id}/reviews/${editingReviewId.value}`, dataPost);
+    } else {
+      response = await api.post(`/movies/${movie.value.id}/reviews`, dataPost);
     }
-    
-    // Thêm đánh giá vừa tạo lên đầu danh sách hiển thị công khai
-    movie.value.reviews.unshift(savedReview);
-    myReview.value.comment = ''; // Dọn dẹp ô nhập liệu
-    alert('Đăng bài đánh giá thành công lên CineGo!');
+
+    const savedReview = response.data?.data || response.data;
+
+    if (isEditingReview.value && editingReviewId.value) {
+      reviews.value = reviews.value.map((item) => item.id === savedReview.id ? savedReview : item);
+    } else {
+      reviews.value.unshift(savedReview);
+    }
+
+    movie.value.reviews = reviews.value;
+    calculateReviewSummary(true);
+
+    myReview.value.comment = '';
+    myReview.value.rating = 5;
+    isEditingReview.value = false;
+    editingReviewId.value = null;
+    reviewNotice.value = { type: 'success', message: 'Đánh giá của bạn đã được gửi thành công.' };
+    canSubmitReview.value = false;
+
+    alert('Đánh giá của bạn đã được gửi thành công!');
   } catch (err) {
     console.error('Lỗi khi lưu review vào Database:', err);
-    alert('Không thể gửi đánh giá, vui lòng kiểm tra trạng thái đăng nhập hệ thống!');
+    alert(err.response?.data?.message || 'Không thể gửi đánh giá, vui lòng kiểm tra trạng thái đăng nhập hệ thống!');
   }
+};
+
+const startEditReview = (review) => {
+  myReview.value.rating = review.rating;
+  myReview.value.comment = review.comment || '';
+  isEditingReview.value = true;
+  editingReviewId.value = review.id;
+};
+
+const cancelEditReview = () => {
+  myReview.value.rating = 5;
+  myReview.value.comment = '';
+  isEditingReview.value = false;
+  editingReviewId.value = null;
+};
+
+const canManageReview = (review) => {
+  const authUser = JSON.parse(localStorage.getItem('cinego_user') || 'null');
+  if (!authUser) return false;
+  return authUser.id === review.user_id || authUser.role === 'admin';
 };
 
 const getRatingClass = (rating) => {
@@ -366,6 +497,58 @@ const formatDate = (dateStr) => {
   return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
+const getDisplayName = (name) => {
+  if (!name) return 'U';
+  return name;
+};
+
+const sampleReviews = ref([]);
+
+const scrollToReviewSection = () => {
+  if (reviewSectionRef.value) {
+    reviewSectionRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+};
+
+const handleAutoScrollToReview = () => {
+  if (route.query.review === '1' || route.query.review === 'true') {
+    setTimeout(() => {
+      scrollToReviewSection();
+    }, 250);
+  }
+};
+
+watch([reviews, sampleReviews], () => {
+  calculateReviewSummary(true);
+}, { deep: true });
+
+const getSampleReviews = (movieTitle) => {
+  const samples = {
+    'Doctor Strange: Đa Vũ Trụ Hỗn Loạn': [
+      { id: 'ds-s-1', userName: 'Phan Minh', timeAgo: '3 giờ trước', rating: 5, comment: 'Cảnh hành động hoành tráng, tôi thích nhất phần đa vũ trụ và pháp thuật.' },
+      { id: 'ds-s-2', userName: 'Ngọc Trâm', timeAgo: '5 giờ trước', rating: 4, comment: 'Cốt truyện hơi rối nhưng diễn xuất rất tốt và kịch bản thông minh.' },
+      { id: 'ds-s-3', userName: 'Huyền My', timeAgo: '1 ngày trước', rating: 5, comment: 'Phần kỹ xảo và âm nhạc quá chất, cảm giác xem rạp đã hơn rất nhiều.' },
+      { id: 'ds-s-4', userName: 'Minh Hằng', timeAgo: '1 ngày trước', rating: 4, comment: 'Một số đoạn hơi khó hiểu với người không theo dõi vũ trụ Marvel nhưng vẫn rất thú vị.' },
+      { id: 'ds-s-5', userName: 'Quốc Bảo', timeAgo: '2 ngày trước', rating: 5, comment: 'Mình muốn xem lại ngay sau khi ra rạp, quá đã cho fan Marvel.' }
+    ],
+    'Avatar: Dòng Chảy Của Nước': [
+      { id: 'av-s-1', userName: 'Lê Lan', timeAgo: '4 giờ trước', rating: 5, comment: 'Cảnh dưới nước đẹp mê hoặc, âm thanh và màu sắc quá ấn tượng.' },
+      { id: 'av-s-2', userName: 'Đức Anh', timeAgo: '6 giờ trước', rating: 5, comment: 'Nếu có thể, mình sẽ xem lại một lần nữa vì quá đã mắt.' },
+      { id: 'av-s-3', userName: 'Hải Yến', timeAgo: '14 giờ trước', rating: 4, comment: 'Cốt truyện sâu sắc, chỉ mong đoạn cuối đỡ dài hơn một chút.' },
+      { id: 'av-s-4', userName: 'Thảo Nhi', timeAgo: '1 ngày trước', rating: 5, comment: 'Những phân cảnh hành động và sinh thái dưới nước thật sự xuất sắc.' },
+      { id: 'av-s-5', userName: 'Vĩnh Khang', timeAgo: '2 ngày trước', rating: 4, comment: 'Mình thấy hợp để đi xem cùng gia đình, vừa giải trí vừa đáng suy ngẫm.' }
+    ],
+    'Kẻ Kiến Tạo (The Creator)': [
+      { id: 'tc-s-1', userName: 'Nguyễn Sơn', timeAgo: '30 phút trước', rating: 5, comment: 'Chủ đề AI rất hợp thời, nội dung vừa hành động vừa có chiều sâu.' },
+      { id: 'tc-s-2', userName: 'Bảo Châu', timeAgo: '2 giờ trước', rating: 4, comment: 'Nhiều phân cảnh giàu cảm xúc, kết cấu phim khiến mình suy nghĩ lâu.' },
+      { id: 'tc-s-3', userName: 'Kiều Oanh', timeAgo: '7 giờ trước', rating: 5, comment: 'Diễn viên thể hiện tự nhiên, tôi rất thích cách xây dựng nhân vật.' },
+      { id: 'tc-s-4', userName: 'Duy Phương', timeAgo: '1 ngày trước', rating: 4, comment: 'Cảnh chiến đấu đẹp, tuy hơi nặng đề tài nhưng vẫn rất đáng xem.' },
+      { id: 'tc-s-5', userName: 'Trọng Kiên', timeAgo: '1 ngày trước', rating: 5, comment: 'Tôi đánh giá cao phần kịch bản và thông điệp nhân văn của phim.' }
+    ]
+  };
+  return samples[movieTitle] || [];
+};
+
 const selectShowtime = (showtime) => {
   selectedShowtime.value = showtime;
 };
@@ -379,6 +562,13 @@ onMounted(async () => {
   await fetchMovieDetail();
   await fetchAvailableDates();
   await fetchShowtimes();
+  sampleReviews.value = getSampleReviews(movie.value?.title);
+  calculateReviewSummary(true);
+  handleAutoScrollToReview();
+});
+
+watch(() => route.query.review, () => {
+  handleAutoScrollToReview();
 });
 
 // Chuyển tiếp sang màn hình chọn ghế ngồi thực tế

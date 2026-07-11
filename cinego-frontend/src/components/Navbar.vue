@@ -48,6 +48,8 @@
           <!-- Staff shortcut link -->
           <router-link v-if="authStore.isStaff" to="/staff/dashboard" class="btn-admin-panel">
             Staff Panel
+          <router-link to="/lich-su-ve" class="btn-booking-history">
+            Lịch sử vé
           </router-link>
           <button @click="handleLogout" class="btn-logout">
             Đăng xuất

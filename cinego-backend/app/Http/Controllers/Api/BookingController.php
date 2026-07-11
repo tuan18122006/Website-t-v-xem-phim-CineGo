@@ -10,6 +10,7 @@ use App\Models\BookingDetail;
 use App\Models\BookingCombo;
 use App\Models\Showtime;
 use App\Models\Seat;
+use App\Models\Review;
 use App\Helpers\BookingHelper;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -22,6 +23,57 @@ class BookingController extends Controller
     public function __construct(BookingService $bookingService)
     {
         $this->bookingService = $bookingService;
+    public function history(Request $request)
+    {
+        $user = $request->user();
+
+        $bookings = Booking::with(['showtime.movie', 'showtime.room'])
+            ->where('user_id', $user->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        $response = $bookings->map(function ($booking) use ($user) {
+            $showtime = $booking->showtime;
+            $movie = $showtime?->movie;
+            $hasReviewed = false;
+            $canReview = false;
+
+            if ($movie) {
+                $hasReviewed = Review::where('user_id', $user->id)
+                    ->where('movie_id', $movie->id)
+                    ->exists();
+
+                $showtimeEnded = $showtime?->end_time && Carbon::parse($showtime->end_time)->lte(Carbon::now());
+                $canReview = !$hasReviewed
+                    && $showtimeEnded
+                    && $booking->payment_status === 'paid'
+                    && $booking->booking_status === 'confirmed';
+            }
+
+            return [
+                'booking_id' => $booking->id,
+                'booking_code' => $booking->booking_code,
+                'movie_id' => $movie?->id,
+                'movie_title' => $movie?->title,
+                'poster_url' => $movie?->poster_url,
+                'room_name' => $showtime?->room?->name,
+                'showtime_start' => $showtime?->start_time?->format('H:i d/m/Y'),
+                'showtime_end' => $showtime?->end_time?->format('H:i d/m/Y'),
+                'movie_duration' => $movie?->duration,
+                'payment_status' => $booking->payment_status,
+                'booking_status' => $booking->booking_status,
+                'can_review' => $canReview,
+                'reviewed' => $hasReviewed,
+                'review_message' => $hasReviewed
+                    ? 'Bạn đã đánh giá phim này.'
+                    : ($canReview ? 'Bạn có thể đánh giá phim này.' : 'Bạn có thể đánh giá sau khi suất chiếu kết thúc.'),
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $response,
+        ], 200);
     }
 
     public function store(Request $request)
@@ -37,6 +89,12 @@ class BookingController extends Controller
             'payment_method' => 'required|string',
             'total_amount' => 'required|numeric'
         ]);
+
+        $showtimeId = $request->showtime_id;
+        $seatIds = $request->seat_ids;
+        $combosInput = $request->combos ?? [];
+        $paymentMethod = $request->payment_method;
+        $userId = $request->user()?->id;
 
         try {
             // Gọi service để tạo booking

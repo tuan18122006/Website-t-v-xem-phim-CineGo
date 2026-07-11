@@ -3,6 +3,7 @@ import { useAuthStore } from '../stores/auth';
 import ReviewMovies from '../views/client/ReviewMovies.vue';
 import TicketDetailView from "../views/client/TicketDetailView.vue";
 
+const MyBookingsView = () => import('../views/client/MyBookingsView.vue');
 
 // Lazy loading views
 const Home = () => import("../views/client/HomeView.vue");
@@ -56,6 +57,11 @@ const routes = [
     meta: { requiresAuth: true }
   },
 
+    path: '/lich-su-ve',
+    name: 'ticket-history',
+    component: MyBookingsView,
+    meta: { requiresAuth: true },
+  },
   {
     path: '/booking/seats',
     name: 'seat-selection',
