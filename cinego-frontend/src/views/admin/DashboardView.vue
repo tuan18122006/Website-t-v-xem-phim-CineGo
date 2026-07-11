@@ -392,6 +392,7 @@ const getTabTitle = computed(() => {
     users: 'Quản Lý Tài Khoản & Phân Quyền',
     lookup: 'Tra Cứu Đơn Hàng & Hỗ Trợ Khách',
     combos: 'Quản Lý Combo và Đồ ăn',
+    combos: 'Quản Lý Bắp Nước (Combos)',
     vouchers: 'Quản Lý Mã Giảm Giá (Vouchers)',
     revenue: 'Báo Cáo & Thống Kê Doanh Thu'
   };
@@ -410,6 +411,7 @@ const getTabDesc = computed(() => {
     users: 'Thêm, sửa, phân quyền (Admin/Staff/User) và khóa/mở khóa tài khoản người dùng.',
     lookup: 'Tìm đơn theo SĐT/email/mã đơn khi khách quên mã vé, xem ghế & bắp nước đã mua để hỗ trợ.',
     combos: 'Thêm, sửa, xóa, combo và đồ ăn kiểm kê số lượng tồn trong kho',
+    combos: 'Cấu hình giá cả, thêm/sửa/xóa và quản lý trạng thái hiển thị của các gói Bắp & Nước.',
     vouchers: 'Tạo mã giảm giá, giới hạn số lần dùng, thiết lập điều kiện tối thiểu.',
     revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.'
   };

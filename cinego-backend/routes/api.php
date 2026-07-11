@@ -166,3 +166,5 @@ Route::get('/combos', [ComboController::class, 'index']);
 Route::post('/vouchers/verify', [VoucherController::class, 'verify']);
 Route::get('/payment/vnpay/return', [PaymentController::class, 'vnpayReturn']);
 Route::get('/tickets/{bookingCode}', [TicketController::class, 'show']);
+// Danh sách combo công khai cho client
+Route::get('/combos', [ComboController::class, 'index']);
