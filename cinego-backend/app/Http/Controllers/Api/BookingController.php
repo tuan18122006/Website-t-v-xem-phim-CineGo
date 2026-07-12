@@ -23,6 +23,8 @@ class BookingController extends Controller
     public function __construct(BookingService $bookingService)
     {
         $this->bookingService = $bookingService;
+    }
+
     public function history(Request $request)
     {
         $user = $request->user();
@@ -43,9 +45,7 @@ class BookingController extends Controller
                     ->where('movie_id', $movie->id)
                     ->exists();
 
-                $showtimeEnded = $showtime?->end_time && Carbon::parse($showtime->end_time)->lte(Carbon::now());
                 $canReview = !$hasReviewed
-                    && $showtimeEnded
                     && $booking->payment_status === 'paid'
                     && $booking->booking_status === 'confirmed';
             }
@@ -66,7 +66,7 @@ class BookingController extends Controller
                 'reviewed' => $hasReviewed,
                 'review_message' => $hasReviewed
                     ? 'Bạn đã đánh giá phim này.'
-                    : ($canReview ? 'Bạn có thể đánh giá phim này.' : 'Bạn có thể đánh giá sau khi suất chiếu kết thúc.'),
+                    : ($canReview ? 'Bạn có thể đánh giá phim này.' : 'Chưa đủ điều kiện đánh giá.'),
             ];
         });
 

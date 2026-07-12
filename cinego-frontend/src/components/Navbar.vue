@@ -69,10 +69,6 @@
         </div>
 
         <template v-if="authStore.isAuthenticated">
-          <router-link to="/profile" class="user-profile">
-            <span class="user-name">{{ authStore.user?.name }}</span>
-            <span class="user-role">{{ authStore.user?.role === 'admin' ? 'Admin' : (authStore.user?.role === 'staff' ? 'Nhân viên' : 'Thành viên') }}</span>
-          </router-link>
           <!-- Admin shortcut link -->
           <router-link v-if="authStore.isAdmin" to="/admin/dashboard" class="btn-admin-panel">
             Admin Panel
@@ -80,12 +76,25 @@
           <!-- Staff shortcut link -->
           <router-link v-if="authStore.isStaff" to="/staff/dashboard" class="btn-admin-panel">
             Staff Panel
-          <router-link to="/lich-su-ve" class="btn-booking-history">
-            Lịch sử vé
           </router-link>
-          <button @click="handleLogout" class="btn-logout">
-            Đăng xuất
-          </button>
+
+          <div class="user-dropdown-container">
+            <router-link to="/profile" class="user-avatar-btn">
+              <img :src="authStore.user?.avatar_url || defaultAvatar" alt="Avatar" class="navbar-avatar" />
+            </router-link>
+            
+            <div class="dropdown-menu glass-panel">
+              <div class="dropdown-header">
+                <strong>{{ authStore.user?.name }}</strong>
+                <span>{{ authStore.user?.email }}</span>
+              </div>
+              <router-link to="/profile?tab=info" class="dropdown-item">Hồ sơ</router-link>
+              <router-link to="/profile?tab=history" class="dropdown-item">Lịch sử mua hàng</router-link>
+              <router-link to="/profile?tab=watched" class="dropdown-item">Phim đã xem</router-link>
+              <div class="dropdown-divider"></div>
+              <button @click="handleLogout" class="dropdown-item text-danger">Đăng xuất</button>
+            </div>
+          </div>
         </template>
 
         <template v-else>
@@ -109,6 +118,8 @@ const router = useRouter();
 
 const remainingTime = ref(0);
 let timerId = null;
+
+const defaultAvatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80";
 
 const formatTime = (ms) => {
   if (ms <= 0) return "00:00";
@@ -296,23 +307,115 @@ const handleLogout = async () => {
   font-weight: 600;
 }
 
-.user-profile {
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.user-dropdown-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.navbar-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.navbar-avatar:hover {
+  border-color: var(--accent-red);
+  transform: scale(1.05);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 220px;
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  border: 1px solid #f3f4f6;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+  overflow: hidden;
+}
+
+.user-dropdown-container:hover .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-header {
+  padding: 15px;
+  background: #f9fafb;
+  border-bottom: 1px solid #f3f4f6;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  text-decoration: none;
 }
 
-.user-name {
-  color: var(--text-primary);
-  font-weight: 700;
-  font-size: 13px;
+.dropdown-header strong {
+  font-size: 14px;
+  color: var(--text-dark);
 }
 
-.user-role {
+.dropdown-header span {
+  font-size: 12px;
   color: var(--text-muted);
-  font-size: 10px;
-  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dropdown-item {
+  display: block;
+  padding: 12px 15px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #4b5563;
+  text-decoration: none;
+  transition: background 0.2s;
+  text-align: left;
+  border: none;
+  background: transparent;
+  width: 100%;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background: #f3f4f6;
+  color: var(--accent-red);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: #f3f4f6;
+  margin: 4px 0;
+}
+
+.text-danger {
+  color: #ef4444 !important;
+}
+
+.text-danger:hover {
+  background: #fef2f2 !important;
+}
+
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+  }
 }
 
 .btn-admin-panel {

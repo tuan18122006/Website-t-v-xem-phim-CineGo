@@ -106,7 +106,6 @@
       </header>
 
       <!-- TAB 1: DASHBOARD STATS & CHARTS -->
-      <div v-if="activeTab === 'stats'" class="dashboard-tab-content">
       <div v-show="activeTab === 'stats'" class="dashboard-tab-content">
         <!-- Widgets thông số THẬT -->
         <div class="stats-widgets">
@@ -244,7 +243,6 @@
 
 
 
-      <div v-if="activeTab === 'genres'">
       <div v-show="activeTab === 'combos'">
         <ComboSelection />
       </div>

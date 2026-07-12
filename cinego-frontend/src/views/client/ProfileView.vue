@@ -29,6 +29,13 @@
           >
             LỊCH SỬ GIAO DỊCH
           </button>
+          <button
+            class="cinego-menu-btn"
+            :class="{ active: activeTab === 'watched' }"
+            @click="activeTab = 'watched'"
+          >
+            PHIM ĐÃ XEM
+          </button>
         </nav>
       </aside>
 
@@ -328,6 +335,10 @@
               </div>
             </div>
           </div>
+
+          <div v-if="activeTab === 'watched'" class="cinego-section-block">
+            <WatchedMoviesList />
+          </div>
         </div>
       </main>
     </div>
@@ -379,7 +390,6 @@
         >
           <img
             :src="getQrUrl(selectedTicket?.booking_code)"
-            :src="`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${selectedTicket?.booking_code}`"
             alt="QR Code"
           />
         </div>
@@ -750,10 +760,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
+import { useAuthStore } from "../../stores/auth";
 import api from "../../api/axios";
+import Swal from "sweetalert2";
+import WatchedMoviesList from "../../components/WatchedMoviesList.vue";
 
-const activeTab = ref("info");
+import { useRoute } from "vue-router";
+
+const route = useRoute();
+const activeTab = ref(route.query.tab || "info");
 const subTab = ref("upcoming");
 const isEditingInfo = ref(false);
 const btnLoading = ref(false);
@@ -839,9 +855,15 @@ const fetchUserData = async () => {
       };
     }
   } catch (err) {
-    console.error("Lỗi lấy profile từ DB:", err);
+    console.error("Lỗi tải thông tin:", err);
   }
 };
+
+watch(() => route.query.tab, (newTab) => {
+  if (newTab) {
+    activeTab.value = newTab;
+  }
+});
 
 const fetchBookingHistory = async () => {
   loadingHistory.value = true;
@@ -882,6 +904,7 @@ const handleAvatarUpload = async (event) => {
       headers: { "Content-Type": "multipart/form-data" },
     });
     profileForm.value.avatar_url = response.data.avatar_url;
+    await authStore.fetchUser(); // Sync with global store so Navbar updates instantly
     alert("Thay đổi ảnh đại diện thành công!");
   } catch (err) {
     console.error(err);
@@ -1028,6 +1051,9 @@ onMounted(() => {
   padding: 24px 16px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-light);
+  position: sticky;
+  top: 100px;
+  height: fit-content;
 }
 
 .info-data-row {

@@ -179,9 +179,6 @@
                     $query->whereYear('release_date', $request->year);
                 }
 
-                if ($request->has('country') && !empty($request->country)) {
-                    $query->where('country', $request->country);
-                }
 
                 if ($request->has('genre_id') && !empty($request->genre_id)) {
                     $query->whereHas('genres', function ($q) use ($request) {
