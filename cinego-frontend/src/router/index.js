@@ -3,10 +3,7 @@ import { useAuthStore } from '../stores/auth';
 import ReviewMovies from '../views/client/ReviewMovies.vue';
 import TicketDetailView from "../views/client/TicketDetailView.vue";
 
-const MyBookingsView = () => import('../views/client/MyBookingsView.vue');
-import { createRouter, createWebHistory } from "vue-router";
-import { useAuthStore } from "../stores/auth";
-import ReviewMovies from "../views/client/ReviewMovies.vue";
+
 
 // Lazy loading views
 const Home = () => import("../views/client/HomeView.vue");
@@ -51,9 +48,6 @@ const routes = [
   {
     path: '/review-movies',
     name: 'review-movies',
-    component: ReviewMovies
-    path: "/review-movies",
-    name: "review-movies",
     component: ReviewMovies,
   },
   {
@@ -63,11 +57,6 @@ const routes = [
     meta: { requiresAuth: true }
   },
 
-    path: '/lich-su-ve',
-    name: 'ticket-history',
-    component: MyBookingsView,
-    meta: { requiresAuth: true },
-  },
   {
     path: "/booking/seats",
     name: "seat-selection",
@@ -149,54 +138,31 @@ const routes = [
     name: 'admin-room-edit',
     component: () => import('../views/admin/RoomEditorView.vue'),
     meta: { requiresAuth: true, role: "admin" }
-  {
-    path: "/admin/rooms",
-    name: "admin-rooms",
-    component: () => import("../views/admin/RoomManagementView.vue"),
-    meta: { requiresAuth: true, role: "admin" },
   },
-  {
-    path: "/admin/rooms/:id/edit",
-    name: "admin-room-edit",
-    component: () => import("../views/admin/RoomEditorView.vue"),
-    meta: { requiresAuth: true, role: "admin" },
-  },
-
   {
     path: "/admin/movies",
     name: "admin-MoviesView",
     component: () => import("../views/admin/MoviesView.vue"),
+    meta: { requiresAuth: true, role: "admin" }
   },
   {
     path: "/admin/combos",
-    name: "admin-ComboManagement",
-    component: () => import("../views/admin/ComboSelection.vue"),
-    meta: { requiresAuth: true, role: "admin" },
-  },
-  {
-    path: "/admin/vouchers",
-    name: "admin-VoucherManagement",
-    component: () => import("../views/admin/VoucherManager.vue"),
     name: "admin-Combos",
     component: () => import("../views/admin/ComboManagementView.vue"),
-    meta: { requiresAuth: true, role: "admin" },
+    meta: { requiresAuth: true, role: "admin" }
   },
   {
     path: "/admin/users",
     name: "admin-UserManagement",
     component: () => import("../views/admin/UserManagement.vue"),
-    meta: { requiresAuth: true, role: "admin" },
+    meta: { requiresAuth: true, role: "admin" }
   },
-
   {
     path: "/admin/vouchers",
     name: "admin-VoucherManagement",
     component: () => import("../views/admin/VoucherManager.vue"),
-    meta: { requiresAuth: true, role: "admin" },
+    meta: { requiresAuth: true, role: "admin" }
   },
-  
-
-
   {
     path: "/staff",
     redirect: "/staff/dashboard",
@@ -207,18 +173,6 @@ const routes = [
     component: () => import("../views/staff/StaffDashboardView.vue"),
     meta: { requiresAuth: true, role: "staff" },
   },
-
-  {
-    path: "/staff",
-    redirect: "/staff/dashboard",
-  },
-  {
-    path: "/staff/dashboard",
-    name: "staff-dashboard",
-    component: () => import("../views/staff/StaffDashboardView.vue"),
-    meta: { requiresAuth: true, role: "staff" },
-  },
-
   // Wildcard redirect
   {
     path: "/:pathMatch(.*)*",
@@ -235,31 +189,20 @@ const router = createRouter({
 });
 
 // Navigation Guards: Bảo vệ các trang cần Đăng nhập & Quyền Admin
-router.beforeEach(async (to, from, next) => {
+router.beforeEach((to, from) => {
   const authStore = useAuthStore();
 
-  // Xác định xem trang yêu cầu đăng nhập không
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
-  // Xác định xem trang yêu cầu quyền cụ thể không (ví dụ: admin)
   const requiredRole = to.meta.role;
 
   if (requiresAuth && !authStore.isAuthenticated) {
-    // Nếu chưa đăng nhập -> chuyển về Login
-    next({ name: "login", query: { redirect: to.fullPath } });
+    return { name: "login", query: { redirect: to.fullPath } };
   } else if (requiresAuth && requiredRole) {
-    // Nếu đã đăng nhập nhưng cần check quyền
     if (requiredRole === "admin" && !authStore.isAdmin) {
-      // Không có quyền Admin -> chuyển về Trang chủ
-      next({ name: "home" });
+      return { name: "home" };
     } else if (requiredRole === "staff" && (!authStore.isAdmin && !authStore.isStaff)) {
-      // Không có quyền Staff hoặc Admin -> chuyển về Trang chủ
-      next({ name: "home" });
-    } else {
-      next();
+      return { name: "home" };
     }
-  } else {
-    // Cho đi tiếp nếu không yêu cầu gì đặc biệt
-    next();
   }
 });
 

@@ -542,6 +542,8 @@ const deleteComboItem = async (id) => {
 
 .table-responsive-wrapper {
     width: 100%;
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }
@@ -658,7 +660,9 @@ const deleteComboItem = async (id) => {
     background: rgba(0, 0, 0, 0.6) !important;
     display: flex !important;
     justify-content: center !important;
-    align-items: center !important;
+    align-items: flex-start !important;
+    padding: 40px 20px !important;
+    overflow-y: auto !important;
     z-index: 9999 !important;
 }
 

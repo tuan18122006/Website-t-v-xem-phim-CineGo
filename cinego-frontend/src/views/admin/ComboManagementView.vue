@@ -470,8 +470,8 @@ onMounted(() => {
 .modal-overlay {
   position: fixed; inset: 0; z-index: 1000;
   background: rgba(15, 6, 8, 0.5); backdrop-filter: blur(4px);
-  display: flex; align-items: center; justify-content: center;
-  padding: 20px; overflow-y: auto;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 40px 20px; overflow-y: auto;
 }
 
 .modal-content {

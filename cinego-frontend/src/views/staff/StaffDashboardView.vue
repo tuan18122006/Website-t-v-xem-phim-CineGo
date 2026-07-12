@@ -101,8 +101,7 @@
             <qrcode-stream @detect="onDetect"></qrcode-stream>
           </div>
 
-            <button type="submit" class="btn-scan" :disabled="!scanCode">Xác Nhận</button>
-          </form>
+
 
           <!-- Kết quả quét -->
           <div v-if="scanResult" class="scan-result" :class="scanResult.status">
@@ -455,8 +454,6 @@ const handleScan = async () => {
   gap: 12px;
 }
 
-.btn-scan {
-  flex: 1;
 .btn-scan {
   background: linear-gradient(135deg, var(--accent-pink), var(--accent-violet));
   color: white;

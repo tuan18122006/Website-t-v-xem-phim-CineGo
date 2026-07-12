@@ -1,15 +1,12 @@
 <template>
-  <div class="my-bookings-view">
-    <div class="page-header glass-panel">
-      <div>
-        <h1>Lịch sử vé của bạn</h1>
-        <p>Danh sách các vé đã đặt và khả năng đánh giá phim sau khi suất chiếu kết thúc.</p>
-      </div>
+  <div class="watched-movies-list">
+    <div class="cinego-section-title">
+      <h3>Phim đã xem</h3>
     </div>
 
     <div v-if="isLoading" class="loading-state">
       <div class="spinner"></div>
-      <p>Đang tải lịch sử vé...</p>
+      <p>Đang tải danh sách phim...</p>
     </div>
 
     <div v-else>
@@ -19,7 +16,7 @@
       </div>
 
       <div v-else class="bookings-list">
-        <div v-for="booking in bookings" :key="booking.booking_id" class="booking-card glass-panel">
+        <div v-for="booking in paginatedBookings" :key="booking.booking_id" class="booking-card glass-panel">
           <div class="booking-card-left">
             <img :src="booking.poster_url || defaultPoster" :alt="booking.movie_title" class="movie-poster" />
           </div>
@@ -72,19 +69,51 @@
           </div>
         </div>
       </div>
+
+      <!-- Pagination Controls -->
+      <div v-if="totalPages > 1" class="cinego-pagination">
+        <button
+          class="btn-page"
+          :disabled="currentPage === 1"
+          @click="currentPage--"
+        >
+          &laquo; Trước
+        </button>
+        <span class="page-info">Trang {{ currentPage }} / {{ totalPages }}</span>
+        <button
+          class="btn-page"
+          :disabled="currentPage === totalPages"
+          @click="currentPage++"
+        >
+          Sau &raquo;
+        </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import api from '../../api/axios';
+import api from '../api/axios';
 
 const router = useRouter();
 const isLoading = ref(true);
 const bookings = ref([]);
 const errorMessage = ref(null);
+
+// Pagination
+const currentPage = ref(1);
+const itemsPerPage = 3;
+
+const totalPages = computed(() => {
+  return Math.ceil(bookings.value.length / itemsPerPage) || 1;
+});
+
+const paginatedBookings = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return bookings.value.slice(start, start + itemsPerPage);
+});
 
 const defaultPoster = 'https://images.unsplash.com/photo-1524985069026-dd778a71c7b4?auto=format&fit=crop&w=500&q=80';
 
@@ -114,30 +143,35 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.my-bookings-view {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px 20px 40px;
+.watched-movies-list {
+  width: 100%;
 }
 
-.page-header {
-  padding: 28px;
+.cinego-section-title {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 20px;
-  margin-bottom: 28px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f3f4f6;
 }
 
-.page-header h1 {
-  margin: 0;
-  font-size: 32px;
+.cinego-section-title h3 {
+  font-size: 18px;
   font-weight: 800;
+  color: var(--text-dark);
+  margin: 0;
+  position: relative;
 }
 
-.page-header p {
-  margin: 6px 0 0;
-  color: var(--text-secondary);
+.cinego-section-title h3::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -18px;
+  width: 40px;
+  height: 2px;
+  background: var(--accent-red);
 }
 
 .loading-state,
@@ -269,5 +303,40 @@ onMounted(() => {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+.cinego-pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin-top: 30px;
+}
+
+.cinego-pagination .btn-page {
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  color: #374151;
+  transition: all 0.2s;
+}
+
+.cinego-pagination .btn-page:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.cinego-pagination .btn-page:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #f9fafb;
+}
+
+.cinego-pagination .page-info {
+  font-weight: 600;
+  color: #4b5563;
 }
 </style>

@@ -96,22 +96,6 @@
         </div>
       </div>
 
-      <div class="featured-comments-box">
-        <h3 class="featured-comments-title">Bình luận nổi bật</h3>
-        <div class="featured-comments-list">
-          <div v-for="comment in featuredComments" :key="comment.id" class="featured-comment-card">
-            <div class="featured-comment-meta">
-              <div>
-                <p class="featured-comment-movie">{{ comment.movieTitle }}</p>
-                <p class="featured-comment-user">{{ comment.userName }} • {{ comment.timeAgo }}</p>
-              </div>
-              <span class="featured-comment-rating">{{ comment.rating }}/5</span>
-            </div>
-            <p class="featured-comment-text">{{ comment.comment }}</p>
-          </div>
-        </div>
-      </div>
-
       <button
         @click="proceedToPayment"
         :disabled="bookingStore.selectedSeats.length === 0"
@@ -161,10 +145,21 @@ const featuredComments = ref([]);
 let timerInterval = null;
 
 const cancelBooking = () => {
-    if (confirm("Bạn có muốn hủy quá trình chọn ghế không ?")) {
-        const movieId = bookingStore.currentMovieId; 
-        router.push(`/movies/${movieId}`); 
-    }
+    Swal.fire({
+        title: 'Xác nhận hủy',
+        text: "Bạn có chắc chắn muốn hủy quá trình đặt vé này không?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e30613',
+        cancelButtonColor: '#6f6a63',
+        confirmButtonText: 'Đồng ý hủy',
+        cancelButtonText: 'Tiếp tục đặt'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            const movieId = bookingStore.currentMovieId; 
+            router.push(`/movies/${movieId}`); 
+        }
+    });
 };
 
 const formatCurrency = (val) => {

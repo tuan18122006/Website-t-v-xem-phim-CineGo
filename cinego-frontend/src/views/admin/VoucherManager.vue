@@ -62,8 +62,10 @@
 
         <div v-if="isModalOpen" class="modal-overlay-cine">
             <div class="glass-panel modal-content-cine">
-                <h3 style="margin-top: 0; margin-bottom: 20px;">{{ isEditing ? 'Cập nhật Voucher' : 'Tạo Voucher mới' }}
-                </h3>
+                <div class="modal-header">
+                    <h3 style="margin-top: 0; margin-bottom: 0;">{{ isEditing ? 'Cập nhật Voucher' : 'Tạo Voucher mới' }}</h3>
+                    <button class="close-btn" @click="isModalOpen = false">×</button>
+                </div>
 
                 <div class="form-group">
                     <label>Mã Code (VD: SALE50)</label>
@@ -372,8 +374,33 @@ onMounted(fetchVouchers);
     background: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
+    padding: 40px 20px;
+    overflow-y: auto;
     z-index: 1000;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 28px;
+    line-height: 1;
+    cursor: pointer;
+    color: #9ca3af;
+    transition: color 0.3s;
+    padding: 0;
+    margin-top: -5px;
+}
+
+.close-btn:hover {
+    color: #ef4444;
 }
 
 vouchers-table img {
@@ -384,15 +411,8 @@ vouchers-table img {
 }
 
 .modal-content-cine {
-    width: 500px;
-    max-width: 90%;
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-}
-
-.modal-content-cine {
     width: 600px;
+    max-width: 90%;
     background: white;
     padding: 30px;
     border-radius: 16px;
@@ -446,6 +466,14 @@ vouchers-table img {
     justify-content: center;
     padding: 60px 0;
     color: #555;
+}
+
+.table-responsive-wrapper {
+    width: 100%;
+    max-height: calc(100vh - 250px);
+    overflow-y: auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .loader {
