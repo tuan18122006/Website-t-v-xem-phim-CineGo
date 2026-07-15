@@ -28,6 +28,7 @@ Route::get('/movies', [MovieController::class, 'index']);
 Route::get('/movies/search', [MovieController::class, 'search']);
 Route::get('/movies/{id}', [MovieController::class, 'show']);
 Route::get('/movies/{movieId}/reviews', [ReviewController::class, 'index']);
+Route::get('/reviews/featured', [ReviewController::class, 'publicFeatured']);
 
 // Suất chiếu & Sơ đồ ghế công khai
 Route::get('/showtimes/by-date', [ShowtimeController::class, 'getShowtimesByDate']);
@@ -102,6 +103,13 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     // Dashboard thống kê
     Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
     Route::get('/dashboard/revenue', [DashboardController::class, 'revenue']);
+
+    // Kiểm duyệt đánh giá (Review moderation)
+    Route::get('/reviews', [ReviewController::class, 'adminIndex']);
+    Route::patch('/reviews/{id}/hide', [ReviewController::class, 'toggleHide']);
+    Route::patch('/reviews/{id}/feature', [ReviewController::class, 'toggleFeature']);
+    Route::post('/reviews/{id}/reply', [ReviewController::class, 'reply']);
+    Route::delete('/reviews/{id}', [ReviewController::class, 'adminDestroy']);
 
     // Quản lý tài khoản User
     Route::get('/users', [UserController::class, 'index']);

@@ -49,7 +49,8 @@
             </button>
             
             <span class="movie-rating-pill">⭐ {{ review.rating }}/5</span>
-            <span class="movie-duration-pill">{{ review.duration }} phút</span>
+            <span v-if="review.duration" class="movie-duration-pill">{{ review.duration }} phút</span>
+            <span v-if="review.isFeatured" class="movie-featured-pill">📌 Nổi bật</span>
           </div>
           
           <!-- Card Info -->
@@ -68,6 +69,10 @@
                 <span class="verified-buyer-badge">✓ Đã mua vé qua CineGo</span>
               </div>
               <p class="user-comment-text">"{{ review.comment }}"</p>
+              <div v-if="review.adminReply" class="admin-reply-box">
+                <span class="admin-reply-label">💬 CineGo Official</span>
+                <p>{{ review.adminReply }}</p>
+              </div>
             </div>
             
             <div class="card-footer-action">
@@ -78,67 +83,69 @@
           </div>
         </div>
       </div>
+
+      <p v-if="loaded && !movieReviews.length" class="reviews-empty">
+        Chưa có đánh giá nào được đăng. Hãy là người đầu tiên chia sẻ cảm nhận sau khi xem phim!
+      </p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import api from '../../api/axios';
 
-const movieReviews = ref([
-  {
-    id: 1,
-    movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
-    genres: ['Hành Động', 'Viễn Tưởng', 'Kỳ Ảo'],
-    rating: '4.8',
-    duration: '126',
-    moviePoster: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=600&q=80',
-    userName: 'Trần Anh Tuấn',
-    userInitials: 'AT',
-    avatarColor: 'linear-gradient(135deg, #e50914, #9b000e)',
-    timeAgo: '1 ngày trước',
-    comment: 'Kỹ xảo hình ảnh vô cùng hoành tráng, các phân cảnh đa vũ trụ làm quá đỉnh. Thích nhất phần âm nhạc dồn dập kịch tính. Rất đáng tiền xem rạp LUXURY!',
-  },
-  {
-    id: 2,
-    movieTitle: 'Avatar: Dòng Chảy Của Nước',
-    genres: ['Kỳ Ảo', 'Viễn Tưởng', 'Hành Động'],
-    rating: '5.0',
-    duration: '192',
-    moviePoster: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80',
-    userName: 'Hoàng Linh Trang',
-    userInitials: 'LT',
-    avatarColor: 'linear-gradient(135deg, #7c4dff, #512da8)',
-    timeAgo: '2 ngày trước',
-    comment: 'Tác phẩm hình ảnh hoàn hảo nhất từng được xem! 3 tiếng đồng hồ trôi qua nhanh như một cái chớp mắt. Khuyên mọi người nên xem định dạng IMAX 3D tại CineGo.',
-  },
-  {
-    id: 3,
-    movieTitle: 'Kẻ Kiến Tạo (The Creator)',
-    genres: ['Viễn Tưởng', 'Hành Động', 'Drama'],
-    rating: '4.7',
-    duration: '133',
-    moviePoster: 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&w=600&q=80',
-    userName: 'Nguyễn Văn Hùng',
-    userInitials: 'VH',
-    avatarColor: 'linear-gradient(135deg, #00bcd4, #00838f)',
-    timeAgo: '5 ngày trước',
-    comment: 'Cốt truyện nhân văn sâu sắc về AI và con người. Âm hưởng hùng vĩ, diễn xuất xuất thần của diễn viên nhí. Bố cục phim cực kỳ chặt chẽ và lôi cuốn.',
-  },
-  {
-    id: 4,
-    movieTitle: 'Spider-Man: Across the Spider-Verse',
-    genres: ['Hoạt Hình', 'Hành Động', 'Kỳ Ảo'],
-    rating: '4.9',
-    duration: '140',
-    moviePoster: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=600&q=80',
-    userName: 'Phạm Minh Đức',
-    userInitials: 'MĐ',
-    avatarColor: 'linear-gradient(135deg, #ff9800, #e65100)',
-    timeAgo: '1 tuần trước',
-    comment: 'Hoạt họa xuất sắc vượt tầm thời đại, cách phối màu và nhạc phim khiến người xem nổi da gà. Xứng đáng là siêu phẩm hoạt hình xuất sắc nhất năm.',
+const AVATAR_COLORS = [
+  'linear-gradient(135deg, #e50914, #9b000e)',
+  'linear-gradient(135deg, #7c4dff, #512da8)',
+  'linear-gradient(135deg, #00bcd4, #00838f)',
+  'linear-gradient(135deg, #ff9800, #e65100)',
+];
+const FALLBACK_POSTER = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=600&q=80';
+
+const initials = (name) => {
+  if (!name) return '👤';
+  const p = name.trim().split(/\s+/);
+  return (p[0][0] + (p[p.length - 1][0] || '')).toUpperCase();
+};
+const timeAgo = (dt) => {
+  if (!dt) return '';
+  const diff = (Date.now() - new Date(dt).getTime()) / 1000;
+  if (diff < 3600) return Math.max(1, Math.floor(diff / 60)) + ' phút trước';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' giờ trước';
+  return Math.floor(diff / 86400) + ' ngày trước';
+};
+
+const movieReviews = ref([]);
+const loaded = ref(false);
+
+const fetchReviews = async () => {
+  try {
+    const res = await api.get('/reviews/featured');
+    const list = res.data?.data || [];
+    movieReviews.value = list.map((r, i) => ({
+      id: r.id,
+      movieTitle: r.movie?.title || 'Phim CineGo',
+      moviePoster: r.movie?.poster_url || FALLBACK_POSTER,
+      duration: r.movie?.duration || '',
+      genres: [],
+      rating: Number(r.rating || 0).toFixed(1),
+      userName: r.user?.name || 'Khách CineGo',
+      userInitials: initials(r.user?.name),
+      avatarColor: AVATAR_COLORS[i % AVATAR_COLORS.length],
+      timeAgo: timeAgo(r.created_at),
+      comment: r.comment || '',
+      isFeatured: r.is_featured,
+      adminReply: r.admin_reply,
+    }));
+  } catch (e) {
+    console.error('fetch featured reviews error', e);
+  } finally {
+    loaded.value = true;
   }
-]);
+};
+
+onMounted(fetchReviews);
 </script>
 
 <style scoped>
@@ -365,6 +372,47 @@ const movieReviews = ref([
   border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
+}
+
+.movie-featured-pill {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.admin-reply-box {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(216, 45, 139, 0.06);
+  border-left: 3px solid var(--accent-pink);
+  border-radius: 8px;
+}
+.admin-reply-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--accent-pink);
+  margin-bottom: 4px;
+}
+.admin-reply-box p {
+  margin: 0;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.reviews-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 15px;
+  padding: 40px 20px;
 }
 
 .review-card-body {
