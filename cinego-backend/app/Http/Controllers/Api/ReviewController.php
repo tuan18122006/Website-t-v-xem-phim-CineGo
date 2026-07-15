@@ -15,12 +15,23 @@ class ReviewController extends Controller
     {
         $movie = Movie::findOrFail($movieId);
 
+        $viewer = auth('sanctum')->user() ?? $request->user();
+
+        // Bình luận bị admin ẩn: chỉ chính người viết mới còn thấy của mình.
         $reviews = Review::where('movie_id', $movieId)
             ->with('user:id,name')
+            ->when($viewer, function ($q) use ($viewer) {
+                $q->where(function ($sub) use ($viewer) {
+                    $sub->where('is_hidden', false)->orWhere('user_id', $viewer->id);
+                });
+            }, function ($q) {
+                $q->where('is_hidden', false);
+            })
+            ->orderByDesc('is_featured') // review được ghim luôn lên đầu
             ->latest()
             ->get();
 
-        $user = auth('sanctum')->user() ?? $request->user();
+        $user = $viewer;
         $reviewStatus = 'guest';
         $canReview = false;
         $reviewMessage = 'Bạn cần đăng nhập và đủ điều kiện để đánh giá phim này.';
@@ -170,6 +181,109 @@ class ReviewController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Xóa đánh giá thành công.',
+        ], 200);
+    }
+
+    /* ==================== ADMIN MODERATION ==================== */
+
+    /**
+     * Bảng kiểm duyệt: tất cả đánh giá từ mọi phim, có lọc & tìm kiếm.
+     * ?rating=1..5 | ?movie_id=.. | ?q=từ khóa
+     */
+    public function adminIndex(Request $request)
+    {
+        $reviews = Review::with(['user:id,name,email', 'movie:id,title'])
+            ->when($request->filled('rating'), fn ($q) => $q->where('rating', (int) $request->rating))
+            ->when($request->filled('movie_id'), fn ($q) => $q->where('movie_id', (int) $request->movie_id))
+            ->when($request->filled('q'), function ($q) use ($request) {
+                $kw = trim($request->q);
+                $q->where(function ($sub) use ($kw) {
+                    $sub->where('comment', 'like', "%{$kw}%")
+                        ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$kw}%")->orWhere('email', 'like', "%{$kw}%"));
+                });
+            })
+            ->orderByDesc('is_featured')
+            ->latest()
+            ->paginate(20);
+
+        return response()->json($reviews, 200);
+    }
+
+    /** Ẩn / hiện một đánh giá */
+    public function toggleHide($id)
+    {
+        $review = Review::findOrFail($id);
+        $review->is_hidden = ! $review->is_hidden;
+        $review->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $review->is_hidden ? 'Đã ẩn bình luận.' : 'Đã hiện lại bình luận.',
+            'is_hidden' => $review->is_hidden,
+        ], 200);
+    }
+
+    /** Ghim / bỏ ghim (nổi bật) */
+    public function toggleFeature($id)
+    {
+        $review = Review::findOrFail($id);
+        $review->is_featured = ! $review->is_featured;
+        $review->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $review->is_featured ? 'Đã ghim bình luận nổi bật.' : 'Đã bỏ ghim.',
+            'is_featured' => $review->is_featured,
+        ], 200);
+    }
+
+    /** Admin phản hồi với tư cách CineGo Official */
+    public function reply(Request $request, $id)
+    {
+        $request->validate([
+            'admin_reply' => 'nullable|string|max:1000',
+        ], [
+            'admin_reply.max' => 'Phản hồi tối đa 1000 ký tự.',
+        ]);
+
+        $review = Review::findOrFail($id);
+        $review->admin_reply = $request->admin_reply;
+        $review->replied_at = $request->filled('admin_reply') ? now() : null;
+        $review->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $request->filled('admin_reply') ? 'Đã gửi phản hồi.' : 'Đã xóa phản hồi.',
+            'data' => $review,
+        ], 200);
+    }
+
+    /** Admin xóa cứng một đánh giá */
+    public function adminDestroy($id)
+    {
+        Review::findOrFail($id)->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã xóa vĩnh viễn bình luận.',
+        ], 200);
+    }
+
+    /**
+     * Danh sách bình luận nổi bật/mới cho trang Review phim công khai (nhiều phim).
+     */
+    public function publicFeatured()
+    {
+        $reviews = Review::where('is_hidden', false)
+            ->with(['user:id,name', 'movie:id,title,poster_url,duration'])
+            ->orderByDesc('is_featured')
+            ->latest()
+            ->limit(30)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $reviews,
         ], 200);
     }
 }
