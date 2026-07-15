@@ -107,19 +107,38 @@
 
       <!-- TAB 1: DASHBOARD STATS & CHARTS -->
       <div v-show="activeTab === 'stats'" class="dashboard-tab-content">
+        
+        <!-- Date Range Filter -->
+        <div class="date-filter-panel glass-panel">
+          <div class="filter-group">
+            <label>Từ ngày:</label>
+            <input type="date" v-model="startDate" class="date-input" />
+          </div>
+          <div class="filter-group">
+            <label>Đến ngày:</label>
+            <input type="date" v-model="endDate" class="date-input" />
+          </div>
+          <button @click="applyDateFilter" class="btn-filter" :disabled="statsLoading">
+            <span v-if="statsLoading">⏳</span>
+            <span v-else>🔍 Lọc Dữ Liệu</span>
+          </button>
+        </div>
+
         <!-- Widgets thông số THẬT -->
-        <div class="stats-widgets">
-          <div class="widget-card glass-panel">
-            <div class="widget-icon bg-mint">💰</div>
+        <div class="stats-widgets" style="margin-bottom: 30px;">
+          <div class="widget-card grad-pink" :class="{ 'flash-live': isLiveUpdated }">
+            <div class="widget-icon">💰</div>
             <div class="widget-info">
-              <span class="widget-label">Tổng Doanh Thu</span>
+              <span class="widget-label">Tổng Doanh Thu 
+                <span v-if="isLiveUpdated" class="live-badge">🔴 Live</span>
+              </span>
               <span class="widget-value">{{ formatCurrency(totalRevenue) }}</span>
               <span class="widget-trend">Từ các đơn đã thanh toán</span>
             </div>
           </div>
 
-          <div class="widget-card glass-panel">
-            <div class="widget-icon bg-pink">🎟️</div>
+          <div class="widget-card grad-violet">
+            <div class="widget-icon">🎟️</div>
             <div class="widget-info">
               <span class="widget-label">Vé Đã Bán</span>
               <span class="widget-value">{{ totalTickets.toLocaleString('vi-VN') }}</span>
@@ -127,8 +146,8 @@
             </div>
           </div>
 
-          <div class="widget-card glass-panel">
-            <div class="widget-icon bg-violet">🍿</div>
+          <div class="widget-card grad-orange">
+            <div class="widget-icon">🍿</div>
             <div class="widget-info">
               <span class="widget-label">Bắp Nước Đã Bán</span>
               <span class="widget-value">{{ totalCombos.toLocaleString('vi-VN') }}</span>
@@ -136,8 +155,8 @@
             </div>
           </div>
 
-          <div class="widget-card glass-panel">
-            <div class="widget-icon bg-pink">🕒</div>
+          <div class="widget-card grad-blue">
+            <div class="widget-icon">🕒</div>
             <div class="widget-info">
               <span class="widget-label">Suất Chiếu Hôm Nay</span>
               <span class="widget-value">{{ todayShowtimes }}</span>
@@ -146,8 +165,49 @@
           </div>
         </div>
 
+        <!-- Biểu đồ phân tích doanh thu & lấp đầy -->
+        <div class="reports-grid" style="margin-bottom: 30px; grid-template-columns: 1fr 1fr;">
+          <div class="report-card glass-panel">
+            <h3 class="card-title">Phân Bổ Doanh Thu</h3>
+            <div class="donut-chart-container">
+              <svg viewBox="0 0 36 36" class="donut-svg">
+                <path
+                  class="circle-bg"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <path
+                  class="circle-ticket"
+                  :stroke-dasharray="totalRevenue > 0 ? `${(ticketRevenue / totalRevenue) * 100}, 100` : '0, 100'"
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                />
+                <text x="18" y="19" class="donut-text">{{ totalRevenue > 0 ? Math.round((ticketRevenue / totalRevenue) * 100) : 0 }}%</text>
+                <text x="18" y="24" class="donut-subtext">Từ Vé</text>
+              </svg>
+              <div class="donut-legends">
+                <div class="legend-item"><span class="color-box bg-cinema-red"></span> Vé ({{ formatCurrency(ticketRevenue) }})</div>
+                <div class="legend-item"><span class="color-box bg-gray"></span> Bắp Nước ({{ formatCurrency(comboRevenue) }})</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="report-card glass-panel">
+            <h3 class="card-title">Tỷ Lệ Lấp Đầy Rạp Hôm Nay</h3>
+            <div class="occupancy-container">
+              <div class="occupancy-value" :class="{ 'text-red': todayOccupancyRate < 30 }">
+                {{ todayOccupancyRate }}%
+              </div>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" :style="{ width: `${todayOccupancyRate}%`, background: todayOccupancyRate < 30 ? 'var(--accent-pink)' : 'var(--accent-mint)' }"></div>
+              </div>
+              <p class="occupancy-desc">
+                {{ todayOccupancyRate < 30 ? 'Báo động đỏ: Cần đẩy mạnh Voucher khuyến mãi!' : 'Trạng thái hoạt động ổn định.' }}
+              </p>
+            </div>
+          </div>
+        </div>
+
         <!-- Biểu đồ doanh thu dạng SVG -->
-        <div class="reports-grid">
+        <div class="reports-grid" style="grid-template-columns: 2fr 1fr; gap: 30px; margin-top: 30px;">
           <div class="report-card glass-panel">
             <div class="chart-head">
               <h3 class="card-title">Doanh Thu Theo {{ revenuePeriod === 'day' ? '7 Ngày Qua' : '6 Tháng Qua' }} (VNĐ)</h3>
@@ -203,27 +263,35 @@
             </div>
           </div>
 
-          <div class="report-card glass-panel">
-            <h3 class="card-title">Top Phim Bán Chạy Nhất</h3>
-            <div v-if="topMovies.length" class="movie-ranks-list">
-              <div v-for="(m, i) in topMovies" :key="m.id" class="rank-item">
-                <span class="rank-num" :class="['bg-pink', 'bg-violet', 'bg-tertiary'][i] || 'bg-tertiary'">{{ i + 1 }}</span>
-                <div class="rank-info">
-                  <h4 :title="m.title">{{ m.title }}</h4>
-                  <span class="rank-category">{{ m.genres || 'Chưa phân loại' }}</span>
-                </div>
-                <div class="rank-sales">
-                  <span class="sales-value">{{ compactVND(m.revenue) }}</span>
-                  <span class="sales-tickets">{{ m.tickets }} vé</span>
+          <div class="report-card glass-panel" style="padding: 24px; display: flex; flexDirection: column; align-items: stretch; border: 1px solid rgba(0,0,0,0.04); box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 15px;">
+              <h3 class="card-title" style="margin: 0; font-size: 16px; color: #1e293b;">🏆 Top 5 Phim Bán Chạy Nhất</h3>
+            </div>
+            
+            <div>
+              <div v-if="topMovies.length" class="movie-ranks-list">
+                <div v-for="(m, i) in topMovies" :key="m.id" class="rank-item">
+                  <span class="rank-num" :class="['bg-pink', 'bg-violet', 'bg-tertiary'][i] || 'bg-tertiary'">{{ i + 1 }}</span>
+                  <div class="rank-info">
+                    <h4 :title="m.title">{{ m.title }}</h4>
+                    <span class="rank-category">{{ m.genres || 'Chưa phân loại' }}</span>
+                  </div>
+                  <div class="rank-sales">
+                    <span class="sales-value">{{ compactVND(m.revenue) }}</span>
+                    <span class="sales-tickets">{{ m.tickets }} vé</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div v-else class="ranks-empty">
-              <span>🎬</span>
-              <p>Chưa có dữ liệu bán vé để xếp hạng.</p>
+              <div v-else class="ranks-empty">
+                <span>🎬</span>
+                <p>Chưa có dữ liệu bán vé để xếp hạng.</p>
+              </div>
             </div>
           </div>
         </div>
+
+
+
       </div>
 
       <!-- TAB 2: DYNAMIC MOVIES CRUD -->
@@ -336,10 +404,18 @@ const bookings = ref([]);
 /* ===== DASHBOARD THỐNG KÊ THẬT ===== */
 const statsLoading = ref(false);
 const totalRevenue = ref(0);
+const ticketRevenue = ref(0);
+const comboRevenue = ref(0);
 const totalTickets = ref(0);
 const totalCombos = ref(0);
 const todayShowtimes = ref(0);
+const todayOccupancyRate = ref(0);
 const topMovies = ref([]);
+
+const isLiveUpdated = ref(false);
+
+const startDate = ref('');
+const endDate = ref('');
 
 const revenuePeriod = ref('day'); // 'day' | 'month'
 const revenueSeries = ref([]);    // [{ label, revenue }]
@@ -428,14 +504,21 @@ const handleLogout = async () => {
 const fetchOverview = async () => {
   statsLoading.value = true;
   try {
-    const res = await api.get('/admin/dashboard/overview');
+    const params = {};
+    if (startDate.value) params.start_date = startDate.value;
+    if (endDate.value) params.end_date = endDate.value;
+    
+    const res = await api.get('/admin/dashboard/overview', { params });
     const d = res.data;
     totalRevenue.value = d.total_revenue;
+    ticketRevenue.value = d.ticket_revenue;
+    comboRevenue.value = d.combo_revenue;
     totalTickets.value = d.total_tickets;
     totalCombos.value = d.total_combos;
     moviesCount.value = d.movies_count;
     showtimesCount.value = d.today_showtimes;
     todayShowtimes.value = d.today_showtimes;
+    todayOccupancyRate.value = d.today_occupancy_rate;
     topMovies.value = d.top_movies || [];
   } catch (err) {
     console.error('Fetch dashboard overview error:', err);
@@ -446,9 +529,11 @@ const fetchOverview = async () => {
 
 const fetchRevenue = async () => {
   try {
-    const res = await api.get('/admin/dashboard/revenue', {
-      params: { period: revenuePeriod.value },
-    });
+    const params = { period: revenuePeriod.value };
+    if (startDate.value) params.start_date = startDate.value;
+    if (endDate.value) params.end_date = endDate.value;
+    
+    const res = await api.get('/admin/dashboard/revenue', { params });
     revenueSeries.value = res.data.series || [];
     revenueTotal.value = res.data.total || 0;
   } catch (err) {
@@ -456,6 +541,20 @@ const fetchRevenue = async () => {
     revenueSeries.value = [];
     revenueTotal.value = 0;
   }
+};
+
+const applyDateFilter = () => {
+  if (startDate.value && endDate.value) {
+    const start = new Date(startDate.value);
+    const end = new Date(endDate.value);
+    if (start > end) {
+      alert('Ngày bắt đầu không thể lớn hơn ngày kết thúc!');
+      return;
+    }
+  }
+
+  fetchOverview();
+  fetchRevenue();
 };
 
 watch(revenuePeriod, fetchRevenue);
@@ -474,6 +573,17 @@ onMounted(() => {
   fetchOverview();
   fetchRevenue();
   fetchBookings();
+  
+  if (window.Echo) {
+    window.Echo.channel('admin.dashboard')
+      .listen('.BookingPaid', (e) => {
+        totalRevenue.value += parseFloat(e.total_amount);
+        totalTickets.value += parseInt(e.ticket_count);
+        totalCombos.value += parseInt(e.combo_count);
+        isLiveUpdated.value = true;
+        setTimeout(() => isLiveUpdated.value = false, 3000);
+      });
+  }
 });
 </script>
 
@@ -685,27 +795,35 @@ onMounted(() => {
 
 .widget-card {
   display: flex;
-  padding: 20px;
+  padding: 24px 20px;
   gap: 16px;
   align-items: center;
-  background-color: #ffffff;
-  border: 1px solid rgba(0,0,0,0.05);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.01);
+  border-radius: 16px;
+  color: white;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.widget-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 25px rgba(0,0,0,0.15);
 }
 
+.grad-pink { background: linear-gradient(135deg, #f43f5e, #e11d48); }
+.grad-violet { background: linear-gradient(135deg, #8b5cf6, #6d28d9); }
+.grad-orange { background: linear-gradient(135deg, #f97316, #ea580c); }
+.grad-blue { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+
 .widget-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
   display: flex;
   justify-content: center;
   align-items: center;
-  font-size: 22px;
+  font-size: 26px;
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
 }
-
-.bg-violet { background-color: #f1ecf7; color: var(--accent-violet); }
-.bg-pink { background-color: #fdf1f7; color: var(--accent-pink); }
-.bg-mint { background-color: #edfcf5; color: var(--accent-mint); }
 
 .widget-info {
   display: flex;
@@ -713,26 +831,28 @@ onMounted(() => {
 }
 
 .widget-label {
-  color: var(--text-muted);
-  font-size: 11px;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 12px;
   text-transform: uppercase;
   font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 .widget-value {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
-  color: #1e293b;
-  margin: 2px 0;
+  color: #ffffff;
+  margin: 4px 0;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .widget-trend {
-  font-size: 11px;
-  color: var(--text-secondary);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .trend-up {
-  color: var(--accent-mint);
+  color: #a7f3d0;
   font-weight: 700;
 }
 
@@ -978,5 +1098,186 @@ onMounted(() => {
 .status-pill-small.pending {
   background-color: #fffaf0;
   color: #dd6b20;
+}
+/* LIVE BADGE */
+.live-badge {
+  background-color: #ffcccc;
+  color: #ff0000;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: bold;
+  margin-left: 8px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+.flash-live {
+  animation: flashBg 1s ease;
+}
+
+@keyframes flashBg {
+  0% { background-color: #ffcccc; }
+  100% { background-color: #fff; }
+}
+
+/* DONUT CHART */
+.donut-chart-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+  margin-top: 15px;
+}
+.donut-svg {
+  width: 120px;
+  height: 120px;
+}
+.circle-bg {
+  fill: none;
+  stroke: #e2e8f0;
+  stroke-width: 3.8;
+}
+.circle-ticket {
+  fill: none;
+  stroke: var(--accent-pink);
+  stroke-width: 3.8;
+  stroke-linecap: round;
+  transform-origin: center;
+  transform: rotate(-90deg);
+  transition: stroke-dasharray 1s ease;
+}
+.donut-text {
+  font-size: 8px;
+  font-weight: bold;
+  fill: var(--text-primary);
+  text-anchor: middle;
+}
+.donut-subtext {
+  font-size: 3px;
+  fill: var(--text-muted);
+  text-anchor: middle;
+}
+.donut-legends {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.color-box {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  margin-right: 8px;
+}
+.bg-cinema-red { background-color: var(--accent-pink); }
+.bg-gray { background-color: #e2e8f0; }
+
+/* OCCUPANCY */
+.occupancy-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: 100%;
+  padding: 10px;
+}
+.occupancy-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+.text-red {
+  color: var(--accent-pink) !important;
+}
+.progress-bar-bg {
+  width: 100%;
+  height: 12px;
+  background-color: #f1f5f9;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 1s ease, background 0.3s;
+}
+.occupancy-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+
+
+/* DATE FILTER PANEL */
+.date-filter-panel {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 35px;
+  padding: 20px 30px;
+  border-left: 4px solid var(--accent-pink);
+  border-radius: 10px;
+  background-color: #ffffff;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.03);
+}
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.filter-group label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+.date-input {
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  outline: none;
+  font-family: inherit;
+  color: var(--text-primary);
+  background-color: #f8fafc;
+  transition: all 0.2s;
+}
+.date-input:focus {
+  border-color: var(--accent-pink);
+  box-shadow: 0 0 0 3px rgba(228, 44, 100, 0.1);
+}
+.btn-filter {
+  background: linear-gradient(135deg, var(--accent-pink), var(--accent-violet));
+  color: white;
+  border: none;
+  padding: 9px 20px;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.2s, transform 0.1s;
+}
+.btn-filter:hover {
+  opacity: 0.9;
+}
+.btn-filter:active {
+  transform: translateY(1px);
+}
+.btn-filter:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

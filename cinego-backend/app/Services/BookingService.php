@@ -13,6 +13,7 @@ use App\Helpers\BookingHelper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
+use App\Events\BookingPaid;
 
 class BookingService
 {
@@ -192,6 +193,8 @@ class BookingService
                     ->delete();
 
                 $this->deductComboStock($booking);
+                
+                event(new BookingPaid($booking));
             }
 
             return $booking;
@@ -216,6 +219,8 @@ class BookingService
                 $booking->bookingDetails()->pluck('seat_id')
             )
             ->delete();
+            
+        event(new BookingPaid($booking));
 
     });
 }
