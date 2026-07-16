@@ -249,10 +249,12 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useBookingStore } from "../../stores/booking";
+import { useAuthStore } from '../../stores/auth';
 import api from "../../api/axios";
 
 const router = useRouter();
 const bookingStore = useBookingStore();
+const authStore = useAuthStore(); 
 
 const submitting = ref(false);
 const bookingSuccess = ref(false);
@@ -399,22 +401,39 @@ const isMaxStock = (combo) => {
   return item.quantity >= combo.stock;
 };
 
-// Gửi mã voucher lên hệ thống xử lý tính toán
+
+const userId = authStore.user?.id;
 const applyVoucher = async () => {
+  voucherMessage.value = "";
+  voucherSuccess.value = false;
+
   try {
     const response = await api.post('/vouchers/verify', {
       code: voucherCode.value,
-      subtotal: bookingStore.subtotal
+      user_id: userId,
+      subtotal: bookingStore.subtotal,
+      movie_id: bookingStore.selectedMovie?.id || null 
     });
 
-    console.log("Dữ liệu voucher nhận được từ API:", response.data); // Kiểm tra xem giá trị có đúng không
+    console.log("Dữ liệu voucher nhận được từ API:", response.data);
 
     if (response.data) {
       bookingStore.applyVoucher(response.data);
-      console.log("Voucher đã lưu vào store:", bookingStore.appliedVoucher); // Kiểm tra lại sau khi lưu
+      
+      voucherSuccess.value = true;
+      voucherMessage.value = "Áp dụng mã giảm giá thành công!";
+      console.log("Voucher đã lưu vào store:", bookingStore.appliedVoucher);
     }
   } catch (error) {
     console.error("Lỗi áp dụng voucher:", error);
+    
+    voucherSuccess.value = false;
+    
+    if (error.response && error.response.data && error.response.data.message) {
+      voucherMessage.value = error.response.data.message;
+    } else {
+      voucherMessage.value = "Mã giảm giá không hợp lệ hoặc đã hết hạn.";
+    }
   }
 };
 
