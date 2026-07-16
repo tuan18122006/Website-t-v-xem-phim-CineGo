@@ -13,6 +13,8 @@
         <button v-if="filters.q" class="rvm-search__clear" @click="filters.q = ''; applyFilters()">✕</button>
       </label>
 
+      <button class="rvm-search-btn" @click="applyFilters">🔍 Tìm kiếm</button>
+
       <select v-model="filters.rating" class="rvm-select" @change="applyFilters">
         <option value="">Tất cả sao</option>
         <option v-for="s in [5,4,3,2,1]" :key="s" :value="s">{{ s }} ★</option>
@@ -22,10 +24,6 @@
         <option value="">Tất cả phim</option>
         <option v-for="m in movies" :key="m.id" :value="m.id">{{ m.title }}</option>
       </select>
-
-      <button class="rvm-btn-danger-soft" @click="quickBad" title="Xem ngay khách 1–2 sao đang bức xúc">
-        😠 Khách bức xúc (1–2★)
-      </button>
     </div>
 
     <!-- Loading / Empty -->
@@ -169,19 +167,6 @@ const fetchReviews = async () => {
 
 const applyFilters = () => { page.value = 1; fetchReviews(); };
 const goPage = (p) => { page.value = p; fetchReviews(); };
-const quickBad = () => { filters.rating = ''; filters.movie_id = ''; page.value = 1; fetchReviewsBad(); };
-const fetchReviewsBad = async () => {
-  // Lọc nhanh 1–2 sao: gọi 2 lần rồi gộp (đơn giản, không đổi backend)
-  loading.value = true;
-  try {
-    const [r1, r2] = await Promise.all([
-      api.get('/admin/reviews', { params: { rating: 1 } }),
-      api.get('/admin/reviews', { params: { rating: 2 } }),
-    ]);
-    reviews.value = [...(r1.data.data || []), ...(r2.data.data || [])];
-    lastPage.value = 1; total.value = reviews.value.length;
-  } finally { loading.value = false; }
-};
 
 const toggleFeature = async (r) => {
   try { const res = await api.patch(`/admin/reviews/${r.id}/feature`); r.is_featured = res.data.is_featured; }
@@ -219,8 +204,8 @@ onMounted(() => { fetchMovies(); fetchReviews(); });
 .rvm-search input { flex: 1; border: none; outline: none; background: transparent; font-size: 14px; }
 .rvm-search__clear { border: none; background: #f1f5f9; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; }
 .rvm-select { height: 44px; padding: 0 14px; border: 1.5px solid #ececf1; border-radius: 10px; background: #fff; font-size: 13.5px; font-weight: 600; cursor: pointer; }
-.rvm-btn-danger-soft { height: 44px; padding: 0 16px; border: 1.5px solid #fecaca; background: #fff5f5; color: #dc2626; font-weight: 700; font-size: 13px; border-radius: 10px; cursor: pointer; }
-.rvm-btn-danger-soft:hover { background: #fee2e2; }
+.rvm-search-btn { height: 44px; padding: 0 20px; border: none; background: linear-gradient(135deg, var(--accent-pink), var(--accent-violet)); color: #fff; font-weight: 800; font-size: 13.5px; border-radius: 10px; cursor: pointer; white-space: nowrap; }
+.rvm-search-btn:hover { filter: brightness(1.05); }
 
 .rvm-state { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 60px; color: var(--text-muted); }
 .rvm-spinner { width: 40px; height: 40px; border-radius: 50%; border: 4px solid #f1e3ec; border-top-color: var(--accent-pink); animation: rvm-spin .8s linear infinite; }
