@@ -35,7 +35,8 @@ class ReviewController extends Controller
                     ->where('payment_status', 'paid')
                     ->where('booking_status', 'confirmed')
                     ->whereHas('showtime', function ($query) use ($movieId) {
-                        $query->where('movie_id', $movieId);
+                        $query->where('movie_id', $movieId)
+                            ->where('end_time', '<=', Carbon::now());
                     })
                     ->exists();
 
@@ -44,8 +45,33 @@ class ReviewController extends Controller
                     $reviewStatus = 'eligible';
                     $reviewMessage = 'Bạn đủ điều kiện để đánh giá phim này.';
                 } else {
-                    $reviewStatus = 'no_ticket';
-                    $reviewMessage = 'Bạn cần mua vé thành công (đã thanh toán) cho phim này để đánh giá.';
+                    $hasFutureBooking = Booking::where('user_id', $user->id)
+                        ->where('payment_status', 'paid')
+                        ->where('booking_status', 'confirmed')
+                        ->whereHas('showtime', function ($query) use ($movieId) {
+                            $query->where('movie_id', $movieId)
+                                ->where('end_time', '>', Carbon::now());
+                        })
+                        ->exists();
+
+                    if ($hasFutureBooking) {
+                        $reviewStatus = 'waiting';
+                        $reviewMessage = 'Bạn chỉ có thể đánh giá sau khi suất chiếu kết thúc.';
+                    } else {
+                        $hasAnyBooking = Booking::where('user_id', $user->id)
+                            ->whereHas('showtime', function ($query) use ($movieId) {
+                                $query->where('movie_id', $movieId);
+                            })
+                            ->exists();
+
+                        if ($hasAnyBooking) {
+                            $reviewStatus = 'waiting';
+                            $reviewMessage = 'Bạn chỉ có thể đánh giá sau khi suất chiếu kết thúc.';
+                        } else {
+                            $reviewStatus = 'no_ticket';
+                            $reviewMessage = 'Bạn cần mua vé phim này để đánh giá.';
+                        }
+                    }
                 }
             }
         }
