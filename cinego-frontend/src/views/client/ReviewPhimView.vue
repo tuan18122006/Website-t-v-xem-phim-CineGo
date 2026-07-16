@@ -35,7 +35,7 @@
       <h2 class="section-title">Bình luận nổi bật</h2>
       
       <div class="reviews-grid">
-        <div v-for="review in movieReviews" :key="review.id" class="review-card glass-panel">
+        <div v-for="review in pagedReviews" :key="review.id" class="review-card glass-panel">
           <!-- Movie Trailer Preview Area -->
           <div class="movie-preview-box">
             <img :src="review.moviePoster" :alt="review.movieTitle" class="movie-backdrop-img" />
@@ -84,6 +84,12 @@
         </div>
       </div>
 
+      <div v-if="totalPages > 1" class="reviews-pager">
+        <button :disabled="page === 1" @click="page--">← Trước</button>
+        <span>Trang {{ page }} / {{ totalPages }}</span>
+        <button :disabled="page === totalPages" @click="page++">Sau →</button>
+      </div>
+
       <p v-if="loaded && !movieReviews.length" class="reviews-empty">
         Chưa có đánh giá nào được đăng. Hãy là người đầu tiên chia sẻ cảm nhận sau khi xem phim!
       </p>
@@ -92,8 +98,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import api from '../../api/axios';
+
+const page = ref(1);
+const perPage = 8; // 4 cột x 2 hàng
+const totalPages = computed(() => Math.max(1, Math.ceil(movieReviews.value.length / perPage)));
+const pagedReviews = computed(() => {
+  const start = (page.value - 1) * perPage;
+  return movieReviews.value.slice(start, start + perPage);
+});
 
 const AVATAR_COLORS = [
   'linear-gradient(135deg, #e50914, #9b000e)',
@@ -269,15 +283,13 @@ onMounted(fetchReviews);
 /* REVIEWS GRID */
 .reviews-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(540px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
 }
 
-@media (max-width: 768px) {
-  .reviews-grid {
-    grid-template-columns: 1fr;
-  }
-}
+@media (max-width: 1200px) { .reviews-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 900px)  { .reviews-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px)  { .reviews-grid { grid-template-columns: 1fr; } }
 
 .review-card {
   background: #ffffff;
@@ -298,7 +310,7 @@ onMounted(fetchReviews);
 
 .movie-preview-box {
   position: relative;
-  height: 200px;
+  height: 130px;
   overflow: hidden;
 }
 
@@ -524,4 +536,35 @@ onMounted(fetchReviews);
   transform: translateY(-1px);
   box-shadow: 0 6px 15px rgba(229, 9, 20, 0.25);
 }
+
+/* ===== Thu nhỏ card cho layout 4 cột ===== */
+.review-card { border-radius: 14px; }
+.review-card-body { padding: 14px; gap: 8px; }
+.movie-title { font-size: 15px; }
+.movie-genres { font-size: 11px; }
+.btn-play-preview { width: 40px; height: 40px; }
+.btn-play-preview svg { width: 18px; height: 18px; }
+.movie-rating-pill { padding: 4px 9px; font-size: 11px; }
+.user-avatar { width: 30px; height: 30px; font-size: 11px; }
+.user-name { font-size: 13px; }
+.comment-time { font-size: 10.5px; }
+.verified-buyer-badge { font-size: 9px; padding: 2px 6px; }
+.user-comment-text { font-size: 12.5px; line-height: 1.5; }
+.btn-book-ticket { padding: 8px 14px; font-size: 12px; }
+.admin-reply-box { margin-top: 10px; padding: 8px 10px; }
+.admin-reply-box p { font-size: 12px; }
+
+/* ===== Phân trang ===== */
+.reviews-pager {
+  display: flex; align-items: center; justify-content: center; gap: 18px;
+  margin-top: 32px;
+}
+.reviews-pager button {
+  border: 1px solid rgba(148, 163, 184, 0.35); background: #fff; color: #334155;
+  padding: 9px 20px; border-radius: 10px; font-weight: 700; font-size: 13.5px; cursor: pointer;
+  transition: all 0.15s;
+}
+.reviews-pager button:hover:not(:disabled) { border-color: #e50914; color: #e50914; }
+.reviews-pager button:disabled { opacity: 0.45; cursor: not-allowed; }
+.reviews-pager span { font-size: 13.5px; color: #64748b; font-weight: 600; }
 </style>
