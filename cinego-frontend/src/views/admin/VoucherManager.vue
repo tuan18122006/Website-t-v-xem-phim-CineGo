@@ -340,62 +340,7 @@ const openCreateModal = () => {
     fetchMoviesList();
 };
 
-const saveVoucher = async () => {
-    errors.value = {};
-    const payload = { ...voucherForm.value };
 
-    const condition = {};
-    if (payload.usage_condition) {
-        if (payload.usage_condition.day_of_week !== '' && payload.usage_condition.day_of_week !== null) {
-            condition.day_of_week = parseInt(payload.usage_condition.day_of_week);
-        }
-        if (payload.usage_condition.movie_id !== '' && payload.usage_condition.movie_id !== null) {
-            condition.movie_id = parseInt(payload.usage_condition.movie_id);
-        }
-    }
-
-    if (!voucherForm.value.starts_at) {
-        errors.value.starts_at = ["Vui lòng chọn ngày bắt đầu áp dụng mã."];
-    }
-
-    if (!voucherForm.value.expires_at) {
-        errors.value.expires_at = ["Vui lòng chọn ngày hết hạn mã."];
-    }
-
-    if (errors.value.starts_at || errors.value.expires_at) {
-        return;
-    }
-
-    const start = new Date(voucherForm.value.starts_at);
-    const expire = new Date(voucherForm.value.expires_at);
-
-    if (start >= expire) {
-        errors.value.expires_at = ["Ngày hết hạn phải lớn hơn ngày bắt đầu"];
-        return;
-    }
-
-    payload.usage_condition = Object.keys(condition).length > 0 ? condition : null;
-    payload.max_discount = payload.max_discount ? parseFloat(payload.max_discount) : null;
-    payload.usage_limit = payload.usage_limit ? parseInt(payload.usage_limit) : null;
-    payload.user_limit = payload.user_limit ? parseInt(payload.user_limit) : null;
-
-    try {
-        if (isEditing.value) {
-            await api.put(`admin/vouchers/${payload.id}`, payload);
-        } else {
-            await api.post('admin/vouchers', payload);
-        }
-        isModalOpen.value = false;
-        fetchVouchers();
-    } catch (error) {
-        if (error.response?.status === 422 && error.response?.data?.errors) {
-            errors.value = error.response.data.errors;
-        } else {
-            alert("Lỗi: " + (error.response?.data?.message || "Có lỗi kết nối!"));
-        }
-    }
-
-};
 
 // Gộp lại làm duy nhất 1 hàm editVoucher chuẩn
 const editVoucher = (voucher) => {
@@ -429,6 +374,77 @@ const editVoucher = (voucher) => {
     }
     
     isModalOpen.value = true;
+};
+
+const saveVoucher = async () => {
+    errors.value = {}; // Reset lại lỗi cũ
+
+    // 1. Kiểm tra trống Mã Code
+    if (!voucherForm.value.code || !voucherForm.value.code.trim()) {
+        errors.value.code = ["Vui lòng nhập mã giảm giá."];
+    }
+
+    // 2. Kiểm tra Giá trị giảm phải lớn hơn 0
+    if (voucherForm.value.discount_value === undefined || voucherForm.value.discount_value === null || voucherForm.value.discount_value <= 0) {
+        errors.value.discount_value = ["Giá trị giảm phải lớn hơn 0."];
+    }
+
+    // 3. Kiểm tra trống ngày bắt đầu / ngày hết hạn
+    if (!voucherForm.value.starts_at) {
+        errors.value.starts_at = ["Vui lòng chọn ngày bắt đầu áp dụng mã."];
+    }
+    if (!voucherForm.value.expires_at) {
+        errors.value.expires_at = ["Vui lòng chọn ngày hết hạn mã."];
+    }
+
+    // 4. Nếu đã nhập cả 2 ngày mới so sánh logic lớn hơn/nhỏ hơn
+    if (voucherForm.value.starts_at && voucherForm.value.expires_at) {
+        const start = new Date(voucherForm.value.starts_at);
+        const expire = new Date(voucherForm.value.expires_at);
+
+        if (start >= expire) {
+            errors.value.expires_at = ["Ngày hết hạn phải lớn hơn ngày bắt đầu."];
+        }
+    }
+
+    // NẾU CÓ BẤT KỲ LỖI NÀO TRÊN FORM -> Dừng lại để hiển thị toàn bộ lỗi cùng lúc
+    if (Object.keys(errors.value).length > 0) {
+        return;
+    }
+
+    // 5. Chuẩn bị dữ liệu gửi đi khi form đã hoàn toàn hợp lệ
+    const payload = { ...voucherForm.value };
+    const condition = {};
+    if (payload.usage_condition) {
+        if (payload.usage_condition.day_of_week !== '' && payload.usage_condition.day_of_week !== null) {
+            condition.day_of_week = parseInt(payload.usage_condition.day_of_week);
+        }
+        if (payload.usage_condition.movie_id !== '' && payload.usage_condition.movie_id !== null) {
+            condition.movie_id = parseInt(payload.usage_condition.movie_id);
+        }
+    }
+
+    payload.usage_condition = Object.keys(condition).length > 0 ? condition : null;
+    payload.max_discount = payload.max_discount ? parseFloat(payload.max_discount) : null;
+    payload.usage_limit = payload.usage_limit ? parseInt(payload.usage_limit) : null;
+    payload.user_limit = payload.user_limit ? parseInt(payload.user_limit) : null;
+
+    // 6. Gửi API lên Server
+    try {
+        if (isEditing.value) {
+            await api.put(`admin/vouchers/${payload.id}`, payload);
+        } else {
+            await api.post('admin/vouchers', payload);
+        }
+        isModalOpen.value = false;
+        fetchVouchers();
+    } catch (error) {
+        if (error.response?.status === 422 && error.response?.data?.errors) {
+            errors.value = error.response.data.errors;
+        } else {
+            alert("Lỗi: " + (error.response?.data?.message || "Có lỗi kết nối!"));
+        }
+    }
 };
 
 const isVoucherExpired = (expires_at) => {
