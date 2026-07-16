@@ -146,12 +146,6 @@ const routes = [
     meta: { requiresAuth: true, role: "admin" }
   },
   {
-    path: "/admin/combos",
-    name: "admin-Combos",
-    component: () => import("../views/admin/ComboManagementView.vue"),
-    meta: { requiresAuth: true, role: "admin" }
-  },
-  {
     path: "/admin/users",
     name: "admin-UserManagement",
     component: () => import("../views/admin/UserManagement.vue"),
