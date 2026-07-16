@@ -174,8 +174,8 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
 
     // Quản lý Voucher
     Route::apiResource('vouchers', VoucherController::class);
+    Route::get('movies/list', [App\Http\Controllers\Api\MovieController::class, 'listForSelection']);
 });
-
 // ===
 // 4. STAFF ROUTES - NHÂN VIÊN HỖ TRỢ (staff hoặc admin)
 // ===

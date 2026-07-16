@@ -16,12 +16,15 @@ class Voucher extends Model
         'max_discount',
         'expires_at',
         'usage_limit',
+        'target_limit',
+        'usage_condition', 
         'used_count',
         'is_active',
     ];
 
     protected $casts = [
         'expires_at' => 'datetime',
+        'usage_condition' => 'array',
     ];
 
     public function bookings(): HasMany
