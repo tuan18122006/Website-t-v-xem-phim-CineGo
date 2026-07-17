@@ -82,19 +82,21 @@ class VoucherController extends Controller
         $request->validate([
             'code' => 'required|unique:vouchers,code|max:20|alpha_dash',
             'discount_type' => 'required|in:fixed,percentage',
-            'discount_value' => 'required|numeric|min:0',
+            'discount_value' => 'required|numeric|min:0' . ($request->discount_type === 'percentage' ? '|max:100' : ''),
             'min_spend' => 'required|numeric|min:0',
             'max_discount' => 'nullable|numeric|min:0',
-            'expires_at' => 'required|date|after:now',
+            'starts_at' => 'nullable|date',
+            'expires_at' => 'required|date|after:now' . ($request->starts_at ? '|after:starts_at' : ''),
             'usage_limit' => 'nullable|integer|min:1',
         ], [
             'code.required' => 'Mã giảm giá không được để trống.',
             'code.unique' => 'Mã giảm giá này đã tồn tại, vui lòng chọn mã khác.',
             'discount_value.required' => 'Vui lòng nhập giá trị.',
             'discount_value.min' => 'Giá trị giảm không được là số âm.',
+            'discount_value.max' => 'Giảm theo phần trăm không được vượt quá 100%.',
             'min_spend.min' => 'Đơn tối thiểu không được là số âm.',
-            'expires_at.after' => 'Ngày hết hạn phải là thời điểm trong tương lai.',
-            'expires_at.required' => 'Vui lòng chọn ngày hết hạn mã.',
+            'expires_at.after' => 'Ngày kết thúc phải lớn hơn ngày bắt đầu và hiện tại.',
+            'expires_at.required' => 'Vui lòng chọn ngày kết thúc.',
 
         ]);
 
@@ -108,15 +110,18 @@ class VoucherController extends Controller
         $request->validate([
             'code' => 'required|max:20|unique:vouchers,code,' . $id,
             'discount_type' => 'required|in:fixed,percentage',
-            'discount_value' => 'required|numeric|min:0',
+            'discount_value' => 'required|numeric|min:0' . ($request->discount_type === 'percentage' ? '|max:100' : ''),
             'min_spend' => 'required|numeric|min:0',
             'max_discount' => 'nullable|numeric|min:0',
-            'expires_at' => 'required|date',
+            'starts_at' => 'nullable|date',
+            'expires_at' => 'required|date' . ($request->starts_at ? '|after:starts_at' : ''),
             'usage_limit' => 'nullable|integer|min:1',
         ], [
             'code.unique' => 'Mã giảm giá này đã tồn tại.',
             'discount_value.min' => 'Giá trị giảm không được là số âm.',
+            'discount_value.max' => 'Giảm theo phần trăm không được vượt quá 100%.',
             'min_spend.min' => 'Đơn tối thiểu không được là số âm.',
+            'expires_at.after' => 'Ngày kết thúc phải lớn hơn ngày bắt đầu.',
         ]);
 
         $voucher->update($request->all());

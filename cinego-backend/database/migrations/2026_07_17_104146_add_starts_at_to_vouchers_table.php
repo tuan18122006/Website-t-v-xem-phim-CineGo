@@ -11,10 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('combos', function (Blueprint $table) {
-            if (!Schema::hasColumn('combos', 'stock')) {
-                $table->integer('stock')->default(0)->after('price');
-            }
+        Schema::table('vouchers', function (Blueprint $table) {
+            $table->timestamp('starts_at')->nullable()->after('max_discount');
         });
     }
 
@@ -23,8 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('combos', function (Blueprint $table) {
-            $table->dropColumn('stock');
+        Schema::table('vouchers', function (Blueprint $table) {
+            $table->dropColumn('starts_at');
         });
     }
 };

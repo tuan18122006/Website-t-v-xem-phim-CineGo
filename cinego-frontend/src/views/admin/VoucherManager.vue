@@ -85,7 +85,7 @@
                     </div>
                     <div class="form-group">
                         <label>Giá trị giảm</label>
-                        <input v-model="voucherForm.discount_value" type="number"
+                        <input :value="formatNumber(voucherForm.discount_value)" @input="voucherForm.discount_value = parseNumber($event.target.value)" type="text"
                             :class="{ 'is-invalid': errors.discount_value }" class="form-control">
                         <span v-if="errors.discount_value" class="error-text">{{ errors.discount_value[0] }}</span>
                     </div>
@@ -93,15 +93,15 @@
 
                 <div class="form-group">
                     <label>Đơn tối thiểu (đ)</label>
-                    <input v-model="voucherForm.min_spend" type="number" :class="{ 'is-invalid': errors.min_spend }"
+                    <input :value="formatNumber(voucherForm.min_spend)" @input="voucherForm.min_spend = parseNumber($event.target.value)" type="text" :class="{ 'is-invalid': errors.min_spend }"
                         class="form-control">
                     <span v-if="errors.min_spend" class="error-text">{{ errors.min_spend[0] }}</span>
                 </div>
 
                 <div class="form-group">
                     <label>Giảm tối đa (đ) - Để trống nếu không giới hạn</label>
-                    <input v-model="voucherForm.max_discount" type="number" class="form-control"
-                        placeholder="VD: 50000">
+                    <input :value="formatNumber(voucherForm.max_discount)" @input="voucherForm.max_discount = parseNumber($event.target.value)" type="text" class="form-control"
+                        placeholder="VD: 50.000">
                 </div>
 
                 <div class="form-group">
@@ -109,11 +109,20 @@
                     <input v-model="voucherForm.usage_limit" type="number" class="form-control" placeholder="VD: 100">
                 </div>
 
-                <div class="form-group">
-                    <label>Ngày hết hạn</label>
-                    <input v-model="voucherForm.expires_at" type="datetime-local"
-                        :class="{ 'is-invalid': errors.expires_at }" class="form-control">
-                    <span v-if="errors.expires_at" class="error-text">{{ errors.expires_at[0] }}</span>
+                <div class="grid-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Ngày bắt đầu</label>
+                        <input v-model="voucherForm.starts_at" type="datetime-local"
+                            :class="{ 'is-invalid': errors.starts_at }" class="form-control">
+                        <span v-if="errors.starts_at" class="error-text">{{ errors.starts_at[0] }}</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Ngày kết thúc</label>
+                        <input v-model="voucherForm.expires_at" type="datetime-local"
+                            :class="{ 'is-invalid': errors.expires_at }" class="form-control">
+                        <span v-if="errors.expires_at" class="error-text">{{ errors.expires_at[0] }}</span>
+                    </div>
                 </div>
 
                 <div class="modal-footer">
@@ -129,6 +138,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import api from '../../api/axios';
+import { toast, confirmDialog } from '../../utils/alert';
 
 const vouchers = ref([]);
 const isModalOpen = ref(false);
@@ -141,6 +151,7 @@ const voucherForm = ref({
     min_spend: 0,
     max_discount: '',
     usage_limit: '',
+    starts_at: '',
     expires_at: '',
     is_active: true
 });
@@ -170,6 +181,17 @@ const formatCurrency = (value) => {
     }).format(number);
 };
 
+const formatNumber = (val) => {
+    if (val === null || val === undefined || val === '') return '';
+    let num = String(val).replace(/\D/g, '');
+    return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
+
+const parseNumber = (val) => {
+    let num = String(val).replace(/\D/g, '');
+    return num ? parseInt(num, 10) : '';
+};
+
 const openCreateModal = () => {
     isEditing.value = false;
     voucherForm.value = {
@@ -177,6 +199,9 @@ const openCreateModal = () => {
         discount_type: 'fixed',
         discount_value: 0,
         min_spend: 0,
+        max_discount: '',
+        usage_limit: '',
+        starts_at: '',
         expires_at: '',
         is_active: true
     };
@@ -192,11 +217,12 @@ const saveVoucher = async () => {
         }
         isModalOpen.value = false;
         fetchVouchers();
+        toast(isEditing.value ? "Cập nhật mã giảm giá thành công!" : "Thêm mã giảm giá mới thành công!");
     } catch (error) {
         if (error.response?.data?.errors) {
             errors.value = error.response.data.errors;
         } else {
-            alert("Có lỗi kết nối server!");
+            toast("Có lỗi kết nối server!", 'error');
         }
     }
 };
@@ -205,6 +231,15 @@ const editVoucher = (voucher) => {
     errors.value = {};
     isEditing.value = true;
     voucherForm.value = { ...voucher };
+    // Bỏ .00 đằng sau
+    voucherForm.value.discount_value = voucher.discount_value ? Number(voucher.discount_value) : 0;
+    voucherForm.value.min_spend = voucher.min_spend ? Number(voucher.min_spend) : 0;
+    voucherForm.value.max_discount = voucher.max_discount ? Number(voucher.max_discount) : '';
+    
+    if (voucher.starts_at) {
+        const startDate = new Date(voucher.starts_at);
+        voucherForm.value.starts_at = startDate.toISOString().slice(0, 16);
+    }
     if (voucher.expires_at) {
         const date = new Date(voucher.expires_at);
         voucherForm.value.expires_at = date.toISOString().slice(0, 16);
@@ -217,12 +252,20 @@ const isVoucherExpired = (expires_at) => {
 };
 
 const deleteVoucher = async (id) => {
-    if (confirm('Bạn có chắc chắn muốn xóa mã giảm giá này? Hành động này không thể hoàn tác.')) {
+    const isConfirm = await confirmDialog(
+        'Bạn có chắc chắn?',
+        'Hành động này không thể hoàn tác.',
+        'warning',
+        'Xóa',
+        'Hủy'
+    );
+    if (isConfirm) {
         try {
             await api.delete(`admin/vouchers/${id}`);
+            toast("Xóa mã giảm giá thành công!");
             fetchVouchers();
         } catch (error) {
-            alert("Có lỗi xảy ra khi xóa!");
+            toast("Có lỗi xảy ra khi xóa!", 'error');
         }
     }
 };

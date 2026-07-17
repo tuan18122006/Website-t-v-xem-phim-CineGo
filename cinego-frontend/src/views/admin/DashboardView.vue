@@ -77,12 +77,13 @@
 
         <button
           class="nav-link"
-          :class="{ active: activeTab === 'revenue' }"
-          @click="activeTab = 'revenue'"
+          :class="{ active: activeTab === 'articles' }"
+          @click="activeTab = 'articles'"
         >
-          <span class="nav-icon">💰</span>
-          <span>Thống Kê Doanh Thu</span>
+          <span class="nav-icon">📰</span>
+          <span>Quản Lý Top Phim</span>
         </button>
+
       </nav>
 
       <div class="sidebar-footer">
@@ -328,48 +329,15 @@
         <UserManagement />
       </div>
 
+      <!-- TAB: ARTICLES/TOP MOVIES MANAGEMENT -->
+      <div v-if="activeTab === 'articles'">
+        <ArticleManagementView />
+      </div>
+
       <!-- TAB: COMBO MANAGEMENT -->
      
     
 
-      <!-- TAB 4: REVENUE TRANSACTION REPORT -->
-      <div v-if="activeTab === 'revenue'" class="revenue-tab-content">
-        <div class="glass-panel detailed-report">
-          <div class="report-header">
-            <h3>Báo Cáo Chi Tiết Hóa Đơn Đặt Vé</h3>
-            <button class="btn-export">📥 Xuất File Báo Cáo (Excel)</button>
-          </div>
-          
-          <table class="report-table">
-            <thead>
-              <tr>
-                <th>Mã Hóa Đơn</th>
-                <th>Khách Hàng</th>
-                <th>Suất Chiếu</th>
-                <th>Tổng Tiền</th>
-                <th>Phương Thức</th>
-                <th>Trạng Thái</th>
-                <th>Thời Gian</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="b in bookings" :key="b.id">
-                <td class="font-bold text-pink">{{ b.booking_code }}</td>
-                <td>{{ b.user_email }}</td>
-                <td>{{ b.movie_title }}</td>
-                <td class="font-bold">{{ formatCurrency(b.total_amount) }}</td>
-                <td><span class="method-badge">{{ b.payment_method }}</span></td>
-                <td>
-                  <span class="status-pill-small" :class="{ active: b.payment_status === 'paid', pending: b.payment_status === 'pending' }">
-                    {{ b.payment_status === 'paid' ? 'Đã thanh toán' : 'Chờ xử lý' }}
-                  </span>
-                </td>
-                <td class="text-secondary">{{ b.date }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
     </main>
   </div>
 </template>
@@ -389,6 +357,7 @@ import RoomEditorView from './RoomEditorView.vue';
 import ComboSelection from './ComboSelection.vue'; 
 import ComboManagementView from './ComboManagementView.vue';
 import VoucherManager from './VoucherManager.vue';
+import ArticleManagementView from './ArticleManagementView.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -468,7 +437,8 @@ const getTabTitle = computed(() => {
     combos: 'Quản Lý Combo và Đồ ăn',
     combos: 'Quản Lý Bắp Nước (Combos)',
     vouchers: 'Quản Lý Mã Giảm Giá (Vouchers)',
-    revenue: 'Báo Cáo & Thống Kê Doanh Thu'
+    revenue: 'Báo Cáo & Thống Kê Doanh Thu',
+    articles: 'Quản Lý Bài Viết & Top Phim'
   };
   return titles[activeTab.value];
 });
@@ -487,7 +457,8 @@ const getTabDesc = computed(() => {
     combos: 'Thêm, sửa, xóa, combo và đồ ăn kiểm kê số lượng tồn trong kho',
     combos: 'Cấu hình giá cả, thêm/sửa/xóa và quản lý trạng thái hiển thị của các gói Bắp & Nước.',
     vouchers: 'Tạo mã giảm giá, giới hạn số lần dùng, thiết lập điều kiện tối thiểu.',
-    revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.'
+    revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.',
+    articles: 'Quản lý các bài viết Top Phim, cấu hình danh sách phim xếp hạng và đánh giá.'
   };
   return descs[activeTab.value];
 });

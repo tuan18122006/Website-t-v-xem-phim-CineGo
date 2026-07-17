@@ -96,7 +96,12 @@ const routes = [
   },
   {
     path: "/top-phim",
-    name: "top-phim",
+    name: "top-phim-listing",
+    component: () => import("../views/client/TopMoviesListingView.vue"),
+  },
+  {
+    path: "/top-phim/:slug",
+    name: "top-phim-detail",
     component: TopMovies,
   },
   {
@@ -124,6 +129,12 @@ const routes = [
     path: "/admin/genres",
     name: "admin-GenreManagement",
     component: () => import("../views/admin/GenreManagement.vue"),
+  },
+  {
+    path: "/admin/articles",
+    name: "AdminArticles",
+    component: () => import("../views/admin/ArticleManagementView.vue"),
+    meta: { requiresAuth: true, role: "admin" }
   },
 
 
