@@ -75,6 +75,11 @@
           <span>Quản Lý Mã Giảm Giá</span>
         </button>
 
+        <button class="nav-link" :class="{ active: activeTab === 'reviews' }" @click="activeTab = 'reviews'">
+          <span class="nav-icon">⭐</span>
+          <span>Quản Lý Đánh Giá</span>
+        </button>
+
         <button
           class="nav-link"
           :class="{ active: activeTab === 'articles' }"
@@ -320,6 +325,10 @@
         <VoucherManager />
       </div>
 
+      <div v-show="activeTab === 'reviews'">
+        <ReviewManagement />
+      </div>
+
       <div v-show="activeTab === 'genres'">
         <GenreManagement />
       </div>
@@ -358,6 +367,7 @@ import ComboSelection from './ComboSelection.vue';
 import ComboManagementView from './ComboManagementView.vue';
 import VoucherManager from './VoucherManager.vue';
 import ArticleManagementView from './ArticleManagementView.vue';
+import ReviewManagement from './ReviewManagement.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -437,8 +447,9 @@ const getTabTitle = computed(() => {
     combos: 'Quản Lý Combo và Đồ ăn',
     combos: 'Quản Lý Bắp Nước (Combos)',
     vouchers: 'Quản Lý Mã Giảm Giá (Vouchers)',
-    revenue: 'Báo Cáo & Thống Kê Doanh Thu',
-    articles: 'Quản Lý Bài Viết & Top Phim'
+    reviews: 'Kiểm Duyệt Đánh Giá & Bình Luận',
+    articles: 'Quản Lý Bài Viết & Top Phim',
+    revenue: 'Báo Cáo & Thống Kê Doanh Thu'
   };
   return titles[activeTab.value];
 });
@@ -457,8 +468,9 @@ const getTabDesc = computed(() => {
     combos: 'Thêm, sửa, xóa, combo và đồ ăn kiểm kê số lượng tồn trong kho',
     combos: 'Cấu hình giá cả, thêm/sửa/xóa và quản lý trạng thái hiển thị của các gói Bắp & Nước.',
     vouchers: 'Tạo mã giảm giá, giới hạn số lần dùng, thiết lập điều kiện tối thiểu.',
-    revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.',
-    articles: 'Quản lý các bài viết Top Phim, cấu hình danh sách phim xếp hạng và đánh giá.'
+    reviews: 'Xem toàn bộ bình luận, lọc theo sao/phim/từ khóa, ẩn - ghim - phản hồi - xóa bình luận.',
+    articles: 'Quản lý các bài viết Top Phim, cấu hình danh sách phim xếp hạng và đánh giá.',
+    revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.'
   };
   return descs[activeTab.value];
 });

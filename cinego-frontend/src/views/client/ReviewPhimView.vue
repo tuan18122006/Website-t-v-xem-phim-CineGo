@@ -35,7 +35,7 @@
       <h2 class="section-title">Bình luận nổi bật</h2>
       
       <div class="reviews-grid">
-        <div v-for="review in movieReviews" :key="review.id" class="review-card glass-panel">
+        <div v-for="review in pagedReviews" :key="review.id" class="review-card glass-panel">
           <!-- Movie Trailer Preview Area -->
           <div class="movie-preview-box">
             <img :src="review.moviePoster" :alt="review.movieTitle" class="movie-backdrop-img" />
@@ -49,7 +49,8 @@
             </button>
             
             <span class="movie-rating-pill">⭐ {{ review.rating }}/5</span>
-            <span class="movie-duration-pill">{{ review.duration }} phút</span>
+            <span v-if="review.duration" class="movie-duration-pill">{{ review.duration }} phút</span>
+            <span v-if="review.isFeatured" class="movie-featured-pill">📌 Nổi bật</span>
           </div>
           
           <!-- Card Info -->
@@ -68,6 +69,10 @@
                 <span class="verified-buyer-badge">✓ Đã mua vé qua CineGo</span>
               </div>
               <p class="user-comment-text">"{{ review.comment }}"</p>
+              <div v-if="review.adminReply" class="admin-reply-box">
+                <span class="admin-reply-label">💬 CineGo Official</span>
+                <p>{{ review.adminReply }}</p>
+              </div>
             </div>
             
             <div class="card-footer-action">
@@ -78,67 +83,83 @@
           </div>
         </div>
       </div>
+
+      <div v-if="totalPages > 1" class="reviews-pager">
+        <button :disabled="page === 1" @click="page--">← Trước</button>
+        <span>Trang {{ page }} / {{ totalPages }}</span>
+        <button :disabled="page === totalPages" @click="page++">Sau →</button>
+      </div>
+
+      <p v-if="loaded && !movieReviews.length" class="reviews-empty">
+        Chưa có đánh giá nào được đăng. Hãy là người đầu tiên chia sẻ cảm nhận sau khi xem phim!
+      </p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import api from '../../api/axios';
 
-const movieReviews = ref([
-  {
-    id: 1,
-    movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
-    genres: ['Hành Động', 'Viễn Tưởng', 'Kỳ Ảo'],
-    rating: '4.8',
-    duration: '126',
-    moviePoster: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=600&q=80',
-    userName: 'Trần Anh Tuấn',
-    userInitials: 'AT',
-    avatarColor: 'linear-gradient(135deg, #e50914, #9b000e)',
-    timeAgo: '1 ngày trước',
-    comment: 'Kỹ xảo hình ảnh vô cùng hoành tráng, các phân cảnh đa vũ trụ làm quá đỉnh. Thích nhất phần âm nhạc dồn dập kịch tính. Rất đáng tiền xem rạp LUXURY!',
-  },
-  {
-    id: 2,
-    movieTitle: 'Avatar: Dòng Chảy Của Nước',
-    genres: ['Kỳ Ảo', 'Viễn Tưởng', 'Hành Động'],
-    rating: '5.0',
-    duration: '192',
-    moviePoster: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=600&q=80',
-    userName: 'Hoàng Linh Trang',
-    userInitials: 'LT',
-    avatarColor: 'linear-gradient(135deg, #7c4dff, #512da8)',
-    timeAgo: '2 ngày trước',
-    comment: 'Tác phẩm hình ảnh hoàn hảo nhất từng được xem! 3 tiếng đồng hồ trôi qua nhanh như một cái chớp mắt. Khuyên mọi người nên xem định dạng IMAX 3D tại CineGo.',
-  },
-  {
-    id: 3,
-    movieTitle: 'Kẻ Kiến Tạo (The Creator)',
-    genres: ['Viễn Tưởng', 'Hành Động', 'Drama'],
-    rating: '4.7',
-    duration: '133',
-    moviePoster: 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&w=600&q=80',
-    userName: 'Nguyễn Văn Hùng',
-    userInitials: 'VH',
-    avatarColor: 'linear-gradient(135deg, #00bcd4, #00838f)',
-    timeAgo: '5 ngày trước',
-    comment: 'Cốt truyện nhân văn sâu sắc về AI và con người. Âm hưởng hùng vĩ, diễn xuất xuất thần của diễn viên nhí. Bố cục phim cực kỳ chặt chẽ và lôi cuốn.',
-  },
-  {
-    id: 4,
-    movieTitle: 'Spider-Man: Across the Spider-Verse',
-    genres: ['Hoạt Hình', 'Hành Động', 'Kỳ Ảo'],
-    rating: '4.9',
-    duration: '140',
-    moviePoster: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=600&q=80',
-    userName: 'Phạm Minh Đức',
-    userInitials: 'MĐ',
-    avatarColor: 'linear-gradient(135deg, #ff9800, #e65100)',
-    timeAgo: '1 tuần trước',
-    comment: 'Hoạt họa xuất sắc vượt tầm thời đại, cách phối màu và nhạc phim khiến người xem nổi da gà. Xứng đáng là siêu phẩm hoạt hình xuất sắc nhất năm.',
+const page = ref(1);
+const perPage = 8; // 4 cột x 2 hàng
+const totalPages = computed(() => Math.max(1, Math.ceil(movieReviews.value.length / perPage)));
+const pagedReviews = computed(() => {
+  const start = (page.value - 1) * perPage;
+  return movieReviews.value.slice(start, start + perPage);
+});
+
+const AVATAR_COLORS = [
+  'linear-gradient(135deg, #e50914, #9b000e)',
+  'linear-gradient(135deg, #7c4dff, #512da8)',
+  'linear-gradient(135deg, #00bcd4, #00838f)',
+  'linear-gradient(135deg, #ff9800, #e65100)',
+];
+const FALLBACK_POSTER = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=600&q=80';
+
+const initials = (name) => {
+  if (!name) return '👤';
+  const p = name.trim().split(/\s+/);
+  return (p[0][0] + (p[p.length - 1][0] || '')).toUpperCase();
+};
+const timeAgo = (dt) => {
+  if (!dt) return '';
+  const diff = (Date.now() - new Date(dt).getTime()) / 1000;
+  if (diff < 3600) return Math.max(1, Math.floor(diff / 60)) + ' phút trước';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' giờ trước';
+  return Math.floor(diff / 86400) + ' ngày trước';
+};
+
+const movieReviews = ref([]);
+const loaded = ref(false);
+
+const fetchReviews = async () => {
+  try {
+    const res = await api.get('/reviews/featured');
+    const list = res.data?.data || [];
+    movieReviews.value = list.map((r, i) => ({
+      id: r.id,
+      movieTitle: r.movie?.title || 'Phim CineGo',
+      moviePoster: r.movie?.poster_url || FALLBACK_POSTER,
+      duration: r.movie?.duration || '',
+      genres: [],
+      rating: Number(r.rating || 0).toFixed(1),
+      userName: r.user?.name || 'Khách CineGo',
+      userInitials: initials(r.user?.name),
+      avatarColor: AVATAR_COLORS[i % AVATAR_COLORS.length],
+      timeAgo: timeAgo(r.created_at),
+      comment: r.comment || '',
+      isFeatured: r.is_featured,
+      adminReply: r.admin_reply,
+    }));
+  } catch (e) {
+    console.error('fetch featured reviews error', e);
+  } finally {
+    loaded.value = true;
   }
-]);
+};
+
+onMounted(fetchReviews);
 </script>
 
 <style scoped>
@@ -262,15 +283,13 @@ const movieReviews = ref([
 /* REVIEWS GRID */
 .reviews-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(540px, 1fr));
-  gap: 30px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
 }
 
-@media (max-width: 768px) {
-  .reviews-grid {
-    grid-template-columns: 1fr;
-  }
-}
+@media (max-width: 1200px) { .reviews-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 900px)  { .reviews-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px)  { .reviews-grid { grid-template-columns: 1fr; } }
 
 .review-card {
   background: #ffffff;
@@ -291,7 +310,7 @@ const movieReviews = ref([
 
 .movie-preview-box {
   position: relative;
-  height: 200px;
+  height: 130px;
   overflow: hidden;
 }
 
@@ -365,6 +384,47 @@ const movieReviews = ref([
   border-radius: 6px;
   font-size: 11px;
   font-weight: 600;
+}
+
+.movie-featured-pill {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.admin-reply-box {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(216, 45, 139, 0.06);
+  border-left: 3px solid var(--accent-pink);
+  border-radius: 8px;
+}
+.admin-reply-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--accent-pink);
+  margin-bottom: 4px;
+}
+.admin-reply-box p {
+  margin: 0;
+  font-size: 13px;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.reviews-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 15px;
+  padding: 40px 20px;
 }
 
 .review-card-body {
@@ -476,4 +536,35 @@ const movieReviews = ref([
   transform: translateY(-1px);
   box-shadow: 0 6px 15px rgba(229, 9, 20, 0.25);
 }
+
+/* ===== Thu nhỏ card cho layout 4 cột ===== */
+.review-card { border-radius: 14px; }
+.review-card-body { padding: 14px; gap: 8px; }
+.movie-title { font-size: 15px; }
+.movie-genres { font-size: 11px; }
+.btn-play-preview { width: 40px; height: 40px; }
+.btn-play-preview svg { width: 18px; height: 18px; }
+.movie-rating-pill { padding: 4px 9px; font-size: 11px; }
+.user-avatar { width: 30px; height: 30px; font-size: 11px; }
+.user-name { font-size: 13px; }
+.comment-time { font-size: 10.5px; }
+.verified-buyer-badge { font-size: 9px; padding: 2px 6px; }
+.user-comment-text { font-size: 12.5px; line-height: 1.5; }
+.btn-book-ticket { padding: 8px 14px; font-size: 12px; }
+.admin-reply-box { margin-top: 10px; padding: 8px 10px; }
+.admin-reply-box p { font-size: 12px; }
+
+/* ===== Phân trang ===== */
+.reviews-pager {
+  display: flex; align-items: center; justify-content: center; gap: 18px;
+  margin-top: 32px;
+}
+.reviews-pager button {
+  border: 1px solid rgba(148, 163, 184, 0.35); background: #fff; color: #334155;
+  padding: 9px 20px; border-radius: 10px; font-weight: 700; font-size: 13.5px; cursor: pointer;
+  transition: all 0.15s;
+}
+.reviews-pager button:hover:not(:disabled) { border-color: #e50914; color: #e50914; }
+.reviews-pager button:disabled { opacity: 0.45; cursor: not-allowed; }
+.reviews-pager span { font-size: 13.5px; color: #64748b; font-weight: 600; }
 </style>
