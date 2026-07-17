@@ -98,10 +98,11 @@
 
       <button
         @click="proceedToPayment"
-        :disabled="bookingStore.selectedSeats.length === 0"
+        :disabled="bookingStore.selectedSeats.length === 0 || processingSeatCount > 0"
         class="btn-checkout"
       >
-        Tiếp Tục
+        <span v-if="processingSeatCount > 0">Đang xử lý...</span>
+        <span v-else>Tiếp Tục</span>
       </button>
       <button 
     type="button" 
@@ -142,6 +143,7 @@ const rawSeatsFromAPI = ref([]); // Nơi lưu mảng gốc tải về từ datab
 const seatPrices = ref({ standard: 75000, vip: 95000, couple: 140000 }); // Giá thật lấy từ cấu hình của suất chiếu
 const countdownText = ref("10:00");
 const featuredComments = ref([]);
+const processingSeatCount = ref(0);
 let timerInterval = null;
 
 const cancelBooking = () => {
@@ -232,6 +234,8 @@ const handleSeatMapClick = async (seat) => {
     (s) => s.id === seat.id,
   );
 
+  processingSeatCount.value++;
+
   try {
     if (!isAlreadySelected) {
       // OPTIMISTIC UPDATE: Đẩy ghế vào Store quản lý đơn hàng NGAY LẬP TỨC để UI phản hồi ngay (0 độ trễ)
@@ -281,6 +285,8 @@ const handleSeatMapClick = async (seat) => {
     });
     // Tải lại sơ đồ ghế để cập nhật trạng thái mới nhất từ server
     fetchSeatStatus();
+  } finally {
+    processingSeatCount.value--;
   }
 };
 
