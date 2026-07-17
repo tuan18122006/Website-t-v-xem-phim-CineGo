@@ -64,6 +64,10 @@
           <span>Quản Lý Tài Khoản</span>
         </button>
 
+        <button class="nav-link" :class="{ active: activeTab === 'orders' }" @click="activeTab = 'orders'">
+          <span class="nav-icon">🧾</span>
+          <span>Quản Lý Đơn Hàng</span>
+        </button>
 
          <button class="nav-link" :class="{ active: activeTab === 'combos' }" @click="activeTab = 'combos'">
           <span class="nav-icon">🍿</span>
@@ -260,6 +264,158 @@
         <UserManagement />
       </div>
 
+      <div v-if="activeTab === 'orders'" class="orders-tab-content">
+        <div class="glass-panel orders-panel">
+          <div class="orders-panel__head">
+            <div>
+              <h3>Quản lý đơn hàng</h3>
+              <p>Xem đơn đã đặt / đang đặt, phân biệt thành viên và khách vãng lai, lọc theo thời gian hoặc phim.</p>
+            </div>
+            <button class="btn-export" @click="loadOrders">🔄 Tải lại</button>
+          </div>
+
+          <div class="orders-toolbar">
+            <input v-model="ordersSearch" type="text" placeholder="Tìm theo mã đơn, tên khách, phim…" />
+            <input v-model="ordersFromDate" type="date" />
+            <input v-model="ordersToDate" type="date" />
+            <select v-model="ordersMovieFilter">
+              <option value="">Tất cả phim</option>
+              <option v-for="movie in movieOptions" :key="movie" :value="movie">{{ movie }}</option>
+            </select>
+            <select v-model="ordersCustomerType">
+              <option value="">Tất cả khách</option>
+              <option value="member">Thành viên</option>
+              <option value="guest">Khách vãng lai</option>
+            </select>
+            <select v-model="ordersStatusFilter">
+              <option value="">Tất cả trạng thái</option>
+              <option value="pending">Chờ thanh toán</option>
+              <option value="paid">Đã thanh toán</option>
+              <option value="cancelled">Đã hủy</option>
+              <option value="refunded">Đã hoàn tiền</option>
+            </select>
+            <button class="orders-filter-btn" @click="loadOrders">Lọc</button>
+          </div>
+
+          <div v-if="ordersLoading" class="lookup-state">
+            <div class="lookup-spinner"></div>
+            <p>Đang tải đơn hàng…</p>
+          </div>
+
+          <div v-else-if="filteredOrders.length === 0" class="lookup-state">
+            <span class="lookup-state__art">🧾</span>
+            <h4>Không có đơn hàng phù hợp</h4>
+          </div>
+
+          <div v-else class="orders-table-wrap">
+            <table class="report-table orders-table">
+              <thead>
+                <tr>
+                  <th>Mã đơn</th>
+                  <th>Khách</th>
+                  <th>Loại khách</th>
+                  <th>Phim / Suất</th>
+                  <th>Tổng tiền</th>
+                  <th>Thanh toán</th>
+                  <th>Trạng thái</th>
+                  <th>Thời gian</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="order in filteredOrders" :key="order.id">
+                  <td class="font-bold text-pink">{{ order.booking_code }}</td>
+                  <td>
+                    <div class="customer-cell">
+                      <span class="cell-avatar">{{ initials(order.customer_name) }}</span>
+                      <div>
+                        <strong>{{ order.customer_name || 'Khách vãng lai' }}</strong>
+                        <div class="muted small">{{ order.customer_phone || '—' }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="type-pill" :class="order.customer_type === 'member' ? 'is-member' : 'is-guest'">
+                      {{ order.customer_type === 'member' ? 'Thành viên' : 'Khách vãng lai' }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="movie-cell">
+                      <strong>{{ order.movie_title }}</strong>
+                      <div class="muted small">{{ order.room_name }} • {{ order.showtime_at || '—' }}</div>
+                    </div>
+                  </td>
+                  <td class="font-bold">{{ formatCurrency(order.total_amount) }}</td>
+                  <td>{{ order.payment_method || '—' }}</td>
+                  <td>
+                    <span class="status-pill-small" :class="statusClass(order.order_status)">{{ statusLabel(order.order_status) }}</span>
+                  </td>
+                  <td>{{ order.created_at || '—' }}</td>
+                  <td><button class="btn-ghost" @click="viewOrderDetail(order)">Xem chi tiết</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <transition name="lk-fade">
+          <div v-if="showOrderModal" class="lk-backdrop" @click.self="showOrderModal = false">
+            <div class="lk-modal">
+              <div class="lk-modal__head">
+                <h3>🎟️ Chi tiết đơn {{ selectedOrder?.booking_code }}</h3>
+                <button class="lk-modal__close" @click="showOrderModal = false">✕</button>
+              </div>
+
+              <div v-if="orderDetailLoading" class="lookup-state">
+                <div class="lookup-spinner"></div>
+                <p>Đang tải chi tiết đơn…</p>
+              </div>
+
+              <div v-else-if="selectedOrderDetail" class="lk-body">
+                <section class="lk-section">
+                  <h4 class="lk-section__title">👤 Khách hàng</h4>
+                  <div class="lk-kv"><span>Họ tên</span><b>{{ selectedOrderDetail.customer.name || '—' }}</b></div>
+                  <div class="lk-kv"><span>Điện thoại</span><b>{{ selectedOrderDetail.customer.phone || '—' }}</b></div>
+                  <div class="lk-kv"><span>Email</span><b>{{ selectedOrderDetail.customer.email || '—' }}</b></div>
+                </section>
+
+                <section class="lk-section">
+                  <h4 class="lk-section__title">🎬 Suất chiếu</h4>
+                  <div class="lk-movie">
+                    <img v-if="selectedOrderDetail.movie.poster_url" :src="selectedOrderDetail.movie.poster_url" :alt="selectedOrderDetail.movie.title" />
+                    <div>
+                      <strong>{{ selectedOrderDetail.movie.title }}</strong>
+                      <p class="muted">🏛️ {{ selectedOrderDetail.room_name }} • 🕒 {{ selectedOrderDetail.showtime_at || '—' }}</p>
+                    </div>
+                  </div>
+                </section>
+
+                <section class="lk-section">
+                  <h4 class="lk-section__title">🎟️ Chi tiết vé</h4>
+                  <TicketPrintable :booking="selectedOrderDetail" />
+                </section>
+
+                <section class="lk-section">
+                  <h4 class="lk-section__title">⚙️ Trạng thái đơn hàng</h4>
+                  <div class="lk-kv">
+                    <span>Trạng thái hiện tại</span>
+                    <select v-model="selectedOrderStatus" class="status-select">
+                      <option value="pending">Chờ thanh toán</option>
+                      <option value="paid">Đã thanh toán</option>
+                      <option value="cancelled">Đã hủy</option>
+                      <option value="refunded">Đã hoàn tiền</option>
+                    </select>
+                  </div>
+                  <button class="btn-primary" :disabled="orderStatusUpdating || !selectedOrderStatus" @click="saveOrderStatus">
+                    {{ orderStatusUpdating ? 'Đang cập nhật…' : 'Cập nhật trạng thái' }}
+                  </button>
+                </section>
+              </div>
+            </div>
+          </div>
+        </transition>
+      </div>
+
       <!-- TAB: COMBO MANAGEMENT -->
      
     
@@ -321,6 +477,7 @@ import RoomEditorView from './RoomEditorView.vue';
 import ComboSelection from './ComboSelection.vue'; 
 import ComboManagementView from './ComboManagementView.vue';
 import VoucherManager from './VoucherManager.vue';
+import TicketPrintable from '../../components/TicketPrintable.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -332,6 +489,21 @@ watch(activeTab, (newVal) => {
 const moviesCount = ref(0);
 const showtimesCount = ref(0);
 const bookings = ref([]);
+const orders = ref([]);
+const ordersLoading = ref(false);
+const ordersSearch = ref('');
+const ordersFromDate = ref('');
+const ordersToDate = ref('');
+const ordersMovieFilter = ref('');
+const ordersCustomerType = ref('');
+const ordersStatusFilter = ref('');
+const showOrderModal = ref(false);
+const orderDetailLoading = ref(false);
+const orderStatusUpdating = ref(false);
+const selectedOrder = ref(null);
+const selectedOrderDetail = ref(null);
+const selectedOrderStatus = ref('');
+const movieOptions = ref([]);
 
 /* ===== DASHBOARD THỐNG KÊ THẬT ===== */
 const statsLoading = ref(false);
@@ -388,6 +560,7 @@ const getTabTitle = computed(() => {
     rooms: 'Quản Lý Phòng Chiếu & Ghế',
     genres: 'Quản Lý Thể Loại Phim',
     users: 'Quản Lý Tài Khoản & Phân Quyền',
+    orders: 'Quản Lý Đơn Hàng',
     lookup: 'Tra Cứu Đơn Hàng & Hỗ Trợ Khách',
     combos: 'Quản Lý Combo và Đồ ăn',
     combos: 'Quản Lý Bắp Nước (Combos)',
@@ -407,6 +580,7 @@ const getTabDesc = computed(() => {
     rooms: 'Thiết kế trực quan sơ đồ không gian rạp, quản lý các loại ghế (Thường, VIP, Đôi) và lối đi.',
     genres: 'Quản lý danh mục thể loại phim của hệ thống CineGo.',
     users: 'Thêm, sửa, phân quyền (Admin/Staff/User) và khóa/mở khóa tài khoản người dùng.',
+    orders: 'Xem, lọc và tra cứu đơn hàng theo thời gian, phim và loại khách để quản lý bán vé hiệu quả.',
     lookup: 'Tìm đơn theo SĐT/email/mã đơn khi khách quên mã vé, xem ghế & bắp nước đã mua để hỗ trợ.',
     combos: 'Thêm, sửa, xóa, combo và đồ ăn kiểm kê số lượng tồn trong kho',
     combos: 'Cấu hình giá cả, thêm/sửa/xóa và quản lý trạng thái hiển thị của các gói Bắp & Nước.',
@@ -415,10 +589,6 @@ const getTabDesc = computed(() => {
   };
   return descs[activeTab.value];
 });
-
-const formatCurrency = (val) => {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
-};
 
 const handleLogout = async () => {
   await authStore.logout();
@@ -470,10 +640,114 @@ const fetchBookings = () => {
   ];
 };
 
+const formatCurrency = (val) => {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
+};
+
+const initials = (name) => {
+  if (!name) return '👤';
+  const parts = name.trim().split(/\s+/);
+  return (parts[0][0] + (parts[parts.length - 1][0] || '')).toUpperCase();
+};
+
+const loadOrders = async () => {
+  ordersLoading.value = true;
+  try {
+    const res = await api.get('/admin/orders', {
+      params: {
+        search: ordersSearch.value,
+        from_date: ordersFromDate.value,
+        to_date: ordersToDate.value,
+        movie: ordersMovieFilter.value,
+        customer_type: ordersCustomerType.value,
+        order_status: ordersStatusFilter.value,
+      },
+    });
+    orders.value = res.data.data || [];
+    movieOptions.value = [...new Set(orders.value.map((o) => o.movie_title).filter(Boolean))];
+  } catch (err) {
+    console.error('Load orders error:', err);
+    orders.value = [];
+  } finally {
+    ordersLoading.value = false;
+  }
+};
+
+const filteredOrders = computed(() => {
+  const search = ordersSearch.value.trim().toLowerCase();
+  return orders.value.filter((order) => {
+    const matchesSearch = !search || [order.booking_code, order.customer_name, order.customer_email, order.customer_phone, order.movie_title].some((value) => String(value || '').toLowerCase().includes(search));
+    const matchesMovie = !ordersMovieFilter.value || order.movie_title === ordersMovieFilter.value;
+    const matchesType = !ordersCustomerType.value || order.customer_type === ordersCustomerType.value;
+    const matchesStatus = !ordersStatusFilter.value || order.order_status === ordersStatusFilter.value;
+    const createdAt = order.created_at_full || '';
+    const fromOk = !ordersFromDate.value || createdAt >= ordersFromDate.value;
+    const toOk = !ordersToDate.value || createdAt <= `${ordersToDate.value} 23:59:59`;
+    return matchesSearch && matchesMovie && matchesType && matchesStatus && fromOk && toOk;
+  });
+});
+
+const statusLabel = (status) => {
+  return {
+    pending: 'Chờ thanh toán',
+    paid: 'Đã thanh toán',
+    cancelled: 'Đã hủy',
+    refunded: 'Đã hoàn tiền',
+  }[status] || status;
+};
+
+const statusClass = (status) => {
+  return {
+    paid: 'active',
+    pending: 'pending',
+    cancelled: 'cancelled',
+    refunded: 'refunded',
+  }[status] || '';
+};
+
+const viewOrderDetail = async (order) => {
+  showOrderModal.value = true;
+  orderDetailLoading.value = true;
+  selectedOrder.value = order;
+  selectedOrderDetail.value = null;
+  selectedOrderStatus.value = order.order_status || 'pending';
+  try {
+    const res = await api.get(`/admin/orders/${order.id}`);
+    selectedOrderDetail.value = res.data;
+    selectedOrderStatus.value = res.data.order_status || 'pending';
+  } catch (err) {
+    console.error('Load order detail error:', err);
+  } finally {
+    orderDetailLoading.value = false;
+  }
+};
+
+const saveOrderStatus = async () => {
+  if (!selectedOrder.value || !selectedOrderStatus.value) {
+    return;
+  }
+  orderStatusUpdating.value = true;
+  try {
+    await api.patch(`/admin/orders/${selectedOrder.value.id}/status`, {
+      order_status: selectedOrderStatus.value,
+    });
+    await loadOrders();
+    if (selectedOrderDetail.value) {
+      selectedOrderDetail.value.order_status = selectedOrderStatus.value;
+    }
+  } catch (err) {
+    console.error('Update order status error:', err);
+    alert(err.response?.data?.message || 'Không thể cập nhật trạng thái đơn hàng.');
+  } finally {
+    orderStatusUpdating.value = false;
+  }
+};
+
 onMounted(() => {
   fetchOverview();
   fetchRevenue();
   fetchBookings();
+  loadOrders();
 });
 </script>
 
@@ -495,6 +769,26 @@ onMounted(() => {
     grid-template-columns: 1fr;
   }
 }
+
+/* ORDERS TAB STYLES */
+.orders-tab-content { display: flex; flex-direction: column; gap: 18px; }
+.orders-panel { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.orders-panel__head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.orders-panel__head h3 { margin: 0 0 4px; font-size: 20px; color: #1e293b; }
+.orders-panel__head p { margin: 0; color: var(--text-secondary); font-size: 13px; }
+.orders-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.orders-toolbar input, .orders-toolbar select { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; min-width: 170px; }
+.orders-toolbar input:focus, .orders-toolbar select:focus { outline: none; border-color: var(--accent-pink); box-shadow: 0 0 0 3px rgba(216, 45, 139, 0.12); }
+.orders-filter-btn { border: none; background: linear-gradient(135deg, var(--accent-pink), var(--accent-violet)); color: white; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 700; }
+.orders-table-wrap { overflow-x: auto; }
+.orders-table th, .orders-table td { white-space: nowrap; }
+.customer-cell { display: flex; align-items: center; gap: 10px; }
+.cell-avatar { width: 30px; height: 30px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: #fde2ef; color: var(--accent-pink); font-weight: 800; }
+.type-pill { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.type-pill.is-member { background: rgba(24, 144, 255, 0.12); color: #1677ff; }
+.type-pill.is-guest { background: rgba(255, 140, 0, 0.12); color: #d97706; }
+.movie-cell { display: flex; flex-direction: column; gap: 4px; }
+.small { font-size: 12px; }
 
 /* SIDEBAR STYLES */
 .admin-sidebar {

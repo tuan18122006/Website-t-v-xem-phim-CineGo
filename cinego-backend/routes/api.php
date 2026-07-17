@@ -60,6 +60,8 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     // Quản lý đơn hàng
     Route::get('/orders', [BookingController::class, 'index']);
     Route::get('/orders/{id}', [BookingLookupController::class, 'show']);
+    Route::patch('/orders/{id}/status', [BookingController::class, 'updateStatus']);
+    Route::post('/orders/{id}/refund', [\App\Http\Controllers\Api\RefundController::class, 'requestRefundById']);
 
     // Quản lý tài khoản User
     Route::get('/users', [UserController::class, 'index']);

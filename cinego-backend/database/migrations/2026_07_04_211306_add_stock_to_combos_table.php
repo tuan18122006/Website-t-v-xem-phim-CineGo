@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('combos', function (Blueprint $table) {
-            $table->integer('stock')->default(0)->after('price');
+            if (!Schema::hasColumn('combos', 'stock')) {
+                $table->integer('stock')->default(0)->after('price');
+            }
         });
     }
 
@@ -22,7 +24,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('combos', function (Blueprint $table) {
-            $table->dropColumn('stock');
+            if (Schema::hasColumn('combos', 'stock')) {
+                $table->dropColumn('stock');
+            }
         });
     }
 };
