@@ -11,19 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasColumn('combos', 'stock')) {
-            Schema::table('combos', function (Blueprint $table) {
-                $table->integer('stock')->default(0)->after('price');
-            });
-        }
+        Schema::table('combos', function (Blueprint $table) {
+            //
+            $table->string('name')->unique()->change();
+        });
     }
+
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
         Schema::table('combos', function (Blueprint $table) {
-            $table->dropColumn('stock');
+            //
+            $table->dropUnique(['name']);
         });
     }
 };

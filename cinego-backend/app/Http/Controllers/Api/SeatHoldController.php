@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Illuminate\Database\UniqueConstraintViolationException;
+use App\Events\SeatLocked;
+use App\Events\SeatUnlocked;
 
 class SeatHoldController extends Controller
 {
@@ -87,6 +89,9 @@ class SeatHoldController extends Controller
                 ]);
             });
 
+            // Dispatch event after transaction
+            broadcast(new SeatLocked($showtimeId, $seatId, $userId))->toOthers();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Giữ ghế thành công trong 10 phút'
@@ -120,6 +125,8 @@ class SeatHoldController extends Controller
             ->where('seat_id', $seatId)
             ->where('user_id', $userId)
             ->delete();
+
+        broadcast(new SeatUnlocked($showtimeId, $seatId))->toOthers();
 
         return response()->json([
             'success' => true,

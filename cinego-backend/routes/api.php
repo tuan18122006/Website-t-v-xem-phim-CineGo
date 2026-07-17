@@ -11,11 +11,13 @@ use App\Http\Controllers\Api\SeatHoldController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\BookingLookupController;
+use App\Http\Controllers\Api\ComboController;
 use App\Http\Controllers\Api\PricingRuleController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\VoucherController;
 use App\Http\Controllers\Api\ComboItemController;
-
+use App\Http\Controllers\Api\BlogController;
+use App\Http\Controllers\Api\BlogCategoryController;
 
 // Đăng ký / Đăng nhập
 Route::post('/register', [AuthController::class, 'register']);
@@ -40,16 +42,20 @@ Route::get('/combos/{combo}/items', [ComboItemController::class, 'getItems']);
 // Thanh toán VNPay Return (Thường VNPay sẽ gọi GET/POST về đây)
 Route::get('/payment/vnpay/return', [PaymentController::class, 'vnpayReturn']);
 
+Route::get('/blogs', [BlogController::class, 'index']); // Lấy danh sách bài viết đã xuất bản
+Route::get('/blogs/{id}', [BlogController::class, 'show']); // Đọc chi tiết bài viết blog
+Route::get('/blog-categories', [BlogCategoryController::class, 'index']); // Lấy danh mục blog để hiển thị bộ lọc ngoài client
+
 // Các API cần đăng nhập
 Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
-    
+
     Route::get('/me', [AuthController::class, 'userProfile']);
-    
+
     Route::prefix('admin')->group(function () {
         Route::get('/user', [UserController::class, 'profile']);
-        
+
         Route::put('/users/{id}', [UserController::class, 'updateProfile']);
     });
 
@@ -142,6 +148,10 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
 
     // Quản lý Voucher
     Route::apiResource('vouchers', VoucherController::class);
+
+    //Quản lý Blog
+    Route::apiResource('blogs', BlogController::class);
+    Route::apiResource('blog-categories', BlogCategoryController::class);
 });
 
 // =========================================================================
@@ -154,3 +164,5 @@ Route::middleware(['auth:sanctum', 'can:staff-or-admin'])->prefix('staff')->grou
     Route::get('/bookings/{id}', [BookingLookupController::class, 'show']);
 });
 
+// Danh sách combo công khai cho client
+Route::get('/combos', [ComboController::class, 'index']);

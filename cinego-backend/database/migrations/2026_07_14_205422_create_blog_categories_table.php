@@ -11,19 +11,20 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasColumn('combos', 'stock')) {
-            Schema::table('combos', function (Blueprint $table) {
-                $table->integer('stock')->default(0)->after('price');
-            });
-        }
+        Schema::create('blog_categories', function (Blueprint $table) {
+            $table->id();
+            $table->string('name', 100);
+            $table->string('slug', 120)->unique();
+            $table->text('description')->nullable();
+            $table->timestamps();
+        });
     }
+
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::table('combos', function (Blueprint $table) {
-            $table->dropColumn('stock');
-        });
+        Schema::dropIfExists('blog_categories');
     }
 };

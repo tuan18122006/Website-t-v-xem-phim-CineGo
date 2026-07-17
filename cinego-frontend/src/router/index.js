@@ -21,7 +21,9 @@ const RoomEditor = () => import("../views/admin/RoomEditorView.vue");
 const AdminDashboard = () => import("../views/admin/DashboardView.vue");
 
 const routes = [
-  // Client Routes
+  // ==========================================
+  // CLIENT ROUTES
+  // ==========================================
   {
     path: "/",
     name: "home",
@@ -48,12 +50,11 @@ const routes = [
     component: ReviewMovies,
   },
   {
-    path: '/profile',
-    name: 'profile',
+    path: "/profile",
+    name: "profile",
     component: () => import("../views/client/ProfileView.vue"),
-    meta: { requiresAuth: true }
+    meta: { requiresAuth: true },
   },
-
   {
     path: "/booking/seats",
     name: "seat-selection",
@@ -101,7 +102,10 @@ const routes = [
     name: "ve-cinego",
     component: AboutCineGo,
   },
-  // Admin Routes
+
+  // ==========================================
+  // ADMIN ROUTES
+  // ==========================================
   {
     path: "/admin",
     redirect: "/admin/dashboard",
@@ -116,8 +120,8 @@ const routes = [
     path: "/admin/genres",
     name: "admin-GenreManagement",
     component: () => import("../views/admin/GenreManagement.vue"),
+    meta: { requiresAuth: true, role: "admin" },
   },
-
   {
     path: "/admin/rooms",
     name: "admin-rooms",
@@ -130,11 +134,11 @@ const routes = [
     component: () => import("../views/admin/RoomEditorView.vue"),
     meta: { requiresAuth: true, role: "admin" },
   },
-
   {
     path: "/admin/movies",
     name: "admin-MoviesView",
     component: () => import("../views/admin/MoviesView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
   },
   {
     path: "/admin/combos",
@@ -154,8 +158,42 @@ const routes = [
     component: () => import("../views/admin/VoucherManager.vue"),
     meta: { requiresAuth: true, role: "admin" },
   },
-  
 
+  // 🔴 THÊM MỚI: PHÂN HỆ QUẢN LÝ BLOG WORDPRESS (CINEGO)
+{
+    path: "/admin/blogs",
+    name: "admin-BlogList",
+    component: () => import("../views/admin/blog/BlogListView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
+    path: "/admin/blogs/create",
+    name: "admin-BlogCreate",
+    component: () => import("../views/admin/blog/NewBlogView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
+    path: "/admin/blogs/edit/:id",
+    name: "admin-BlogEdit",
+    component: () => import("../views/admin/blog/NewBlogView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
+    path: "/admin/blogs/preview/:id",
+    name: "admin-BlogDetail",
+    component: () => import("../views/admin/blog/BlogDetailView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
+    path: "/admin/blog-categories",
+    name: "admin-BlogCategoryList",
+    component: () => import("../views/admin/blog/BlogCategoryList.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+
+  // ==========================================
+  // STAFF ROUTES
+  // ==========================================
   {
     path: "/staff",
     redirect: "/staff/dashboard",
@@ -199,7 +237,11 @@ router.beforeEach(async (to, from, next) => {
     if (requiredRole === "admin" && !authStore.isAdmin) {
       // Không có quyền Admin -> chuyển về Trang chủ
       next({ name: "home" });
-    } else if (requiredRole === "staff" && (!authStore.isAdmin && !authStore.isStaff)) {
+    } else if (
+      requiredRole === "staff" &&
+      !authStore.isAdmin &&
+      !authStore.isStaff
+    ) {
       // Không có quyền Staff hoặc Admin -> chuyển về Trang chủ
       next({ name: "home" });
     } else {
