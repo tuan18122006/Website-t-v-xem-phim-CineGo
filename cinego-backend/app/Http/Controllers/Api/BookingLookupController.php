@@ -71,6 +71,7 @@ class BookingLookupController extends Controller
             'bookingDetails.seat:id,row,number,type',
             'bookingCombos.combo:id,name,image_url',
             'voucher:id,code',
+            'refundRequests:id,booking_id,status',
         ])->find($id);
 
         if (!$b) {
@@ -124,6 +125,7 @@ class BookingLookupController extends Controller
             'payment_method' => $b->payment_method,
             'payment_status' => $b->payment_status,
             'booking_status' => $b->booking_status,
+            'order_status' => $b->order_status,
             'voucher_code'   => $b->voucher?->code,
             'created_at'     => $b->created_at?->format('H:i - d/m/Y'),
         ], 200);

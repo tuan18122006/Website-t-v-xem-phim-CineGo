@@ -63,6 +63,54 @@ class RefundController extends Controller
         ], 201);
     }
 
+    // Nhân viên / Admin gửi yêu cầu hoàn tiền theo ID đơn (route: POST /admin/orders/{id}/refund)
+    public function requestRefundById(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:1000',
+        ]);
+
+        $user = Auth::user();
+
+        $booking = Booking::findOrFail($id);
+        if ($booking->payment_status !== 'paid') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Chỉ có thể hoàn tiền cho những hóa đơn đã thanh toán thành công!'
+            ], 400);
+        }
+
+        $exists = RefundRequest::where('booking_id', $booking->id)->exists();
+        if ($exists) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hóa đơn này đã có yêu cầu hoàn tiền đang xử lý hoặc đã xử lý rồi!'
+            ], 400);
+        }
+
+        $refund = RefundRequest::create([
+            'booking_id' => $booking->id,
+            'requested_by' => $user->id,
+            'status' => 'pending',
+            'reason' => $request->reason,
+        ]);
+
+        ActionLog::create([
+            'user_id' => $user->id,
+            'action' => 'request_refund',
+            'target_type' => 'bookings',
+            'target_id' => $booking->id,
+            'details' => ['reason' => $request->reason],
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Yêu cầu hoàn tiền đã được gửi và đang chờ Quản lý phê duyệt!',
+            'data' => $refund
+        ], 201);
+    }
+
     // Xem danh sách yêu cầu hoàn tiền đang chờ phê duyệt
     public function pendingRefunds()
     {

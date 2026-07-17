@@ -13,6 +13,7 @@ use App\Models\Seat;
 use App\Models\Review;
 use App\Helpers\BookingHelper;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 
 class BookingController extends Controller
@@ -23,6 +24,7 @@ class BookingController extends Controller
             'user:id,name,email,phone',
             'showtime.movie:id,title',
             'showtime.room:id,name',
+            'refundRequests:id,booking_id,status',
         ]);
 
         if ($request->filled('from_date')) {
@@ -64,6 +66,10 @@ class BookingController extends Controller
             }
         }
 
+        if ($request->filled('order_status')) {
+            $query->where('order_status', $request->order_status);
+        }
+
         $bookings = $query->orderByDesc('created_at')->get()->map(function ($booking) {
             return [
                 'id' => $booking->id,
@@ -80,6 +86,7 @@ class BookingController extends Controller
                 'total_amount' => (float) $booking->total_amount,
                 'payment_status' => $booking->payment_status,
                 'booking_status' => $booking->booking_status,
+                'order_status' => $booking->order_status,
                 'payment_method' => $booking->payment_method,
                 'created_at' => $booking->created_at?->format('H:i d/m/Y'),
                 'created_at_full' => $booking->created_at?->format('Y-m-d H:i:s'),
@@ -131,6 +138,7 @@ class BookingController extends Controller
                 'movie_duration' => $movie?->duration,
                 'payment_status' => $booking->payment_status,
                 'booking_status' => $booking->booking_status,
+                'order_status' => $booking->order_status,
                 'can_review' => $canReview,
                 'reviewed' => $hasReviewed,
                 'review_message' => $hasReviewed
@@ -142,6 +150,44 @@ class BookingController extends Controller
         return response()->json([
             'success' => true,
             'data' => $response,
+        ], 200);
+    }
+
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'order_status' => ['required', 'string', Rule::in(['pending', 'paid', 'cancelled', 'refunded'])],
+        ]);
+
+        $booking = Booking::find($id);
+        if (!$booking) {
+            return response()->json(['success' => false, 'message' => 'Không tìm thấy đơn hàng'], 404);
+        }
+
+        $booking->order_status = $request->order_status;
+
+        if ($request->order_status === 'paid') {
+            $booking->payment_status = 'paid';
+            $booking->booking_status = 'confirmed';
+        } elseif ($request->order_status === 'pending') {
+            $booking->payment_status = 'pending';
+            $booking->booking_status = 'pending';
+        } elseif ($request->order_status === 'cancelled') {
+            $booking->booking_status = 'cancelled';
+        } elseif ($request->order_status === 'refunded') {
+            $booking->booking_status = 'cancelled';
+        }
+
+        $booking->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Trạng thái đơn hàng đã được cập nhật.',
+            'data' => [
+                'order_status' => $booking->order_status,
+                'payment_status' => $booking->payment_status,
+                'booking_status' => $booking->booking_status,
+            ],
         ], 200);
     }
 
@@ -230,7 +276,8 @@ class BookingController extends Controller
                     'total_amount' => $totalAmount,
                     'payment_method' => $paymentMethod,
                     'payment_status' => 'paid', // Mark as paid immediately for demo
-                    'booking_status' => 'confirmed'
+                    'booking_status' => 'confirmed',
+                    'order_status' => 'paid',
                 ]);
 
                 // 6. Store Booking Details
