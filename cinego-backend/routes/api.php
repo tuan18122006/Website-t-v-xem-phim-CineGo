@@ -18,7 +18,6 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\VoucherController;
 use App\Http\Controllers\Api\ComboItemController;
 use App\Http\Controllers\Api\TicketController;
-use App\Http\Controllers\Api\ArticleController;
 
 
 // Đăng ký / Đăng nhập
@@ -45,10 +44,6 @@ Route::get('/combos/{combo}/items', [ComboItemController::class, 'getItems']);
 
 // Thanh toán VNPay Return (Thường VNPay sẽ gọi GET/POST về đây)
 Route::get('/payment/vnpay/return', [PaymentController::class, 'vnpayReturn']);
-
-// Bài viết & Top Phim (Public)
-Route::get('/articles', [App\Http\Controllers\Api\ArticleController::class, 'publicIndex']);
-Route::get('/articles/{slug}', [App\Http\Controllers\Api\ArticleController::class, 'publicShow']);
 
 // Các API cần đăng nhập
 Route::middleware('auth:sanctum')->group(function () {
@@ -136,13 +131,6 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     Route::put('/movies/{id}', [MovieController::class, 'update']);
     Route::delete('/movies/{id}', [MovieController::class, 'destroy']);
 
-    // Quản lý Bài Viết / Top Phim
-    Route::get('/articles', [ArticleController::class, 'index']);
-    Route::post('/articles', [ArticleController::class, 'store']);
-    Route::get('/articles/{id}', [ArticleController::class, 'show']);
-    Route::put('/articles/{id}', [ArticleController::class, 'update']);
-    Route::delete('/articles/{id}', [ArticleController::class, 'destroy']);
-
     // Cấu hình giá vé
     Route::get('/pricing-rules', [PricingRuleController::class, 'index']);
     Route::put('/pricing-rules', [PricingRuleController::class, 'update']);
@@ -186,15 +174,8 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
 
     // Quản lý Voucher
     Route::apiResource('vouchers', VoucherController::class);
-
-    // Quản lý Bài viết / Top Phim
-    Route::get('/articles', [App\Http\Controllers\Api\ArticleController::class, 'index']);
-    Route::post('/articles', [App\Http\Controllers\Api\ArticleController::class, 'store']);
-    Route::get('/articles/{id}', [App\Http\Controllers\Api\ArticleController::class, 'show']);
-    Route::put('/articles/{id}', [App\Http\Controllers\Api\ArticleController::class, 'update']);
-    Route::delete('/articles/{id}', [App\Http\Controllers\Api\ArticleController::class, 'destroy']);
+    Route::get('movies/list', [App\Http\Controllers\Api\MovieController::class, 'listForSelection']);
 });
-
 // ===
 // 4. STAFF ROUTES - NHÂN VIÊN HỖ TRỢ (staff hoặc admin)
 // ===
@@ -209,7 +190,5 @@ Route::get('/combos', [ComboController::class, 'index']);
 Route::post('/vouchers/verify', [VoucherController::class, 'verify']);
 Route::get('/payment/vnpay/return', [PaymentController::class, 'vnpayReturn']);
 Route::get('/tickets/{bookingCode}', [TicketController::class, 'show']);
-
-// Bài viết & Top Phim (Public)
-Route::get('/articles', [App\Http\Controllers\Api\ArticleController::class, 'publicIndex']);
-Route::get('/articles/{slug}', [App\Http\Controllers\Api\ArticleController::class, 'publicShow']);
+// Danh sách combo công khai cho client
+Route::get('/combos', [ComboController::class, 'index']);

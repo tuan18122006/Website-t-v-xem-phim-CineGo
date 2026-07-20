@@ -17,6 +17,8 @@ class Voucher extends Model
         'starts_at',
         'expires_at',
         'usage_limit',
+        'target_limit',
+        'usage_condition', 
         'used_count',
         'is_active',
     ];
@@ -24,6 +26,7 @@ class Voucher extends Model
     protected $casts = [
         'starts_at' => 'datetime',
         'expires_at' => 'datetime',
+        'usage_condition' => 'array',
     ];
 
     public function bookings(): HasMany
