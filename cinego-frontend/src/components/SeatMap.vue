@@ -111,40 +111,79 @@ const displayNumbers = computed(() => {
 });
 
 const getPhysicalGridPos = (seat) => {
-  const layout = props.layout || { gap_cols: [], gap_rows: [] };
-  const gapCols = layout.gap_cols || [];
-  const gapRows = layout.gap_rows || [];
-
-  let physicalCol = seat.number;
-  gapCols.forEach(gapCol => {
-    if (seat.number > gapCol) physicalCol++;
-  });
-
-  let rowIndex = rowLetters.value.indexOf(seat.row) + 1;
-  let physicalRow = rowIndex;
+    const layout = props.layout || { gap_cols: [], gap_rows: [] };
+    const gapCols = layout.gap_cols || [];
+    const gapRows = layout.gap_rows || [];
   
-  gapRows.forEach(gapRow => {
-    let gapRowIndex = rowLetters.value.indexOf(gapRow) + 1;
-    if (rowIndex > gapRowIndex) physicalRow++;
-  });
+    // Determine the base logical max cols
+    let maxStandardCols = 10;
+    if (props.seats && props.seats.length > 0) {
+      maxStandardCols = Math.max(...props.seats.map(s => s.number)) + gapCols.length;
+    }
 
-  return `${physicalRow} / ${physicalCol}`;
-};
+    let baseRowIndex = rowLetters.value.indexOf(seat.row) + 1;
+    let physicalRow = 1;
 
-const gridStyle = computed(() => {
-  const layout = props.layout || { gap_cols: [], gap_rows: [] };
-  const gapCols = layout.gap_cols || [];
-  
-  let maxCol = 10;
-  if (props.seats && props.seats.length > 0) {
-      maxCol = Math.max(...props.seats.map(s => s.number));
-  }
-  const maxPhysicalCol = maxCol + gapCols.length;
-  
-  return {
-    gridTemplateColumns: `repeat(${maxPhysicalCol}, minmax(40px, 1fr))`
+    // Calculate total physical rows used by ALL rows before this one
+    for (let i = 0; i < baseRowIndex - 1; i++) {
+        let prevRowLetter = rowLetters.value[i];
+        let prevRowSeats = props.seats.filter(s => s.row === prevRowLetter);
+        let maxPhysicalColInPrevRow = 0;
+        prevRowSeats.forEach(s => {
+           let col = s.number;
+           const coupleSeatsBefore = prevRowSeats.filter(cs => cs.type === 'couple' && cs.number < s.number).length;
+           col += coupleSeatsBefore;
+           gapCols.forEach(gapCol => { if (s.number > gapCol) col++; });
+           if (s.type === 'couple') col++; // spans extra col
+           if (col > maxPhysicalColInPrevRow) maxPhysicalColInPrevRow = col;
+        });
+        
+        let wraps = 1;
+        if (maxPhysicalColInPrevRow > 0) {
+            wraps = Math.ceil(maxPhysicalColInPrevRow / maxStandardCols);
+        }
+        physicalRow += wraps;
+    }
+    
+    // Add gap rows
+    gapRows.forEach(gapRow => {
+      let gapRowIndex = rowLetters.value.indexOf(gapRow) + 1;
+      if (baseRowIndex > gapRowIndex) physicalRow++;
+    });
+
+    // Calculate for THIS seat
+    let col = seat.number;
+    if (props.seats) {
+      const coupleSeatsBefore = props.seats.filter(s => s.row === seat.row && s.type === 'couple' && s.number < seat.number).length;
+      col += coupleSeatsBefore;
+    }
+    gapCols.forEach(gapCol => {
+      if (seat.number > gapCol) col++;
+    });
+
+    let seatWrapCount = Math.floor((col - 1) / maxStandardCols);
+    let physicalCol = col - (seatWrapCount * maxStandardCols);
+    physicalRow += seatWrapCount;
+
+    if (seat.type === 'couple') {
+      return `${physicalRow} / ${physicalCol} / span 1 / span 2`;
+    }
+    return `${physicalRow} / ${physicalCol}`;
   };
-});
+
+  const gridStyle = computed(() => {
+    const layout = props.layout || { gap_cols: [], gap_rows: [] };
+    const gapCols = layout.gap_cols || [];
+    
+    let maxStandardCols = 10;
+    if (props.seats && props.seats.length > 0) {
+      maxStandardCols = Math.max(...props.seats.map(s => s.number)) + gapCols.length;
+    }
+    
+    return {
+      gridTemplateColumns: `repeat(${maxStandardCols}, minmax(40px, 1fr))`
+    };
+  });
 
 // --- ADMIN STATE ---
 const adminSelectedIds = ref(new Set()); 
@@ -326,11 +365,10 @@ defineExpose({ clearSelection });
 // --- CSS CLASSES ---
 const getSeatClass = (seat) => {
   let classes = ['seat-base'];
-  
-  if (seat.type === 'standard') classes.push('seat-standard');
-  if (seat.type === 'vip') classes.push('seat-vip');
-  if (seat.type === 'couple') classes.push('seat-couple');
-  if (seat.type === 'couple_hidden') classes.push('seat-couple-hidden');
+    if (seat.type === 'standard') classes.push('seat-standard');
+    if (seat.type === 'vip') classes.push('seat-vip');
+    if (seat.type === 'couple') classes.push('seat-couple');
+    if (seat.type === 'couple_hidden') classes.push('seat-couple-hidden');
   
   if (props.mode === 'admin') {
     if (seat.type === 'hidden') classes.push('seat-hidden-admin');
@@ -433,7 +471,7 @@ const getSeatClass = (seat) => {
 
 .seat-standard { background: linear-gradient(145deg, #4b5563, #374151); border-color: #6b7280; }
 .seat-vip { background: linear-gradient(145deg, #ef4444, #b91c1c); border-color: #f87171; color: #fff; }
-.seat-couple { background: linear-gradient(145deg, #ec4899, #be185d); grid-column: span 2; width: 100%; border-color: #f472b6; }
+.seat-couple { background: linear-gradient(145deg, #ec4899, #be185d); width: 100%; border-color: #f472b6; }
 .seat-couple-hidden { display: none !important; }
 
 .seat-booked { background: linear-gradient(145deg, #1f2937, #111827) !important; color: #374151; cursor: not-allowed; opacity: 0.6; box-shadow: inset 0 4px 10px rgba(0,0,0,0.8) !important; }
