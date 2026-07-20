@@ -24,17 +24,17 @@ class WeeklyShowtimeSeeder extends Seeder
 
         $startDate = Carbon::today();
         
-        // Generate 10 random showtimes over the next 7 days
-        for ($i = 0; $i < 10; $i++) {
-            $movie = $movies->random();
-            $room = $rooms->random();
-            $daysToAdd = rand(0, 6);
-            $hours = rand(9, 22);
-            $minutes = array_rand([0 => '00', 1 => '30']);
-            $minutesStr = [0 => '00', 1 => '30'][$minutes];
-            
-            $start = $startDate->copy()->addDays($daysToAdd)->setHour($hours)->setMinute((int)$minutesStr);
-            $end = $start->copy()->addMinutes($movie->duration ?? 120);
+        // Generate 2 showtimes for each movie over the next 7 days
+        foreach ($movies as $movie) {
+            for ($i = 0; $i < 2; $i++) {
+                $room = $rooms->random();
+                $daysToAdd = rand(0, 6);
+                $hours = rand(9, 22);
+                $minutes = array_rand([0 => '00', 1 => '30']);
+                $minutesStr = [0 => '00', 1 => '30'][$minutes];
+                
+                $start = $startDate->copy()->addDays($daysToAdd)->setHour($hours)->setMinute((int)$minutesStr);
+                $end = $start->copy()->addMinutes($movie->duration ?? 120);
 
             $showtime = Showtime::create([
                 'movie_id' => $movie->id,
@@ -60,8 +60,9 @@ class WeeklyShowtimeSeeder extends Seeder
             PriceConfig::create([
                 'showtime_id' => $showtime->id,
                 'seat_type' => 'couple',
-                'price' => 140000
+                'price' => rand(150, 180) * 1000
             ]);
+            }
         }
     }
 }

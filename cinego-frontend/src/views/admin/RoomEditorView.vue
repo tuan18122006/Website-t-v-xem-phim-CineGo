@@ -74,33 +74,6 @@ const handleSelectionChanged = (selectedIds) => {
   currentSelectedIds.value = selectedIds;
 };
 
-// Thuật toán dọn dẹp các "Ghế Đôi Nửa Cứng" bị mồ côi
-const cleanupCoupleHidden = () => {
-  // 1. Quét tìm tất cả ghế 'couple', ép ghế liền kề bên phải thành 'couple_hidden'
-  for (let i = 0; i < seats.value.length; i++) {
-    let seat = seats.value[i];
-    if (seat.type === 'couple') {
-      let nextSeat = seats.value.find(s => s.row === seat.row && s.number === seat.number + 1);
-      if (!nextSeat) {
-        seat.type = 'standard'; // Không có cặp -> Trở thành ghế thường
-      } else if (nextSeat.type !== 'couple_hidden') {
-        nextSeat.type = 'couple_hidden'; // Ép ghế cạnh tàng hình để nhường chỗ cho span 2
-      }
-    }
-  }
-  
-  // 2. Quét tìm tất cả 'couple_hidden', nếu ghế bên trái nó KHÔNG phải 'couple' -> Nó bị mồ côi
-  for (let i = 0; i < seats.value.length; i++) {
-    let seat = seats.value[i];
-    if (seat.type === 'couple_hidden') {
-      let prevSeat = seats.value.find(s => s.row === seat.row && s.number === seat.number - 1);
-      if (!prevSeat || prevSeat.type !== 'couple') {
-        seat.type = 'standard'; // Phục hồi lại thành ghế thường
-      }
-    }
-  }
-};
-
 // Chuyển đổi loại ghế cho toàn bộ ghế đang quét chọn
 const changeType = (targetType) => {
   if (currentSelectedIds.value.length === 0) return;
@@ -110,39 +83,12 @@ const changeType = (targetType) => {
       let seat = seats.value.find(s => s.id === id);
       if (seat) seat.type = targetType;
     });
-  } 
-  else if (targetType === 'couple') {
-    // Thuật toán gộp Ghế Đôi (Phải ghép 2 ghế liền kề nhau trên 1 hàng)
-    let seatsByRow = {};
-    
-    // Gom nhóm các ghế đang được chọn theo hàng (row)
+  } else if (targetType === 'couple') {
     currentSelectedIds.value.forEach(id => {
       let seat = seats.value.find(s => s.id === id);
-      if (seat) {
-        if (!seatsByRow[seat.row]) seatsByRow[seat.row] = [];
-        seatsByRow[seat.row].push(seat);
-      }
+      if (seat) seat.type = 'couple';
     });
-
-    for (const row in seatsByRow) {
-      // Sắp xếp theo số ghế từ bé đến lớn
-      let rowSeats = seatsByRow[row].sort((a, b) => a.number - b.number);
-      
-      for (let i = 0; i < rowSeats.length; i++) {
-        // Kiểm tra xem ghế kế tiếp trong mảng quét chọn có liền kề ngoài đời thực hay ko (số thứ tự chênh lệch 1)
-        if (i + 1 < rowSeats.length && rowSeats[i+1].number === rowSeats[i].number + 1) {
-          rowSeats[i].type = 'couple';
-          rowSeats[i+1].type = 'couple_hidden';
-          i++; // Nhảy cóc qua ghế đã ghép
-        } else {
-          rowSeats[i].type = 'standard'; // Ghế lẻ không có cặp
-        }
-      }
-    }
   }
-
-  // Chạy hàm sửa chữa để khôi phục ghế tàng hình hoặc sửa lỗi
-  cleanupCoupleHidden();
 
   // Bỏ chọn (Reset lại mảng)
   if (seatMapRef.value) {
