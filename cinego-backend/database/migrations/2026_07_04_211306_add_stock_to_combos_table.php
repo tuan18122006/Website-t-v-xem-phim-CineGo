@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('combos', function (Blueprint $table) {
-            if (!Schema::hasColumn('combos', 'stock')) {
+        if (!Schema::hasColumn('combos', 'stock')) {
+            Schema::table('combos', function (Blueprint $table) {
                 $table->integer('stock')->default(0)->after('price');
-            }
-        });
+            });
+        }
     }
 
     /**
