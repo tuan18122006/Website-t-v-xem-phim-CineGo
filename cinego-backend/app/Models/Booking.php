@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\RefundRequest;
 
 class Booking extends Model
 {
@@ -20,6 +21,7 @@ class Booking extends Model
         'payment_method',
         'payment_status',
         'booking_status',
+        'order_status',
     ];
 
     public function user(): BelongsTo
@@ -45,5 +47,10 @@ class Booking extends Model
     public function bookingCombos(): HasMany
     {
         return $this->hasMany(BookingCombo::class);
+    }
+
+    public function refundRequests(): HasMany
+    {
+        return $this->hasMany(RefundRequest::class);
     }
 }
