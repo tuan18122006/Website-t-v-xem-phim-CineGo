@@ -21,6 +21,7 @@ const AboutCineGo = () => import("../views/client/AboutCineGoView.vue");
 const RoomManagement = () => import("../views/admin/RoomManagementView.vue");
 const RoomEditor = () => import("../views/admin/RoomEditorView.vue");
 
+
 const AdminDashboard = () => import("../views/admin/DashboardView.vue");
 
 const routes = [
@@ -156,6 +157,12 @@ const routes = [
     name: "admin-VoucherManagement",
     component: () => import("../views/admin/VoucherManager.vue"),
     meta: { requiresAuth: true, role: "admin" }
+  },
+  {
+    path: '/admin/loyalty',
+    name: 'AdminLoyalty',
+    component: () => import('../views/admin/UserLoyaltyManager.vue'),
+    meta: { requiresAuth: true, isAdmin: true }
   },
   {
     path: "/staff",

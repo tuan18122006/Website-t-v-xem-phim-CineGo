@@ -8,32 +8,23 @@
       <aside class="cinego-sidebar">
         <h3 class="sidebar-title">TÀI KHOẢN CINEGO</h3>
         <nav class="cinego-menu">
-          <button
-            class="cinego-menu-btn"
-            :class="{ active: activeTab === 'info' }"
-            @click="activeTab = 'info'"
-          >
+          <button class="cinego-menu-btn" :class="{ active: activeTab === 'info' }" @click="activeTab = 'info'">
             THÔNG TIN CHUNG
           </button>
-          <button
-            class="cinego-menu-btn"
-            :class="{ active: activeTab === 'security' }"
-            @click="activeTab = 'security'"
-          >
+          <button class="cinego-menu-btn" :class="{ active: activeTab === 'loyalty' }" @click="activeTab = 'loyalty'">
+            ƯU ĐÃI & ĐỔI ĐIỂM
+          </button>
+          <button class="cinego-menu-btn" :class="{ active: activeTab === 'my_vouchers' }"
+            @click="activeTab = 'my_vouchers'">
+            VÍ VOUCHER CỦA TÔI
+          </button>
+          <button class="cinego-menu-btn" :class="{ active: activeTab === 'security' }" @click="activeTab = 'security'">
             ĐỔI MẬT KHẨU
           </button>
-          <button
-            class="cinego-menu-btn"
-            :class="{ active: activeTab === 'history' }"
-            @click="activeTab = 'history'"
-          >
+          <button class="cinego-menu-btn" :class="{ active: activeTab === 'history' }" @click="activeTab = 'history'">
             LỊCH SỬ GIAO DỊCH
           </button>
-          <button
-            class="cinego-menu-btn"
-            :class="{ active: activeTab === 'watched' }"
-            @click="activeTab = 'watched'"
-          >
+          <button class="cinego-menu-btn" :class="{ active: activeTab === 'watched' }" @click="activeTab = 'watched'">
             PHIM ĐÃ XEM
           </button>
         </nav>
@@ -43,26 +34,15 @@
         <div class="cinego-member-summary-box">
           <div class="avatar-block">
             <div class="avatar-frame">
-              <img
-                :src="profileForm.avatar_url"
-                alt="Avatar"
-                class="avatar-img"
-              />
+              <img :src="profileForm.avatar_url || '/default-avatar.png'" alt="Avatar" class="avatar-img" />
             </div>
             <label for="avatar-file" class="btn-cinego-small">Thay đổi</label>
-            <input
-              type="file"
-              id="avatar-file"
-              @change="handleAvatarUpload"
-              accept="image/*"
-              hidden
-            />
+            <input type="file" id="avatar-file" @change="handleAvatarUpload" accept="image/*" hidden />
           </div>
 
           <div class="summary-details">
             <p class="welcome-text">
-              Xin chào <strong>{{ profileForm.name }}</strong
-              >,
+              Xin chào <strong>{{ profileForm.name }}</strong>,
             </p>
             <p class="welcome-sub">
               Với trang này, bạn sẽ quản lý được tất cả thông tin tài khoản của
@@ -72,42 +52,216 @@
             <div class="member-stats-grid">
               <div class="stat-col rank-col">
                 <p class="stat-label">Cấp Độ Thẻ</p>
-                <span class="rank-badge-text">⭐ MEMBER</span>
+                <!-- Cập nhật hạng thẻ động -->
+                <span class="rank-badge-text">⭐ {{ loyaltyProfile.membership_tier || 'MEMBER' }}</span>
                 <p class="stat-sub">
-                  Tổng Chi Tiêu: <span class="txt-red">0 đ</span>
+                  Tổng Chi Tiêu: <span class="txt-red">{{ formatPrice(loyaltyProfile.total_spent) }} đ</span>
                 </p>
                 <p class="stat-sub">
-                  Điểm CineGo: <span class="txt-red">0 P</span>
+                  Điểm CineGo: <span class="txt-red">{{ loyaltyProfile.cine_points || 0 }} P</span>
                 </p>
               </div>
               <div class="stat-col">
-                <p class="stat-label">Thẻ quà tặng</p>
-                <p class="stat-value">0 đ</p>
-                <button class="btn-stat-view">Xem</button>
+                <p class="stat-label">Hệ Số Tích Điểm</p>
+                <p class="stat-value">x{{ loyaltyProfile.multiplier || 1 }}</p>
+                <button class="btn-stat-view" @click="activeTab = 'loyalty'">Chi tiết</button>
               </div>
               <div class="stat-col">
-                <p class="stat-label">Voucher</p>
-                <p class="stat-value">0</p>
-                <button class="btn-stat-view">Xem</button>
+                <p class="stat-label">Voucher Đổi Được</p>
+                <p class="stat-value">{{ availableVouchersCount }}</p>
+                <button class="btn-stat-view" @click="activeTab = 'loyalty'">Đổi ngay</button>
               </div>
               <div class="stat-col">
-                <p class="stat-label">Coupon</p>
-                <p class="stat-value">1</p>
-                <button class="btn-stat-view">Xem</button>
+                <p class="stat-label">Combo Đổi Được</p>
+                <p class="stat-value">{{ availableCombosCount }}</p>
+                <button class="btn-stat-view" @click="activeTab = 'loyalty'">Đổi ngay</button>
               </div>
             </div>
           </div>
         </div>
 
+
         <div class="cinego-tab-dynamic-content">
+          <!-- 🎟️ GIAO DIỆN VÍ VOUCHER CỦA TÔI -->
+          <div v-if="activeTab === 'my_vouchers'" class="cinego-section-block">
+            <div class="cinego-section-title"
+              style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <h3>Ví Voucher Của Tôi</h3>
+              <div class="history-filter-toggle">
+                <button :class="{ active: voucherFilter === 'unused' }" @click="voucherFilter = 'unused'">
+                  Sẵn sàng dùng ({{ unusedVoucherCount }})
+                </button>
+                <button :class="{ active: voucherFilter === 'used' }" @click="voucherFilter = 'used'">
+                  Đã dùng / Hết hạn
+                </button>
+                <button :class="{ active: voucherFilter === 'all' }" @click="voucherFilter = 'all'">
+                  Tất cả
+                </button>
+              </div>
+            </div>
+
+            <!-- 1. Trạng thái đang tải -->
+            <div v-if="loadingMyVouchers" class="cinego-loading"
+              style="padding: 30px; text-align: center; color: #94a3b8;">
+              Đang tải danh sách voucher trong ví...
+            </div>
+
+            <!-- 2. Trạng thái có dữ liệu -->
+            <div v-else-if="filteredMyVouchers.length > 0" class="my-vouchers-grid"
+              style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-top: 15px;">
+              <div v-for="item in filteredMyVouchers" :key="item.id" :style="{
+                border: '1px solid #e2e8f0',
+                padding: '15px',
+                borderRadius: '8px',
+                background: (item.is_used || item.is_expired) ? '#f1f5f9' : '#fff',
+                opacity: (item.is_used || item.is_expired) ? '0.7' : '1',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                position: 'relative',
+                borderLeft: (item.is_used || item.is_expired) ? '5px solid #94a3b8' : '5px solid var(--accent-red)'
+              }">
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <h4 style="color: var(--accent-red); font-weight: 800; font-size: 16px; margin: 0;">{{ item.code }}
+                    </h4>
+                    <span v-if="item.is_used"
+                      style="background: #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">Đã
+                      dùng</span>
+                    <span v-else-if="item.is_expired"
+                      style="background: #fef3c7; color: #d97706; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">Hết
+                      hạn</span>
+                  </div>
+
+                  <p class="voucher-desc" style="font-size: 13px; color: #64748b; margin-top: 4px;">
+                    {{ item.description || (item.type === 'combo' ? 'Ưu đãi Bắp Nước' : 'Voucher giảm giá vé') }}
+                  </p>
+                  <p style="font-size: 12px; color: #64748b; margin-bottom: 8px;" v-if="item.min_order_value > 0">
+                    Đơn tối thiểu: {{ formatPrice(item.min_order_value) }}đ
+                  </p>
+                  <p style="font-size: 11.5px; color: #94a3b8; margin: 0;">
+                    HSD: {{ item.end_date ? formatDate(item.end_date) : 'Không giới hạn' }}
+                  </p>
+                </div>
+
+                <div style="margin-top: 15px; text-align: right;">
+                  <router-link v-if="!item.is_used && !item.is_expired" to="/quick-booking" class="btn-cinego-small"
+                    style="text-decoration: none; display: inline-block;">
+                    DÙNG NGAY
+                  </router-link>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Trạng thái không có voucher nào -->
+            <div v-else class="text-center empty-msg" style="padding: 40px; color: #94a3b8;">
+              Chưa có voucher nào trong danh mục này.
+            </div>
+          </div>
+
+          <div v-if="activeTab === 'loyalty'" class="cinego-section-block">
+            <div class="cinego-section-title">
+              <h3>Đổi điểm tích lũy nhận ưu đãi</h3>
+              <div class="history-filter-toggle">
+                <button :class="{ active: loyaltySubTab === 'vouchers' }" @click="loyaltySubTab = 'vouchers'">
+                  🎟️ Đổi Voucher
+                </button>
+                <button :class="{ active: loyaltySubTab === 'combos' }" @click="loyaltySubTab = 'combos'">
+                  🍿 Đổi Combo
+                </button>
+                <button :class="{ active: loyaltySubTab === 'history' }" @click="loyaltySubTab = 'history'">
+                  📜 Lịch Sử Điểm
+                </button>
+              </div>
+            </div>
+
+            <!-- 1. TAB ĐỔI VOUCHER -->
+            <div v-if="loyaltySubTab === 'vouchers'">
+              <div v-if="redeemableVouchers.length > 0" class="loyalty-grid"
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                <div v-for="item in redeemableVouchers" :key="item.id"
+                  style="border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; background: #f8fafc; display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <h4 style="color: var(--accent-red); font-weight: 800; font-size: 16px; margin: 0 0 5px 0;">{{
+                      item.code }}</h4>
+                    <p style="font-size: 13px; color: #475569; margin-bottom: 10px;">
+                      {{ item.description || 'Voucher giảm giá vé xem phim' }}
+                    </p>
+                    <span
+                      style="background: #fef3c7; color: #d97706; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 12px;">
+                      Yêu cầu: {{ item.points_required }} điểm
+                    </span>
+                  </div>
+                  <button @click="handleRedeemVoucher(item)"
+                    :disabled="loyaltyProfile.cine_points < item.points_required || btnLoading" class="btn-cinego-small"
+                    style="margin-top: 12px; width: 100%; text-align: center; justify-content: center;">
+                    {{ loyaltyProfile.cine_points < item.points_required ? 'Chưa đủ điểm' : 'ĐỔI NGAY' }} </button>
+                </div>
+              </div>
+              <div v-else class="text-center empty-msg" style="padding: 30px; color: #94a3b8;">
+                Hiện chưa có Voucher nào hỗ trợ đổi bằng điểm.
+              </div>
+            </div>
+
+            <!-- 2. TAB ĐỔI COMBO -->
+            <div v-if="loyaltySubTab === 'combos'">
+              <div v-if="redeemableCombos.length > 0" class="loyalty-grid"
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                <div v-for="item in redeemableCombos" :key="item.id"
+                  style="border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; background: #f8fafc; display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <h4 style="color: #1e293b; font-weight: 800; font-size: 16px; margin: 0 0 5px 0;">{{ item.name }}
+                    </h4>
+                    <p style="font-size: 13px; color: #475569; margin-bottom: 10px;">{{ item.description }}</p>
+                    <span
+                      style="background: #fef3c7; color: #d97706; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 12px;">
+                      Yêu cầu: {{ item.points_required }} điểm
+                    </span>
+                  </div>
+                  <button @click="handleRedeemCombo(item)"
+                    :disabled="loyaltyProfile.cine_points < item.points_required || btnLoading" class="btn-cinego-small"
+                    style="margin-top: 12px; width: 100%; text-align: center; justify-content: center;">
+                    {{ btnLoading ? 'Đang xử lý...' : (loyaltyProfile.cine_points < item.points_required
+                      ? 'Chưa đủ điểm' : 'ĐỔI NGAY') }} </button>
+                </div>
+              </div>
+              <div v-else class="text-center empty-msg" style="padding: 30px; color: #94a3b8;">
+                Hiện chưa có Combo bắp nước nào hỗ trợ đổi bằng điểm.
+              </div>
+            </div>
+
+            <!-- 3. TAB LỊCH SỬ ĐIỂM -->
+            <div v-if="loyaltySubTab === 'history'" style="margin-top: 15px;">
+              <table class="cinego-table">
+                <thead>
+                  <tr>
+                    <th>Thời gian</th>
+                    <th>Loại giao dịch</th>
+                    <th>Nội dung</th>
+                    <th style="text-align: right;">Điểm</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="log in pointHistories" :key="log.id">
+                    <td>{{ formatDate(log.created_at) }}</td>
+                    <td style="font-weight: bold; color: #1e293b;">{{ formatLogType(log.type) }}</td>
+                    <td>{{ log.description }}</td>
+                    <td style="text-align: right; font-weight: 800;"
+                      :style="{ color: log.points > 0 ? '#10b981' : '#ef4444' }">
+                      {{ log.points > 0 ? '+' : '' }}{{ log.points }} P
+                    </td>
+                  </tr>
+                  <tr v-if="pointHistories.length === 0">
+                    <td colspan="4" class="text-center empty-msg">Chưa có lịch sử tích/trừ điểm nào.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
           <div v-if="activeTab === 'info'" class="cinego-section-block">
             <div class="cinego-section-title">
               <h3>Thông tin tài khoản</h3>
-              <button
-                type="button"
-                @click="isEditingInfo = !isEditingInfo"
-                class="btn-cinego-small"
-              >
+              <button type="button" @click="isEditingInfo = !isEditingInfo" class="btn-cinego-small">
                 {{ isEditingInfo ? "Hủy" : "Thay đổi" }}
               </button>
             </div>
@@ -115,13 +269,7 @@
             <form @submit.prevent="updateProfile" class="cinego-info-form">
               <div class="info-data-row">
                 <span class="info-label">Tên :</span>
-                <input
-                  v-if="isEditingInfo"
-                  type="text"
-                  v-model="profileForm.name"
-                  class="cinego-input"
-                  required
-                />
+                <input v-if="isEditingInfo" type="text" v-model="profileForm.name" class="cinego-input" required />
                 <span v-else class="info-text">{{ profileForm.name }}</span>
               </div>
               <div class="info-data-row">
@@ -132,38 +280,20 @@
               </div>
               <div class="info-data-row">
                 <span class="info-label">Điện thoại :</span>
-                <input
-                  v-if="isEditingInfo"
-                  type="text"
-                  v-model="profileForm.phone"
-                  class="cinego-input"
-                />
+                <input v-if="isEditingInfo" type="text" v-model="profileForm.phone" class="cinego-input" />
                 <span v-else class="info-text">{{
                   profileForm.phone || "Chưa cập nhật"
                 }}</span>
               </div>
-              <div
-                class="info-data-row"
-                v-if="isEditingInfo || profileForm.birthday"
-              >
+              <div class="info-data-row" v-if="isEditingInfo || profileForm.birthday">
                 <span class="info-label">Ngày sinh :</span>
-                <input
-                  v-if="isEditingInfo"
-                  type="date"
-                  v-model="profileForm.birthday"
-                  class="cinego-input"
-                />
+                <input v-if="isEditingInfo" type="date" v-model="profileForm.birthday" class="cinego-input" />
                 <span v-else class="info-text">{{
                   formatDate(profileForm.birthday)
                 }}</span>
               </div>
 
-              <button
-                type="submit"
-                v-if="isEditingInfo"
-                class="btn-cinego-submit"
-                :disabled="btnLoading"
-              >
+              <button type="submit" v-if="isEditingInfo" class="btn-cinego-submit" :disabled="btnLoading">
                 {{ btnLoading ? "Đang lưu..." : "LƯU THÔNG TIN" }}
               </button>
             </form>
@@ -176,42 +306,21 @@
             <form @submit.prevent="changePassword" class="cinego-info-form">
               <div class="info-data-row column-layout">
                 <label class="info-label">Mật khẩu hiện tại:</label>
-                <input
-                  type="password"
-                  v-model="passwordForm.old_password"
-                  class="cinego-input wide"
-                  required
-                  placeholder=""
-                />
+                <input type="password" v-model="passwordForm.old_password" class="cinego-input wide" required
+                  placeholder="" />
               </div>
               <div class="info-data-row column-layout">
-                <label class="info-label"
-                  >Mật khẩu mới (Tối thiểu 8 ký tự):</label
-                >
-                <input
-                  type="password"
-                  v-model="passwordForm.new_password"
-                  class="cinego-input wide"
-                  required
-                  placeholder=""
-                />
+                <label class="info-label">Mật khẩu mới (Tối thiểu 8 ký tự):</label>
+                <input type="password" v-model="passwordForm.new_password" class="cinego-input wide" required
+                  placeholder="" />
               </div>
               <div class="info-data-row column-layout">
                 <label class="info-label">Xác nhận mật khẩu mới:</label>
-                <input
-                  type="password"
-                  v-model="passwordForm.confirm_password"
-                  class="cinego-input wide"
-                  required
-                  placeholder=""
-                />
+                <input type="password" v-model="passwordForm.confirm_password" class="cinego-input wide" required
+                  placeholder="" />
               </div>
 
-              <button
-                type="submit"
-                class="btn-cinego-submit red-btn"
-                :disabled="btnLoading"
-              >
+              <button type="submit" class="btn-cinego-submit red-btn" :disabled="btnLoading">
                 {{ btnLoading ? "Đang xử lý..." : "CẬP NHẬT MẬT KHẨU" }}
               </button>
             </form>
@@ -221,16 +330,10 @@
             <div class="cinego-section-title">
               <h3>Lịch sử giao dịch đặt vé</h3>
               <div class="history-filter-toggle">
-                <button
-                  :class="{ active: subTab === 'upcoming' }"
-                  @click="subTab = 'upcoming'"
-                >
+                <button :class="{ active: subTab === 'upcoming' }" @click="subTab = 'upcoming'">
                   Vé sắp chiếu
                 </button>
-                <button
-                  :class="{ active: subTab === 'past' }"
-                  @click="subTab = 'past'"
-                >
+                <button :class="{ active: subTab === 'past' }" @click="subTab = 'past'">
                   Vé cũ
                 </button>
               </div>
@@ -262,12 +365,12 @@
                       {{
                         ticket.seats
                           ? ticket.seats
-                              .map((seat) =>
-                                typeof seat === "object"
-                                  ? `${seat.row}${seat.number}`
-                                  : seat,
-                              )
-                              .join(", ")
+                            .map((seat) =>
+                              typeof seat === "object"
+                                ? `${seat.row}${seat.number}`
+                                : seat,
+                            )
+                            .join(", ")
                           : ""
                       }}
                     </td>
@@ -276,20 +379,13 @@
                     </td>
                     <td>
                       <div class="table-actions">
-                        <button
-                          v-if="subTab === 'upcoming'"
-                          @click="viewQrCode(ticket)"
-                          class="btn-table-action"
-                        >
+                        <button v-if="subTab === 'upcoming'" @click="viewQrCode(ticket)" class="btn-table-action">
                           Mã QR
                         </button>
                         <span v-else class="badge badge-success">
                           Đã chiếu
                         </span>
-                        <button
-                          @click="viewDetails(ticket)"
-                          class="btn-table-action"
-                        >
+                        <button @click="viewDetails(ticket)" class="btn-table-action">
                           Chi Tiết
                         </button>
                       </div>
@@ -304,32 +400,19 @@
               </table>
 
               <!-- Pagination Controls -->
-              <div
-                class="pagination-wrapper"
-                style="
+              <div class="pagination-wrapper" style="
                   display: flex;
                   justify-content: center;
                   gap: 10px;
                   margin-top: 20px;
-                "
-              >
-                <button
-                  class="btn-pagination"
-                  :disabled="historyPage === 1"
-                  @click="historyPage--"
-                >
+                ">
+                <button class="btn-pagination" :disabled="historyPage === 1" @click="historyPage--">
                   Trước
                 </button>
-                <span
-                  style="font-size: 14px; font-weight: bold; align-self: center"
-                >
+                <span style="font-size: 14px; font-weight: bold; align-self: center">
                   Trang {{ historyPage }} / {{ totalPages }}
                 </span>
-                <button
-                  class="btn-pagination"
-                  :disabled="historyPage === totalPages"
-                  @click="historyPage++"
-                >
+                <button class="btn-pagination" :disabled="historyPage === totalPages" @click="historyPage++">
                   Sau
                 </button>
               </div>
@@ -343,74 +426,50 @@
       </main>
     </div>
 
-    <div
-      v-if="isQrModalOpen"
-      class="modal-overlay"
-      @click.self="isQrModalOpen = false"
-    >
-      <div
-        class="modal-content"
-        style="padding: 24px; text-align: center; position: relative"
-      >
-        <button
-          class="btn-close"
-          @click="isQrModalOpen = false"
-          style="
+    <div v-if="isQrModalOpen" class="modal-overlay" @click.self="isQrModalOpen = false">
+      <div class="modal-content" style="padding: 24px; text-align: center; position: relative">
+        <button class="btn-close" @click="isQrModalOpen = false" style="
             position: absolute;
             top: 10px;
             right: 10px;
             background: #e2e8f0;
             color: #1e293b;
-          "
-        >
+          ">
           ✕
         </button>
-        <h3
-          style="
+        <h3 style="
             font-weight: 800;
             color: var(--accent-red);
             margin-bottom: 15px;
-          "
-        >
+          ">
           MÃ VÉ CINEGO
         </h3>
         <p class="modal-movie-title" style="font-weight: bold; font-size: 16px">
           {{ selectedTicket?.movie_title }}
         </p>
-        <div
-          class="qr-img-wrapper"
-          style="
+        <div class="qr-img-wrapper" style="
             background: #fff;
             padding: 15px;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             display: inline-block;
             margin: 15px 0;
-          "
-        >
-          <img
-            :src="getQrUrl(selectedTicket?.booking_code)"
-            alt="QR Code"
-          />
+          ">
+          <img :src="getQrUrl(selectedTicket?.booking_code)" alt="QR Code" />
         </div>
         <p class="modal-code" style="font-size: 14px; margin-bottom: 10px">
           Mã đặt vé:
-          <span
-            style="font-weight: 800; font-size: 18px; color: var(--accent-red)"
-            >{{ selectedTicket?.booking_code }}</span
-          >
+          <span style="font-weight: 800; font-size: 18px; color: var(--accent-red)">{{ selectedTicket?.booking_code
+          }}</span>
         </p>
-        <div
-          class="modal-meta-box"
-          style="
+        <div class="modal-meta-box" style="
             background: #f8fafc;
             border-radius: 8px;
             padding: 12px;
             text-align: left;
             font-size: 13px;
             color: #475569;
-          "
-        >
+          ">
           <p style="margin: 0 0 5px 0">
             Phòng: <strong>{{ selectedTicket?.room_name }}</strong> | Ghế:
             <strong>{{ selectedTicket?.seats.join(", ") }}</strong>
@@ -426,14 +485,8 @@
 
 
     <!-- Modal Chi Tiết Đơn Hàng -->
-    <div
-      v-if="isDetailModalOpen"
-      class="modal-overlay"
-      @click.self="isDetailModalOpen = false"
-    >
-      <div
-        class="modal-content detail-modal-wrapper hide-scrollbar"
-        style="
+    <div v-if="isDetailModalOpen" class="modal-overlay" @click.self="isDetailModalOpen = false">
+      <div class="modal-content detail-modal-wrapper hide-scrollbar" style="
           max-width: 650px;
           width: 90%;
           text-align: left;
@@ -449,22 +502,16 @@
 
           scrollbar-width: none;
           -ms-overflow-style: none;
-        "
-      >
-        <div
-          style="
+        ">
+        <div style="
             background: linear-gradient(135deg, var(--accent-red), #990000);
             padding: 20px;
             position: relative;
             color: white;
             text-align: center;
             flex-shrink: 0;
-          "
-        >
-          <button
-            class="btn-close"
-            @click="isDetailModalOpen = false"
-            style="
+          ">
+          <button class="btn-close" @click="isDetailModalOpen = false" style="
               color: white;
               background: rgba(0, 0, 0, 0.2);
               border-radius: 50%;
@@ -479,18 +526,15 @@
               font-size: 16px;
               border: none;
               cursor: pointer;
-            "
-          >
+            ">
             ✕
           </button>
-          <h3
-            style="
+          <h3 style="
               margin: 0;
               font-size: 19px; /* Tăng nhẹ font chữ tiêu đề */
               font-weight: 800;
               letter-spacing: 1px;
-            "
-          >
+            ">
             CHI TIẾT ĐƠN HÀNG
           </h3>
           <p style="margin: 5px 0 0; font-size: 14px; opacity: 0.9">
@@ -501,102 +545,72 @@
         <div style="padding: 25px; background: white; flex: 1">
           <div style="display: flex; gap: 15px; margin-bottom: 20px">
             <div style="flex: 1">
-              <h4
-                style="
+              <h4 style="
                   font-size: 19px; /* Tăng kích thước tên phim */
                   color: #1e293b;
                   margin: 0 0 8px 0;
                   font-weight: 800;
-                "
-              >
+                ">
                 {{ selectedTicket?.movie_title }}
               </h4>
               <p style="margin: 0 0 5px 0; color: #475569; font-size: 14.5px">
-                <span style="display: inline-block; width: 95px; color: #94a3b8"
-                  >Suất chiếu:</span
-                >
-                <strong
-                  >{{ selectedTicket?.start_time }} -
-                  {{ formatDate(selectedTicket?.date) }}</strong
-                >
+                <span style="display: inline-block; width: 95px; color: #94a3b8">Suất chiếu:</span>
+                <strong>{{ selectedTicket?.start_time }} -
+                  {{ formatDate(selectedTicket?.date) }}</strong>
               </p>
               <p style="margin: 0 0 5px 0; color: #475569; font-size: 14.5px">
-                <span style="display: inline-block; width: 95px; color: #94a3b8"
-                  >Phòng chiếu:</span
-                >
+                <span style="display: inline-block; width: 95px; color: #94a3b8">Phòng chiếu:</span>
                 <strong>{{ selectedTicket?.room_name }}</strong>
               </p>
               <p style="margin: 0; color: #475569; font-size: 14.5px">
-                <span style="display: inline-block; width: 95px; color: #94a3b8"
-                  >Thời gian đặt:</span
-                >
+                <span style="display: inline-block; width: 95px; color: #94a3b8">Thời gian đặt:</span>
                 {{ selectedTicket?.created_at }}
               </p>
             </div>
           </div>
 
-          <div
-            v-if="
-              categorizedSeats.standard.length ||
-              categorizedSeats.vip.length ||
-              categorizedSeats.couple.length
-            "
-            style="
+          <div v-if="
+            categorizedSeats.standard.length ||
+            categorizedSeats.vip.length ||
+            categorizedSeats.couple.length
+          " style="
               margin-bottom: 20px;
               background: #f8fafc;
               padding: 15px;
               border-radius: 8px;
               border: 1px solid #f1f5f9;
-            "
-          >
-            <h5
-              style="
+            ">
+            <h5 style="
                 margin: 0 0 10px 0;
                 font-size: 14px;
                 color: #1e293b;
                 font-weight: 700;
-              "
-            >
+              ">
               💺 Ghế Ngồi:
             </h5>
-            <ul
-              style="
+            <ul style="
                 margin: 0;
                 padding: 0;
                 font-size: 14.5px;
                 color: #475569;
                 list-style-type: none;
-              "
-            >
-              <li
-                v-if="categorizedSeats.standard.length > 0"
-                style="margin-bottom: 6px; display: flex; align-items: center"
-              >
-                <span style="display: inline-block; width: 95px; color: #94a3b8"
-                  >Ghế thường:</span
-                >
+              ">
+              <li v-if="categorizedSeats.standard.length > 0"
+                style="margin-bottom: 6px; display: flex; align-items: center">
+                <span style="display: inline-block; width: 95px; color: #94a3b8">Ghế thường:</span>
                 <strong style="color: var(--accent-pink); font-weight: 700">{{
                   categorizedSeats.standard.join(", ")
                 }}</strong>
               </li>
-              <li
-                v-if="categorizedSeats.vip.length > 0"
-                style="margin-bottom: 6px; display: flex; align-items: center"
-              >
-                <span style="display: inline-block; width: 95px; color: #94a3b8"
-                  >Ghế VIP:</span
-                >
+              <li v-if="categorizedSeats.vip.length > 0" style="margin-bottom: 6px; display: flex; align-items: center">
+                <span style="display: inline-block; width: 95px; color: #94a3b8">Ghế VIP:</span>
                 <strong style="color: #f59e0b; font-weight: 700">{{
                   categorizedSeats.vip.join(", ")
                 }}</strong>
               </li>
-              <li
-                v-if="categorizedSeats.couple.length > 0"
-                style="margin-bottom: 0; display: flex; align-items: center"
-              >
-                <span style="display: inline-block; width: 95px; color: #94a3b8"
-                  >Ghế đôi:</span
-                >
+              <li v-if="categorizedSeats.couple.length > 0"
+                style="margin-bottom: 0; display: flex; align-items: center">
+                <span style="display: inline-block; width: 95px; color: #94a3b8">Ghế đôi:</span>
                 <strong style="color: #ef4444; font-weight: 700">{{
                   categorizedSeats.couple.join(", ")
                 }}</strong>
@@ -604,93 +618,66 @@
             </ul>
           </div>
 
-          <div
-            v-if="selectedTicket?.combos && selectedTicket.combos.length > 0"
-            style="
+          <div v-if="selectedTicket?.combos && selectedTicket.combos.length > 0" style="
               margin-bottom: 20px;
               background: #f8fafc;
               padding: 15px;
               border-radius: 8px;
               border: 1px solid #f1f5f9;
-            "
-          >
-            <h5
-              style="
+            ">
+            <h5 style="
                 margin: 0 0 10px 0;
                 font-size: 14px;
                 color: #1e293b;
                 font-weight: 700;
-              "
-            >
+              ">
               🍿 Bắp Nước:
             </h5>
-            <ul
-              style="
+            <ul style="
                 margin: 0;
                 padding-left: 20px;
                 font-size: 14.5px;
                 color: #475569;
-              "
-            >
-              <li
-                v-for="(combo, idx) in selectedTicket.combos"
-                :key="idx"
-                style="margin-bottom: 4px"
-              >
+              ">
+              <li v-for="(combo, idx) in selectedTicket.combos" :key="idx" style="margin-bottom: 4px">
                 {{ combo }}
               </li>
             </ul>
           </div>
 
           <div style="border-top: 2px dashed #e2e8f0; padding-top: 20px">
-            <div
-              style="
+            <div style="
                 display: flex;
                 justify-content: space-between;
                 margin-bottom: 8px;
                 font-size: 14.5px;
                 color: #475569;
-              "
-              v-if="selectedTicket?.total_ticket_price > 0"
-            >
+              " v-if="selectedTicket?.total_ticket_price > 0">
               <span>Tổng tiền vé:</span>
-              <span style="font-weight: 600"
-                >{{ formatPrice(selectedTicket?.total_ticket_price) }}đ</span
-              >
+              <span style="font-weight: 600">{{ formatPrice(selectedTicket?.total_ticket_price) }}đ</span>
             </div>
-            <div
-              style="
+            <div style="
                 display: flex;
                 justify-content: space-between;
                 margin-bottom: 12px;
                 font-size: 14.5px;
                 color: #475569;
-              "
-              v-if="selectedTicket?.total_combo_price > 0"
-            >
+              " v-if="selectedTicket?.total_combo_price > 0">
               <span>Tổng tiền bắp nước:</span>
-              <span style="font-weight: 600"
-                >{{ formatPrice(selectedTicket?.total_combo_price) }}đ</span
-              >
+              <span style="font-weight: 600">{{ formatPrice(selectedTicket?.total_combo_price) }}đ</span>
             </div>
-            <div
-              style="
+            <div style="
                 display: flex;
                 justify-content: space-between;
                 margin-bottom: 15px;
                 font-size: 14.5px;
                 color: #10b981;
-              "
-              v-if="selectedTicket?.discount_amount > 0"
-            >
+              " v-if="selectedTicket?.discount_amount > 0">
               <span>Mã giảm giá:</span>
-              <span style="font-weight: 600"
-                >-{{ formatPrice(selectedTicket?.discount_amount) }}đ</span
-              >
+              <span style="font-weight: 600">-{{ formatPrice(selectedTicket?.discount_amount) }}đ</span>
             </div>
 
-            <div
-              style="
+            <div style="
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
@@ -698,25 +685,19 @@
                 padding: 15px;
                 border-radius: 8px;
                 border: 1px solid #ffe4e6;
-              "
-            >
-              <span style="font-weight: 700; color: #1e293b; font-size: 15px"
-                >Tổng thanh toán:</span
-              >
-              <span
-                style="
+              ">
+              <span style="font-weight: 700; color: #1e293b; font-size: 15px">Tổng thanh toán:</span>
+              <span style="
                   color: var(--accent-pink);
                   font-size: 21px;
                   font-weight: 800;
-                "
-              >
+                ">
                 {{ formatPrice(selectedTicket?.total_price) }}đ
               </span>
             </div>
           </div>
 
-          <div
-            style="
+          <div style="
               margin-top: 20px;
               display: flex;
               justify-content: space-between;
@@ -724,31 +705,25 @@
               font-size: 14px;
               padding-top: 15px;
               border-top: 1px solid #f1f5f9;
-            "
-          >
+            ">
             <div>
               <span style="color: #94a3b8">Hình thức:</span>
-              <strong
-                style="
+              <strong style="
                   text-transform: uppercase;
                   color: #334155;
                   margin-left: 5px;
-                "
-                >{{ selectedTicket?.payment_method }}</strong
-              >
+                ">{{ selectedTicket?.payment_method }}</strong>
             </div>
-            <div
-              :style="{
-                padding: '4px 12px',
-                borderRadius: '20px',
-                fontSize: '12.5px',
-                fontWeight: '700',
-                backgroundColor:
-                  selectedTicket?.status === 'paid' ? '#d1fae5' : '#fee2e2',
-                color:
-                  selectedTicket?.status === 'paid' ? '#059669' : '#dc2626',
-              }"
-            >
+            <div :style="{
+              padding: '4px 12px',
+              borderRadius: '20px',
+              fontSize: '12.5px',
+              fontWeight: '700',
+              backgroundColor:
+                selectedTicket?.status === 'paid' ? '#d1fae5' : '#fee2e2',
+              color:
+                selectedTicket?.status === 'paid' ? '#059669' : '#dc2626',
+            }">
               {{ selectedTicket?.status_label }}
             </div>
           </div>
@@ -767,6 +742,13 @@ import Swal from "sweetalert2";
 import WatchedMoviesList from "../../components/WatchedMoviesList.vue";
 
 import { useRoute } from "vue-router";
+import {
+  getLoyaltyProfile,
+  getRedeemableVouchers,
+  getRedeemableCombos,
+  redeemVoucher,
+  redeemCombo
+} from '../../../src/api/loyalty.js';
 
 const route = useRoute();
 const activeTab = ref(route.query.tab || "info");
@@ -777,6 +759,8 @@ const loadingHistory = ref(false);
 const isQrModalOpen = ref(false);
 const isDetailModalOpen = ref(false);
 const selectedTicket = ref(null);
+const loyaltySubTab = ref('vouchers');
+const voucherFilter = ref('unused');
 
 const defaultAvatar =
   "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80";
@@ -981,9 +965,187 @@ const categorizedSeats = computed(() => {
   return result;
 });
 
+const loyaltyProfile = ref({
+  cine_points: 0,
+  membership_tier: 'MEMBER',
+  total_spent: 0,
+  multiplier: 1
+});
+const pointHistories = ref([]);
+const redeemableVouchers = ref([]);
+const redeemableCombos = ref([]);
+
+const fetchLoyaltyData = async () => {
+  try {
+    const [resProfile, resVouchers, resCombos] = await Promise.all([
+      getLoyaltyProfile(),
+      getRedeemableVouchers(),
+      getRedeemableCombos()
+    ]);
+
+    loyaltyProfile.value = resProfile.data.data;
+    pointHistories.value = resProfile.data.data.histories.data || [];
+    redeemableVouchers.value = resVouchers.data.data || [];
+    redeemableCombos.value = resCombos.data.data || [];
+  } catch (error) {
+    console.error("Lỗi lấy thông tin Loyalty:", error);
+  }
+};
+
+const handleRedeemVoucher = async (voucher) => {
+  if (!confirm(`Bạn có chắc muốn dùng ${voucher.points_required} điểm để đổi Voucher [${voucher.code}]?`)) return;
+  try {
+    const res = await redeemVoucher(voucher.id);
+    alert(res.data.message || 'Đổi thành công!');
+    fetchLoyaltyData();
+  } catch (err) {
+    alert(err.response?.data?.message || 'Có lỗi xảy ra!');
+  }
+};
+
+
+
+const unusedVoucherCount = computed(() => {
+  return myVouchers.value.filter(item => !item.is_used && !item.is_expired).length;
+});
+
+const getVoucherDesc = (item) => {
+  return item.description || 'Voucher giảm giá vé xem phim';
+};
+
+// Hàm xử lý Đổi Combo
+const handleRedeemCombo = async (combo) => {
+  console.log("Combo đổi:", combo);
+
+  const targetComboId = combo.combo_id || combo.id;
+  if (!targetComboId) {
+    alert("Không tìm thấy ID của Combo!");
+    return;
+  }
+
+  if (btnLoading.value) return;
+
+  btnLoading.value = true;
+  try {
+    const res = await api.post('/loyalty/redeem-combo', {
+      combo_id: targetComboId
+    });
+
+    if (res.data?.success || res.data?.status === 'success') {
+      alert(res.data?.message || "Đổi Combo thành công!");
+
+
+      try {
+        await fetchLoyaltyProfile();
+      } catch (fetchErr) {
+        console.error("Lỗi cập nhật lại thông tin sau khi đổi:", fetchErr);
+      }
+
+    } else {
+      alert(res.data?.message || "Đổi combo thất bại!");
+    }
+
+  } catch (error) {
+    console.error("Lỗi đổi combo:", error);
+    alert(error.response?.data?.message || "Đổi combo thất bại!");
+  } finally {
+    btnLoading.value = false;
+  }
+};
+
+const formatLogType = (type) => {
+  const typeMap = {
+    'booking_earning': 'Tích điểm đặt vé',
+    'redemption': 'Đổi ưu đãi',
+    'admin_adjustment': 'Điều chỉnh',
+    'expired': 'Hết hạn điểm',
+    'earn': 'Cộng điểm thưởng',
+  };
+  return typeMap[type] || type;
+};
+const myVouchers = ref([]);
+const loadingMyVouchers = ref(false);
+const availableVouchersCount = computed(() => {
+  if (!redeemableVouchers.value || !loyaltyProfile.value.cine_points) return 0;
+  return redeemableVouchers.value.filter(
+    v => loyaltyProfile.value.cine_points >= v.points_required
+  ).length;
+});
+const availableCombosCount = computed(() => {
+  if (!redeemableCombos.value || !loyaltyProfile.value.cine_points) return 0;
+  return redeemableCombos.value.filter(
+    c => loyaltyProfile.value.cine_points >= c.points_required
+  ).length;
+});
+
+const fetchMyVouchers = async () => {
+  loadingMyVouchers.value = true;
+  try {
+    const res = await api.get('/client/my-vouchers');
+    const rawData = res.data.data || res.data || [];
+
+    myVouchers.value = rawData.map(v => {
+      const isCombo = Boolean(v.combo_id || v.combo || v.user_combo_id);
+      const detail = v.voucher || v.combo || {};
+
+      // Kiểm tra trạng thái sử dụng từ nhiều field khả dĩ
+      const isUsedStatus = Boolean(
+        v.is_used === true || 
+        v.is_used === 1 || 
+        v.is_used === "1" || 
+        v.status === 'used'
+      );
+
+      // Kiểm tra trạng thái hết hạn
+      const isExpiredStatus = Boolean(
+        v.is_expired === true || 
+        v.is_expired === 1 || 
+        v.status === 'expired' ||
+        (v.end_date && new Date(v.end_date) < new Date())
+      );
+
+      return {
+        id: v.id,
+        code: isCombo
+          ? (detail.name || v.name || 'COMBO BẮP NƯỚC')
+          : (v.code || detail.code || 'VOUCHER'),
+        description: detail.description || v.description || null,
+        title: detail.title || detail.name || (isCombo ? 'Ưu đãi Bắp Nước' : 'Voucher giảm giá vé'),
+        min_order_value: detail.min_order_value || v.min_order_value || 0,
+        end_date: v.end_date || v.expiry_date || v.expires_at || detail.end_date || null,
+        
+        is_used: isUsedStatus,
+        is_expired: isExpiredStatus,
+        type: isCombo ? 'combo' : 'voucher'
+      };
+    });
+  } catch (err) {
+    console.error('Lỗi khi tải ví voucher:', err);
+    myVouchers.value = [];
+  } finally {
+    loadingMyVouchers.value = false;
+  }
+};
+
+const filteredMyVouchers = computed(() => {
+  if (voucherFilter.value === 'unused') {
+    return myVouchers.value.filter(item => !item.is_used && !item.is_expired);
+  } else if (voucherFilter.value === 'used') {
+    return myVouchers.value.filter(item => item.is_used || item.is_expired);
+  }
+  return myVouchers.value;
+});
+
+watch(activeTab, (newTab) => {
+  if (newTab === 'my_vouchers') {
+    fetchMyVouchers();
+  }
+}, { immediate: true });
+
 onMounted(() => {
   fetchUserData();
   fetchBookingHistory();
+  fetchLoyaltyData();
 });
 </script>
 
@@ -1144,7 +1306,8 @@ onMounted(() => {
   border-radius: var(--radius-md);
   font-size: 14.5px;
   font-weight: 700;
-  color: #4b5563; /* Darker grey for better visibility */
+  color: #4b5563;
+  /* Darker grey for better visibility */
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
@@ -1393,6 +1556,7 @@ onMounted(() => {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1473,7 +1637,8 @@ onMounted(() => {
 .cinego-table {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 0 12px; /* Tạo khoảng cách giữa các hàng để giống dạng Card */
+  border-spacing: 0 12px;
+  /* Tạo khoảng cách giữa các hàng để giống dạng Card */
   min-width: 800px;
 }
 
@@ -1545,7 +1710,8 @@ onMounted(() => {
 }
 
 .cinego-table tr:hover td {
-  background: #fdf2f2; /* Nền đỏ nhạt khi hover */
+  background: #fdf2f2;
+  /* Nền đỏ nhạt khi hover */
   border-color: #fca5a5;
   cursor: pointer;
 }
@@ -1567,14 +1733,17 @@ onMounted(() => {
   text-align: center;
   letter-spacing: 0.3px;
 }
+
 .badge-success {
   background: #dcfce7;
   color: #166534;
 }
+
 .badge-warning {
   background: #fef9c3;
   color: #854d0e;
 }
+
 .badge-danger {
   background: #fee2e2;
   color: #991b1b;
@@ -1603,9 +1772,11 @@ onMounted(() => {
   .cinego-profile-body {
     flex-direction: column;
   }
+
   .cinego-sidebar {
     width: 100%;
   }
+
   .member-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1616,14 +1787,17 @@ onMounted(() => {
     flex-direction: column;
     text-align: center;
   }
+
   .member-stats-grid {
     grid-template-columns: 1fr;
   }
+
   .info-data-row {
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
   }
+
   .info-text,
   .cinego-input {
     width: 100%;
@@ -1659,6 +1833,7 @@ onMounted(() => {
     transform: scale(0.95);
     opacity: 0;
   }
+
   to {
     transform: scale(1);
     opacity: 1;
@@ -1721,6 +1896,7 @@ onMounted(() => {
   transition: all 0.2s;
   margin-right: 8px;
 }
+
 .btn-qr:hover {
   background: var(--text-dark);
   color: #fff;

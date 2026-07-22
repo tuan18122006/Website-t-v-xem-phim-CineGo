@@ -28,7 +28,8 @@ class BookingService
         int $userId,
         ?int $voucherId = null,
         string $paymentStatus = 'paid',
-        ?string $vnpTxnRef = null
+        ?string $vnpTxnRef = null,
+        array $usedUserComboIds = []
     ): Booking {
         return DB::transaction(function () use (
             $showtimeId,
@@ -38,7 +39,8 @@ class BookingService
             $userId,
             $voucherId,
             $paymentStatus,
-            $vnpTxnRef
+            $vnpTxnRef,
+            $usedUserComboIds
         ) {
 
             $showtime = Showtime::findOrFail($showtimeId);
@@ -143,17 +145,17 @@ class BookingService
                 $bookingCode = 'CG-' . mt_rand(100000, 999999);
             } while (Booking::where('booking_code', $bookingCode)->exists());
 
+            // 🔥 ĐÃ BỎ 'used_user_combo_ids' KHỎI CREATE ĐỂ TRÁNH LỖI MẤT CỘT TRONG DB
             $booking = Booking::create([
                 'booking_code' => $bookingCode,
-                'vnp_txn_ref' => $vnpTxnRef,
-                'user_id' => $userId,
-                'showtime_id' => $showtimeId,
+                'vnp_txn_ref'  => $vnpTxnRef,
+                'user_id'      => $userId,
+                'showtime_id'  => $showtimeId,
+                'voucher_id'   => $voucher?->id,
 
-                'voucher_id' => $voucher?->id,
-
-                'subtotal' => $subtotal,
+                'subtotal'        => $subtotal,
                 'discount_amount' => $discountAmount,
-                'total_amount' => $totalAmount,
+                'total_amount'   => $totalAmount,
 
                 'payment_method' => $paymentMethod,
                 'payment_status' => $paymentStatus,
@@ -165,23 +167,44 @@ class BookingService
             foreach ($seatsCalc['details'] as $seatDetail) {
 
                 BookingDetail::create([
-                    'booking_id' => $booking->id,
-                    'seat_id' => $seatDetail['seat_id'],
-                    'price' => $seatDetail['price'],
-                    'ticket_code' => 'TC-' . strtoupper(Str::random(10)),
+                    'booking_id'    => $booking->id,
+                    'seat_id'       => $seatDetail['seat_id'],
+                    'price'         => $seatDetail['price'],
+                    'ticket_code'   => 'TC-' . strtoupper(Str::random(10)),
                     'is_checked_in' => false,
                 ]);
             }
 
+            // 1. Lưu danh sách Combo mua thêm bằng tiền
             foreach ($combosCalc['details'] as $comboDetail) {
 
                 BookingCombo::create([
-                    'booking_id' => $booking->id,
-                    'combo_id' => $comboDetail['combo_id'],
-                    'quantity' => $comboDetail['quantity'],
+                    'booking_id'        => $booking->id,
+                    'combo_id'          => $comboDetail['combo_id'],
+                    'quantity'          => $comboDetail['quantity'],
                     'price_at_purchase' => $comboDetail['price'],
-                    'subtotal' => $comboDetail['price'] * $comboDetail['quantity'],
+                    'subtotal'          => $comboDetail['price'] * $comboDetail['quantity'],
                 ]);
+            }
+
+            // 🔥 2. BỔ SUNG: Lưu các Mã Quà Tặng (Mã đổi Combo miễn phí) vào bảng booking_combos
+            if (!empty($usedUserComboIds)) {
+                foreach ($usedUserComboIds as $userComboId) {
+                    $userCombo = DB::table('user_combos')
+                        ->where('id', $userComboId)
+                        ->where('user_id', $userId)
+                        ->first();
+
+                    if ($userCombo) {
+                        BookingCombo::create([
+                            'booking_id'        => $booking->id,
+                            'combo_id'          => $userCombo->combo_id,
+                            'quantity'          => 1,
+                            'price_at_purchase' => 0, // Quà tặng có giá 0đ
+                            'subtotal'          => 0,
+                        ]);
+                    }
+                }
             }
 
             if ($paymentStatus === 'paid') {
@@ -199,26 +222,26 @@ class BookingService
     }
 
     public function markAsPaid(Booking $booking): void
-{
-    DB::transaction(function () use ($booking) {
+    {
+        DB::transaction(function () use ($booking) {
 
-        $booking->update([
-            'payment_status' => 'paid',
-            'booking_status' => 'confirmed',
-        ]);
+            $booking->update([
+                'payment_status' => 'paid',
+                'booking_status' => 'confirmed',
+            ]);
 
-        $this->deductComboStock($booking);
+            $this->deductComboStock($booking);
 
-        DB::table('seat_holds')
-            ->where('showtime_id', $booking->showtime_id)
-            ->whereIn(
-                'seat_id',
-                $booking->bookingDetails()->pluck('seat_id')
-            )
-            ->delete();
+            DB::table('seat_holds')
+                ->where('showtime_id', $booking->showtime_id)
+                ->whereIn(
+                    'seat_id',
+                    $booking->bookingDetails()->pluck('seat_id')
+                )
+                ->delete();
 
-    });
-}
+        });
+    }
 
     public function markAsFailed(Booking $booking): void
     {
@@ -227,44 +250,44 @@ class BookingService
             'booking_status' => 'cancelled',
         ]);
     }
+
     private function deductComboStock(Booking $booking): void
-{
-    foreach ($booking->bookingCombos as $item) {
-        $combo = Combo::lockForUpdate()->find($item->combo_id);
+    {
+        foreach ($booking->bookingCombos as $item) {
+            $combo = Combo::lockForUpdate()->find($item->combo_id);
 
-        if (!$combo) {
-            continue;
-        }
+            if (!$combo) {
+                continue;
+            }
 
-        if ($combo->stock < $item->quantity) {
-            throw new \Exception("{$combo->name} không đủ số lượng.");
-        }
+            if ($combo->stock < $item->quantity) {
+                throw new \Exception("{$combo->name} không đủ số lượng.");
+            }
 
-        $combo->decrement('stock', $item->quantity);
+            $combo->decrement('stock', $item->quantity);
 
-        if ($combo->type === 'combo') {
-           
-            $comboComponents = $combo->comboItems()->get(); 
+            if ($combo->type === 'combo') {
+               
+                $comboComponents = $combo->comboItems()->get(); 
 
-            foreach ($comboComponents as $component) {
-                $subItem = Combo::lockForUpdate()->find($component->item_id);
+                foreach ($comboComponents as $component) {
+                    $subItem = Combo::lockForUpdate()->find($component->item_id);
 
-                if (!$subItem) {
-                    continue;
+                    if (!$subItem) {
+                        continue;
+                    }
+
+                    $totalDeductQuantity = $item->quantity * $component->quantity;
+
+                    if ($subItem->stock < $totalDeductQuantity) {
+                        throw new \Exception(
+                            "Thành phần '{$subItem->name}' trong '{$combo->name}' đã hết hoặc không đủ số lượng tồn kho."
+                        );
+                    }
+
+                    $subItem->decrement('stock', $totalDeductQuantity);
                 }
-
-             
-                $totalDeductQuantity = $item->quantity * $component->quantity;
-
-                if ($subItem->stock < $totalDeductQuantity) {
-                    throw new \Exception(
-                        "Thành phần '{$subItem->name}' trong '{$combo->name}' đã hết hoặc không đủ số lượng tồn kho."
-                    );
-                }
-
-                $subItem->decrement('stock', $totalDeductQuantity);
             }
         }
     }
-}
 }

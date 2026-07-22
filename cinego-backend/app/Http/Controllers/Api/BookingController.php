@@ -19,10 +19,11 @@ use App\Services\BookingService;
 class BookingController extends Controller
 {
     protected $bookingService;
-
+    protected $loyaltyService;
     public function __construct(BookingService $bookingService)
     {
         $this->bookingService = $bookingService;
+        $this->loyaltyService = $loyaltyService;
     }
 
     public function history(Request $request)
@@ -77,64 +78,97 @@ class BookingController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $request->validate([
-            'showtime_id' => 'required|integer|exists:showtimes,id',
-            'seat_ids' => 'required|array|min:1',
-            'seat_ids.*' => 'required|integer|exists:seats,id',
-            'combos' => 'nullable|array',
-            'combos.*.id' => 'required|integer|exists:combos,id',
-            'combos.*.quantity' => 'required|integer|min:1',
-            'voucher_id' => 'nullable|integer|exists:vouchers,id',
-            'payment_method' => 'required|string',
-            'total_amount' => 'required|numeric'
-        ]);
+{
+    $request->validate([
+        'showtime_id'           => 'required|integer|exists:showtimes,id',
+        'seat_ids'              => 'required|array|min:1',
+        'seat_ids.*'            => 'required|integer|exists:seats,id',
+        'combos'                => 'nullable|array',
+        'combos.*.id'          => 'required|integer|exists:combos,id',
+        'combos.*.quantity'    => 'required|integer|min:1',
+        'used_user_combo_ids'   => 'nullable|array',
+        'used_user_combo_ids.*' => 'integer',
+        'voucher_id'            => 'nullable|integer|exists:vouchers,id',
+        'payment_method'        => 'required|string',
+        'total_amount'          => 'required|numeric'
+    ]);
 
-        $showtimeId = $request->showtime_id;
-        $seatIds = $request->seat_ids;
-        $combosInput = $request->combos ?? [];
-        $paymentMethod = $request->payment_method;
-        $userId = $request->user()?->id;
+    try {
+        $booking = $this->bookingService->createBooking(
+            $request->showtime_id,
+            $request->seat_ids,
+            $request->combos ?? [],
+            $request->payment_method,
+            auth()->id(),
+            $request->voucher_id,
+            'paid',
+            null,
+            $request->used_user_combo_ids ?? []
+        );
 
-        try {
-            // Gọi service để tạo booking
-            $booking = $this->bookingService->createBooking(
-                $request->showtime_id,
-                $request->seat_ids,
-                $request->combos ?? [],
-                $request->payment_method,
-                auth()->id(),
-                'paid',               // status thanh toán
-                $request->voucher_id  // truyền voucher_id vào đây
-            );
-
-            // Gửi Email xác nhận đặt vé thành công
-            try {
-                if ($booking->user && $booking->user->email) {
-                    \Illuminate\Support\Facades\Mail::to($booking->user->email)
-                        ->send(new \App\Mail\BookingSuccessMail($booking));
-                }
-            } catch (\Exception $mailEx) {
-                \Illuminate\Support\Facades\Log::error('Failed to send booking success email: ' . $mailEx->getMessage());
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Đặt vé thành công',
-                'booking_code' => $booking->booking_code
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 422);
+        // 1. Trừ combo quà tặng
+        if ($request->has('used_user_combo_ids') && count($request->used_user_combo_ids) > 0) {
+            DB::table('user_combos')
+                ->whereIn('id', $request->used_user_combo_ids)
+                ->where('user_id', auth()->id())
+                ->update([
+                    'is_used'    => true,
+                    'updated_at' => now()
+                ]);
         }
+
+        // 2. Trừ voucher
+        if ($request->voucher_id) {
+            DB::table('user_vouchers')
+                ->where('voucher_id', $request->voucher_id)
+                ->where('user_id', auth()->id())
+                ->where('is_used', false)
+                ->limit(1)
+                ->update([
+                    'is_used'    => true,
+                    'used_at'    => now(),
+                    'updated_at' => now()
+                ]);
+        }
+
+        // 🔥 CHỈNH SỬA Ở ĐÂY: Đặt nằm NGOÀI if ($request->voucher_id)
+        // Bất kỳ ai thanh toán thành công cũng phải được tích điểm & xét hạng!
+        if ($booking->user) {
+            $this->loyaltyService->processBookingPoints(
+                $booking->user,
+                $booking->total_amount,
+                $booking
+            );
+        }
+
+        // 3. Gửi email
+        try {
+            if ($booking->user && $booking->user->email) {
+                \Illuminate\Support\Facades\Mail::to($booking->user->email)
+                    ->send(new \App\Mail\BookingSuccessMail($booking));
+            }
+        } catch (\Exception $mailEx) {
+            \Illuminate\Support\Facades\Log::error('Failed to send booking success email: ' . $mailEx->getMessage());
+        }
+
+        return response()->json([
+            'success'      => true,
+            'message'      => 'Đặt vé thành công',
+            'booking_code' => $booking->booking_code
+        ], 201);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], 422);
     }
+}
 
     /**
      * Lấy lịch sử đặt vé của user đang đăng nhập
      */
-public function index(Request $request)
+    public function index(Request $request)
     {
         $userId = auth()->id();
 
@@ -142,7 +176,7 @@ public function index(Request $request)
         $bookings = Booking::with([
             'showtime.movie:id,title',
             'showtime.room:id,name',
-            'bookingDetails.seat', // Hãy chắc chắn BookingDetail có relationship tên 'seat'
+            'bookingDetails.seat',
             'bookingCombos.combo'
         ])
             ->where('user_id', $userId)
@@ -150,7 +184,7 @@ public function index(Request $request)
             ->get();
 
         $formattedTickets = $bookings->map(function ($booking) {
-            
+
             // XỬ LÝ AN TOÀN TUYỆT ĐỐI CHO SEATS:
             $seatsList = [];
             if ($booking->bookingDetails) {
@@ -178,7 +212,7 @@ public function index(Request $request)
                 return $bc->price_at_purchase * $bc->quantity;
             });
             $totalTicketPrice = $booking->bookingDetails ? $booking->bookingDetails->sum('price') : 0;
-            $totalComboPrice = $booking->bookingCombos ? $booking->bookingCombos->sum(function($bc) {
+            $totalComboPrice = $booking->bookingCombos ? $booking->bookingCombos->sum(function ($bc) {
                 return ($bc->price_at_purchase ?? 0) * ($bc->quantity ?? 0);
             }) : 0;
 
@@ -189,7 +223,7 @@ public function index(Request $request)
                 'room_name'      => $booking->showtime?->room?->name ?? 'Phòng chiếu CineGo',
                 'start_time'     => $booking->showtime?->start_time ? Carbon::parse($booking->showtime->start_time)->format('H:i') : '00:00',
                 'date'           => $booking->showtime?->start_time ? Carbon::parse($booking->showtime->start_time)->format('Y-m-d') : Carbon::now()->format('Y-m-d'),
-                'seats'          => $seatsList, 
+                'seats'          => $seatsList,
                 'combos'         => $combosList,
                 'total_ticket_price' => $totalTicketPrice,
                 'total_combo_price'  => $totalComboPrice,

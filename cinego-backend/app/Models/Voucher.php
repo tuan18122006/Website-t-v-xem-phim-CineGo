@@ -20,6 +20,8 @@ class Voucher extends Model
         'usage_condition', 
         'used_count',
         'is_active',
+        'points_required',
+        'max_exchanges',
     ];
 
     protected $casts = [
