@@ -1,5 +1,6 @@
 <template>
   <div class="payment-view" v-if="bookingStore.selectedSeats.length > 0">
+    <!-- MÀN HÌNH ĐẶT VÉ THÀNH CÔNG -->
     <div v-if="bookingSuccess" class="success-receipt-container glass-panel animate-fade-in">
       <div class="success-icon-wrapper">
         <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#00f5a0"
@@ -27,8 +28,7 @@
           </div>
           <div class="receipt-row">
             <strong>Suất chiếu:</strong>
-            <span>{{ bookingStore.selectedShowtime?.start_time }} |
-              {{ bookingStore.selectedShowtime?.date }}</span>
+            <span>{{ bookingStore.selectedShowtime?.start_time }} | {{ bookingStore.selectedShowtime?.date }}</span>
           </div>
           <div class="receipt-row">
             <strong>Phòng chiếu:</strong>
@@ -36,103 +36,137 @@
           </div>
           <div class="receipt-row">
             <strong>Ghế ngồi:</strong>
-            <span class="seat-highlight">{{
-              bookingStore.selectedSeats
-                .map((s) => `${s.row}${s.number}`)
-                .join(", ")
-            }}</span>
+            <span class="seat-highlight">
+              {{bookingStore.selectedSeats.map((s) => `${s.row}${s.number}`).join(", ")}}
+            </span>
           </div>
           <div class="receipt-row" v-if="bookingStore.selectedCombos.length > 0">
-            <strong>Bắp nước:</strong>
-            <span>{{
-              bookingStore.selectedCombos
-                .map((c) => `${c.combo.name} (x${c.quantity})`)
-                .join(", ")
-            }}</span>
+            <strong>Bắp nước mua thêm:</strong>
+            <span>
+              {{bookingStore.selectedCombos.map((c) => `${c.combo.name} (x${c.quantity})`).join(", ")}}
+            </span>
+          </div>
+          <div class="receipt-row" v-if="selectedGifts.length > 0">
+            <strong>Bắp nước quà tặng:</strong>
+            <span>
+              {{selectedGifts.map((g) => g.name).join(", ")}}
+            </span>
           </div>
           <div class="receipt-row border-top">
             <strong>Tổng tiền thanh toán:</strong>
-            <span class="price-highlight">{{
-              formatCurrency(bookingStore.totalAmount)
-            }}</span>
+            <span class="price-highlight">{{ formatCurrency(bookingStore.totalAmount) }}</span>
           </div>
         </div>
       </div>
 
-      <button @click="backToHome" class="btn-pay-now" style="margin-top: 20px; max-width: 300px;">Quay Về Trang
-        Chủ</button>
+      <button @click="backToHome" class="btn-pay-now" style="margin-top: 20px; max-width: 300px;">
+        Quay Về Trang Chủ
+      </button>
     </div>
 
+    <!-- MÀN HÌNH THANH TOÁN & CHỌN COMBO -->
     <div v-else class="payment-checkout-grid">
       <div class="checkout-main">
         <section class="combos-section glass-panel">
-          <h2 class="section-title gradient-text-accent">Chọn Bắp & Nước (Tùy chọn)</h2>
-          <template v-if="loadingCombos">
-            <div v-for="i in 3" :key="i" class="combo-item glass-panel skeleton-card">
-              <div class="skeleton skeleton-img"></div>
+          <!-- THANH TAB CHUYỂN ĐỔI -->
+          <div class="combo-tabs">
+            <button type="button" :class="['tab-btn', { active: activeComboTab === 'buy' }]"
+              @click="activeComboTab = 'buy'">
+              🍿 Mua Bắp Nước
+            </button>
+            <button type="button" :class="['tab-btn', { active: activeComboTab === 'wallet' }]"
+              @click="activeComboTab = 'wallet'">
+              🎁 Ví Quà Tặng ({{ walletCombos.length }})
+            </button>
+          </div>
 
-              <div class="combo-info">
-                <div class="skeleton skeleton-title"></div>
-                <div class="skeleton skeleton-text"></div>
-                <div class="skeleton skeleton-price"></div>
+          <!-- TAB 1: MUA MỚI BẰNG TIỀN -->
+          <div v-if="activeComboTab === 'buy'">
+            <template v-if="loadingCombos">
+              <div v-for="i in 3" :key="i" class="combo-item glass-panel skeleton-card">
+                <div class="skeleton skeleton-img"></div>
+                <div class="combo-info">
+                  <div class="skeleton skeleton-title"></div>
+                  <div class="skeleton skeleton-text"></div>
+                  <div class="skeleton skeleton-price"></div>
+                </div>
+                <div class="combo-action">
+                  <div class="skeleton skeleton-btn"></div>
+                  <div class="skeleton skeleton-stock"></div>
+                </div>
               </div>
+            </template>
 
-              <div class="combo-action">
-                <div class="skeleton skeleton-btn"></div>
-                <div class="skeleton skeleton-stock"></div>
+            <div v-else class="combos-list">
+              <div v-for="combo in availableCombos" :key="combo.id" class="combo-item glass-panel">
+                <img :src="getComboImageUrl(combo.image_url)" :alt="combo.name" class="combo-img"
+                  @error="handleComboImageError" />
+
+                <div class="combo-info">
+                  <h3 class="combo-name">{{ combo.name }}</h3>
+                  <p class="combo-desc">{{ combo.description }}</p>
+                  <span class="combo-price">{{ formatCurrency(combo.price) }}</span>
+                </div>
+
+                <div class="combo-action">
+                  <div class="combo-controls">
+                    <button @click="bookingStore.removeCombo(combo)" class="ctrl-btn">-</button>
+                    <span class="ctrl-qty">{{ getComboQty(combo.id) }}</span>
+                    <button @click="bookingStore.addCombo(combo)" class="ctrl-btn" :disabled="isMaxStock(combo)"
+                      :title="isMaxStock(combo) ? 'Đã đạt số lượng tồn kho' : ''">
+                      +
+                    </button>
+                  </div>
+                  <small :class="{
+                    'stock-info': getRemainingStock(combo) > 3,
+                    'stock-low': getRemainingStock(combo) <= 3 && !isMaxStock(combo),
+                    'stock-warning': isMaxStock(combo)
+                  }">
+                    {{ isMaxStock(combo) ? 'Đã đạt số lượng tối đa' : `Còn lại ${getRemainingStock(combo)} Combo` }}
+                  </small>
+                </div>
               </div>
             </div>
-          </template>
-          <div class="combos-list">
-            <!-- Vòng lặp lấy dữ liệu từ database thông qua biến availableCombos -->
-            <div v-for="combo in availableCombos" :key="combo.id" class="combo-item glass-panel">
-              <!-- Hiển thị ảnh combo -->
-              <img :src="combo.image_url" :alt="combo.name" class="combo-img" />
+          </div>
 
-              <!-- Hiển thị thông tin combo -->
-              <div class="combo-info">
-                <h3 class="combo-name">{{ combo.name }}</h3>
-                <p class="combo-desc">{{ combo.description }}</p>
-                <span class="combo-price">{{ formatCurrency(combo.price) }}</span>
-              </div>
+          <!-- TAB 2: VÍ QUÀ TẶNG -->
+          <div v-if="activeComboTab === 'wallet'">
+            <div v-if="walletCombos.length === 0" class="empty-wallet-msg">
+              <p>Bạn không có Combo quà tặng nào khả dụng trong ví.</p>
+            </div>
 
-              <!-- Điều khiển số lượng -->
+            <div v-else class="combos-list">
+              <div v-for="gift in walletCombos" :key="gift.user_combo_id"
+                :class="['combo-item glass-panel gift-card', { selected: isGiftSelected(gift.user_combo_id) }]">
+                <img :src="getComboImageUrl(gift.image_url)" :alt="gift.name" class="combo-img"
+                  @error="handleComboImageError" />
 
-              <div class="combo-action">
-                <div class="combo-controls">
-                  <button @click="bookingStore.removeCombo(combo)" class="ctrl-btn">
-                    -
-                  </button>
-                  <span class="ctrl-qty">
-                    {{ getComboQty(combo.id) }}
-                  </span>
-                  <button @click="bookingStore.addCombo(combo)" class="ctrl-btn" :disabled="isMaxStock(combo)"
-                    :title="isMaxStock(combo) ? 'Đã đạt số lượng tồn kho' : ''">
-                    +
-                  </button>
-
+                <div class="combo-info">
+                  <div style="margin-bottom: 4px;">
+                    <span class="badge-free">MIỄN PHÍ</span>
+                  </div>
+                  <h3 class="combo-name">{{ gift.name }}</h3>
+                  <p class="combo-desc">{{ gift.description }}</p>
+                  <small class="gift-meta">
+                    Mã: <strong>{{ gift.code }}</strong> |
+                    HSD: {{ formatDate(gift.end_date) }}
+                  </small>
                 </div>
-                <small :class="{
-                  'stock-info': getRemainingStock(combo) > 3,
-                  'stock-low': getRemainingStock(combo) <= 3 && !isMaxStock(combo),
-                  'stock-warning': isMaxStock(combo)
-                }">
-                  {{
-                    isMaxStock(combo)
-                      ? 'Đã đạt số lượng tối đa'
-                      : `Còn lại ${getRemainingStock(combo)} Combo `
-                  }}
-                </small>
-              </div>
 
+                <div class="combo-action">
+                  <button type="button" class="btn-toggle-gift"
+                    :class="{ 'btn-selected': isGiftSelected(gift.user_combo_id) }" @click="toggleGiftCombo(gift)">
+                    {{ isGiftSelected(gift.user_combo_id) ? 'Bỏ chọn' : 'Dùng ngay' }}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
+        <!-- PHƯƠNG THỨC THANH TOÁN -->
         <section class="payment-methods-section glass-panel">
-          <h2 class="section-title gradient-text-accent">
-            Phương Thức Thanh Toán
-          </h2>
+          <h2 class="section-title gradient-text-accent">Phương Thức Thanh Toán</h2>
           <div class="methods-grid">
             <label v-for="method in paymentMethods" :key="method.id" class="method-card glass-panel"
               :class="{ active: selectedPaymentMethod === method.id }">
@@ -148,18 +182,16 @@
         </section>
       </div>
 
+      <!-- SIDEBAR HÓA ĐƠN -->
       <div class="checkout-sidebar glass-panel">
         <h2 class="sidebar-title gradient-text-accent">Đơn Hàng CineGo</h2>
 
         <div class="invoice-details">
           <div class="invoice-group">
-            <h4 class="invoice-movie-title">
-              {{ bookingStore.selectedMovie?.title }}
-            </h4>
+            <h4 class="invoice-movie-title">{{ bookingStore.selectedMovie?.title }}</h4>
             <p class="invoice-meta">
-              {{ bookingStore.selectedShowtime?.start_time }} |
-              {{ bookingStore.selectedShowtime?.date }} | Phòng
-              {{ bookingStore.selectedShowtime?.room_name }}
+              {{ bookingStore.selectedShowtime?.start_time }} | {{ bookingStore.selectedShowtime?.date }} | Phòng {{
+                bookingStore.selectedShowtime?.room_name }}
             </p>
           </div>
 
@@ -170,25 +202,28 @@
             <span>{{ formatCurrency(bookingStore.subtotalSeats) }}</span>
           </div>
           <div class="invoice-seat-names">
-            Ghế:
-            {{
-              bookingStore.selectedSeats
-                .map((s) => `${s.row}${s.number}`)
-                .join(", ")
-            }}
+            Ghế: {{bookingStore.selectedSeats.map((s) => `${s.row}${s.number}`).join(", ")}}
           </div>
 
+          <!-- Combo mua bằng tiền -->
           <template v-if="bookingStore.selectedCombos.length > 0">
             <div class="invoice-row" v-for="item in bookingStore.selectedCombos" :key="item.combo.id">
               <span>{{ item.combo.name }} (x{{ item.quantity }})</span>
-              <span>{{
-                formatCurrency(item.combo.price * item.quantity)
-              }}</span>
+              <span>{{ formatCurrency(item.combo.price * item.quantity) }}</span>
+            </div>
+          </template>
+
+          <!-- Combo quà tặng từ ví -->
+          <template v-if="selectedGifts.length > 0">
+            <div class="invoice-row text-mint" v-for="gift in selectedGifts" :key="gift.user_combo_id">
+              <span>🎁 {{ gift.name }} (Quà tặng)</span>
+              <span>0đ</span>
             </div>
           </template>
 
           <div class="invoice-divider"></div>
 
+          <!-- MÃ GIẢM GIÁ -->
           <div class="voucher-wrapper">
             <div class="voucher-input-group">
               <input v-model="voucherCode" type="text" placeholder="Nhập mã giảm giá..." class="voucher-input"
@@ -200,8 +235,7 @@
                 Hủy
               </button>
             </div>
-            <p v-if="voucherMessage" :class="voucherSuccess ? 'voucher-msg-success' : 'voucher-msg-error'
-              ">
+            <p v-if="voucherMessage" :class="voucherSuccess ? 'voucher-msg-success' : 'voucher-msg-error'">
               {{ voucherMessage }}
             </p>
           </div>
@@ -219,9 +253,7 @@
 
           <div class="invoice-row invoice-total">
             <span>Tổng cộng:</span>
-            <span class="total-price">{{
-              formatCurrency(bookingStore.totalAmount)
-            }}</span>
+            <span class="total-price">{{ formatCurrency(bookingStore.totalAmount) }}</span>
           </div>
         </div>
 
@@ -233,15 +265,15 @@
         <button type="button" :disabled="submitting" @click="goBackToSeats" class="btn-cancel-payment">
           Quay Lại Chọn Ghế
         </button>
-
       </div>
     </div>
   </div>
 
   <div v-else class="loading-state">
     <p>Giỏ hàng trống hoặc hết hạn giữ ghế!</p>
-    <router-link to="/" class="btn-pay-now" style="margin-top: 20px; display: inline-flex; max-width: 300px;">Quay về
-      Trang chủ</router-link>
+    <router-link to="/" class="btn-pay-now" style="margin-top: 20px; display: inline-flex; max-width: 300px;">
+      Quay về Trang chủ
+    </router-link>
   </div>
 </template>
 
@@ -249,12 +281,16 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useBookingStore } from "../../stores/booking";
-import { useAuthStore } from '../../stores/auth';
+import { useAuthStore } from "../../stores/auth";
 import api from "../../api/axios";
+
+// Khai báo cấu hình Backend & Ảnh mặc định
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
+const fallbackComboImage = "/images/default-combo.png";
 
 const router = useRouter();
 const bookingStore = useBookingStore();
-const authStore = useAuthStore(); 
+const authStore = useAuthStore();
 
 const submitting = ref(false);
 const bookingSuccess = ref(false);
@@ -263,102 +299,103 @@ const voucherCode = ref("");
 const voucherMessage = ref("");
 const voucherSuccess = ref(false);
 const selectedPaymentMethod = ref("vnpay");
+const activeComboTab = ref("buy");
+const walletCombos = ref([]);
+const selectedGifts = ref([]);
+const availableCombos = ref([]);
+const loadingCombos = ref(true);
 
 const formatCurrency = (val) => {
   return new Intl.NumberFormat("vi-VN", {
     style: "currency",
     currency: "VND",
-  }).format(val);
+  }).format(val || 0);
 };
 
 const goBackToSeats = () => {
-  // Lệnh này sẽ tự động đưa trình duyệt quay lại trang trước đó (Trang Chọn Ghế)
   router.back();
-
-  // Hoặc nếu bạn muốn đẩy chính xác về trang đặt vé/chọn ghế theo tên Route:
-  // router.push({ name: 'select-seats' });
 };
 
-const loadingCombos = ref(true);
-const verifyVoucher = async () => {
+const fetchWalletCombos = async () => {
   try {
-    const response = await api.post('/vouchers/verify', {
-      code: discountCode.value,
-      total_amount: bookingStore.calculateTotal()
-    });
+    const res = await api.get("/user/available-combos");
+    const rawData = res.data?.data || [];
 
-    if (response.data.success) {
-      discountAmount.value = response.data.discount_amount;
-      isVoucherApplied.value = true;
-    }
-  } catch (error) {
-    console.error('Mã giảm giá không hợp lệ:', error);
-    alert('Mã giảm giá không hợp lệ!');
+    walletCombos.value = rawData.map((item) => {
+      const expireDate =
+        item.end_date ||
+        item.expiry_date ||
+        item.expired_at ||
+        item.expires_at ||
+        item.valid_until ||
+        item.combo?.end_date ||
+        null;
+
+      // Ưu tiên lấy đúng ID của bản ghi bảng user_combos
+      const realUserComboId = item.id || item.user_combo_id;
+
+      return {
+        ...item,
+        user_combo_id: Number(realUserComboId), 
+        end_date: expireDate
+      };
+    });
+  } catch (err) {
+    console.error("Lỗi khi tải combo từ ví:", err);
   }
 };
 
-const handleApplyVoucher = async () => {
-  const response = await api.post('/vouchers/verify', {
-    code: voucherInput.value,
-    subtotal: bookingStore.totalPrice // Tổng tiền gốc
-  });
+const fetchCombos = async () => {
+  loadingCombos.value = true;
+  try {
+    const res = await api.get("/combos/active");
+    const rawCombos = res.data?.data || [];
 
-  if (response.data.success) {
-    discountAmount.value = response.data.discount_amount; // Số tiền được trừ
-    finalTotal.value = response.data.final_total;       // Tổng tiền sau giảm
-    alert('Áp dụng thành công!');
+    availableCombos.value = rawCombos.filter(item => 
+      item.is_sellable === 1 || 
+      item.is_sellable === true || 
+      item.is_sellable === "1"
+    );
+  } catch (err) {
+    console.error("Lỗi khi tải combo:", err);
+  } finally {
+    loadingCombos.value = false;
   }
+};
+
+const toggleGiftCombo = (gift) => {
+  const targetId = gift.user_combo_id;
+  const index = selectedGifts.value.findIndex(
+    (item) => item.user_combo_id === targetId
+  );
+
+  if (index > -1) {
+    selectedGifts.value.splice(index, 1);
+  } else {
+    selectedGifts.value.push(gift);
+  }
+};
+
+const isGiftSelected = (userComboId) => {
+  if (!userComboId) return false;
+  return selectedGifts.value.some((item) => item.user_combo_id === userComboId);
 };
 
 const getComboImageUrl = (imageUrl) => {
-  if (!imageUrl) {
-    return fallbackComboImage;
-  }
-
-  if (imageUrl.startsWith("blob:") || imageUrl.startsWith("data:")) {
-    return imageUrl;
-  }
-
+  if (!imageUrl) return fallbackComboImage;
+  if (imageUrl.startsWith("blob:") || imageUrl.startsWith("data:")) return imageUrl;
   if (imageUrl.startsWith("http://localhost/storage/")) {
     return imageUrl.replace("http://localhost", BACKEND_URL);
   }
-
-  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
-    return imageUrl;
-  }
-
-  if (imageUrl.startsWith("/storage/")) {
-    return `${BACKEND_URL}${imageUrl}`;
-  }
-
-  if (imageUrl.startsWith("storage/")) {
-    return `${BACKEND_URL}/${imageUrl}`;
-  }
-
+  if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) return imageUrl;
+  if (imageUrl.startsWith("/storage/")) return `${BACKEND_URL}${imageUrl}`;
+  if (imageUrl.startsWith("storage/")) return `${BACKEND_URL}/${imageUrl}`;
   return `${BACKEND_URL}/storage/${imageUrl}`;
 };
 
 const handleComboImageError = (event) => {
   event.target.onerror = null;
   event.target.src = fallbackComboImage;
-};
-
-const availableCombos = ref([]);
-
-const fetchCombos = async () => {
-  loadingCombos.value = true;
-
-  try {
-    const res = await api.get("/combos/active");
-
-    console.log("Danh sách combo:", res.data?.data);
-
-    availableCombos.value = res.data?.data || [];
-  } catch (err) {
-    console.error("Lỗi khi tải combo:", err);
-  } finally {
-    loadingCombos.value = false;
-  }
 };
 
 const paymentMethods = [
@@ -377,63 +414,44 @@ const paymentMethods = [
 ];
 
 const getComboQty = (comboId) => {
-  const item = bookingStore.selectedCombos.find(c => c.combo.id === comboId);
+  const item = bookingStore.selectedCombos.find((c) => c.combo.id === comboId);
   return item ? item.quantity : 0;
 };
 
 const getRemainingStock = (combo) => {
-  const item = bookingStore.selectedCombos.find(
-    (c) => c.combo.id === combo.id
-  );
-
+  const item = bookingStore.selectedCombos.find((c) => c.combo.id === combo.id);
   const selectedQty = item ? item.quantity : 0;
-
   return combo.stock - selectedQty;
 };
 
 const isMaxStock = (combo) => {
-  const item = bookingStore.selectedCombos.find(
-    (c) => c.combo.id === combo.id
-  );
-
+  const item = bookingStore.selectedCombos.find((c) => c.combo.id === combo.id);
   if (!item) return false;
-
   return item.quantity >= combo.stock;
 };
 
-
-const userId = authStore.user?.id;
 const applyVoucher = async () => {
   voucherMessage.value = "";
   voucherSuccess.value = false;
 
   try {
-    const response = await api.post('/vouchers/verify', {
+    const response = await api.post("/vouchers/verify", {
       code: voucherCode.value,
-      user_id: userId,
+      user_id: authStore.user?.id,
       subtotal: bookingStore.subtotal,
-      movie_id: bookingStore.selectedMovie?.id || null 
+      movie_id: bookingStore.selectedMovie?.id || null,
     });
-
-    console.log("Dữ liệu voucher nhận được từ API:", response.data);
 
     if (response.data) {
       bookingStore.applyVoucher(response.data);
-      
       voucherSuccess.value = true;
       voucherMessage.value = "Áp dụng mã giảm giá thành công!";
-      console.log("Voucher đã lưu vào store:", bookingStore.appliedVoucher);
     }
   } catch (error) {
     console.error("Lỗi áp dụng voucher:", error);
-    
     voucherSuccess.value = false;
-    
-    if (error.response && error.response.data && error.response.data.message) {
-      voucherMessage.value = error.response.data.message;
-    } else {
-      voucherMessage.value = "Mã giảm giá không hợp lệ hoặc đã hết hạn.";
-    }
+    voucherMessage.value =
+      error.response?.data?.message || "Mã giảm giá không hợp lệ hoặc đã hết hạn.";
   }
 };
 
@@ -444,46 +462,57 @@ const removeVoucher = () => {
   voucherSuccess.value = false;
 };
 
-const showQRModal = ref(false);
-
 const handlePaymentAction = () => {
-  if (selectedPaymentMethod.value === "vnpay") {
-    // VNPay -> gọi API thanh toán luôn
-    confirmPayment();
-  } else {
-    // Các phương thức khác (Momo, v.v...) hiển thị QR giả lập
-    showQRModal.value = true;
-  }
+  confirmPayment();
 };
 
-// ... (các hàm khác ở trên)
+const formatDate = (dateString) => {
+  // Kiểm tra nếu không có dữ liệu
+  if (!dateString || dateString === 'null' || dateString === 'undefined') {
+    return "Không thời hạn";
+  }
 
+  // Chuẩn hóa định dạng chuỗi ISO cho chuẩn Javascript Date
+  let safeDateString = dateString;
+  if (typeof dateString === 'string') {
+    // Thay khoảng trắng giữa Ngày và Giờ thành chữ 'T' nếu có (VD: "2026-08-21 17:22:00" -> "2026-08-21T17:22:00")
+    safeDateString = dateString.replace(' ', 'T');
+  }
+
+  const date = new Date(safeDateString);
+
+  // Nếu vẫn không parse được thì fallback kiểm tra trực tiếp
+  if (isNaN(date.getTime())) {
+    return "Không thời hạn";
+  }
+
+  // Định dạng hiển thị: DD/MM/YYYY HH:mm
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+};
 const confirmPayment = async () => {
   submitting.value = true;
 
   try {
     const payload = {
       showtime_id: bookingStore.selectedShowtime?.id,
-
       seat_ids: bookingStore.selectedSeats.map((seat) => seat.id),
-
       combos: bookingStore.selectedCombos.map((item) => ({
         id: item.combo.id,
         quantity: item.quantity,
       })),
-
+      used_user_combo_ids: selectedGifts.value.map((g) => g.user_combo_id),
       voucher_id: bookingStore.appliedVoucher?.id || null,
-
       payment_method: selectedPaymentMethod.value,
-
       total_amount: bookingStore.totalAmount,
     };
 
-    console.log("Payload gửi thanh toán:", payload);
-
     const response = await api.post("/payments/create", payload);
-
-    console.log("Response thanh toán:", response.data);
 
     if (response.data?.payment_url) {
       window.location.href = response.data.payment_url;
@@ -492,16 +521,10 @@ const confirmPayment = async () => {
 
     bookingSuccess.value = true;
     bookingCode.value =
-      response.data?.booking_code ||
-      response.data?.data?.booking_code ||
-      "";
+      response.data?.booking_code || response.data?.data?.booking_code || "";
   } catch (err) {
     console.error("Lỗi thanh toán:", err.response?.data || err);
-
-    alert(
-      err.response?.data?.message ||
-      "Giao dịch thất bại. Vui lòng thử lại!"
-    );
+    alert(err.response?.data?.message || "Giao dịch thất bại. Vui lòng thử lại!");
   } finally {
     submitting.value = false;
   }
@@ -514,8 +537,8 @@ const backToHome = () => {
 
 onMounted(() => {
   fetchCombos();
+  fetchWalletCombos();
 });
-
 </script>
 
 <style scoped>
@@ -566,45 +589,28 @@ onMounted(() => {
   align-items: center;
 }
 
-.payment-buttons {
-  display: flex;
-  flex-direction: column;
-  /* Xếp dọc nút Hủy nằm dưới nút Thanh Toán */
-  gap: 12px;
-  /* Khoảng cách giữa 2 nút */
-  margin-top: 15px;
-  width: 100%;
-}
-
-/* Định dạng nút Quay Lại Chọn Ghế */
 .btn-cancel-payment {
   width: 100%;
   padding: 12px;
   background-color: transparent;
-  /* Nền trong suốt */
   color: #888888;
-  /* Chữ màu xám */
   border: 1px solid #cccccc;
-  /* Viền xám mảnh */
   border-radius: 6px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.2s ease;
+  margin-top: 8px;
 }
 
-/* Khi hệ thống đang loading tạo hóa đơn, làm mờ không cho bấm Hủy liên tục */
 .btn-cancel-payment:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Hiệu ứng Hover dành cho nút Hủy */
 .btn-cancel-payment:not(:disabled):hover {
   background-color: #fcfcfc;
   color: #333333;
-  /* Chữ đậm lên khi hover */
   border-color: #888888;
-  /* Viền đậm lên */
 }
 
 .combo-img {
@@ -853,7 +859,8 @@ onMounted(() => {
   font-size: 12px;
 }
 
-.text-discount {
+.text-discount,
+.text-mint {
   color: var(--accent-mint);
   font-weight: 600;
 }
@@ -872,9 +879,7 @@ onMounted(() => {
 }
 
 .btn-pay-now {
-  background: linear-gradient(135deg,
-      var(--accent-pink) 0%,
-      var(--accent-violet) 100%);
+  background: linear-gradient(135deg, var(--accent-pink) 0%, var(--accent-violet) 100%);
   color: white;
   border: none;
   width: 100%;
@@ -946,7 +951,6 @@ onMounted(() => {
   padding: 30px;
   width: 100%;
   text-align: left;
-  position: relative;
 }
 
 .receipt-header {
@@ -964,14 +968,6 @@ onMounted(() => {
   margin-left: 6px;
 }
 
-.receipt-header p {
-  color: var(--text-muted);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 6px;
-}
-
 .receipt-body {
   display: flex;
   flex-direction: column;
@@ -983,11 +979,6 @@ onMounted(() => {
   justify-content: space-between;
   font-size: 14px;
   color: var(--text-secondary);
-}
-
-.receipt-row strong {
-  color: var(--text-primary);
-  font-weight: 600;
 }
 
 .seat-highlight {
@@ -1032,27 +1023,12 @@ onMounted(() => {
   padding: 80px;
 }
 
-.ctrl-btn:disabled {
-  opacity: .4;
-  cursor: not-allowed;
-}
-
-.ctrl-btn:disabled:hover {
-  color: var(--text-secondary);
-}
-
 .combo-action {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   min-width: 170px;
-}
-
-.stock-info,
-.stock-low,
-.stock-warning {
-  text-align: center;
 }
 
 .stock-info {
@@ -1069,28 +1045,6 @@ onMounted(() => {
   font-weight: 700;
 }
 
-.payment-actions {
-  display: flex;
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.btn-cancel {
-  width: 100%;
-  margin-top: 12px;
-  height: 48px;
-  border: none;
-  border-radius: 14px;
-  background: #eef2f6;
-  color: #4b5563;
-  font-weight: 600;
-  transition: .25s;
-}
-
-.btn-cancel:hover {
-  background: #dfe6ee;
-}
-
 .skeleton-card {
   display: flex;
   align-items: center;
@@ -1099,10 +1053,7 @@ onMounted(() => {
 
 .skeleton {
   border-radius: 8px;
-  background: linear-gradient(90deg,
-      #ececec 25%,
-      #f7f7f7 37%,
-      #ececec 63%);
+  background: linear-gradient(90deg, #ececec 25%, #f7f7f7 37%, #ececec 63%);
   background-size: 400% 100%;
   animation: skeleton-loading 1.4s ease infinite;
 }
@@ -1151,48 +1102,76 @@ onMounted(() => {
   }
 }
 
-.qr-code-box {
-  background: white;
-  padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  margin: 10px auto;
-}
-
-.qr-img {
-  width: 250px;
-  height: 250px;
-  object-fit: contain;
-}
-
-.payment-info-box {
-  background: var(--bg-tertiary);
-  padding: 16px;
-  border-radius: 8px;
-  width: 100%;
-  max-width: 400px;
+.combo-tabs {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border-glass);
+  padding-bottom: 10px;
 }
 
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  font-size: 14px;
-}
-
-.info-row span {
+.tab-btn {
+  background: transparent;
+  border: none;
   color: var(--text-muted);
+  font-size: 15px;
+  font-weight: 700;
+  padding: 8px 16px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: var(--transition-smooth);
 }
 
-.info-row strong {
-  color: var(--text-primary);
-  font-weight: 600;
-  text-align: right;
+.tab-btn.active {
+  color: var(--accent-pink);
+  background: rgba(255, 0, 127, 0.1);
 }
 
-.text-pink {
-  color: var(--accent-pink) !important;
+.gift-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  border: 1px dashed var(--border-glass);
+}
+
+.gift-card.selected {
+  border-color: var(--accent-mint);
+  background: rgba(0, 245, 160, 0.05);
+}
+
+.badge-free {
+  display: inline-block;
+  background: rgba(0, 245, 160, 0.15);
+  color: #00b874;
+  border: 1px solid rgba(0, 245, 160, 0.4);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+}
+
+.btn-toggle-gift {
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent-pink);
+  background: transparent;
+  color: var(--accent-pink);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-toggle-gift.btn-selected {
+  background: #6c757d;
+  border-color: #6c757d;
+  color: #fff;
+}
+
+.empty-wallet-msg {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 20px;
 }
 </style>
