@@ -52,4 +52,9 @@ class Booking extends Model
     {
         return $this->hasMany(BookingCombo::class);
     }
+    public function userCombos()
+    {
+        return $this->belongsToMany(Combo::class, 'user_combos', 'booking_id', 'combo_id')
+            ->withPivot('is_used', 'used_at');
+    }
 }

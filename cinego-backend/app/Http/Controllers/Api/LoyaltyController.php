@@ -208,7 +208,7 @@ class LoyaltyController extends Controller
                 ];
             });
 
-        // 2. Lấy danh sách Combos của User (Đã bỏ select() gây mất id pivot)
+        // 2. Lấy danh sách Combos của User
         $combos = $user->combos()
             ->orderBy('user_combos.created_at', 'desc')
             ->get()
@@ -233,8 +233,8 @@ class LoyaltyController extends Controller
 
                 return [
                     'id'               => $combo->id,
-                    'combo_id'         => $combo->id, // Thêm trường này để Frontend dễ nhận diện combo
-                    'user_combo_id'    => $pivot->id ?? $combo->id, // Backup nếu pivot ID null
+                    'combo_id'         => $combo->id, 
+                    'user_combo_id'    => $pivot->id ?? $combo->id, 
                     'type'             => 'combo',
                     'code'             => $pivot->code ?? ('COMBO-' . $combo->id),
                     'title'            => $combo->name ?? 'Ưu đãi Bắp Nước',
@@ -249,7 +249,6 @@ class LoyaltyController extends Controller
                 ];
             });
 
-        // 3. Gộp 2 mảng lại thành một danh sách duy nhất
         $merged = $vouchers->concat($combos);
 
         return response()->json([
