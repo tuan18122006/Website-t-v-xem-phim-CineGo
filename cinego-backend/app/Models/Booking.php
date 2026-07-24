@@ -22,6 +22,12 @@ class Booking extends Model
         'booking_status',
     ];
 
+    protected $casts = [
+        'subtotal' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
+        'total_amount' => 'decimal:2',
+    ];
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -45,5 +51,10 @@ class Booking extends Model
     public function bookingCombos(): HasMany
     {
         return $this->hasMany(BookingCombo::class);
+    }
+    public function userCombos()
+    {
+        return $this->belongsToMany(Combo::class, 'user_combos', 'booking_id', 'combo_id')
+            ->withPivot('is_used', 'used_at');
     }
 }

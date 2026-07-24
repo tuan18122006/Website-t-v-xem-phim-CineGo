@@ -8,9 +8,19 @@ use App\Models\Movie;
 use App\Models\Review;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
+use App\Services\LoyaltyService;
 
 class ReviewController extends Controller
 {
+
+    protected $loyaltyService;
+
+    public function __construct(LoyaltyService $loyaltyService)
+    {
+        $this->loyaltyService = $loyaltyService;
+    }
+
+
     public function index(Request $request, $movieId)
     {
         $movie = Movie::findOrFail($movieId);
@@ -115,6 +125,7 @@ class ReviewController extends Controller
             ], 422);
         }
 
+        // 1. Tạo đánh giá trong Database
         $review = Review::create([
             'user_id' => $user->id,
             'movie_id' => $movie->id,
@@ -122,13 +133,23 @@ class ReviewController extends Controller
             'comment' => $request->comment,
         ]);
 
+        // 2. Tự động cộng 5 điểm thưởng CinePoint cho khách hàng
+        try {
+            $this->loyaltyService->addPoints(
+                $user, 
+                5, 
+                "Cộng 5 điểm thưởng đánh giá phim: {$movie->title}"
+            );
+        } catch (\Exception $e) {
+            \Log::error('Lỗi cộng điểm review phim: ' . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
-            'message' => 'Đánh giá thành công.',
+            'message' => 'Đánh giá thành công! Bạn nhận được 5 điểm CinePoint.',
             'data' => $review->load('user:id,name'),
         ], 201);
     }
-
     public function update(Request $request, $movieId, $reviewId)
     {
         $request->validate([
@@ -193,13 +214,13 @@ class ReviewController extends Controller
     public function adminIndex(Request $request)
     {
         $reviews = Review::with(['user:id,name,email', 'movie:id,title'])
-            ->when($request->filled('rating'), fn ($q) => $q->where('rating', (int) $request->rating))
-            ->when($request->filled('movie_id'), fn ($q) => $q->where('movie_id', (int) $request->movie_id))
+            ->when($request->filled('rating'), fn($q) => $q->where('rating', (int) $request->rating))
+            ->when($request->filled('movie_id'), fn($q) => $q->where('movie_id', (int) $request->movie_id))
             ->when($request->filled('q'), function ($q) use ($request) {
                 $kw = trim($request->q);
                 $q->where(function ($sub) use ($kw) {
                     $sub->where('comment', 'like', "%{$kw}%")
-                        ->orWhereHas('user', fn ($u) => $u->where('name', 'like', "%{$kw}%")->orWhere('email', 'like', "%{$kw}%"));
+                        ->orWhereHas('user', fn($u) => $u->where('name', 'like', "%{$kw}%")->orWhere('email', 'like', "%{$kw}%"));
                 });
             })
             ->orderByDesc('is_featured')

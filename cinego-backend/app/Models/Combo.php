@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 
 class Combo extends Model
 {
-    protected $fillable = ['name', 'description', 'type', 'price', 'image_url', 'status', 'stock'];
+    protected $fillable = ['name', 'description', 'type', 'price', 'image_url', 'status','is_sellable','is_redeemable', 'stock','points_required','valid_days','valid_minutes','limit_per_user'];
 
     public function bookingCombos(): HasMany
     {

@@ -10,69 +10,50 @@
       </div>
 
       <nav class="sidebar-nav">
-        <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'stats' }" 
-          @click="activeTab = 'stats'"
-        >
+        <button class="nav-link" :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'">
           <span class="nav-icon">📊</span>
           <span>Dashboard</span>
         </button>
 
-        <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'genres' }" 
-          @click="activeTab = 'genres'"
-        >
+        <button class="nav-link" :class="{ active: activeTab === 'genres' }" @click="activeTab = 'genres'">
           <span class="nav-icon">🏷️</span>
           <span>Quản Lý Thể Loại</span>
         </button>
 
-        <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'movies' }" 
-          @click="activeTab = 'movies'"
-        >
+        <button class="nav-link" :class="{ active: activeTab === 'movies' }" @click="activeTab = 'movies'">
           <span class="nav-icon">🎬</span>
           <span>Quản Lý Phim</span>
         </button>
-        
-        <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'showtimes' }" 
-          @click="activeTab = 'showtimes'"
-        >
+
+        <button class="nav-link" :class="{ active: activeTab === 'showtimes' }" @click="activeTab = 'showtimes'">
           <span class="nav-icon">🕒</span>
           <span>Quản Lý Lịch Chiếu</span>
         </button>
 
-        <button 
-  class="nav-link" 
-  :class="{ active: activeTab === 'rooms' }" 
-  @click="activeTab = 'rooms'"
->
-  <span class="nav-icon">🏟️</span>
-  <span>Quản Lý Phòng Chiếu & Ghế</span>
-</button>
+        <button class="nav-link" :class="{ active: activeTab === 'rooms' }" @click="activeTab = 'rooms'">
+          <span class="nav-icon">🏟️</span>
+          <span>Quản Lý Phòng Chiếu & Ghế</span>
+        </button>
 
-        <button
-          class="nav-link"
-          :class="{ active: activeTab === 'users' }"
-          @click="activeTab = 'users'"
-        >
+        <button class="nav-link" :class="{ active: activeTab === 'users' }" @click="activeTab = 'users'">
           <span class="nav-icon">👥</span>
           <span>Quản Lý Tài Khoản</span>
         </button>
 
 
-         <button class="nav-link" :class="{ active: activeTab === 'combos' }" @click="activeTab = 'combos'">
+        <button class="nav-link" :class="{ active: activeTab === 'combos' }" @click="activeTab = 'combos'">
           <span class="nav-icon">🍿</span>
           <span>Quản Lý Đồ Ăn Và Combo</span>
         </button>
-         
+
         <button class="nav-link" :class="{ active: activeTab === 'vouchers' }" @click="activeTab = 'vouchers'">
           <span class="nav-icon">🎟️</span>
           <span>Quản Lý Mã Giảm Giá</span>
+        </button>
+
+        <button class="nav-link" :class="{ active: activeTab === 'loyalty' }" @click="activeTab = 'loyalty'">
+          <span class="nav-icon">⭐</span>
+          <span>Quản Lý Tích Điểm</span>
         </button>
 
         <button class="nav-link" :class="{ active: activeTab === 'reviews' }" @click="activeTab = 'reviews'">
@@ -80,11 +61,7 @@
           <span>Quản Lý Đánh Giá</span>
         </button>
 
-        <button
-          class="nav-link"
-          :class="{ active: activeTab === 'revenue' }"
-          @click="activeTab = 'revenue'"
-        >
+        <button class="nav-link" :class="{ active: activeTab === 'revenue' }" @click="activeTab = 'revenue'">
           <span class="nav-icon">💰</span>
           <span>Thống Kê Doanh Thu</span>
         </button>
@@ -155,7 +132,8 @@
         <div class="reports-grid">
           <div class="report-card glass-panel">
             <div class="chart-head">
-              <h3 class="card-title">Doanh Thu Theo {{ revenuePeriod === 'day' ? '7 Ngày Qua' : '6 Tháng Qua' }} (VNĐ)</h3>
+              <h3 class="card-title">Doanh Thu Theo {{ revenuePeriod === 'day' ? '7 Ngày Qua' : '6 Tháng Qua' }} (VNĐ)
+              </h3>
               <div class="period-toggle">
                 <button :class="{ active: revenuePeriod === 'day' }" @click="revenuePeriod = 'day'">Ngày</button>
                 <button :class="{ active: revenuePeriod === 'month' }" @click="revenuePeriod = 'month'">Tháng</button>
@@ -185,15 +163,8 @@
 
                 <!-- Vùng tô + đường doanh thu -->
                 <path v-if="chart.area" :d="chart.area" fill="url(#chartGrad)" />
-                <path
-                  v-if="chart.line"
-                  :d="chart.line"
-                  fill="none"
-                  stroke="var(--accent-pink)"
-                  stroke-width="3"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
+                <path v-if="chart.line" :d="chart.line" fill="none" stroke="var(--accent-pink)" stroke-width="3"
+                  stroke-linecap="round" stroke-linejoin="round" />
 
                 <!-- Điểm + nhãn trục X -->
                 <g v-for="(p, i) in chart.points" :key="'p' + i">
@@ -212,7 +183,8 @@
             <h3 class="card-title">Top Phim Bán Chạy Nhất</h3>
             <div v-if="topMovies.length" class="movie-ranks-list">
               <div v-for="(m, i) in topMovies" :key="m.id" class="rank-item">
-                <span class="rank-num" :class="['bg-pink', 'bg-violet', 'bg-tertiary'][i] || 'bg-tertiary'">{{ i + 1 }}</span>
+                <span class="rank-num" :class="['bg-pink', 'bg-violet', 'bg-tertiary'][i] || 'bg-tertiary'">{{ i + 1
+                }}</span>
                 <div class="rank-info">
                   <h4 :title="m.title">{{ m.title }}</h4>
                   <span class="rank-category">{{ m.genres || 'Chưa phân loại' }}</span>
@@ -246,7 +218,9 @@
         <RoomsView />
       </div>
 
-
+      <div v-if="activeTab === 'loyalty'">
+        <UserLoyaltyManager />
+      </div>
 
       <div v-show="activeTab === 'combos'">
         <ComboSelection />
@@ -270,8 +244,8 @@
       </div>
 
       <!-- TAB: COMBO MANAGEMENT -->
-     
-    
+
+
 
       <!-- TAB 4: REVENUE TRANSACTION REPORT -->
       <div v-if="activeTab === 'revenue'" class="revenue-tab-content">
@@ -280,7 +254,7 @@
             <h3>Báo Cáo Chi Tiết Hóa Đơn Đặt Vé</h3>
             <button class="btn-export">📥 Xuất File Báo Cáo (Excel)</button>
           </div>
-          
+
           <table class="report-table">
             <thead>
               <tr>
@@ -301,7 +275,8 @@
                 <td class="font-bold">{{ formatCurrency(b.total_amount) }}</td>
                 <td><span class="method-badge">{{ b.payment_method }}</span></td>
                 <td>
-                  <span class="status-pill-small" :class="{ active: b.payment_status === 'paid', pending: b.payment_status === 'pending' }">
+                  <span class="status-pill-small"
+                    :class="{ active: b.payment_status === 'paid', pending: b.payment_status === 'pending' }">
                     {{ b.payment_status === 'paid' ? 'Đã thanh toán' : 'Chờ xử lý' }}
                   </span>
                 </td>
@@ -327,9 +302,10 @@ import UserManagement from './UserManagement.vue';
 import RoomsView from './RoomManagementView.vue';
 import RoomManagementView from './RoomManagementView.vue';
 import RoomEditorView from './RoomEditorView.vue';
-import ComboSelection from './ComboSelection.vue'; 
+import ComboSelection from './ComboSelection.vue';
 import VoucherManager from './VoucherManager.vue';
 import ReviewManagement from './ReviewManagement.vue';
+import UserLoyaltyManager from './UserLoyaltyManager.vue'; 
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -420,7 +396,8 @@ const getTabDesc = computed(() => {
     combos: 'Thêm, sửa, xóa, combo và đồ ăn kiểm kê số lượng tồn trong kho',
     vouchers: 'Tạo mã giảm giá, giới hạn số lần dùng, thiết lập điều kiện tối thiểu.',
     reviews: 'Xem toàn bộ bình luận, lọc theo sao/phim/từ khóa, ẩn - ghim - phản hồi - xóa bình luận.',
-    revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.'
+    revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.',
+    loyalty: ' Quản lý tích điểm của khách hàng',
   };
   return descs[activeTab.value];
 });
@@ -599,7 +576,7 @@ onMounted(() => {
 }
 
 .sidebar-footer {
-  border-top: 1px solid rgba(0,0,0,0.06);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
   padding-top: 20px;
   display: flex;
   flex-direction: column;
@@ -652,7 +629,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(0,0,0,0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   padding-bottom: 20px;
 }
 
@@ -698,8 +675,8 @@ onMounted(() => {
   gap: 16px;
   align-items: center;
   background-color: #ffffff;
-  border: 1px solid rgba(0,0,0,0.05);
-  box-shadow: 0 4px 15px rgba(0,0,0,0.01);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.01);
 }
 
 .widget-icon {
@@ -712,9 +689,20 @@ onMounted(() => {
   font-size: 22px;
 }
 
-.bg-violet { background-color: #f1ecf7; color: var(--accent-violet); }
-.bg-pink { background-color: #fdf1f7; color: var(--accent-pink); }
-.bg-mint { background-color: #edfcf5; color: var(--accent-mint); }
+.bg-violet {
+  background-color: #f1ecf7;
+  color: var(--accent-violet);
+}
+
+.bg-pink {
+  background-color: #fdf1f7;
+  color: var(--accent-pink);
+}
+
+.bg-mint {
+  background-color: #edfcf5;
+  color: var(--accent-mint);
+}
 
 .widget-info {
   display: flex;
@@ -764,7 +752,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 20px;
   background-color: #ffffff;
-  border: 1px solid rgba(0,0,0,0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .card-title {
@@ -814,6 +802,7 @@ onMounted(() => {
   color: var(--text-secondary);
   margin: -6px 0 0;
 }
+
 .chart-total strong {
   color: #1e293b;
   font-size: 15px;
@@ -829,8 +818,14 @@ onMounted(() => {
   color: var(--text-muted);
   text-align: center;
 }
-.ranks-empty span { font-size: 34px; }
-.ranks-empty p { font-size: 13px; }
+
+.ranks-empty span {
+  font-size: 34px;
+}
+
+.ranks-empty p {
+  font-size: 13px;
+}
 
 .chart-container {
   width: 100%;
@@ -869,9 +864,17 @@ onMounted(() => {
   align-items: center;
 }
 
-.rank-num.bg-pink { background-color: var(--accent-pink); }
-.rank-num.bg-violet { background-color: var(--accent-violet); }
-.rank-num.bg-tertiary { background-color: #718096; }
+.rank-num.bg-pink {
+  background-color: var(--accent-pink);
+}
+
+.rank-num.bg-violet {
+  background-color: var(--accent-violet);
+}
+
+.rank-num.bg-tertiary {
+  background-color: #718096;
+}
 
 .rank-info {
   flex: 1;
@@ -946,7 +949,8 @@ onMounted(() => {
   text-align: left;
 }
 
-.report-table th, .report-table td {
+.report-table th,
+.report-table td {
   padding: 14px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.04);
   font-size: 13px;
