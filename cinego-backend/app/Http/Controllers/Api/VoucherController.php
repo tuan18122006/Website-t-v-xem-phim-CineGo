@@ -250,7 +250,6 @@ class VoucherController extends Controller
         $voucherId = $request->voucher_id;
 
         return DB::transaction(function () use ($userId, $voucherId) {
-            // 1. Lock dữ liệu Voucher để tránh xung đột lượt đổi
             $voucher = Voucher::lockForUpdate()->find($voucherId);
 
             if (!$voucher) {
@@ -260,7 +259,6 @@ class VoucherController extends Controller
                 ], 444);
             }
 
-            // 2. Kiểm tra Trạng thái & Hạn sử dụng
             if ($voucher->status !== 'active') {
                 return response()->json([
                     'success' => false,
@@ -275,7 +273,6 @@ class VoucherController extends Controller
                 ], 400);
             }
 
-            // 3. Kiểm tra Tổng giới hạn lượt dùng toàn hệ thống (nếu Admin có thiết lập)
             if (!is_null($voucher->total_quantity) && $voucher->used_quantity >= $voucher->total_quantity) {
                 return response()->json([
                     'success' => false,
@@ -305,7 +302,6 @@ class VoucherController extends Controller
                     ], 400);
                 }
 
-                // Trừ điểm user
                 $user->decrement('points', $voucher->points_required);
             }
 
@@ -356,7 +352,6 @@ class VoucherController extends Controller
                         ->orWhere('vouchers.expires_at', '>', now());
                 });
         } else {
-            // Đã dùng HOẶC Đã hết hạn
             $query->where(function ($q) {
                 $q->where('user_vouchers.is_used', true)
                     ->orWhere(function ($sub) {

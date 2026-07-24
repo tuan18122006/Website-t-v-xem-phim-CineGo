@@ -145,7 +145,6 @@ class BookingService
                 $bookingCode = 'CG-' . mt_rand(100000, 999999);
             } while (Booking::where('booking_code', $bookingCode)->exists());
 
-            // 🔥 ĐÃ BỎ 'used_user_combo_ids' KHỎI CREATE ĐỂ TRÁNH LỖI MẤT CỘT TRONG DB
             $booking = Booking::create([
                 'booking_code' => $bookingCode,
                 'vnp_txn_ref'  => $vnpTxnRef,
@@ -200,7 +199,7 @@ class BookingService
                             'booking_id'        => $booking->id,
                             'combo_id'          => $userCombo->combo_id,
                             'quantity'          => 1,
-                            'price_at_purchase' => 0, // Quà tặng có giá 0đ
+                            'price_at_purchase' => 0, 
                             'subtotal'          => 0,
                         ]);
                     }
@@ -251,43 +250,50 @@ class BookingService
         ]);
     }
 
-    private function deductComboStock(Booking $booking): void
-    {
-        foreach ($booking->bookingCombos as $item) {
-            $combo = Combo::lockForUpdate()->find($item->combo_id);
+   private function deductComboStock(Booking $booking): void
+{
+    foreach ($booking->bookingCombos as $item) {
+        $combo = Combo::lockForUpdate()->find($item->combo_id);
 
-            if (!$combo) {
-                continue;
-            }
+        if (!$combo) {
+            continue;
+        }
 
-            if ($combo->stock < $item->quantity) {
-                throw new \Exception("{$combo->name} không đủ số lượng.");
-            }
+      
+        if (isset($item->price) && (float)$item->price == 0) {
+            continue;
+        }
+        if (isset($item->subtotal) && (float)$item->subtotal == 0) {
+            continue;
+        }
 
-            $combo->decrement('stock', $item->quantity);
+        if ($combo->stock < $item->quantity) {
+            throw new \Exception("{$combo->name} không đủ số lượng.");
+        }
 
-            if ($combo->type === 'combo') {
-               
-                $comboComponents = $combo->comboItems()->get(); 
+        $combo->decrement('stock', $item->quantity);
 
-                foreach ($comboComponents as $component) {
-                    $subItem = Combo::lockForUpdate()->find($component->item_id);
+        if ($combo->type === 'combo') {
+            $comboComponents = $combo->comboItems()->get(); 
 
-                    if (!$subItem) {
-                        continue;
-                    }
+            foreach ($comboComponents as $component) {
+                $subItem = Combo::lockForUpdate()->find($component->item_id);
 
-                    $totalDeductQuantity = $item->quantity * $component->quantity;
-
-                    if ($subItem->stock < $totalDeductQuantity) {
-                        throw new \Exception(
-                            "Thành phần '{$subItem->name}' trong '{$combo->name}' đã hết hoặc không đủ số lượng tồn kho."
-                        );
-                    }
-
-                    $subItem->decrement('stock', $totalDeductQuantity);
+                if (!$subItem) {
+                    continue;
                 }
+
+                $totalDeductQuantity = $item->quantity * $component->quantity;
+
+                if ($subItem->stock < $totalDeductQuantity) {
+                    throw new \Exception(
+                        "Thành phần '{$subItem->name}' trong '{$combo->name}' đã hết hoặc không đủ số lượng tồn kho."
+                    );
+                }
+
+                $subItem->decrement('stock', $totalDeductQuantity);
             }
         }
     }
+}
 }

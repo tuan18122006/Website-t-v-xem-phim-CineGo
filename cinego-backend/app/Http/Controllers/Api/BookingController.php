@@ -15,12 +15,13 @@ use App\Helpers\BookingHelper;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Services\BookingService;
+use App\Services\LoyaltyService;
 
 class BookingController extends Controller
 {
     protected $bookingService;
     protected $loyaltyService;
-    public function __construct(BookingService $bookingService)
+    public function __construct(BookingService $bookingService, LoyaltyService $loyaltyService)
     {
         $this->bookingService = $bookingService;
         $this->loyaltyService = $loyaltyService;
@@ -78,92 +79,92 @@ class BookingController extends Controller
     }
 
     public function store(Request $request)
-{
-    $request->validate([
-        'showtime_id'           => 'required|integer|exists:showtimes,id',
-        'seat_ids'              => 'required|array|min:1',
-        'seat_ids.*'            => 'required|integer|exists:seats,id',
-        'combos'                => 'nullable|array',
-        'combos.*.id'          => 'required|integer|exists:combos,id',
-        'combos.*.quantity'    => 'required|integer|min:1',
-        'used_user_combo_ids'   => 'nullable|array',
-        'used_user_combo_ids.*' => 'integer',
-        'voucher_id'            => 'nullable|integer|exists:vouchers,id',
-        'payment_method'        => 'required|string',
-        'total_amount'          => 'required|numeric'
-    ]);
+    {
+        $request->validate([
+            'showtime_id'           => 'required|integer|exists:showtimes,id',
+            'seat_ids'              => 'required|array|min:1',
+            'seat_ids.*'            => 'required|integer|exists:seats,id',
+            'combos'                => 'nullable|array',
+            'combos.*.id'          => 'required|integer|exists:combos,id',
+            'combos.*.quantity'    => 'required|integer|min:1',
+            'used_user_combo_ids'   => 'nullable|array',
+            'used_user_combo_ids.*' => 'integer',
+            'voucher_id'            => 'nullable|integer|exists:vouchers,id',
+            'payment_method'        => 'required|string',
+            'total_amount'          => 'required|numeric'
+        ]);
 
-    try {
-        $booking = $this->bookingService->createBooking(
-            $request->showtime_id,
-            $request->seat_ids,
-            $request->combos ?? [],
-            $request->payment_method,
-            auth()->id(),
-            $request->voucher_id,
-            'paid',
-            null,
-            $request->used_user_combo_ids ?? []
-        );
-
-        // 1. Trừ combo quà tặng
-        if ($request->has('used_user_combo_ids') && count($request->used_user_combo_ids) > 0) {
-            DB::table('user_combos')
-                ->whereIn('id', $request->used_user_combo_ids)
-                ->where('user_id', auth()->id())
-                ->update([
-                    'is_used'    => true,
-                    'updated_at' => now()
-                ]);
-        }
-
-        // 2. Trừ voucher
-        if ($request->voucher_id) {
-            DB::table('user_vouchers')
-                ->where('voucher_id', $request->voucher_id)
-                ->where('user_id', auth()->id())
-                ->where('is_used', false)
-                ->limit(1)
-                ->update([
-                    'is_used'    => true,
-                    'used_at'    => now(),
-                    'updated_at' => now()
-                ]);
-        }
-
-        // 🔥 CHỈNH SỬA Ở ĐÂY: Đặt nằm NGOÀI if ($request->voucher_id)
-        // Bất kỳ ai thanh toán thành công cũng phải được tích điểm & xét hạng!
-        if ($booking->user) {
-            $this->loyaltyService->processBookingPoints(
-                $booking->user,
-                $booking->total_amount,
-                $booking
-            );
-        }
-
-        // 3. Gửi email
         try {
-            if ($booking->user && $booking->user->email) {
-                \Illuminate\Support\Facades\Mail::to($booking->user->email)
-                    ->send(new \App\Mail\BookingSuccessMail($booking));
+            $booking = $this->bookingService->createBooking(
+                $request->showtime_id,
+                $request->seat_ids,
+                $request->combos ?? [],
+                $request->payment_method,
+                auth()->id(),
+                $request->voucher_id,
+                'paid',
+                null,
+                $request->used_user_combo_ids ?? []
+            );
+
+            // 1. Trừ combo quà tặng
+            if ($request->has('used_user_combo_ids') && count($request->used_user_combo_ids) > 0) {
+                DB::table('user_combos')
+                    ->whereIn('id', $request->used_user_combo_ids)
+                    ->where('user_id', auth()->id())
+                    ->update([
+                        'is_used'    => true,
+                        'booking_id' => $booking->id,
+                        'used_at'    => now(),
+                        'updated_at' => now()
+                    ]);
             }
-        } catch (\Exception $mailEx) {
-            \Illuminate\Support\Facades\Log::error('Failed to send booking success email: ' . $mailEx->getMessage());
+
+            // 2. Trừ voucher
+            if ($request->voucher_id) {
+                DB::table('user_vouchers')
+                    ->where('voucher_id', $request->voucher_id)
+                    ->where('user_id', auth()->id())
+                    ->where('is_used', false)
+                    ->limit(1)
+                    ->update([
+                        'is_used'    => true,
+                        'used_at'    => now(),
+                        'updated_at' => now()
+                    ]);
+            }
+
+        
+            if ($booking->user) {
+                $this->loyaltyService->processBookingPoints(
+                    $booking->user,
+                    $booking->total_amount,
+                    $booking
+                );
+            }
+
+            // 3. Gửi email
+            try {
+                if ($booking->user && $booking->user->email) {
+                    \Illuminate\Support\Facades\Mail::to($booking->user->email)
+                        ->send(new \App\Mail\BookingSuccessMail($booking));
+                }
+            } catch (\Exception $mailEx) {
+                \Illuminate\Support\Facades\Log::error('Failed to send booking success email: ' . $mailEx->getMessage());
+            }
+
+            return response()->json([
+                'success'      => true,
+                'message'      => 'Đặt vé thành công',
+                'booking_code' => $booking->booking_code
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 422);
         }
-
-        return response()->json([
-            'success'      => true,
-            'message'      => 'Đặt vé thành công',
-            'booking_code' => $booking->booking_code
-        ], 201);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => $e->getMessage()
-        ], 422);
     }
-}
 
     /**
      * Lấy lịch sử đặt vé của user đang đăng nhập
@@ -172,7 +173,6 @@ class BookingController extends Controller
     {
         $userId = auth()->id();
 
-        // Eager load các mối quan hệ
         $bookings = Booking::with([
             'showtime.movie:id,title',
             'showtime.room:id,name',
@@ -185,16 +185,14 @@ class BookingController extends Controller
 
         $formattedTickets = $bookings->map(function ($booking) {
 
-            // XỬ LÝ AN TOÀN TUYỆT ĐỐI CHO SEATS:
             $seatsList = [];
             if ($booking->bookingDetails) {
                 foreach ($booking->bookingDetails as $detail) {
-                    // Kiểm tra xem detail và detail->seat có tồn tại không
                     if ($detail && $detail->seat) {
                         $seatsList[] = [
                             'row'    => $detail->seat->row,
                             'number' => $detail->seat->number,
-                            'type'   => $detail->seat->type ?? 'standard' // Mặc định nếu type null
+                            'type'   => $detail->seat->type ?? 'standard' 
                         ];
                     }
                 }

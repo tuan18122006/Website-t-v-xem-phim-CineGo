@@ -116,49 +116,49 @@ class PaymentController extends Controller
     }
 
     public function handlePaymentSuccess($booking)
-    {
-        if (!$booking->user) {
-            return;
+{
+    if (!$booking->user) {
+        return;
+    }
+
+    DB::transaction(function () use ($booking) {
+        if ($booking->voucher_id) {
+            DB::table('user_vouchers')
+                ->where('voucher_id', $booking->voucher_id)
+                ->where('user_id', $booking->user_id)
+                ->where('is_used', false)
+                ->limit(1)
+                ->update([
+                    'is_used'    => true,
+                    'used_at'    => now(),
+                    'updated_at' => now()
+                ]);
         }
 
-        DB::transaction(function () use ($booking) {
-            // 1. Trừ Voucher đã dùng
-            if ($booking->voucher_id) {
-                DB::table('user_vouchers')
-                    ->where('voucher_id', $booking->voucher_id)
-                    ->where('user_id', $booking->user_id)
-                    ->where('is_used', false)
-                    ->limit(1)
-                    ->update([
-                        'is_used'    => true,
-                        'used_at'    => now(),
-                        'updated_at' => now()
-                    ]);
-            }
+        $bookingCombos = DB::table('booking_combos')
+            ->where('booking_id', $booking->id)
+            ->where('price_at_purchase', 0) 
+            ->get();
 
-            // 2. Trừ Quà tặng (Lấy từ bảng booking_combos đã lưu khi đặt vé)
-            $bookingCombos = DB::table('booking_combos')
-                ->where('booking_id', $booking->id)
-                ->get();
+        foreach ($bookingCombos as $bCombo) {
+            DB::table('user_combos')
+                ->where('user_id', $booking->user_id)
+                ->where('combo_id', $bCombo->combo_id)
+                ->where('is_used', false)
+                ->limit($bCombo->quantity ?? 1)
+                ->update([
+                    'is_used'    => true,
+                    'booking_id' => $booking->id, 
+                    'used_at'    => now(),        
+                    'updated_at' => now()
+                ]);
+        }
 
-            foreach ($bookingCombos as $bCombo) {
-                DB::table('user_combos')
-                    ->where('user_id', $booking->user_id)
-                    ->where('combo_id', $bCombo->combo_id)
-                    ->where('is_used', false)
-                    ->limit($bCombo->quantity ?? 1)
-                    ->update([
-                        'is_used'    => true,
-                        'updated_at' => now()
-                    ]);
-            }
-
-            // 3. Tích điểm thành viên
-            $this->loyaltyService->processBookingPoints(
-                $booking->user,
-                $booking->total_amount,
-                $booking
-            );
-        });
-    }
+        $this->loyaltyService->processBookingPoints(
+            $booking->user,
+            $booking->total_amount,
+            $booking
+        );
+    });
+}
 }
