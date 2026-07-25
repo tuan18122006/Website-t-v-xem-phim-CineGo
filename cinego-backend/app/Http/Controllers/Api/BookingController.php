@@ -129,8 +129,10 @@ class BookingController extends Controller
                     ->limit(1)
                     ->update([
                         'is_used'    => true,
+                        'booking_id' => $booking->id,
                         'used_at'    => now(),
                         'updated_at' => now()
+                        
                     ]);
             }
 
