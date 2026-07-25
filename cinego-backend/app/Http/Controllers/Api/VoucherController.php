@@ -151,6 +151,12 @@ class VoucherController extends Controller
             'points_required' => 'nullable|integer|min:0',
             'max_exchanges'   => 'nullable|integer|min:1',
             'is_active'       => 'nullable|boolean'
+        ], [
+            'code.required'   => 'Vui lòng nhập mã giảm giá.',
+            'code.unique'     => 'Mã giảm giá này đã tồn tại, vui lòng nhập mã khác!',
+            'code.max'        => 'Mã giảm giá không được quá 20 ký tự.',
+            'code.alpha_dash' => 'Mã giảm giá chỉ được chứa chữ cái, số, dấu gạch ngang và gạch dưới.',
+            'expires_at.after' => 'Ngày hết hạn phải sau thời gian hiện tại.'
         ]);
 
         $data['starts_at'] = $request->filled('starts_at') ? $request->starts_at : now();
@@ -168,7 +174,7 @@ class VoucherController extends Controller
             'discount_value'  => 'required|numeric|min:0',
             'min_spend'       => 'required|numeric|min:0',
             'max_discount'    => 'nullable|numeric|min:0',
-            'starts_at'       => 'nullable|date', 
+            'starts_at'       => 'nullable|date',
             'expires_at'      => 'required|date',
             'usage_limit'     => 'nullable|integer|min:1',
             'user_limit'      => 'nullable|integer|min:1',
@@ -178,10 +184,16 @@ class VoucherController extends Controller
             'max_exchanges'   => 'nullable|integer|min:1',
             'is_active'       => 'nullable|boolean'
 
+        ], [
+            'code.required'   => 'Vui lòng nhập mã giảm giá.',
+            'code.unique'     => 'Mã giảm giá này đã tồn tại, vui lòng nhập mã khác!',
+            'code.max'        => 'Mã giảm giá không được quá 20 ký tự.',
+            'code.alpha_dash' => 'Mã giảm giá chỉ được chứa chữ cái, số, dấu gạch ngang và gạch dưới.',
+            'expires_at.after' => 'Ngày hết hạn phải sau thời gian hiện tại.'
         ]);
 
-        $data['starts_at'] = $request->filled('starts_at') 
-            ? $request->starts_at 
+        $data['starts_at'] = $request->filled('starts_at')
+            ? $request->starts_at
             : ($voucher->starts_at ?? $voucher->created_at ?? now());
 
         $voucher->update($data);

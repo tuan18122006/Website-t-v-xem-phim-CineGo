@@ -15,6 +15,7 @@ class Voucher extends Model
         'min_spend',
         'max_discount',
         'expires_at',
+        'starts_at',
         'usage_limit',
         'user_limit',
         'target_limit',
@@ -26,6 +27,7 @@ class Voucher extends Model
     ];
 
     protected $casts = [
+        'starts_at'  => 'datetime', 
         'expires_at' => 'datetime',
         'usage_condition' => 'array',
     ];
