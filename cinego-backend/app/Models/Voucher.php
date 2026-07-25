@@ -16,6 +16,7 @@ class Voucher extends Model
         'max_discount',
         'expires_at',
         'usage_limit',
+        'user_limit',
         'target_limit',
         'usage_condition', 
         'used_count',
