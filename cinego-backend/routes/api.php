@@ -152,6 +152,7 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     //Quản lý Blog
     Route::apiResource('blogs', BlogController::class);
     Route::apiResource('blog-categories', BlogCategoryController::class);
+    Route::post('/blogs/upload-image', [BlogController::class, 'uploadImage']);
 });
 
 // =========================================================================

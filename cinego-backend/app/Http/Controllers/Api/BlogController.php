@@ -4,16 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
-use App\Models\BlogCategory; // Giả định bạn đã có bảng/Model Category để phân loại Blog
+use App\Models\BlogCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class BlogController extends Controller
 {
-    /**
-     * Lấy danh sách bài viết (Đồng bộ với bộ lọc và tìm kiếm ở BlogList.vue)
-     */
+
     public function index(Request $request)
     {
         try {
@@ -41,7 +40,6 @@ class BlogController extends Controller
                 'success' => true,
                 'data' => $posts
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -50,9 +48,6 @@ class BlogController extends Controller
         }
     }
 
-    /**
-     * Tạo bài viết mới (Xử lý từ BlogCreate.vue)
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -60,6 +55,7 @@ class BlogController extends Controller
             'content' => 'required|string',
             'excerpt' => 'nullable|string',
             'category_id' => 'required|integer',
+            'thumbnail' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:20480',
             'thumbnail_url' => 'nullable|string',
             'status' => 'required|in:draft,published,scheduled',
             'published_at' => 'nullable|date',
@@ -87,15 +83,29 @@ class BlogController extends Controller
                 $publishedAt = $validated['published_at'] ? Carbon::parse($validated['published_at']) : Carbon::now();
             }
 
+            // Upload ảnh bìa
+            $thumbnailUrl = '/images/default-blog.jpg';
+
+            if ($request->hasFile('thumbnail')) {
+
+                $path = $request->file('thumbnail')->store('blogs', 'public');
+
+                $thumbnailUrl = asset('storage/' . $path);
+            } elseif (!empty($validated['thumbnail_url'])) {
+
+                $thumbnailUrl = $validated['thumbnail_url'];
+            }
+
             $post = BlogPost::create([
                 'title' => $validated['title'],
                 'slug' => $slug,
                 'content' => $validated['content'],
                 'excerpt' => $validated['excerpt'] ?? null,
                 'category_id' => $validated['category_id'],
-                'thumbnail_url' => $validated['thumbnail_url'] ?? null,
+                'thumbnail_url' => $thumbnailUrl,
                 'status' => $validated['status'],
                 'published_at' => $publishedAt,
+                'movie_id' => $validated['movie_id'] ?? null,
             ]);
 
             return response()->json([
@@ -103,7 +113,6 @@ class BlogController extends Controller
                 'message' => 'Tạo bài viết thành công!',
                 'data' => $post
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -112,9 +121,6 @@ class BlogController extends Controller
         }
     }
 
-    /**
-     * Xem chi tiết bài viết (Đổ dữ liệu lên BlogDetail.vue hoặc BlogEdit.vue)
-     */
     public function show($id)
     {
         try {
@@ -131,7 +137,6 @@ class BlogController extends Controller
                 'success' => true,
                 'data' => $post
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -140,9 +145,6 @@ class BlogController extends Controller
         }
     }
 
-    /**
-     * Cập nhật bài viết (Xử lý lưu từ BlogEdit.vue)
-     */
     public function update(Request $request, $id)
     {
         $post = BlogPost::find($id);
@@ -159,6 +161,7 @@ class BlogController extends Controller
             'content' => 'required|string',
             'excerpt' => 'nullable|string',
             'category_id' => 'required|integer',
+            'thumbnail' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:20480',
             'thumbnail_url' => 'nullable|string',
             'status' => 'required|in:draft,published,scheduled',
             'published_at' => 'nullable|date',
@@ -185,12 +188,40 @@ class BlogController extends Controller
                 $post->published_at = null; // Chuyển về bản nháp
             }
 
+            // Upload ảnh mới nếu có
+            $thumbnailUrl = $post->thumbnail_url;
+
+            if ($request->hasFile('thumbnail')) {
+
+                // Xóa ảnh cũ
+                if (
+                    $post->thumbnail_url &&
+                    str_contains($post->thumbnail_url, '/storage/')
+                ) {
+
+                    $oldImage = str_replace(
+                        asset('storage/') . '/',
+                        '',
+                        $post->thumbnail_url
+                    );
+
+                    Storage::disk('public')->delete($oldImage);
+                }
+
+                $path = $request->file('thumbnail')->store('blogs', 'public');
+
+                $thumbnailUrl = asset('storage/' . $path);
+            } elseif (!empty($validated['thumbnail_url'])) {
+
+                $thumbnailUrl = $validated['thumbnail_url'];
+            }
+
             $post->update([
                 'title' => $validated['title'],
                 'content' => $validated['content'],
                 'excerpt' => $validated['excerpt'] ?? null,
                 'category_id' => $validated['category_id'],
-                'thumbnail_url' => $validated['thumbnail_url'] ?? null,
+                'thumbnail_url' => $thumbnailUrl,
                 'status' => $validated['status'],
                 'published_at' => $post->published_at,
             ]);
@@ -200,7 +231,6 @@ class BlogController extends Controller
                 'message' => 'Cập nhật bài viết thành công!',
                 'data' => $post
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -209,9 +239,6 @@ class BlogController extends Controller
         }
     }
 
-    /**
-     * Xóa bài viết (Nhận lệnh từ nút Xóa ở BlogList.vue)
-     */
     public function destroy($id)
     {
         try {
@@ -230,12 +257,25 @@ class BlogController extends Controller
                 'success' => true,
                 'message' => 'Đã xóa bài viết thành công!'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Lỗi khi xóa: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function uploadImage(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|image|mimes:jpg,jpeg,png,webp|max:4096',
+        ]);
+
+        $path = $request->file('image')->store('blogs/content', 'public');
+
+        return response()->json([
+            'success' => true,
+            'url' => asset('storage/' . $path),
+        ]);
     }
 }

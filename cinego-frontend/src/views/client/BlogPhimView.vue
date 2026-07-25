@@ -1,367 +1,420 @@
 <template>
   <div class="blog-page-container">
-    <!-- HERO HEADER -->
-    <div class="blog-hero">
-      <div class="hero-glow"></div>
+    <section class="blog-hero">
+      <div class="hero-overlay"></div>
+
       <div class="hero-content">
-        <span class="hero-tag">CINEGO MOVIES BLOG</span>
-        <h1 class="hero-title">Blog Điện Ảnh & Tin Tức Phim Hot</h1>
+        <span class="hero-tag"> CINEGO BLOG </span>
+
+        <h1 class="hero-title">Blog Điện Ảnh & Tin Tức Phim</h1>
+
         <p class="hero-desc">
-          Cập nhật các bài phân tích, tin tức điện ảnh nóng hổi, hậu trường làm phim và xu hướng điện ảnh thế giới mới nhất.
+          Cập nhật review phim, tin điện ảnh, hậu trường, xu hướng điện ảnh và
+          các bài viết mới nhất từ CineGo.
         </p>
 
-        <!-- Category selectors -->
-        <div class="blog-categories">
-          <button 
-            v-for="cat in categories" 
-            :key="cat.key" 
-            class="cat-pill" 
-            :class="{ active: activeCategory === cat.key }"
-            @click="activeCategory = cat.key"
+        <div class="category-list">
+          <button
+            class="category-btn"
+            :class="{ active: activeCategory === 'all' }"
+            @click="activeCategory = 'all'"
           >
-            {{ cat.label }}
+            🔥 Tất cả
+          </button>
+
+          <button
+            v-for="category in categories"
+            :key="category.id"
+            class="category-btn"
+            :class="{ active: activeCategory === category.id }"
+            @click="activeCategory = category.id"
+          >
+            {{ category.name }}
           </button>
         </div>
       </div>
-    </div>
+    </section>
 
-    <!-- FEATURED ARTICLE (HERO POST) -->
-    <div v-if="featuredArticle" class="featured-post-wrap">
-      <div class="featured-post-card glass-panel">
-        <div class="post-image-box">
-          <img :src="featuredArticle.image" :alt="featuredArticle.title" class="post-img" />
-          <span class="post-category-tag">{{ featuredArticle.categoryName }}</span>
+    <section v-if="featuredArticle" class="featured-section">
+      <div class="featured-card">
+        <div class="featured-image">
+          <img
+            :src="featuredArticle.thumbnail_url"
+            :alt="featuredArticle.title"
+          />
+
+          <span class="featured-category">
+            {{ featuredArticle.category?.name }}
+          </span>
         </div>
-        <div class="post-info-box">
-          <small class="post-meta-top">🕒 {{ featuredArticle.date }} • ✍️ {{ featuredArticle.author }}</small>
-          <h2 class="post-title">{{ featuredArticle.title }}</h2>
-          <p class="post-excerpt">{{ featuredArticle.excerpt }}</p>
-          <div class="post-footer">
-            <span class="reading-time">📖 {{ featuredArticle.readingTime }} phút đọc</span>
-            <a href="#" class="btn-read-more" @click.prevent="alertReadMore">Đọc tiếp →</a>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- SECONDARY ARTICLES GRID -->
-    <div class="blog-grid-section">
-      <h2 class="grid-section-title">Bài viết mới cập nhật</h2>
+        <div class="featured-content">
+          <div class="featured-meta">
+            <span>
+              🗓
+              {{ formatDate(featuredArticle.published_at) }}
+            </span>
 
-      <div class="blog-grid">
-        <div v-for="post in filteredArticles" :key="post.id" class="grid-post-card glass-panel">
-          <div class="grid-post-image">
-            <img :src="post.image" :alt="post.title" class="grid-img" />
-            <span class="grid-category-tag">{{ post.categoryName }}</span>
+            <span> ✍ Admin </span>
           </div>
-          <div class="grid-post-body">
-            <small class="grid-meta">🕒 {{ post.date }} • {{ post.readingTime }} phút đọc</small>
-            <h3 class="grid-title">{{ post.title }}</h3>
-            <p class="grid-excerpt">{{ post.excerpt }}</p>
-            <div class="grid-footer">
-              <a href="#" class="btn-grid-read" @click.prevent="alertReadMore">Đọc chi tiết</a>
-            </div>
-          </div>
+
+          <h2>
+            {{ featuredArticle.title }}
+          </h2>
+
+          <p>
+            {{ featuredArticle.excerpt }}
+          </p>
+
+          <router-link class="btn-read" :to="`/blog/${featuredArticle.slug}`">
+            Đọc tiếp →
+          </router-link>
         </div>
       </div>
-    </div>
+    </section>
+
+    <section class="blog-grid-section">
+      <h2 class="section-title">Bài viết mới</h2>
+
+      <div v-if="filteredArticles.length" class="blog-grid">
+        <article
+          v-for="post in filteredArticles"
+          :key="post.id"
+          class="blog-card"
+        >
+          <div class="card-image">
+            <img :src="post.thumbnail_url" :alt="post.title" />
+
+            <span class="card-category">
+              {{ post.category?.name }}
+            </span>
+          </div>
+
+          <div class="card-body">
+            <small>
+              {{ formatDate(post.published_at) }}
+            </small>
+
+            <h3>
+              {{ post.title }}
+            </h3>
+
+            <p>
+              {{ post.excerpt }}
+            </p>
+
+            <router-link class="btn-detail" :to="`/blog/${post.slug}`">
+              Xem chi tiết →
+            </router-link>
+          </div>
+        </article>
+      </div>
+
+      <div v-else class="empty-blog">
+        <h3>Chưa có bài viết nào.</h3>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from "vue";
+import api from "../../api/axios";
 
-const activeCategory = ref('all');
+const blogs = ref([]);
+const categories = ref([]);
 
-const categories = [
-  { key: 'all', label: '🔥 Mới nhất' },
-  { key: 'behind', label: '🎬 Hậu trường phim' },
-  { key: 'review', label: '✍️ Phân tích & Review' },
-  { key: 'roundup', label: '📰 Tổng hợp điện ảnh' }
-];
+const featuredArticle = ref(null);
 
-const featuredArticle = ref({
-  id: 1,
-  title: 'Doraemon: Từ "Ký Ức Tuổi Thơ" Đến "Cỗ Máy Phòng Vé" Đa Thế Hệ',
-  category: 'behind',
-  categoryName: 'Hậu trường phim',
-  author: 'Đức Huy',
-  date: '13/06/2026',
-  excerpt: 'Cùng khám phá hành trình dài hơn nửa thế kỷ của chú mèo máy thông minh Doraemon và người bạn Nobita, tìm hiểu lý do tại sao loạt phim điện ảnh thường niên này luôn chiếm lĩnh doanh số phòng vé mỗi dịp hè về.',
-  image: 'https://images.unsplash.com/photo-1578849278619-e73505e9610f?auto=format&fit=crop&w=800&q=80',
-  readingTime: '5'
-});
+const loading = ref(false);
 
-const articles = ref([
-  {
-    id: 2,
-    title: 'Xu Hướng Đặt Vé Sớm & Sự Trỗi Dậy Của Suất Chiếu Đặc Biệt',
-    category: 'roundup',
-    categoryName: 'Tổng hợp điện ảnh',
-    date: '12/06/2026',
-    excerpt: 'Lý do tại sao các bom tấn Hollywood đang tăng cường suất chiếu sớm (Sneak Show) trước ngày khởi chiếu chính thức và phản ứng nồng nhiệt từ người hâm mộ.',
-    image: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=400&q=80',
-    readingTime: '3'
-  },
-  {
-    id: 3,
-    title: 'Khi Sức Mua Bùng Nổ Nhưng Trải Nghiệm Bị Lệch Pha',
-    category: 'review',
-    categoryName: 'Phân tích & Review',
-    date: '10/06/2026',
-    excerpt: 'Bài phân tích sâu sắc về sự phát triển của hệ thống phòng chiếu hiện đại tại Việt Nam và cách CineGo nâng cao chuẩn mực dịch vụ phục vụ khách hàng.',
-    image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80',
-    readingTime: '4'
-  },
-  {
-    id: 4,
-    title: 'Nghệ Thuật Của Điện Ảnh: Review & Phân Tích Toàn Diện',
-    category: 'review',
-    categoryName: 'Phân tích & Review',
-    date: '08/06/2026',
-    excerpt: 'Hướng dẫn cách người xem cảm nhận nghệ thuật góc quay, màu sắc và thông điệp ẩn dụ sâu bên trong các bộ phim kinh điển được chiếu rạp.',
-    image: 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&w=400&q=80',
-    readingTime: '4'
-  },
-  {
-    id: 5,
-    title: 'Top 5 Bộ Phim Hậu Trường Đáng Xem Nhất Mọi Thời Đại',
-    category: 'behind',
-    categoryName: 'Hậu trường phim',
-    date: '05/06/2026',
-    excerpt: 'Hành trình vượt khó khăn của các đoàn làm phim khi thực hiện các dự án bom tấn lớn trong lịch sử điện ảnh nhân loại.',
-    image: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=400&q=80',
-    readingTime: '3'
+const activeCategory = ref("all");
+
+const formatDate = (date) => {
+  if (!date) return "";
+
+  return new Date(date).toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+};
+
+const fetchBlogs = async () => {
+  loading.value = true;
+
+  try {
+    const res = await api.get("/blogs");
+
+    const data = res.data.data || res.data;
+
+    // chỉ lấy bài đã xuất bản
+    const published = data.filter((item) => item.status === "published");
+
+    // mới nhất lên đầu
+    published.sort(
+      (a, b) => new Date(b.published_at) - new Date(a.published_at),
+    );
+
+    blogs.value = published;
+
+    if (published.length) {
+      featuredArticle.value = published[0];
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    loading.value = false;
   }
-]);
+};
+
+const fetchCategories = async () => {
+  try {
+    const res = await api.get("/blog-categories");
+
+    categories.value = res.data.data || res.data;
+  } catch (err) {
+    console.error(err);
+  }
+};
 
 const filteredArticles = computed(() => {
-  if (activeCategory.value === 'all') return articles.value;
-  return articles.value.filter(a => a.category === activeCategory.value);
+  let list = blogs.value;
+
+  if (featuredArticle.value) {
+    list = list.filter((item) => item.id !== featuredArticle.value.id);
+  }
+
+  if (activeCategory.value === "all") {
+    return list;
+  }
+
+  return list.filter((item) => item.category_id == activeCategory.value);
 });
 
-const alertReadMore = () => {
-  alert('Tính năng đang được phát triển. Chi tiết bài viết đầy đủ sẽ sớm ra mắt!');
+const keyword = ref("");
+
+const searchedArticles = computed(() => {
+  if (!keyword.value) {
+    return filteredArticles.value;
+  }
+
+  return filteredArticles.value.filter((item) => {
+    return (
+      item.title.toLowerCase().includes(keyword.value.toLowerCase()) ||
+      item.excerpt?.toLowerCase().includes(keyword.value.toLowerCase())
+    );
+  });
+});
+
+const refreshFeatured = () => {
+  if (!blogs.value.length) {
+    featuredArticle.value = null;
+
+    return;
+  }
+
+  const newest = [...blogs.value].sort(
+    (a, b) => new Date(b.published_at) - new Date(a.published_at),
+  );
+
+  featuredArticle.value = newest[0];
 };
+
+onMounted(async () => {
+  await fetchCategories();
+
+  await fetchBlogs();
+
+  refreshFeatured();
+});
 </script>
 
 <style scoped>
 .blog-page-container {
-  width: 100%;
   min-height: 100vh;
-  background-color: #ffffff;
+  background: #f8fafc;
   padding-bottom: 60px;
 }
 
-/* HERO HEADER */
 .blog-hero {
   position: relative;
-  background: linear-gradient(135deg, #1b0004 0%, #000000 100%);
-  padding: 80px 24px;
-  border-radius: 24px;
   overflow: hidden;
-  margin-bottom: 40px;
+  background: linear-gradient(135deg, #1a0004 0%, #000 100%);
+  padding: 60px 20px;
   text-align: center;
-  border: 1px solid rgba(229, 9, 20, 0.1);
 }
 
-.hero-glow {
+.hero-overlay {
   position: absolute;
-  top: -50%;
-  right: -20%;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(229, 9, 20, 0.2) 0%, transparent 70%);
-  filter: blur(60px);
+  inset: 0;
+  background: radial-gradient(
+    circle at top right,
+    rgba(229, 9, 20, 0.25),
+    transparent 55%
+  );
   pointer-events: none;
 }
 
 .hero-content {
-  max-width: 800px;
-  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+  max-width: 900px;
+  margin: auto;
 }
 
 .hero-tag {
-  font-size: 11px;
-  font-weight: 800;
+  display: inline-block;
   color: #e50914;
+  font-size: 13px;
+  font-weight: 800;
   letter-spacing: 2px;
-  display: block;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .hero-title {
-  font-size: 38px;
+  color: white;
+  font-size: 48px;
   font-weight: 800;
-  color: #ffffff;
-  margin-bottom: 16px;
-  letter-spacing: -1px;
+  margin-bottom: 18px;
 }
 
 .hero-desc {
+  color: #d1d5db;
   font-size: 16px;
-  color: #cbd5e1;
-  line-height: 1.6;
-  margin-bottom: 36px;
+  line-height: 1.8;
+  margin-bottom: 35px;
 }
 
-/* CATEGORIES */
-.blog-categories {
+.category-list {
   display: flex;
   justify-content: center;
-  gap: 12px;
   flex-wrap: wrap;
+  gap: 12px;
 }
 
-.cat-pill {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #cbd5e1;
-  font-weight: 700;
-  font-size: 13px;
-  padding: 10px 20px;
-  border-radius: 12px;
+.category-btn {
+  border: none;
   cursor: pointer;
-  transition: all 0.25s ease;
-  backdrop-filter: blur(4px);
+  padding: 11px 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+  font-weight: 600;
+  transition: 0.25s;
 }
 
-.cat-pill:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+.category-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
 }
 
-.cat-pill.active {
+.category-btn.active {
   background: #e50914;
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(229, 9, 20, 0.25);
-  border-color: #e50914;
 }
 
-/* FEATURED ARTICLE */
-.featured-post-wrap {
-  max-width: 1100px;
-  margin: 0 auto 50px auto;
-  padding: 0 16px;
+.featured-section {
+  max-width: 1200px;
+  margin: 40px auto 60px; /* Đổi -50px thành 40px */
+  padding: 0 20px;
+  position: relative;
+  z-index: 20;
 }
 
-.featured-post-card {
+.featured-card {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  background: #ffffff;
-  border: 1px solid rgba(148, 163, 184, 0.12);
+  grid-template-columns: 55% 45%;
+  background: #fff;
   border-radius: 24px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.08);
+  min-height: 430px;
 }
 
-@media (max-width: 768px) {
-  .featured-post-card {
-    grid-template-columns: 1fr;
-  }
-}
-
-.post-image-box {
+.featured-image {
   position: relative;
-  height: 340px;
+  min-height: 430px;
   overflow: hidden;
 }
 
-.post-img {
+.featured-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
+  display: block;
 }
 
-.featured-post-card:hover .post-img {
-  transform: scale(1.03);
-}
-
-.post-category-tag {
+.featured-category {
   position: absolute;
   top: 20px;
   left: 20px;
   background: #e50914;
-  color: #ffffff;
-  font-weight: 800;
-  font-size: 11px;
-  padding: 6px 14px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 14px;
   border-radius: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
-.post-info-box {
-  padding: 32px;
+.featured-content {
+  padding: 42px;
   display: flex;
   flex-direction: column;
   justify-content: center;
 }
 
-.post-meta-top {
-  font-size: 12px;
-  color: #94a3b8;
-  font-weight: 600;
-  margin-bottom: 12px;
-  display: block;
-}
-
-.post-title {
-  font-size: 24px;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1.3;
-  margin: 0 0 14px 0;
-}
-
-.post-excerpt {
-  font-size: 14.5px;
-  color: #64748b;
-  line-height: 1.6;
-  margin: 0 0 24px 0;
-}
-
-.post-footer {
+.featured-meta {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid #f1f5f9;
-  padding-top: 20px;
-  margin-top: auto;
+  gap: 18px;
+  color: #64748b;
+  font-size: 13px;
+  margin-bottom: 18px;
 }
 
-.reading-time {
-  font-size: 12.5px;
-  color: #94a3b8;
-  font-weight: 600;
-}
-
-.btn-read-more {
-  color: #e50914;
-  font-weight: 700;
-  font-size: 13.5px;
-  transition: transform 0.2s;
-}
-
-.btn-read-more:hover {
-  transform: translateX(3px);
-}
-
-/* GRID SECTION */
-.blog-grid-section {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 16px;
-}
-
-.grid-section-title {
-  font-size: 22px;
-  font-weight: 800;
+.featured-content h2 {
+  font-size: 42px;
+  line-height: 1.25;
+  margin: 0 0 20px;
   color: #0f172a;
-  margin-bottom: 24px;
-  border-left: 5px solid #e50914;
-  padding-left: 12px;
+  font-weight: 800;
+}
+
+.featured-content p {
+  color: #475569;
+  line-height: 1.9;
+  margin-bottom: 30px;
+  font-size: 15px;
+}
+
+.btn-read {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  height: 46px;
+  background: #e50914;
+  color: #fff;
+  border-radius: 10px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: 0.25s;
+}
+
+.btn-read:hover {
+  background: #c20811;
+  transform: translateY(-2px);
+}
+
+.blog-grid-section {
+  max-width: 1200px;
+  margin: auto;
+  padding: 0 20px;
+}
+
+.section-title {
+  font-size: 30px;
+  font-weight: 800;
+  margin-bottom: 30px;
+  color: #111827;
 }
 
 .blog-grid {
@@ -370,107 +423,78 @@ const alertReadMore = () => {
   gap: 30px;
 }
 
-.grid-post-card {
-  background: #ffffff;
-  border: 1px solid rgba(148, 163, 184, 0.12);
+.blog-card {
+  background: white;
+  overflow: hidden;
   border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
-  display: flex;
-  flex-direction: column;
-  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+  transition: 0.3s;
 }
 
-.grid-post-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(229, 9, 20, 0.15);
-  box-shadow: 0 10px 24px rgba(229, 9, 20, 0.08);
+.blog-card:hover {
+  transform: translateY(-6px);
 }
 
-.grid-post-image {
+.card-image {
   position: relative;
-  height: 200px;
-  overflow: hidden;
+  height: 220px;
 }
 
-.grid-img {
+.card-image img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
 }
 
-.grid-post-card:hover .grid-img {
-  transform: scale(1.04);
-}
-
-.grid-category-tag {
+.card-category {
   position: absolute;
-  top: 14px;
-  left: 14px;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(4px);
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 10px;
-  padding: 4px 10px;
-  border-radius: 6px;
-  text-transform: uppercase;
+  left: 16px;
+  top: 16px;
+  background: rgba(0, 0, 0, 0.75);
+  color: white;
+  padding: 5px 12px;
+  border-radius: 7px;
+  font-size: 12px;
 }
 
-.grid-post-body {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
+.card-body {
+  padding: 22px;
 }
 
-.grid-meta {
-  font-size: 11px;
-  color: #94a3b8;
-  font-weight: 600;
-  margin-bottom: 8px;
-}
-
-.grid-title {
-  font-size: 16px;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1.4;
-  margin: 0 0 8px 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.grid-excerpt {
-  font-size: 13px;
+.card-body small {
   color: #64748b;
+}
+
+.card-body h3 {
+  margin: 12px 0;
+  color: #111827;
+  font-size: 20px;
   line-height: 1.5;
-  margin: 0 0 16px 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  flex: 1;
 }
 
-.grid-footer {
-  margin-top: auto;
-  border-top: 1px solid #f1f5f9;
-  padding-top: 12px;
-  display: flex;
-  justify-content: flex-end;
+.card-body p {
+  color: #64748b;
+  line-height: 1.7;
+  margin-bottom: 25px;
 }
 
-.btn-grid-read {
+.btn-detail {
+  text-decoration: none;
   color: #e50914;
   font-weight: 700;
-  font-size: 12.5px;
 }
 
-.btn-grid-read:hover {
+.btn-detail:hover {
   text-decoration: underline;
 }
+
+.empty-blog {
+  text-align: center;
+  background: white;
+  padding: 60px;
+  border-radius: 18px;
+  color: #64748b;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+}
+
 </style>
