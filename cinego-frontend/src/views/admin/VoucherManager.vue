@@ -10,15 +10,16 @@
                 <table class="vouchers-table">
                     <thead>
                         <tr>
-                            <th>Mã</th>
-                            <th>Loại giảm</th>
-                            <th>Giá trị</th>
+                            <th>Mã Code</th>
+                            <th>Mức giảm</th>
                             <th>Đơn tối thiểu</th>
+                            <th>Điểm đổi</th>
+                            <th>Lượt đổi tối đa</th>
                             <th>Đối tượng</th>
                             <th>Điều kiện áp dụng</th>
                             <th>Hết hạn</th>
                             <th>Giảm tối đa</th>
-                            <th>số lần dùng</th>
+                            <th>Lượt dùng/User</th>
                             <th>Trạng thái</th>
                             <th>Hành động</th>
                         </tr>
@@ -26,33 +27,38 @@
                     <tbody>
                         <tr v-for="voucher in vouchers" :key="voucher.id">
                             <td><strong>{{ voucher.code }}</strong></td>
+                            <!-- ⚡ FIX 1: Gộp cột Loại giảm & Giá trị -->
                             <td>
-                                {{ voucher.discount_type === 'percentage'
-                                    ? voucher.discount_value + '%'
-                                    : formatCurrency(voucher.discount_value)
-                                }}
-                            </td>
-                            <td>{{ voucher.discount_value }}{{ voucher.discount_type === 'percentage' ? '%' : 'đ' }}
+                                <span class="badge-discount">
+                                    {{ voucher.discount_type === 'percentage'
+                                        ? voucher.discount_value + '%'
+                                        : formatCurrency(voucher.discount_value)
+                                    }}
+                                </span>
                             </td>
                             <td>{{ formatCurrency(voucher.min_spend) }}</td>
 
+                            <!-- HIỂN THỊ ĐIỂM ĐỔI & LƯỢT ĐỔI -->
+                            <td>
+                                <span v-if="voucher.points_required > 0" class="badge-points">
+                                    ⭐ {{ voucher.points_required }} pt
+                                </span>
+                                <span v-else style="color: #888;">Miễn phí</span>
+                            </td>
+                            <td>{{ voucher.max_exchanges ? voucher.max_exchanges : 'Không GH' }}</td>
+
                             <td>
                                 <span v-if="voucher.target_limit === 'all'">Tất cả</span>
-                                <span v-else-if="voucher.target_limit === 'new_user'" class="status-pill active">Tân
-                                    binh</span>
-                                <span v-else-if="voucher.target_limit === 'birthday'" class="status-pill active"
-                                    style="background:#fef08a; color:#854d0e;">Sinh nhật</span>
+                                <span v-else-if="voucher.target_limit === 'new_user'" class="status-pill active">Tân binh</span>
+                                <span v-else-if="voucher.target_limit === 'birthday'" class="status-pill active" style="background:#fef08a; color:#854d0e;">Sinh nhật</span>
                             </td>
 
                             <td>
                                 <div v-if="voucher.usage_condition">
-                                    <small v-if="voucher.usage_condition?.day_of_week"
-                                        style="display: block; margin-bottom: 4px;">
-                                        📅 Thứ {{ voucher.usage_condition.day_of_week == 7 ? 'Chủ Nhật' :
-                                            voucher.usage_condition.day_of_week + 1 }}
+                                    <small v-if="voucher.usage_condition?.day_of_week" style="display: block; margin-bottom: 4px;">
+                                        📅 Thứ {{ voucher.usage_condition.day_of_week == 7 ? 'Chủ Nhật' : voucher.usage_condition.day_of_week + 1 }}
                                     </small>
-                                    <small v-if="voucher.usage_condition?.movie_id"
-                                        style="display: block; color: #e11d48; font-weight: 500;">
+                                    <small v-if="voucher.usage_condition?.movie_id" style="display: block; color: #e11d48; font-weight: 500;">
                                         🎬 {{ getMovieTitle(voucher.usage_condition.movie_id) }}
                                     </small>
                                 </div>
@@ -60,14 +66,13 @@
                             </td>
 
                             <td>{{ formatDate(voucher.expires_at) }}</td>
-                            <td>{{ voucher.max_discount ? formatCurrency(voucher.max_discount) : 'Không giới hạn' }}
-                            </td>
-                            <td>{{ voucher.usage_limit ? voucher.usage_limit : 'Không giới hạn' }}</td>
+                            <td>{{ voucher.max_discount ? formatCurrency(voucher.max_discount) : 'Không GH' }}</td>
+                            <td>{{ voucher.user_limit ? voucher.user_limit : '1' }}</td>
+                            
+                            <!-- ⚡ FIX STATUS: Kết hợp cả is_active và Hạn sử dụng -->
                             <td>
-                                <span
-                                    :class="['status-pill', voucher.is_active && !isVoucherExpired(voucher.expires_at) ? 'active' : 'inactive']">
-                                    {{ voucher.is_active && !isVoucherExpired(voucher.expires_at) ? 'Đang hoạt động' :
-                                        'Đã hết hạn' }}
+                                <span :class="['status-pill', voucher.is_active && !isVoucherExpired(voucher.expires_at) ? 'active' : 'inactive']">
+                                    {{ !voucher.is_active ? 'Đã khóa' : (isVoucherExpired(voucher.expires_at) ? 'Hết hạn' : 'Hoạt động') }}
                                 </span>
                             </td>
                             <td>
@@ -84,18 +89,25 @@
             </div>
         </div>
 
+        <!-- MODAL FORM -->
         <div v-if="isModalOpen" class="modal-overlay-cine">
             <div class="glass-panel modal-content-cine">
                 <div class="modal-header">
-                    <h3 style="margin-top: 0; margin-bottom: 0;">{{ isEditing ? 'Cập nhật Voucher' : 'Tạo Voucher mới'
-                        }}</h3>
+                    <h3 style="margin-top: 0; margin-bottom: 0;">{{ isEditing ? 'Cập nhật Voucher' : 'Tạo Voucher mới' }}</h3>
                     <button class="close-btn" @click="isModalOpen = false">×</button>
+                </div>
+
+                <!-- ⚡ FIX 2: Thêm ô Kích hoạt TRẠNG THÁI (is_active) -->
+                <div class="form-group" style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
+                        <input type="checkbox" v-model="voucherForm.is_active" style="width: 18px; height: 18px;">
+                        <span style="font-weight: 600; color: #1e293b;">Kích hoạt mã giảm giá này</span>
+                    </label>
                 </div>
 
                 <div class="form-group">
                     <label>Mã Code (VD: SALE50)</label>
-                    <input v-model="voucherForm.code" :class="{ 'is-invalid': errors.code }" class="form-control"
-                        placeholder="Nhập mã...">
+                    <input v-model="voucherForm.code" :class="{ 'is-invalid': errors.code }" class="form-control" placeholder="Nhập mã...">
                     <span v-if="errors.code" class="error-text">{{ errors.code[0] }}</span>
                 </div>
 
@@ -110,26 +122,39 @@
                     </div>
                     <div class="form-group">
                         <label>Giá trị giảm</label>
-                        <input v-model="voucherForm.discount_value" type="number"
-                            :class="{ 'is-invalid': errors.discount_value }" class="form-control">
+                        <input v-model="voucherForm.discount_value" type="number" :class="{ 'is-invalid': errors.discount_value }" class="form-control">
                         <span v-if="errors.discount_value" class="error-text">{{ errors.discount_value[0] }}</span>
+                    </div>
+                </div>
+
+                <!-- CẤU HÌNH ĐỔI VOUCHER (ĐIỂM & LƯỢT ĐỔI) -->
+                <div class="form-group border-box-limit" style="border: 1px dashed #f59e0b; background: #fffbeeb0; padding: 12px; border-radius: 8px;">
+                    <label style="font-size: 0.95rem; margin-bottom: 10px; color: #b45309;">🎁 Cấu hình Quy đổi Voucher bằng điểm tích lũy</label>
+
+                    <div class="grid-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label style="font-size: 0.85rem;">Số điểm để đổi (0 = Miễn phí):</label>
+                            <input v-model="voucherForm.points_required" type="number" class="form-control" placeholder="VD: 100">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem;">Giới hạn lượt đổi tối đa:</label>
+                            <input v-model="voucherForm.max_exchanges" type="number" class="form-control" placeholder="Để trống = Không GH">
+                        </div>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label>Đơn tối thiểu (đ)</label>
-                    <input v-model="voucherForm.min_spend" type="number" :class="{ 'is-invalid': errors.min_spend }"
-                        class="form-control">
+                    <input v-model="voucherForm.min_spend" type="number" :class="{ 'is-invalid': errors.min_spend }" class="form-control">
                     <span v-if="errors.min_spend" class="error-text">{{ errors.min_spend[0] }}</span>
                 </div>
 
                 <div class="form-group">
-                    <label>Giảm tối đa (đ) - Để trống nếu không giới hạn</label>
-                    <input v-model="voucherForm.max_discount" type="number" class="form-control"
-                        placeholder="VD: 50000">
+                    <label>Giảm tối đa (đ) - Bắt buộc nếu chọn giảm %</label>
+                    <input v-model="voucherForm.max_discount" type="number" class="form-control" placeholder="VD: 50000">
                 </div>
 
-                <!-- 1. TRƯỜNG MỚI: GIỚI HẠN ĐỐI TƯỢNG -->
+                <!-- GIỚI HẠN ĐỐI TƯỢNG -->
                 <div class="form-group">
                     <label>Giới hạn đối tượng áp dụng</label>
                     <select v-model="voucherForm.target_limit" class="form-control">
@@ -139,9 +164,8 @@
                     </select>
                 </div>
 
-                <!-- 2. TRƯỜNG MỚI: GIỚI HẠN KHUNG GIỜ / PHIM -->
-                <div class="form-group border-box-limit"
-                    style="border: 1px dashed #ccc; padding: 12px; border-radius: 8px;">
+                <!-- GIỚI HẠN KHUNG GIỜ / PHIM -->
+                <div class="form-group border-box-limit" style="border: 1px dashed #ccc; padding: 12px; border-radius: 8px;">
                     <label style="font-size: 0.95rem; margin-bottom: 10px;">🛡️ Điều kiện thời gian hoặc phim</label>
 
                     <div class="grid-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
@@ -159,88 +183,48 @@
                             </select>
                         </div>
 
-
-
                         <div>
-                            <label>Áp dụng riêng cho bộ phim</label>
+                            <label style="font-size: 0.85rem; font-weight: normal;">Áp dụng riêng cho bộ phim:</label>
                             <div class="custom-select-search" style="position: relative;">
-                                <!-- Ô input để gõ tìm kiếm -->
-                                <input type="text" class="form-control" placeholder="Gõ ID phim để tìm kiếm..."
-                                    v-model="movieSearchQuery" @focus="showMovieDropdown = true"
-                                    @blur="hideMovieDropdown" />
+                                <input type="text" class="form-control" placeholder="Gõ ID/Tên phim..." v-model="movieSearchQuery" @focus="showMovieDropdown = true" @blur="hideMovieDropdown" />
 
-                                <!-- Dropdown hiển thị danh sách lọc -->
-                                <ul v-if="showMovieDropdown && filteredMovies.length > 0"
-                                    style="position: absolute; top: 100%; left: 0; right: 0; z-index: 999; 
-                   background: #fff; border: 1px solid #ccc; max-height: 200px; 
-                   overflow-y: auto; list-style: none; padding: 0; margin: 0; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-
-                                    <!-- Lựa chọn mặc định không áp dụng phim nào -->
-                                    <li @mousedown="selectMovie(null)"
-                                        style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee; color: #888;">
+                                <ul v-if="showMovieDropdown && filteredMovies.length > 0" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 999; background: #fff; border: 1px solid #ccc; max-height: 200px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border-radius: 4px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                    <li @mousedown="selectMovie(null)" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee; color: #888;">
                                         -- Không áp dụng riêng cho phim nào --
                                     </li>
-
-                                    <!-- Danh sách phim tìm được -->
-                                    <li v-for="movie in filteredMovies" :key="movie.id" @mousedown="selectMovie(movie)"
-                                        style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;"
-                                        class="movie-item-option">
+                                    <li v-for="movie in filteredMovies" :key="movie.id" @mousedown="selectMovie(movie)" style="padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #eee;">
                                         ID: {{ movie.id }} - {{ movie.title }}
                                     </li>
                                 </ul>
-
-                                <ul v-else-if="showMovieDropdown" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 999; 
-                   background: #fff; border: 1px solid #ccc; padding: 10px; color: #999; text-align: center;">
-                                    Không tìm thấy phim phù hợp
-                                </ul>
-                            </div>
-
-                            <!-- Hiển thị badge bộ phim đang được chọn ở dưới để Admin dễ nhận biết -->
-                            <div v-if="voucherForm.usage_condition.movie_id" style="margin-top: 8px; font-size: 13px;">
-                                Đang chọn: <span
-                                    style="background: #e2e8f0; padding: 3px 8px; border-radius: 4px; font-weight: bold; color: #2d3748;">
-                                    ID {{ voucherForm.usage_condition.movie_id }} - {{ selectedMovieTitle }}
-                                </span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-
-
-
-
-
-
-                <div class="grid-inputs"
-                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                <div class="grid-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>Ngày bắt đầu áp dụng</label>
-                        <input v-model="voucherForm.starts_at" type="datetime-local"
-                            :class="{ 'is-invalid': errors.starts_at }" class="form-control">
+                        <input v-model="voucherForm.starts_at" type="datetime-local" :class="{ 'is-invalid': errors.starts_at }" class="form-control">
                         <span v-if="errors.starts_at" class="error-text">{{ errors.starts_at[0] }}</span>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>Ngày hết hạn</label>
-                        <input v-model="voucherForm.expires_at" type="datetime-local"
-                            :class="{ 'is-invalid': errors.expires_at }" class="form-control">
+                        <input v-model="voucherForm.expires_at" type="datetime-local" :class="{ 'is-invalid': errors.expires_at }" class="form-control">
                         <span v-if="errors.expires_at" class="error-text">{{ errors.expires_at[0] }}</span>
                     </div>
                 </div>
-                <div class="grid-inputs"
-                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+
+                <div class="grid-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label>Tổng lượt dùng hệ thống</label>
-                        <input v-model="voucherForm.usage_limit" type="number" class="form-control"
-                            placeholder="Để trống = Không GH">
+                        <label>Tổng lượt dùng toàn hệ thống</label>
+                        <input v-model="voucherForm.usage_limit" type="number" class="form-control" placeholder="Để trống = Không GH">
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>Lượt dùng / 1 tài khoản</label>
-                        <input v-model="voucherForm.user_limit" type="number"
-                            :class="{ 'is-invalid': errors.user_limit }" class="form-control" placeholder="Mặc định: 1">
-                        <span v-if="errors.user_limit" class="error-text">{{ errors.user_limit[0] }}</span>
+                        <input v-model="voucherForm.user_limit" type="number" :class="{ 'is-invalid': errors.user_limit }" class="form-control" placeholder="Mặc định: 1">
                     </div>
                 </div>
+
                 <div class="modal-footer">
                     <button @click="isModalOpen = false" class="btn-secondary-cine">Hủy</button>
                     <button @click="saveVoucher" class="btn-primary-cine">Lưu Voucher</button>
@@ -258,27 +242,36 @@ const vouchers = ref([]);
 const isModalOpen = ref(false);
 const isEditing = ref(false);
 const errors = ref({});
-const moviesList = ref([]); // Đồng nhất dùng duy nhất biến moviesList này
+const moviesList = ref([]);
 const movieSearchQuery = ref('');
 const showMovieDropdown = ref(false);
 
-const initForm = () => ({
-    code: '',
-    discount_type: 'fixed',
-    discount_value: 0,
-    min_spend: 0,
-    max_discount: '',
-    usage_limit: '',
-    user_limit: 1,
-    starts_at: '',
-    expires_at: '',
-    is_active: true,
-    target_limit: 'all',
-    usage_condition: {
-        day_of_week: '',
-        movie_id: ''
-    }
-});
+const initForm = () => {
+    // Tạo chuỗi định dạng YYYY-MM-DDTHH:mm cho datetime-local của ngày hôm nay
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const defaultStartsAt = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+
+    return {
+        code: '',
+        discount_type: 'fixed',
+        discount_value: 0,
+        min_spend: 0,
+        max_discount: '',
+        usage_limit: '',
+        user_limit: 1,
+        points_required: 0,
+        max_exchanges: '',
+        starts_at: defaultStartsAt, 
+        expires_at: '',
+        is_active: true,
+        target_limit: 'all',
+        usage_condition: {
+            day_of_week: '',
+            movie_id: ''
+        }
+    };
+};
 
 const voucherForm = ref(initForm());
 const loading = ref(false);
@@ -306,12 +299,7 @@ const fetchVouchers = async () => {
 
 const formatCurrency = (value) => {
     if (!value) return '0đ';
-    const number = parseFloat(value);
-    return new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND',
-        minimumFractionDigits: 0,
-    }).format(number);
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 };
 
 const fetchMoviesList = async () => {
@@ -319,15 +307,12 @@ const fetchMoviesList = async () => {
         const res = await api.get('admin/movies/list');
         moviesList.value = res.data;
     } catch (error) {
-        console.error("Lỗi khi tải danh sách phim:", error);
+        console.error("Lỗi tải danh sách phim:", error);
     }
 };
 
 const getMovieTitle = (movieId) => {
     if (!movieId) return '';
-    if (!moviesList.value || moviesList.value.length === 0) {
-        return `ID Phim: ${movieId}`;
-    }
     const movie = moviesList.value.find(m => Number(m.id) === Number(movieId));
     return movie ? movie.title : `ID Phim: ${movieId}`;
 };
@@ -340,9 +325,6 @@ const openCreateModal = () => {
     fetchMoviesList();
 };
 
-
-
-// Gộp lại làm duy nhất 1 hàm editVoucher chuẩn
 const editVoucher = (voucher) => {
     errors.value = {};
     isEditing.value = true;
@@ -358,78 +340,56 @@ const editVoucher = (voucher) => {
 
     voucherForm.value = {
         ...voucher,
+        is_active: Boolean(voucher.is_active), 
+        points_required: voucher.points_required ?? 0,
+        max_exchanges: voucher.max_exchanges ?? '',
+        
+        // ⚡ Fallback: Nếu starts_at trong DB bị NULL, tự lấy created_at hoặc thời gian hiện tại
+        starts_at: formatForDatetimeLocal(voucher.starts_at || voucher.created_at || new Date()),
+        expires_at: formatForDatetimeLocal(voucher.expires_at),
+        
         usage_condition: voucher.usage_condition ? {
             day_of_week: voucher.usage_condition.day_of_week || '',
             movie_id: voucher.usage_condition.movie_id || ''
         } : { day_of_week: '', movie_id: '' }
     };
 
-    if (voucher.starts_at) {
-        const date = new Date(voucher.starts_at);
-        voucherForm.value.starts_at = date.toISOString().slice(0, 16);
-    }
-    if (voucher.expires_at) {
-        const date = new Date(voucher.expires_at);
-        voucherForm.value.expires_at = date.toISOString().slice(0, 16);
-    }
-    
     isModalOpen.value = true;
 };
 
 const saveVoucher = async () => {
-    errors.value = {}; // Reset lại lỗi cũ
+    errors.value = {};
 
-    // 1. Kiểm tra trống Mã Code
-    if (!voucherForm.value.code || !voucherForm.value.code.trim()) {
+    if (!voucherForm.value.code?.trim()) {
         errors.value.code = ["Vui lòng nhập mã giảm giá."];
     }
-
-    // 2. Kiểm tra Giá trị giảm phải lớn hơn 0
-    if (voucherForm.value.discount_value === undefined || voucherForm.value.discount_value === null || voucherForm.value.discount_value <= 0) {
+    if (!voucherForm.value.discount_value || voucherForm.value.discount_value <= 0) {
         errors.value.discount_value = ["Giá trị giảm phải lớn hơn 0."];
     }
-
-    // 3. Kiểm tra trống ngày bắt đầu / ngày hết hạn
     if (!voucherForm.value.starts_at) {
-        errors.value.starts_at = ["Vui lòng chọn ngày bắt đầu áp dụng mã."];
+        errors.value.starts_at = ["Vui lòng chọn ngày bắt đầu."];
     }
     if (!voucherForm.value.expires_at) {
-        errors.value.expires_at = ["Vui lòng chọn ngày hết hạn mã."];
+        errors.value.expires_at = ["Vui lòng chọn ngày hết hạn."];
     }
 
-    // 4. Nếu đã nhập cả 2 ngày mới so sánh logic lớn hơn/nhỏ hơn
-    if (voucherForm.value.starts_at && voucherForm.value.expires_at) {
-        const start = new Date(voucherForm.value.starts_at);
-        const expire = new Date(voucherForm.value.expires_at);
+    if (Object.keys(errors.value).length > 0) return;
 
-        if (start >= expire) {
-            errors.value.expires_at = ["Ngày hết hạn phải lớn hơn ngày bắt đầu."];
-        }
-    }
-
-    // NẾU CÓ BẤT KỲ LỖI NÀO TRÊN FORM -> Dừng lại để hiển thị toàn bộ lỗi cùng lúc
-    if (Object.keys(errors.value).length > 0) {
-        return;
-    }
-
-    // 5. Chuẩn bị dữ liệu gửi đi khi form đã hoàn toàn hợp lệ
     const payload = { ...voucherForm.value };
     const condition = {};
     if (payload.usage_condition) {
-        if (payload.usage_condition.day_of_week !== '' && payload.usage_condition.day_of_week !== null) {
-            condition.day_of_week = parseInt(payload.usage_condition.day_of_week);
-        }
-        if (payload.usage_condition.movie_id !== '' && payload.usage_condition.movie_id !== null) {
-            condition.movie_id = parseInt(payload.usage_condition.movie_id);
-        }
+        if (payload.usage_condition.day_of_week) condition.day_of_week = parseInt(payload.usage_condition.day_of_week);
+        if (payload.usage_condition.movie_id) condition.movie_id = parseInt(payload.usage_condition.movie_id);
     }
 
     payload.usage_condition = Object.keys(condition).length > 0 ? condition : null;
     payload.max_discount = payload.max_discount ? parseFloat(payload.max_discount) : null;
     payload.usage_limit = payload.usage_limit ? parseInt(payload.usage_limit) : null;
-    payload.user_limit = payload.user_limit ? parseInt(payload.user_limit) : null;
+    payload.user_limit = payload.user_limit ? parseInt(payload.user_limit) : 1;
+    payload.points_required = payload.points_required ? parseInt(payload.points_required) : 0;
+    payload.max_exchanges = payload.max_exchanges ? parseInt(payload.max_exchanges) : null;
+    payload.is_active = payload.is_active ? 1 : 0;
 
-    // 6. Gửi API lên Server
     try {
         if (isEditing.value) {
             await api.put(`admin/vouchers/${payload.id}`, payload);
@@ -442,7 +402,7 @@ const saveVoucher = async () => {
         if (error.response?.status === 422 && error.response?.data?.errors) {
             errors.value = error.response.data.errors;
         } else {
-            alert("Lỗi: " + (error.response?.data?.message || "Có lỗi kết nối!"));
+            alert("Lỗi: " + (error.response?.data?.message || "Có lỗi xảy ra!"));
         }
     }
 };
@@ -452,31 +412,20 @@ const isVoucherExpired = (expires_at) => {
 };
 
 const deleteVoucher = async (id) => {
-    if (confirm('Bạn có chắc chắn muốn xóa mã giảm giá này? Hành động này không thể hoàn tác.')) {
+    if (confirm('Bạn có chắc chắn muốn xóa mã này?')) {
         try {
             await api.delete(`admin/vouchers/${id}`);
             fetchVouchers();
         } catch (error) {
-            alert("Có lỗi xảy ra khi xóa!");
+            alert(error.response?.data?.message || "Xóa thất bại!");
         }
     }
 };
 
-// Sửa biến movies -> moviesList
 const filteredMovies = computed(() => {
     const query = movieSearchQuery.value.toLowerCase().trim();
     if (!query) return moviesList.value; 
-    return moviesList.value.filter(movie => 
-        movie.title.toLowerCase().includes(query) || 
-        movie.id.toString() === query
-    );
-});
-
-// Sửa biến movies -> moviesList
-const selectedMovieTitle = computed(() => {
-    if (!voucherForm.value.usage_condition.movie_id) return '';
-    const movie = moviesList.value.find(m => m.id == voucherForm.value.usage_condition.movie_id);
-    return movie ? movie.title : 'Không xác định';
+    return moviesList.value.filter(m => m.title.toLowerCase().includes(query) || m.id.toString() === query);
 });
 
 const selectMovie = (movie) => {
@@ -490,25 +439,43 @@ const selectMovie = (movie) => {
     showMovieDropdown.value = false;
 };
 
-// Sửa biến movies -> moviesList
 const hideMovieDropdown = () => {
-    setTimeout(() => {
-        showMovieDropdown.value = false;
-        if (voucherForm.value.usage_condition.movie_id) {
-            const movie = moviesList.value.find(m => m.id == voucherForm.value.usage_condition.movie_id);
-            movieSearchQuery.value = movie ? movie.title : '';
-        } else {
-            movieSearchQuery.value = '';
-        }
-    }, 200);
+    setTimeout(() => { showMovieDropdown.value = false; }, 200);
+};
+
+const formatForDatetimeLocal = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    
+    const pad = (n) => String(n).padStart(2, '0');
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
 const formatDate = (date) => new Date(date).toLocaleDateString('vi-VN');
 
+
 onMounted(fetchVouchers);
 </script>
 
+
 <style scoped>
+/* THÊM CSS MỚI CHO BADGE ĐIỂM */
+.badge-points {
+    background: #fef3c7;
+    color: #d97706;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 600;
+}
+
 .glass-panel {
     background: white;
     padding: 20px;
@@ -536,13 +503,11 @@ onMounted(fetchVouchers);
     border-bottom: 1px solid #eee;
 }
 
-
 .vouchers-table tbody td {
     padding: 16px 12px;
     border-bottom: 1px solid #f3f4f6;
     color: #1f2937;
 }
-
 
 .vouchers-table tbody tr:hover {
     background-color: #fcfcfc;
@@ -554,22 +519,6 @@ onMounted(fetchVouchers);
     font-weight: 600;
     color: #4b5563;
     border-bottom: 2px solid #e5e7eb;
-}
-
-
-.btn-primary-cine {
-    background-color: #e11d48;
-    color: white;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-.status-pill {
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.85em;
 }
 
 .btn-primary-cine {
@@ -599,12 +548,6 @@ onMounted(fetchVouchers);
     background-color: #dc2626;
 }
 
-.action-buttons-group {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 8px;
-}
-
 .btn-action {
     padding: 8px 12px;
     border-radius: 6px;
@@ -612,6 +555,7 @@ onMounted(fetchVouchers);
     cursor: pointer;
     font-size: 0.9em;
     white-space: nowrap;
+    margin-right: 5px;
 }
 
 .edit {
@@ -624,6 +568,11 @@ onMounted(fetchVouchers);
     color: #dc2626;
 }
 
+.status-pill {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.85em;
+}
 
 .status-pill.active {
     background: #dcfce7;
@@ -633,11 +582,6 @@ onMounted(fetchVouchers);
 .status-pill.inactive {
     background: #fee2e2;
     color: #991b1b;
-}
-
-.btn-action {
-    margin-right: 5px;
-    cursor: pointer;
 }
 
 .modal-overlay-cine {
@@ -676,16 +620,6 @@ onMounted(fetchVouchers);
 
 .close-btn:hover {
     color: #ef4444;
-}
-
-vouchers-table img {
-    width: 120px;
-    /* Tăng từ kích thước cũ lên 60px hoặc hơn */
-    height: 120px;
-    object-fit: cover;
-    /* Giúp ảnh không bị méo */
-    border-radius: 8px;
-    /* Bo góc cho đẹp */
 }
 
 .modal-content-cine {

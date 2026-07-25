@@ -70,11 +70,11 @@
                         </td>
                     </tr>
 
-                    <!-- Combo -->
+                    <!-- Combo Mua Thêm -->
                     @if($booking->bookingCombos && $booking->bookingCombos->count() > 0)
                     <tr>
                         <td style="padding:0 16px 16px 16px;">
-                            <b>Combo đã chọn</b>
+                            <b>Combo đã mua</b>
                             <table width="100%" cellpadding="6" cellspacing="0" style="border:1px solid #000;border-collapse:collapse;margin-top:6px;">
                                 <tr style="background:#eee;">
                                     <td style="border:1px solid #000;"><b>Tên combo</b></td>
@@ -93,7 +93,28 @@
                     </tr>
                     @endif
 
-                    <!-- Mã giảm giá -->
+                    <!-- 🔥 KHỐI MỚI: Quà tặng / Combo đổi từ điểm đã áp dụng -->
+                    @if(isset($booking->userCombos) && $booking->userCombos->count() > 0)
+                    <tr>
+                        <td style="padding:0 16px 16px 16px;">
+                            <b>Ưu đãi / Combo miễn phí áp dụng</b>
+                            <table width="100%" cellpadding="6" cellspacing="0" style="border:1px solid #000;border-collapse:collapse;margin-top:6px;">
+                                <tr style="background:#e6fffa;">
+                                    <td style="border:1px solid #000;"><b>Tên ưu đãi</b></td>
+                                    <td style="border:1px solid #000;" align="right"><b>Giá trị</b></td>
+                                </tr>
+                                @foreach($booking->userCombos as $gift)
+                                <tr>
+                                    <td style="border:1px solid #000;">{{ $gift->combo->name ?? $gift->name ?? 'Combo Quà Tặng' }}</td>
+                                    <td style="border:1px solid #000;" align="right">0đ</td>
+                                </tr>
+                                @endforeach
+                            </table>
+                        </td>
+                    </tr>
+                    @endif
+
+                    <!-- Mã giảm giá & Tạm tính -->
                     <tr>
                         <td style="padding:0 16px 16px 16px;">
                             <table width="100%" cellpadding="4" cellspacing="0">
@@ -125,7 +146,6 @@
                         <td style="padding:16px;border-top:1px solid #000;text-align:center;">
                             @php
                             $ticketUrl = rtrim(env('FRONTEND_URL', 'http://localhost:5173'), '/') . '/ticket/' . $booking->booking_code;
-
                             $qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' . rawurlencode($ticketUrl);
                             @endphp
 
@@ -144,5 +164,4 @@
     </table>
 
 </body>
-
 </html>

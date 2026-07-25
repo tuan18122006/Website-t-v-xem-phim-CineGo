@@ -18,7 +18,7 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\VoucherController;
 use App\Http\Controllers\Api\ComboItemController;
 use App\Http\Controllers\Api\TicketController;
-
+use App\Http\Controllers\Api\LoyaltyController;
 
 // Đăng ký / Đăng nhập
 Route::post('/register', [AuthController::class, 'register']);
@@ -47,17 +47,17 @@ Route::get('/payment/vnpay/return', [PaymentController::class, 'vnpayReturn']);
 
 // Các API cần đăng nhập
 Route::middleware('auth:sanctum')->group(function () {
-
+    Route::get('/client/my-vouchers', [LoyaltyController::class, 'getMyVouchers']);
     Route::post('/logout', [AuthController::class, 'logout']);
-    
+
     Route::get('/me', [AuthController::class, 'userProfile']);
     Route::post('/bookings', [BookingController::class, 'store']);
     Route::post('/seat-holds', [SeatHoldController::class, 'hold']);
     Route::post('/seat-holds/release', [SeatHoldController::class, 'release']);
-    
+
     Route::prefix('admin')->group(function () {
         Route::get('/user', [UserController::class, 'profile']);
-        
+
         Route::put('/users/{id}', [UserController::class, 'updateProfile']);
     });
 
@@ -81,6 +81,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Xác thực mã giảm giá
     Route::post('/vouchers/verify', [VoucherController::class, 'verify']);
+    Route::get('/user/available-combos', [LoyaltyController::class, 'getAvailableCombos']);
+    Route::post('/vouchers/claim', [VoucherController::class, 'claimVoucher']);
 
     // Tạo link thanh toán VNPay
     Route::post('/payments/create', [PaymentController::class, 'createPayment']);
@@ -88,6 +90,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/movies/{movieId}/reviews', [ReviewController::class, 'store']);
     Route::put('/movies/{movieId}/reviews/{reviewId}', [ReviewController::class, 'update']);
     Route::delete('/movies/{movieId}/reviews/{reviewId}', [ReviewController::class, 'destroy']);
+
+    // === CHƯƠNG TRÌNH THÀNH VIÊN & TÍCH ĐIỂM (LOYALTY) ===
+    Route::prefix('loyalty')->group(function () {
+        Route::get('/profile', [LoyaltyController::class, 'getProfileAndHistories']);
+        Route::get('/vouchers', [LoyaltyController::class, 'getRedeemableVouchers']);
+        Route::get('/combos', [LoyaltyController::class, 'getRedeemableCombos']);
+        Route::post('/redeem-voucher/{voucher}', [LoyaltyController::class, 'redeemVoucher']);
+        Route::post('/redeem-combo', [LoyaltyController::class, 'redeemCombo']);
+    });
 });
 
 // ===
@@ -151,8 +162,6 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     //
     Route::apiResource('combos', ComboController::class);
     //
-    Route::apiResource('vouchers', VoucherController::class);
-    //
     Route::get('combos/{combo}/items', [ComboItemController::class, 'getItems']);
 
     Route::post('combo-items', [ComboItemController::class, 'store']);
@@ -175,7 +184,14 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     // Quản lý Voucher
     Route::apiResource('vouchers', VoucherController::class);
     Route::get('movies/list', [App\Http\Controllers\Api\MovieController::class, 'listForSelection']);
+    //
+    Route::prefix('loyalty')->group(function () {
+        Route::get('/users', [LoyaltyController::class, 'adminGetUsers']);
+        Route::get('/users/{id}/histories', [LoyaltyController::class, 'adminGetUserHistories']);
+        Route::post('/users/{id}/adjust-points', [LoyaltyController::class, 'adminAdjustPoints']);
+    });
 });
+
 // ===
 // 4. STAFF ROUTES - NHÂN VIÊN HỖ TRỢ (staff hoặc admin)
 // ===
@@ -185,8 +201,6 @@ Route::middleware(['auth:sanctum', 'can:staff-or-admin'])->prefix('staff')->grou
     Route::post('/bookings/verify', [BookingLookupController::class, 'verify']);
     Route::get('/bookings/{id}', [BookingLookupController::class, 'show']);
 });
-
-Route::get('/combos', [ComboController::class, 'index']);
 Route::post('/vouchers/verify', [VoucherController::class, 'verify']);
 Route::get('/payment/vnpay/return', [PaymentController::class, 'vnpayReturn']);
 Route::get('/tickets/{bookingCode}', [TicketController::class, 'show']);
