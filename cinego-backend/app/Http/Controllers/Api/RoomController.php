@@ -114,6 +114,7 @@ class RoomController extends Controller
         $cases = [];
         $params = [];
         $ids = [];
+        $validSeatCount = 0;
 
         foreach ($request->seats as $seatData) {
             $seatId = (int)$seatData['id'];
@@ -121,6 +122,19 @@ class RoomController extends Controller
             $params[] = $seatId;
             $params[] = $seatData['type'];
             $ids[] = $seatId;
+
+            if (in_array($seatData['type'], ['standard', 'vip'])) {
+                $validSeatCount++;
+            } elseif ($seatData['type'] === 'couple') {
+                $validSeatCount += 2;
+            }
+        }
+
+        if ($validSeatCount === 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sơ đồ phải có ít nhất 1 ghế hợp lệ để bán!'
+            ], 400);
         }
 
         $casesString = implode(' ', $cases);
@@ -129,6 +143,9 @@ class RoomController extends Controller
         $params = array_merge($params, $ids);
 
         DB::update("UPDATE seats SET type = CASE {$casesString} ELSE type END WHERE id IN ({$placeholders})", $params);
+
+        $room->total_seats = $validSeatCount;
+        $room->save();
 
         return response()->json(['message' => 'Cập nhật sơ đồ ghế thành công']);
     }

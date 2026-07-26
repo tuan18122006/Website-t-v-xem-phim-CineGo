@@ -13,13 +13,20 @@
     <!-- TOOLBAR -->
     <div class="toolbar-card glass-panel">
       <div class="toolbar-info">
-        Đang chọn: <strong>{{ currentSelectedIds.length }} ghế</strong>
+        <div class="toolbar-stats">
+          <span>🟢 Thường: <strong>{{ seatStats.standard }}</strong></span>
+          <span>🔴 VIP: <strong>{{ seatStats.vip }}</strong></span>
+          <span>💖 Đôi: <strong>{{ seatStats.couple }}</strong></span>
+          <span>⚪ Trống/Xóa: <strong>{{ seatStats.hiddenOrDeleted }}</strong></span>
+        </div>
+        <div style="margin-top: 8px;">Đang chọn: <strong>{{ currentSelectedIds.length }} ghế</strong></div>
       </div>
       <div class="toolbar-actions" :class="{ disabled: currentSelectedIds.length === 0 }">
         <button @click="changeType('standard')" class="tool-btn standard-btn">Trở thành Ghế Thường</button>
         <button @click="changeType('vip')" class="tool-btn vip-btn">Trở thành VIP</button>
         <button @click="changeType('couple')" class="tool-btn couple-btn">Trở thành Ghế Đôi</button>
-        <button @click="changeType('hidden')" class="tool-btn hidden-btn">Khoảng Trống Bỏ Đi</button>
+        <button @click="changeType('hidden')" class="tool-btn hidden-btn">Khoảng Trống</button>
+        <button @click="changeType('deleted')" class="tool-btn deleted-btn">Xóa hẳn Ô ghế</button>
         <button @click="addGapCol" class="tool-btn gap-col-btn">Chèn Lối đi Dọc</button>
         <button @click="addGapRow" class="tool-btn gap-row-btn">Chèn Lối đi Ngang</button>
       </div>
@@ -43,7 +50,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import SeatMap from '../../components/SeatMap.vue';
 import api from '../../api/axios';
@@ -74,19 +81,91 @@ const handleSelectionChanged = (selectedIds) => {
   currentSelectedIds.value = selectedIds;
 };
 
+// Compute số lượng ghế
+const seatStats = computed(() => {
+  let standard = 0, vip = 0, couple = 0, hiddenOrDeleted = 0;
+  seats.value.forEach(s => {
+    if (s.type === 'standard') standard++;
+    else if (s.type === 'vip') vip++;
+    else if (s.type === 'couple') couple++;
+    else if (s.type === 'hidden' || s.type === 'deleted') hiddenOrDeleted++;
+  });
+  return { standard, vip, couple, hiddenOrDeleted };
+});
+
 // Chuyển đổi loại ghế cho toàn bộ ghế đang quét chọn
 const changeType = (targetType) => {
   if (currentSelectedIds.value.length === 0) return;
 
-  if (targetType === 'standard' || targetType === 'vip' || targetType === 'hidden') {
-    currentSelectedIds.value.forEach(id => {
+  // Sắp xếp các ghế được chọn từ trái sang phải (theo row và number)
+  // để đảm bảo logic gộp ghế (từ trái qua phải) hoạt động đúng kể cả khi người dùng quét chuột ngược từ phải sang trái.
+  const sortedSelectedIds = [...currentSelectedIds.value].sort((a, b) => {
+    let seatA = seats.value.find(s => s.id === a);
+    let seatB = seats.value.find(s => s.id === b);
+    if (!seatA || !seatB) return 0;
+    if (seatA.row === seatB.row) return seatA.number - seatB.number;
+    return seatA.row.localeCompare(seatB.row);
+  });
+
+  if (targetType === 'standard' || targetType === 'vip' || targetType === 'hidden' || targetType === 'deleted') {
+    sortedSelectedIds.forEach(id => {
       let seat = seats.value.find(s => s.id === id);
-      if (seat) seat.type = targetType;
+      if (seat) {
+        // Nếu ghế này đang là ghế đôi, cần phục hồi ghế bị ẩn phía sau
+        if (seat.type === 'couple') {
+          let nextSeat = seats.value.find(s => s.row === seat.row && s.number === seat.number + 1);
+          if (nextSeat && nextSeat.type === 'couple_hidden') {
+            nextSeat.type = targetType;
+          }
+        }
+        seat.type = targetType;
+      }
     });
   } else if (targetType === 'couple') {
-    currentSelectedIds.value.forEach(id => {
+    // Thu thập các ghế phụ (hidden) của những ghế đôi đang được chọn để gộp chung vào mảng xử lý
+    let expandedIds = new Set(sortedSelectedIds);
+    sortedSelectedIds.forEach(id => {
       let seat = seats.value.find(s => s.id === id);
-      if (seat) seat.type = 'couple';
+      if (seat && seat.type === 'couple') {
+        let nextSeat = seats.value.find(s => s.row === seat.row && s.number === seat.number + 1);
+        if (nextSeat && nextSeat.type === 'couple_hidden') {
+          expandedIds.add(nextSeat.id);
+        }
+      }
+    });
+
+    // Chuyển toàn bộ vùng chọn (đã mở rộng) về Standard trước khi bắt cặp lại từ trái sang phải
+    expandedIds.forEach(id => {
+      let seat = seats.value.find(s => s.id === id);
+      if (seat) seat.type = 'standard';
+    });
+
+    // Sắp xếp lại vùng chọn đã mở rộng
+    let finalSortedIds = [...expandedIds].sort((a, b) => {
+      let seatA = seats.value.find(s => s.id === a);
+      let seatB = seats.value.find(s => s.id === b);
+      if (!seatA || !seatB) return 0;
+      if (seatA.row === seatB.row) return seatA.number - seatB.number;
+      return seatA.row.localeCompare(seatB.row);
+    });
+
+    finalSortedIds.forEach(id => {
+      let seat = seats.value.find(s => s.id === id);
+      if (seat && seat.type !== 'couple' && seat.type !== 'couple_hidden') {
+        let nextSeat = seats.value.find(s => s.row === seat.row && s.number === seat.number + 1);
+        if (nextSeat) {
+          // Chỉ ghép cặp nếu ghế kế tiếp cũng nằm trong vùng chọn (khi chọn nhiều ghế)
+          if (finalSortedIds.length === 1 || finalSortedIds.includes(nextSeat.id)) {
+            seat.type = 'couple';
+            nextSeat.type = 'couple_hidden';
+          }
+        } else {
+          // Báo lỗi nếu cố tình click lẻ 1 ghế ở cuối hàng
+          if (finalSortedIds.length === 1) {
+            toast(`Ghế ${seat.row}${seat.number} không thể gộp thành ghế đôi vì nằm ở cuối hàng.`, "warning");
+          }
+        }
+      }
     });
   }
 
@@ -128,6 +207,11 @@ const removeGaps = () => {
 };
 
 const saveSeats = async () => {
+  if (seatStats.value.standard + seatStats.value.vip + seatStats.value.couple === 0) {
+    toast("Rạp chiếu phải có ít nhất 1 ghế hợp lệ để mở bán!", "error");
+    return;
+  }
+
   try {
     await api.put(`/admin/rooms/${roomId}/update-seat-map`, {
       seats: seats.value.map(s => ({ id: s.id, type: s.type })),
@@ -157,16 +241,18 @@ onMounted(fetchRoomDetails);
   background: linear-gradient(to right, #1e293b, #0f172a);
 }
 .toolbar-info {
-  font-size: 16px; color: #f8fafc;
+  font-size: 14px; color: #f8fafc;
 }
-.toolbar-info strong { color: #fbbf24; font-size: 18px; }
+.toolbar-stats { display: flex; gap: 12px; font-size: 13px; }
+.toolbar-stats span { display: inline-flex; align-items: center; gap: 4px; }
+.toolbar-info strong { color: #fbbf24; font-size: 15px; }
 
-.toolbar-actions { display: flex; gap: 10px; }
+.toolbar-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .toolbar-actions.disabled { opacity: 0.5; pointer-events: none; filter: grayscale(100%); }
 
 .tool-btn {
   padding: 10px 15px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; color: white;
-  transition: transform 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+  transition: transform 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.3); font-size: 13px;
 }
 .tool-btn:hover { transform: translateY(-2px); }
 
@@ -174,6 +260,7 @@ onMounted(fetchRoomDetails);
 .vip-btn { background: linear-gradient(145deg, #ef4444, #b91c1c); border: 1px solid #f87171; }
 .couple-btn { background: linear-gradient(145deg, #ec4899, #be185d); border: 1px solid #f472b6; }
 .hidden-btn { background: transparent; border: 2px dashed #64748b; color: #cbd5e1; }
+.deleted-btn { background: rgba(239, 68, 68, 0.2); border: 1px solid #fca5a5; color: #fca5a5; }
 .gap-col-btn { background: linear-gradient(145deg, #3b82f6, #1d4ed8); border: 1px solid #60a5fa; }
 .gap-row-btn { background: linear-gradient(145deg, #8b5cf6, #6d28d9); border: 1px solid #a78bfa; }
 .gap-clear-btn { background: linear-gradient(145deg, #f59e0b, #d97706); border: 1px solid #fbbf24; margin-left: 20px;}

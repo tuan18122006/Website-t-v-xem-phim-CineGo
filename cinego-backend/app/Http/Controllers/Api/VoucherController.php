@@ -162,13 +162,13 @@ class VoucherController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'code' => 'required|unique:vouchers,code|max:20|alpha_dash',
+            'code' => 'required|string|unique:vouchers,code|max:20',
             'discount_type' => 'required|in:fixed,percentage',
             'discount_value' => 'required|numeric|min:0',
             'min_spend' => 'required|numeric|min:0',
             'starts_at' => 'nullable|date',
             'max_discount' => 'nullable|numeric|min:0',
-            'expires_at' => 'required|date|after:now',
+            'expires_at' => 'required|date',
             'usage_limit' => 'nullable|integer|min:1',
             'target_limit' => 'required|in:all,new_user,birthday',
             'usage_condition' => 'nullable|array',
@@ -190,7 +190,7 @@ class VoucherController extends Controller
         $voucher = Voucher::findOrFail($id);
 
         $request->validate([
-            'code' => 'required|max:20|unique:vouchers,code,' . $id,
+            'code' => 'required|string|max:20|unique:vouchers,code,' . $id,
             'discount_type' => 'required|in:fixed,percentage',
             'discount_value' => 'required|numeric|min:0',
             'min_spend' => 'required|numeric|min:0',

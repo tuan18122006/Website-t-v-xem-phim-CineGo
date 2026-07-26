@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
+use App\Services\LoyaltyService;
 
 class UserController extends Controller
 {
@@ -238,13 +239,48 @@ class UserController extends Controller
         ]);
 
         $user = User::findOrFail($id);
-        $user->membership_tier = $request->membership_tier;
-        $user->save();
+        LoyaltyService::setTier($user, $request->membership_tier);
 
         return response()->json([
             'success' => true,
             'message' => 'Cập nhật hạng thành viên thành công!',
             'data'    => $user
+        ], 200);
+    }
+
+    // Admin cộng / trừ điểm thủ công
+    public function adjustPoints(Request $request, $id)
+    {
+        $request->validate([
+            'amount' => 'required|integer',
+            'reason' => 'nullable|string|max:500',
+        ]);
+
+        $user = User::findOrFail($id);
+        $result = LoyaltyService::adjustPoints(
+            $user,
+            $request->amount,
+            $request->reason ?? ''
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => $request->amount > 0
+                ? "Cộng {$request->amount} điểm thành công!"
+                : "Trừ " . abs($request->amount) . " điểm thành công!",
+            'data' => $result,
+        ], 200);
+    }
+
+    // Lấy thông tin tiến trình thành viên (cho trang Profile)
+    public function getLoyaltyProgress(Request $request)
+    {
+        $user = $request->user();
+        $progress = LoyaltyService::getProgressInfo($user);
+
+        return response()->json([
+            'success' => true,
+            'data' => $progress,
         ], 200);
     }
 
@@ -302,7 +338,7 @@ class UserController extends Controller
     // Cập nhật thông tin profile cá nhân
     public function updateProfile(Request $request)
     {
-        $user = clone $request->user();
+        $user = $request->user();
 
         $request->validate([
             'name'  => 'required|string|max:255',
@@ -339,7 +375,7 @@ class UserController extends Controller
             'new_password' => 'required|string|min:8',
         ]);
 
-        $user = clone $request->user();
+        $user = $request->user();
 
         if (!Hash::check($request->old_password, $user->password)) {
             return response()->json([
@@ -371,7 +407,7 @@ class UserController extends Controller
             'avatar' => 'required|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        $user = clone $request->user();
+        $user = $request->user();
 
         if ($request->hasFile('avatar')) {
             if ($user->avatar_url) {

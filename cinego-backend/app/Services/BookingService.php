@@ -8,8 +8,10 @@ use App\Models\BookingCombo;
 use App\Models\Showtime;
 use App\Models\Voucher;
 use App\Models\Combo;
+use App\Models\User;
 
 use App\Helpers\BookingHelper;
+use App\Services\LoyaltyService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -193,6 +195,12 @@ class BookingService
                     ->delete();
 
                 $this->deductComboStock($booking);
+
+                // Tích điểm & thăng hạng tự động
+                $user = User::find($userId);
+                if ($user) {
+                    LoyaltyService::rewardForBooking($user, $booking->total_amount);
+                }
                 
                 event(new BookingPaid($booking));
             }
@@ -202,28 +210,34 @@ class BookingService
     }
 
     public function markAsPaid(Booking $booking): void
-{
-    DB::transaction(function () use ($booking) {
+    {
+        DB::transaction(function () use ($booking) {
 
-        $booking->update([
-            'payment_status' => 'paid',
-            'booking_status' => 'confirmed',
-        ]);
+            $booking->update([
+                'payment_status' => 'paid',
+                'booking_status' => 'confirmed',
+            ]);
 
-        $this->deductComboStock($booking);
+            $this->deductComboStock($booking);
 
-        DB::table('seat_holds')
-            ->where('showtime_id', $booking->showtime_id)
-            ->whereIn(
-                'seat_id',
-                $booking->bookingDetails()->pluck('seat_id')
-            )
-            ->delete();
-            
-        event(new BookingPaid($booking));
+            DB::table('seat_holds')
+                ->where('showtime_id', $booking->showtime_id)
+                ->whereIn(
+                    'seat_id',
+                    $booking->bookingDetails()->pluck('seat_id')
+                )
+                ->delete();
 
-    });
-}
+            // Tích điểm & thăng hạng tự động
+            $user = User::find($booking->user_id);
+            if ($user) {
+                LoyaltyService::rewardForBooking($user, $booking->total_amount);
+            }
+
+            event(new BookingPaid($booking));
+
+        });
+    }
 
     public function markAsFailed(Booking $booking): void
     {

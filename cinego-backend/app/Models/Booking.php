@@ -53,4 +53,12 @@ class Booking extends Model
     {
         return $this->hasMany(RefundRequest::class);
     }
+
+    public function getOrderStatusAttribute()
+    {
+        if ($this->booking_status === 'cancelled') {
+            return 'cancelled';
+        }
+        return $this->payment_status;
+    }
 }

@@ -38,7 +38,7 @@
           @click="handleSeatClick(seat, $event)"
           class="seat-item"
         >
-          <span v-if="seat.type !== 'hidden' && seat.type !== 'couple_hidden'" class="seat-label">
+          <span v-if="seat.type !== 'hidden' && seat.type !== 'deleted' && seat.type !== 'couple_hidden'" class="seat-label">
             {{ seat.row }}{{ displayNumbers.get(seat.id) }}
           </span>
         </div>
@@ -50,13 +50,14 @@
       </div>
     </div>
     
-    <div class="legend">
+    <div class="legend" v-if="seats.length > 0">
       <div class="legend-item"><div class="seat-box standard"></div> Thường</div>
       <div class="legend-item"><div class="seat-box vip"></div> VIP</div>
       <div class="legend-item"><div class="seat-box couple"></div> Đôi</div>
       <div class="legend-item" v-if="mode === 'client'"><div class="seat-box booked"></div> Đã bán</div>
       <div class="legend-item" v-if="mode === 'client'"><div class="seat-box selected"></div> Đang chọn</div>
       <div class="legend-item" v-if="mode === 'admin'"><div class="seat-box hidden-demo"></div> Khoảng trống</div>
+      <div class="legend-item" v-if="mode === 'admin'"><div class="seat-box deleted-demo"></div> Đã xóa</div>
       <div class="legend-item" v-if="mode === 'admin'"><div class="seat-box admin-selected"></div> Đang quét chọn</div>
     </div>
   </div>
@@ -97,16 +98,16 @@ const displayNumbers = computed(() => {
     seatsByRow[seat.row].push(seat);
   });
 
-  for (const row in seatsByRow) {
+  Object.keys(seatsByRow).forEach(row => {
     let currentDisplayNum = 1;
     const sorted = seatsByRow[row].sort((a, b) => a.number - b.number);
     sorted.forEach(seat => {
-      if (seat.type !== 'hidden' && seat.type !== 'couple_hidden') {
+      if (seat.type !== 'hidden' && seat.type !== 'deleted' && seat.type !== 'couple_hidden') {
         map.set(seat.id, currentDisplayNum);
         currentDisplayNum++;
       }
     });
-  }
+  });
   return map;
 });
 
@@ -131,10 +132,8 @@ const getPhysicalGridPos = (seat) => {
         let maxPhysicalColInPrevRow = 0;
         prevRowSeats.forEach(s => {
            let col = s.number;
-           const coupleSeatsBefore = prevRowSeats.filter(cs => cs.type === 'couple' && cs.number < s.number).length;
-           col += coupleSeatsBefore;
            gapCols.forEach(gapCol => { if (s.number > gapCol) col++; });
-           if (s.type === 'couple') col++; // spans extra col
+           if (s.type === 'couple') col++; // spans extra col, so max col is at least col + 1
            if (col > maxPhysicalColInPrevRow) maxPhysicalColInPrevRow = col;
         });
         
@@ -153,10 +152,6 @@ const getPhysicalGridPos = (seat) => {
 
     // Calculate for THIS seat
     let col = seat.number;
-    if (props.seats) {
-      const coupleSeatsBefore = props.seats.filter(s => s.row === seat.row && s.type === 'couple' && s.number < seat.number).length;
-      col += coupleSeatsBefore;
-    }
     gapCols.forEach(gapCol => {
       if (seat.number > gapCol) col++;
     });
@@ -334,7 +329,7 @@ onBeforeUnmount(() => {
 
 const handleSeatClick = (seat, event) => {
   if (props.mode === 'client') {
-    if (seat.is_booked || seat.type === 'hidden' || seat.type === 'couple_hidden') return;
+    if (seat.is_booked || seat.type === 'hidden' || seat.type === 'deleted' || seat.type === 'couple_hidden') return;
     emit('seat-clicked', seat);
   } else if (props.mode === 'admin') {
     // Tránh việc Click đơn lẻ bị ảnh hưởng nếu người dùng vừa vuốt quét (Dựa vào diện tích hộp)
@@ -372,13 +367,14 @@ const getSeatClass = (seat) => {
   
   if (props.mode === 'admin') {
     if (seat.type === 'hidden') classes.push('seat-hidden-admin');
+    if (seat.type === 'deleted') classes.push('seat-deleted-admin');
     classes.push('cursor-pointer');
     if (adminSelectedIds.value.has(seat.id)) {
       classes.push('seat-admin-selected');
     }
   } 
   else if (props.mode === 'client') {
-    if (seat.type === 'hidden' || seat.type === 'couple_hidden') {
+    if (seat.type === 'hidden' || seat.type === 'deleted' || seat.type === 'couple_hidden') {
       classes.push('seat-hidden-client');
     } else if (seat.is_booked) {
       classes.push('seat-booked');
@@ -482,6 +478,10 @@ const getSeatClass = (seat) => {
 .seat-hidden-admin { background: transparent !important; border: 2px dashed #4b5563 !important; color: #4b5563; box-shadow: none; }
 .seat-hidden-admin::after { display: none; }
 
+.seat-deleted-admin { background: transparent !important; border: 2px solid transparent !important; color: transparent !important; box-shadow: none !important; opacity: 0.2; }
+.seat-deleted-admin:hover { opacity: 0.8; border-color: #fca5a5 !important; background: rgba(239,68,68,0.1) !important;}
+.seat-deleted-admin::after { display: none; }
+
 .seat-admin-selected {
   border: 3px solid #fbbf24 !important;
   box-shadow: 0 0 15px rgba(251, 191, 36, 0.8) !important;
@@ -498,4 +498,5 @@ const getSeatClass = (seat) => {
 .seat-box.selected { background: linear-gradient(145deg, #10b981, #059669); }
 .seat-box.admin-selected { border: 2px solid #fbbf24; background: transparent; }
 .seat-box.hidden-demo { border: 2px dashed #4b5563; background: transparent; }
+.seat-box.deleted-demo { border: 2px dotted transparent; background: transparent; opacity: 0.3; }
 </style>
