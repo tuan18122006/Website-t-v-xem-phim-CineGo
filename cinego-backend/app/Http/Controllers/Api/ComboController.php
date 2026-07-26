@@ -36,7 +36,7 @@ class ComboController extends Controller
                 'unique:combos,name'
             ],
             'description' => [
-                'required',
+                'nullable',
                 'string',
                 'max:2000',
             ],

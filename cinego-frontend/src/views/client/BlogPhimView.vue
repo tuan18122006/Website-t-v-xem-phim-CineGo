@@ -1,147 +1,226 @@
 <template>
-  <div class="blog-page-container">
+  <div class="blog-page-container" :class="{ 'modal-open': isModalOpen }">
     <!-- HERO HEADER -->
     <div class="blog-hero">
-      <div class="hero-glow"></div>
+      <div class="hero-bg-overlay"></div>
       <div class="hero-content">
         <span class="hero-tag">CINEGO MOVIES BLOG</span>
-        <h1 class="hero-title">Blog Điện Ảnh & Tin Tức Phim Hot</h1>
+        <h1 class="hero-title">Trải Nghiệm Điện Ảnh & Tin Tức Phim</h1>
         <p class="hero-desc">
-          Cập nhật các bài phân tích, tin tức điện ảnh nóng hổi, hậu trường làm phim và xu hướng điện ảnh thế giới mới nhất.
+          Cập nhật nhanh nhất tin tức điện ảnh nóng hổi, bài phân tích chuyên sâu và góc nhìn đa chiều về các bộ phim bom tấn.
         </p>
+      </div>
+    </div>
 
-        <!-- Category selectors -->
+    <div class="blog-main-content">
+      <!-- CATEGORY NAV -->
+      <div class="blog-nav-sticky">
         <div class="blog-categories">
           <button 
-            v-for="cat in categories" 
-            :key="cat.key" 
             class="cat-pill" 
-            :class="{ active: activeCategory === cat.key }"
-            @click="activeCategory = cat.key"
+            :class="{ active: activeCategory === null }"
+            @click="activeCategory = null"
           >
-            {{ cat.label }}
+            🔥 Mới cập nhật
+          </button>
+          <button 
+            v-for="cat in categories" 
+            :key="cat.id" 
+            class="cat-pill" 
+            :class="{ active: activeCategory === cat.id }"
+            @click="activeCategory = cat.id"
+          >
+            {{ cat.name }}
           </button>
         </div>
       </div>
-    </div>
 
-    <!-- FEATURED ARTICLE (HERO POST) -->
-    <div v-if="featuredArticle" class="featured-post-wrap">
-      <div class="featured-post-card glass-panel">
-        <div class="post-image-box">
-          <img :src="featuredArticle.image" :alt="featuredArticle.title" class="post-img" />
-          <span class="post-category-tag">{{ featuredArticle.categoryName }}</span>
-        </div>
-        <div class="post-info-box">
-          <small class="post-meta-top">🕒 {{ featuredArticle.date }} • ✍️ {{ featuredArticle.author }}</small>
-          <h2 class="post-title">{{ featuredArticle.title }}</h2>
-          <p class="post-excerpt">{{ featuredArticle.excerpt }}</p>
-          <div class="post-footer">
-            <span class="reading-time">📖 {{ featuredArticle.readingTime }} phút đọc</span>
-            <a href="#" class="btn-read-more" @click.prevent="alertReadMore">Đọc tiếp →</a>
+      <!-- FEATURED ARTICLE -->
+      <div v-if="featuredArticle" class="featured-post-wrap">
+        <div class="featured-post-card" @click="openBlogModal(featuredArticle.id)">
+          <div class="post-image-box">
+            <img :src="featuredArticle.thumbnail_url || 'https://via.placeholder.com/800x400/1a1a1a/e50914?text=CineGo+Blog'" :alt="featuredArticle.title" class="post-img" />
+            <div class="post-gradient-overlay"></div>
+            <span class="post-category-tag" v-if="featuredArticle.category">{{ featuredArticle.category.name }}</span>
+          </div>
+          <div class="post-info-box">
+            <small class="post-meta-top"><i class="fa fa-calendar"></i> {{ formatDate(featuredArticle.created_at) }}</small>
+            <h2 class="post-title">{{ featuredArticle.title }}</h2>
+            <p class="post-excerpt">{{ featuredArticle.excerpt || "Đang cập nhật tóm tắt..." }}</p>
+            <div class="post-footer">
+              <span class="btn-read-more">Đọc tiếp <i class="fa fa-arrow-right"></i></span>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- SECONDARY ARTICLES GRID -->
-    <div class="blog-grid-section">
-      <h2 class="grid-section-title">Bài viết mới cập nhật</h2>
-
-      <div class="blog-grid">
-        <div v-for="post in filteredArticles" :key="post.id" class="grid-post-card glass-panel">
-          <div class="grid-post-image">
-            <img :src="post.image" :alt="post.title" class="grid-img" />
-            <span class="grid-category-tag">{{ post.categoryName }}</span>
-          </div>
-          <div class="grid-post-body">
-            <small class="grid-meta">🕒 {{ post.date }} • {{ post.readingTime }} phút đọc</small>
-            <h3 class="grid-title">{{ post.title }}</h3>
-            <p class="grid-excerpt">{{ post.excerpt }}</p>
-            <div class="grid-footer">
-              <a href="#" class="btn-grid-read" @click.prevent="alertReadMore">Đọc chi tiết</a>
+      <!-- ARTICLES GRID -->
+      <div class="blog-grid-section">
+        <div v-if="loading" class="loading-state">
+          Đang tải bài viết...
+        </div>
+        <div v-else-if="filteredArticles.length === 0" class="empty-state">
+          Chưa có bài viết nào trong chuyên mục này.
+        </div>
+        <div v-else class="blog-grid">
+          <div v-for="post in secondaryArticles" :key="post.id" class="grid-post-card" @click="openBlogModal(post.id)">
+            <div class="grid-post-image">
+              <img :src="post.thumbnail_url || 'https://via.placeholder.com/400x250/1a1a1a/e50914?text=CineGo+Blog'" :alt="post.title" class="grid-img" />
+              <div class="grid-gradient"></div>
+              <span class="grid-category-tag" v-if="post.category">{{ post.category.name }}</span>
+            </div>
+            <div class="grid-post-body">
+              <small class="grid-meta">{{ formatDate(post.created_at) }}</small>
+              <h3 class="grid-title">{{ post.title }}</h3>
+              <p class="grid-excerpt">{{ post.excerpt }}</p>
             </div>
           </div>
         </div>
       </div>
     </div>
+
+    <!-- BLOG DETAILS MODAL -->
+    <transition name="modal-fade">
+      <div v-if="isModalOpen" class="blog-modal-overlay" @click.self="closeModal">
+        <div class="blog-modal-content">
+          <!-- Header -->
+          <div class="modal-header">
+            <h3 class="modal-brand">Blog CineGo</h3>
+            <button class="btn-close-modal" @click="closeModal">✕</button>
+          </div>
+
+          <!-- Body -->
+          <div class="modal-body" v-if="modalLoading">
+            <div class="loading-spinner">Đang tải nội dung...</div>
+          </div>
+          <div class="modal-body" v-else-if="selectedBlog">
+            <div class="modal-cover">
+              <img :src="selectedBlog.thumbnail_url || 'https://via.placeholder.com/800x400/1a1a1a/e50914?text=CineGo+Blog'" alt="Cover" />
+            </div>
+            
+            <div class="modal-article-info">
+              <span class="modal-cat-tag" v-if="selectedBlog.category">{{ selectedBlog.category.name }}</span>
+              <small class="modal-date">{{ formatDate(selectedBlog.created_at) }}</small>
+            </div>
+
+            <h1 class="modal-title">{{ selectedBlog.title }}</h1>
+            
+            <div class="modal-excerpt" v-if="selectedBlog.excerpt">
+              {{ selectedBlog.excerpt }}
+            </div>
+
+            <!-- HTML Content -->
+            <div class="modal-html-content" v-html="selectedBlog.content"></div>
+          </div>
+
+          <!-- Footer -->
+          <div class="modal-footer">
+            <button class="btn-close-bottom" @click="closeModal">ĐÓNG</button>
+          </div>
+        </div>
+      </div>
+    </transition>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from "vue";
+import api from "../../api/axios";
 
-const activeCategory = ref('all');
+const loading = ref(true);
+const articles = ref([]);
+const categories = ref([]);
+const activeCategory = ref(null);
 
-const categories = [
-  { key: 'all', label: '🔥 Mới nhất' },
-  { key: 'behind', label: '🎬 Hậu trường phim' },
-  { key: 'review', label: '✍️ Phân tích & Review' },
-  { key: 'roundup', label: '📰 Tổng hợp điện ảnh' }
-];
+// Modal state
+const isModalOpen = ref(false);
+const modalLoading = ref(false);
+const selectedBlog = ref(null);
 
-const featuredArticle = ref({
-  id: 1,
-  title: 'Doraemon: Từ "Ký Ức Tuổi Thơ" Đến "Cỗ Máy Phòng Vé" Đa Thế Hệ',
-  category: 'behind',
-  categoryName: 'Hậu trường phim',
-  author: 'Đức Huy',
-  date: '13/06/2026',
-  excerpt: 'Cùng khám phá hành trình dài hơn nửa thế kỷ của chú mèo máy thông minh Doraemon và người bạn Nobita, tìm hiểu lý do tại sao loạt phim điện ảnh thường niên này luôn chiếm lĩnh doanh số phòng vé mỗi dịp hè về.',
-  image: 'https://images.unsplash.com/photo-1578849278619-e73505e9610f?auto=format&fit=crop&w=800&q=80',
-  readingTime: '5'
+onMounted(async () => {
+  await fetchCategories();
+  await fetchBlogs();
 });
 
-const articles = ref([
-  {
-    id: 2,
-    title: 'Xu Hướng Đặt Vé Sớm & Sự Trỗi Dậy Của Suất Chiếu Đặc Biệt',
-    category: 'roundup',
-    categoryName: 'Tổng hợp điện ảnh',
-    date: '12/06/2026',
-    excerpt: 'Lý do tại sao các bom tấn Hollywood đang tăng cường suất chiếu sớm (Sneak Show) trước ngày khởi chiếu chính thức và phản ứng nồng nhiệt từ người hâm mộ.',
-    image: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=400&q=80',
-    readingTime: '3'
-  },
-  {
-    id: 3,
-    title: 'Khi Sức Mua Bùng Nổ Nhưng Trải Nghiệm Bị Lệch Pha',
-    category: 'review',
-    categoryName: 'Phân tích & Review',
-    date: '10/06/2026',
-    excerpt: 'Bài phân tích sâu sắc về sự phát triển của hệ thống phòng chiếu hiện đại tại Việt Nam và cách CineGo nâng cao chuẩn mực dịch vụ phục vụ khách hàng.',
-    image: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80',
-    readingTime: '4'
-  },
-  {
-    id: 4,
-    title: 'Nghệ Thuật Của Điện Ảnh: Review & Phân Tích Toàn Diện',
-    category: 'review',
-    categoryName: 'Phân tích & Review',
-    date: '08/06/2026',
-    excerpt: 'Hướng dẫn cách người xem cảm nhận nghệ thuật góc quay, màu sắc và thông điệp ẩn dụ sâu bên trong các bộ phim kinh điển được chiếu rạp.',
-    image: 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&w=400&q=80',
-    readingTime: '4'
-  },
-  {
-    id: 5,
-    title: 'Top 5 Bộ Phim Hậu Trường Đáng Xem Nhất Mọi Thời Đại',
-    category: 'behind',
-    categoryName: 'Hậu trường phim',
-    date: '05/06/2026',
-    excerpt: 'Hành trình vượt khó khăn của các đoàn làm phim khi thực hiện các dự án bom tấn lớn trong lịch sử điện ảnh nhân loại.',
-    image: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=400&q=80',
-    readingTime: '3'
+const fetchCategories = async () => {
+  try {
+    const res = await api.get("/blog-categories");
+    if (res.data?.success) {
+      categories.value = res.data.data;
+    }
+  } catch (error) {
+    console.error("Lỗi tải chuyên mục", error);
   }
-]);
+};
+
+const fetchBlogs = async () => {
+  loading.value = true;
+  try {
+    const res = await api.get("/blogs");
+    if (res.data?.success) {
+      articles.value = res.data.data.filter(post => post.status === "published");
+    }
+  } catch (error) {
+    console.error("Lỗi tải bài viết", error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const openBlogModal = async (id) => {
+  isModalOpen.value = true;
+  modalLoading.value = true;
+  selectedBlog.value = null;
+  // Block body scroll
+  document.body.style.overflow = "hidden";
+
+  try {
+    const res = await api.get(`/blogs/${id}`);
+    if (res.data?.success) {
+      selectedBlog.value = res.data.data;
+    } else {
+      selectedBlog.value = res.data;
+    }
+  } catch (error) {
+    console.error("Lỗi tải chi tiết bài viết", error);
+    alert("Không thể tải bài viết này!");
+    closeModal();
+  } finally {
+    modalLoading.value = false;
+  }
+};
+
+const closeModal = () => {
+  isModalOpen.value = false;
+  document.body.style.overflow = "auto";
+  setTimeout(() => {
+    selectedBlog.value = null;
+  }, 300); // clear after animation
+};
 
 const filteredArticles = computed(() => {
-  if (activeCategory.value === 'all') return articles.value;
-  return articles.value.filter(a => a.category === activeCategory.value);
+  if (activeCategory.value === null) return articles.value;
+  return articles.value.filter(a => a.category_id === activeCategory.value);
 });
 
-const alertReadMore = () => {
-  alert('Tính năng đang được phát triển. Chi tiết bài viết đầy đủ sẽ sớm ra mắt!');
+const featuredArticle = computed(() => {
+  if (filteredArticles.value.length > 0) {
+    return filteredArticles.value[0];
+  }
+  return null;
+});
+
+const secondaryArticles = computed(() => {
+  if (filteredArticles.value.length > 1) {
+    return filteredArticles.value.slice(1);
+  }
+  return [];
+});
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth()+1).toString().padStart(2, "0")}/${d.getFullYear()}`;
 };
 </script>
 
@@ -149,63 +228,81 @@ const alertReadMore = () => {
 .blog-page-container {
   width: 100%;
   min-height: 100vh;
-  background-color: #ffffff;
-  padding-bottom: 60px;
+  background-color: #f8f9fa;
+  padding-bottom: 80px;
 }
 
 /* HERO HEADER */
 .blog-hero {
   position: relative;
-  background: linear-gradient(135deg, #1b0004 0%, #000000 100%);
-  padding: 80px 24px;
-  border-radius: 24px;
-  overflow: hidden;
-  margin-bottom: 40px;
+  background-image: url("https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1600&q=80");
+  background-size: cover;
+  background-position: center;
+  padding: 100px 24px;
   text-align: center;
-  border: 1px solid rgba(229, 9, 20, 0.1);
+  margin-bottom: 0px;
 }
 
-.hero-glow {
+.hero-bg-overlay {
   position: absolute;
-  top: -50%;
-  right: -20%;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(229, 9, 20, 0.2) 0%, transparent 70%);
-  filter: blur(60px);
-  pointer-events: none;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(229,9,20,0.3) 100%);
 }
 
 .hero-content {
+  position: relative;
   max-width: 800px;
   margin: 0 auto;
+  z-index: 2;
 }
 
 .hero-tag {
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 800;
   color: #e50914;
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+  text-transform: uppercase;
 }
 
 .hero-title {
-  font-size: 38px;
-  font-weight: 800;
+  font-size: 42px;
+  font-weight: 900;
   color: #ffffff;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   letter-spacing: -1px;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.5);
 }
 
 .hero-desc {
-  font-size: 16px;
-  color: #cbd5e1;
-  line-height: 1.6;
-  margin-bottom: 36px;
+  font-size: 17px;
+  color: #e2e8f0;
+  line-height: 1.7;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.blog-main-content {
+  max-width: 1200px;
+  margin: -40px auto 0;
+  position: relative;
+  z-index: 3;
+  padding: 0 20px;
 }
 
 /* CATEGORIES */
+.blog-nav-sticky {
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+  margin-bottom: 40px;
+  position: sticky;
+  top: 80px;
+  z-index: 10;
+}
+
 .blog-categories {
   display: flex;
   justify-content: center;
@@ -214,48 +311,50 @@ const alertReadMore = () => {
 }
 
 .cat-pill {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #cbd5e1;
+  background: #f1f5f9;
+  border: none;
+  color: #64748b;
   font-weight: 700;
-  font-size: 13px;
-  padding: 10px 20px;
-  border-radius: 12px;
+  font-size: 14px;
+  padding: 12px 24px;
+  border-radius: 30px;
   cursor: pointer;
-  transition: all 0.25s ease;
-  backdrop-filter: blur(4px);
+  transition: all 0.3s ease;
 }
 
 .cat-pill:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+  background: #e2e8f0;
+  color: #0f172a;
 }
 
 .cat-pill.active {
   background: #e50914;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(229, 9, 20, 0.25);
-  border-color: #e50914;
+  box-shadow: 0 4px 15px rgba(229, 9, 20, 0.3);
 }
 
 /* FEATURED ARTICLE */
 .featured-post-wrap {
-  max-width: 1100px;
-  margin: 0 auto 50px auto;
-  padding: 0 16px;
+  margin-bottom: 50px;
 }
 
 .featured-post-card {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
+  grid-template-columns: 1.5fr 1fr;
   background: #ffffff;
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  border-radius: 24px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.06);
+  cursor: pointer;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
 }
 
-@media (max-width: 768px) {
+.featured-post-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 45px rgba(0,0,0,0.12);
+}
+
+@media (max-width: 900px) {
   .featured-post-card {
     grid-template-columns: 1fr;
   }
@@ -263,7 +362,8 @@ const alertReadMore = () => {
 
 .post-image-box {
   position: relative;
-  height: 340px;
+  height: 100%;
+  min-height: 380px;
   overflow: hidden;
 }
 
@@ -271,125 +371,123 @@ const alertReadMore = () => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
+  transition: transform 0.7s ease;
 }
 
 .featured-post-card:hover .post-img {
-  transform: scale(1.03);
+  transform: scale(1.05);
+}
+
+.post-gradient-overlay {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to right, rgba(0,0,0,0) 50%, rgba(255,255,255,1) 100%);
+}
+@media (max-width: 900px) {
+  .post-gradient-overlay {
+    background: linear-gradient(to bottom, rgba(0,0,0,0) 50%, rgba(255,255,255,1) 100%);
+  }
 }
 
 .post-category-tag {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: 24px;
+  left: 24px;
   background: #e50914;
   color: #ffffff;
   font-weight: 800;
-  font-size: 11px;
-  padding: 6px 14px;
-  border-radius: 8px;
+  font-size: 12px;
+  padding: 8px 16px;
+  border-radius: 6px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  z-index: 2;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 
 .post-info-box {
-  padding: 32px;
+  padding: 40px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  position: relative;
+  z-index: 3;
 }
 
 .post-meta-top {
-  font-size: 12px;
+  font-size: 13px;
   color: #94a3b8;
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   display: block;
 }
 
 .post-title {
-  font-size: 24px;
-  font-weight: 800;
+  font-size: 28px;
+  font-weight: 900;
   color: #0f172a;
   line-height: 1.3;
-  margin: 0 0 14px 0;
+  margin: 0 0 16px 0;
+  transition: color 0.3s ease;
+}
+
+.featured-post-card:hover .post-title {
+  color: #e50914;
 }
 
 .post-excerpt {
-  font-size: 14.5px;
+  font-size: 16px;
   color: #64748b;
-  line-height: 1.6;
-  margin: 0 0 24px 0;
+  line-height: 1.7;
+  margin: 0 0 32px 0;
 }
 
 .post-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 1px solid #f1f5f9;
-  padding-top: 20px;
   margin-top: auto;
-}
-
-.reading-time {
-  font-size: 12.5px;
-  color: #94a3b8;
-  font-weight: 600;
 }
 
 .btn-read-more {
   color: #e50914;
-  font-weight: 700;
-  font-size: 13.5px;
-  transition: transform 0.2s;
-}
-
-.btn-read-more:hover {
-  transform: translateX(3px);
+  font-weight: 800;
+  font-size: 15px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* GRID SECTION */
 .blog-grid-section {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 0 16px;
-}
-
-.grid-section-title {
-  font-size: 22px;
-  font-weight: 800;
-  color: #0f172a;
-  margin-bottom: 24px;
-  border-left: 5px solid #e50914;
-  padding-left: 12px;
+  padding-bottom: 50px;
 }
 
 .blog-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   gap: 30px;
 }
 
 .grid-post-card {
   background: #ffffff;
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  border-radius: 20px;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.04);
   display: flex;
   flex-direction: column;
-  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  border: 1px solid transparent;
 }
 
 .grid-post-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(229, 9, 20, 0.15);
-  box-shadow: 0 10px 24px rgba(229, 9, 20, 0.08);
+  transform: translateY(-8px);
+  box-shadow: 0 15px 35px rgba(229,9,20,0.08);
+  border-color: rgba(229,9,20,0.2);
 }
 
 .grid-post-image {
   position: relative;
-  height: 200px;
+  height: 220px;
   overflow: hidden;
 }
 
@@ -397,80 +495,288 @@ const alertReadMore = () => {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s ease;
+  transition: transform 0.6s ease;
 }
 
 .grid-post-card:hover .grid-img {
-  transform: scale(1.04);
+  transform: scale(1.08);
+}
+
+.grid-gradient {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(to bottom, rgba(0,0,0,0) 60%, rgba(0,0,0,0.6) 100%);
+  pointer-events: none;
 }
 
 .grid-category-tag {
   position: absolute;
-  top: 14px;
-  left: 14px;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(4px);
+  top: 16px;
+  left: 16px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
   color: #ffffff;
   font-weight: 700;
-  font-size: 10px;
-  padding: 4px 10px;
-  border-radius: 6px;
+  font-size: 11px;
+  padding: 6px 12px;
+  border-radius: 4px;
   text-transform: uppercase;
+  border-left: 3px solid #e50914;
 }
 
 .grid-post-body {
-  padding: 20px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
 .grid-meta {
-  font-size: 11px;
+  font-size: 13px;
   color: #94a3b8;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .grid-title {
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 800;
   color: #0f172a;
   line-height: 1.4;
-  margin: 0 0 8px 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  margin: 0 0 12px 0;
+  transition: color 0.3s ease;
+}
+
+.grid-post-card:hover .grid-title {
+  color: #e50914;
 }
 
 .grid-excerpt {
-  font-size: 13px;
+  font-size: 15px;
   color: #64748b;
-  line-height: 1.5;
-  margin: 0 0 16px 0;
+  line-height: 1.6;
+  margin: 0;
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  flex: 1;
 }
 
-.grid-footer {
-  margin-top: auto;
-  border-top: 1px solid #f1f5f9;
-  padding-top: 12px;
+.loading-state, .empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  font-size: 18px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* ---------------- MODAL STYLES ---------------- */
+.blog-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(5px);
+  z-index: 9999;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
 }
 
-.btn-grid-read {
+.blog-modal-content {
+  background: #ffffff;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.modal-brand {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.btn-close-modal {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  font-weight: bold;
+  color: #64748b;
+  cursor: pointer;
+  transition: color 0.3s;
+}
+
+.btn-close-modal:hover {
+  color: #e50914;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 0 40px 0;
+}
+
+.loading-spinner {
+  text-align: center;
+  padding: 100px 20px;
+  font-size: 18px;
+  color: #64748b;
+}
+
+.modal-cover {
+  width: 100%;
+  height: 350px;
+}
+
+.modal-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modal-article-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 30px 40px 10px;
+}
+
+.modal-cat-tag {
+  background: #f1f5f9;
   color: #e50914;
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  text-transform: uppercase;
 }
 
-.btn-grid-read:hover {
-  text-decoration: underline;
+.modal-date {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.modal-title {
+  font-size: 32px;
+  font-weight: 900;
+  color: #0f172a;
+  padding: 0 40px;
+  margin: 10px 0 20px 0;
+  line-height: 1.3;
+}
+
+.modal-excerpt {
+  padding: 0 40px;
+  font-size: 17px;
+  color: #475569;
+  font-style: italic;
+  line-height: 1.6;
+  margin-bottom: 30px;
+  border-left: 4px solid #e50914;
+  margin-left: 40px;
+  padding-left: 20px;
+}
+
+.modal-html-content {
+  padding: 0 40px;
+  font-size: 16px;
+  color: #334155;
+  line-height: 1.8;
+}
+
+/* Xử lý định dạng HTML bên trong modal */
+.modal-html-content :deep(img) {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+.modal-html-content :deep(h2), .modal-html-content :deep(h3) {
+  color: #0f172a;
+  margin-top: 30px;
+  margin-bottom: 15px;
+}
+.modal-html-content :deep(p) {
+  margin-bottom: 16px;
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #f1f5f9;
+  text-align: right;
+  background: #ffffff;
+}
+
+.btn-close-bottom {
+  background: #e50914;
+  color: #ffffff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.btn-close-bottom:hover {
+  background: #cc0812;
+}
+
+/* Animations */
+.modal-fade-enter-active, .modal-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.modal-fade-enter-from, .modal-fade-leave-to {
+  opacity: 0;
+}
+.modal-fade-enter-active .blog-modal-content {
+  animation: modalSlideUp 0.3s ease-out;
+}
+.modal-fade-leave-active .blog-modal-content {
+  animation: modalSlideDown 0.3s ease-in;
+}
+
+@keyframes modalSlideUp {
+  from { transform: translateY(30px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes modalSlideDown {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(30px); opacity: 0; }
+}
+
+@media (max-width: 768px) {
+  .modal-cover {
+    height: 200px;
+  }
+  .modal-title {
+    font-size: 24px;
+    padding: 0 20px;
+    margin-left: 0;
+  }
+  .modal-article-info, .modal-html-content {
+    padding: 20px;
+  }
+  .modal-excerpt {
+    margin-left: 20px;
+    padding-right: 20px;
+  }
 }
 </style>
+

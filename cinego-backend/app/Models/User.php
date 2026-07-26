@@ -36,6 +36,9 @@ class User extends Authenticatable
         'is_anonymized',
         'work_status',
         'age',
+        'google_id',
+        'avatar_url',
+        'birthday',
     ];
 
     /**
@@ -102,3 +105,4 @@ class User extends Authenticatable
         return $this->belongsToMany(Voucher::class, 'user_vouchers');
     }
 }
+

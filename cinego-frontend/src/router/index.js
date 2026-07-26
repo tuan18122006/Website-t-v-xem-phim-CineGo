@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import AuthCallback from '../views/client/AuthCallback.vue';
 import ReviewMovies from '../views/client/ReviewMovies.vue';
 import TicketDetailView from "../views/client/TicketDetailView.vue";
 
@@ -49,6 +50,16 @@ const routes = [
     path: '/review-movies',
     name: 'review-movies',
     component: ReviewMovies,
+  },
+  {
+    path: '/register',
+    name: 'register',
+    component: () => import("../views/client/RegisterView.vue")
+  },
+  {
+    path: '/auth/callback',
+    name: 'auth-callback',
+    component: AuthCallback
   },
   {
     path: '/profile',
@@ -110,6 +121,11 @@ const routes = [
     component: BlogPhim,
   },
   {
+    path: "/blog-phim",
+    name: "blog-phim",
+    component: BlogPhim,
+  },
+  {
     path: "/ve-cinego",
     name: "ve-cinego",
     component: AboutCineGo,
@@ -135,6 +151,37 @@ const routes = [
     name: "AdminArticles",
     component: () => import("../views/admin/ArticleManagementView.vue"),
     meta: { requiresAuth: true, role: "admin" }
+  },
+  // 🔴 THÊM MỚI: PHÂN HỆ QUẢN LÝ BLOG WORDPRESS (CINEGO)
+  {
+    path: "/admin/blogs",
+    name: "admin-BlogList",
+    component: () => import("../views/admin/blog/BlogListView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
+    path: "/admin/blogs/create",
+    name: "admin-BlogCreate",
+    component: () => import("../views/admin/blog/NewBlogView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
+    path: "/admin/blogs/edit/:id",
+    name: "admin-BlogEdit",
+    component: () => import("../views/admin/blog/NewBlogView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
+    path: "/admin/blogs/preview/:id",
+    name: "admin-BlogDetail",
+    component: () => import("../views/admin/blog/BlogDetailView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
+    path: "/admin/blog-categories",
+    name: "admin-BlogCategoryList",
+    component: () => import("../views/admin/blog/BlogCategoryList.vue"),
+    meta: { requiresAuth: true, role: "admin" },
   },
 
 

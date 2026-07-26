@@ -110,7 +110,8 @@
                     </div>
                     <div class="form-group">
                         <label>Giá trị giảm</label>
-                        <input v-model="voucherForm.discount_value" type="number"
+                        <input :value="formatDisplay(voucherForm.discount_value)" 
+                            @input="e => handleNumberInput(e, 'discount_value')" type="text"
                             :class="{ 'is-invalid': errors.discount_value }" class="form-control">
                         <span v-if="errors.discount_value" class="error-text">{{ errors.discount_value[0] }}</span>
                     </div>
@@ -118,15 +119,17 @@
 
                 <div class="form-group">
                     <label>Đơn tối thiểu (đ)</label>
-                    <input v-model="voucherForm.min_spend" type="number" :class="{ 'is-invalid': errors.min_spend }"
-                        class="form-control">
+                    <input :value="formatDisplay(voucherForm.min_spend)" 
+                        @input="e => handleNumberInput(e, 'min_spend')" type="text" 
+                        :class="{ 'is-invalid': errors.min_spend }" class="form-control">
                     <span v-if="errors.min_spend" class="error-text">{{ errors.min_spend[0] }}</span>
                 </div>
 
                 <div class="form-group">
                     <label>Giảm tối đa (đ) - Để trống nếu không giới hạn</label>
-                    <input v-model="voucherForm.max_discount" type="number" class="form-control"
-                        placeholder="VD: 50000">
+                    <input :value="formatDisplay(voucherForm.max_discount)" 
+                        @input="e => handleNumberInput(e, 'max_discount')" type="text" class="form-control"
+                        placeholder="VD: 50.000">
                 </div>
 
                 <!-- 1. TRƯỜNG MỚI: GIỚI HẠN ĐỐI TƯỢNG -->
@@ -231,12 +234,14 @@
                     style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>Tổng lượt dùng hệ thống</label>
-                        <input v-model="voucherForm.usage_limit" type="number" class="form-control"
+                        <input :value="formatDisplay(voucherForm.usage_limit)" 
+                            @input="e => handleNumberInput(e, 'usage_limit')" type="text" class="form-control"
                             placeholder="Để trống = Không GH">
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
                         <label>Lượt dùng / 1 tài khoản</label>
-                        <input v-model="voucherForm.user_limit" type="number"
+                        <input :value="formatDisplay(voucherForm.user_limit)" 
+                            @input="e => handleNumberInput(e, 'user_limit')" type="text"
                             :class="{ 'is-invalid': errors.user_limit }" class="form-control" placeholder="Mặc định: 1">
                         <span v-if="errors.user_limit" class="error-text">{{ errors.user_limit[0] }}</span>
                     </div>
@@ -253,6 +258,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import api from '../../api/axios';
+import { toast, confirmDialog } from '../../utils/alert';
 
 const vouchers = ref([]);
 const isModalOpen = ref(false);
@@ -283,11 +289,30 @@ const initForm = () => ({
 const voucherForm = ref(initForm());
 const loading = ref(false);
 
+const formatDisplay = (value) => {
+    if (value === null || value === undefined || value === '') return '';
+    return new Intl.NumberFormat('vi-VN').format(value);
+};
+
+const handleNumberInput = (e, field) => {
+    let val = e.target.value.replace(/\D/g, '');
+    if (val === '') {
+        voucherForm.value[field] = '';
+    } else {
+        voucherForm.value[field] = parseInt(val, 10);
+    }
+    e.target.value = formatDisplay(voucherForm.value[field]);
+};
+
 const fetchVouchers = async () => {
     loading.value = true;
     try {
         const res = await api.get('admin/vouchers');
         vouchers.value = res.data.map(v => {
+            // Loại bỏ phần thập phân .00 khi load từ db
+            v.discount_value = v.discount_value ? parseInt(v.discount_value, 10) : 0;
+            v.min_spend = v.min_spend ? parseInt(v.min_spend, 10) : 0;
+            if (v.max_discount) v.max_discount = parseInt(v.max_discount, 10);
             if (v.usage_condition && typeof v.usage_condition === 'string') {
                 try {
                     v.usage_condition = JSON.parse(v.usage_condition);
@@ -384,9 +409,13 @@ const saveVoucher = async () => {
         errors.value.code = ["Vui lòng nhập mã giảm giá."];
     }
 
-    // 2. Kiểm tra Giá trị giảm phải lớn hơn 0
-    if (voucherForm.value.discount_value === undefined || voucherForm.value.discount_value === null || voucherForm.value.discount_value <= 0) {
+    // 2. Kiểm tra Giá trị giảm
+    if (voucherForm.value.discount_value === undefined || voucherForm.value.discount_value === null || 
+        voucherForm.value.discount_value <= 0) {
         errors.value.discount_value = ["Giá trị giảm phải lớn hơn 0."];
+    }
+    if (voucherForm.value.discount_type === 'percentage' && voucherForm.value.discount_value > 100) {
+        errors.value.discount_value = ["Giá trị phần trăm không được vượt quá 100%."];
     }
 
     // 3. Kiểm tra trống ngày bắt đầu / ngày hết hạn
@@ -437,12 +466,13 @@ const saveVoucher = async () => {
             await api.post('admin/vouchers', payload);
         }
         isModalOpen.value = false;
+        toast(isEditing.value ? "Cập nhật thành công!" : "Thêm mới thành công!");
         fetchVouchers();
     } catch (error) {
         if (error.response?.status === 422 && error.response?.data?.errors) {
             errors.value = error.response.data.errors;
         } else {
-            alert("Lỗi: " + (error.response?.data?.message || "Có lỗi kết nối!"));
+            toast("Lỗi: " + (error.response?.data?.message || "Có lỗi kết nối!"), 'error');
         }
     }
 };
@@ -452,12 +482,13 @@ const isVoucherExpired = (expires_at) => {
 };
 
 const deleteVoucher = async (id) => {
-    if (confirm('Bạn có chắc chắn muốn xóa mã giảm giá này? Hành động này không thể hoàn tác.')) {
+    if (await confirmDialog('Bạn có chắc chắn muốn xóa mã giảm giá này? Hành động này không thể hoàn tác.')) {
         try {
             await api.delete(`admin/vouchers/${id}`);
+            toast("Xóa thành công!");
             fetchVouchers();
         } catch (error) {
-            alert("Có lỗi xảy ra khi xóa!");
+            toast("Có lỗi xảy ra khi xóa!", 'error');
         }
     }
 };

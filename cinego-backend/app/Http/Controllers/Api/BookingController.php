@@ -67,7 +67,13 @@ class BookingController extends Controller
         }
 
         if ($request->filled('order_status')) {
-            $query->where('order_status', $request->order_status);
+            $status = $request->order_status;
+            if ($status === 'cancelled') {
+                $query->where('booking_status', 'cancelled');
+            } else {
+                $query->where('payment_status', $status);
+                $query->where('booking_status', '!=', 'cancelled');
+            }
         }
 
         $bookings = $query->orderByDesc('created_at')->get()->map(function ($booking) {
@@ -163,8 +169,6 @@ class BookingController extends Controller
         if (!$booking) {
             return response()->json(['success' => false, 'message' => 'Không tìm thấy đơn hàng'], 404);
         }
-
-        $booking->order_status = $request->order_status;
 
         if ($request->order_status === 'paid') {
             $booking->payment_status = 'paid';

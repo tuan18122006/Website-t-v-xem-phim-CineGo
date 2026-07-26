@@ -46,6 +46,54 @@
           <span>Quản Lý Lịch Chiếu</span>
         </button>
 
+        <!-- ORDERS DROPDOWN -->
+        <div class="nav-dropdown">
+          <button
+            class="nav-link dropdown-toggle"
+            :class="{
+              active: activeTab === 'orders' || activeTab === 'lookup' || activeTab === 'scan',
+            }"
+            @click="orderMenuOpen = !orderMenuOpen"
+          >
+            <div class="dropdown-left">
+              <span class="nav-icon">🧾</span>
+              <span>Quản Lý Đơn Hàng</span>
+            </div>
+
+            <span class="dropdown-arrow" :class="{ open: orderMenuOpen }">
+              ▼
+            </span>
+          </button>
+
+          <transition name="dropdown">
+            <div v-show="orderMenuOpen" class="dropdown-content">
+              <button
+                class="sub-nav-link"
+                :class="{ active: activeTab === 'orders' }"
+                @click="activeTab = 'orders'"
+              >
+                🧾 Danh sách đơn hàng
+              </button>
+
+              <button
+                class="sub-nav-link"
+                :class="{ active: activeTab === 'lookup' }"
+                @click="activeTab = 'lookup'"
+              >
+                🔍 Tra cứu & Hỗ trợ
+              </button>
+
+              <button
+                class="sub-nav-link"
+                :class="{ active: activeTab === 'scan' }"
+                @click="activeTab = 'scan'"
+              >
+                📷 Quét mã QR / Soát vé
+              </button>
+            </div>
+          </transition>
+        </div>
+
         <button 
   class="nav-link" 
   :class="{ active: activeTab === 'rooms' }" 
@@ -89,6 +137,46 @@
           <span>Quản Lý Top Phim</span>
         </button>
 
+        <!-- BLOG DROPDOWN -->
+        <div class="nav-dropdown">
+          <button
+            class="nav-link dropdown-toggle"
+            :class="{
+              active: activeTab === 'blogs' || activeTab === 'blog-categories',
+            }"
+            @click="blogMenuOpen = !blogMenuOpen"
+          >
+            <div class="dropdown-left">
+              <span class="nav-icon">📰</span>
+              <span>Quản Lý Blog</span>
+            </div>
+
+            <span class="dropdown-arrow" :class="{ open: blogMenuOpen }">
+              ▼
+            </span>
+          </button>
+
+          <transition name="dropdown">
+            <div v-show="blogMenuOpen" class="dropdown-content">
+              <button
+                class="sub-nav-link"
+                :class="{ active: activeTab === 'blog-categories' }"
+                @click="activeTab = 'blog-categories'"
+              >
+                📁 Thể Loại Blog
+              </button>
+
+              <button
+                class="sub-nav-link"
+                :class="{ active: activeTab === 'blogs' }"
+                @click="activeTab = 'blogs'"
+              >
+                ✍️ Danh sách Blog
+              </button>
+            </div>
+          </transition>
+        </div>
+
       </nav>
 
       <div class="sidebar-footer">
@@ -108,7 +196,15 @@
           <h1 class="header-title">{{ getTabTitle }}</h1>
           <p class="header-desc">{{ getTabDesc }}</p>
         </div>
-        <router-link to="/" class="btn-back-client">👁️ Xem Client Website</router-link>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <button v-if="authStore.user?.work_status === 'off_shift'" @click="isCheckinModalOpen = true" class="btn-checkin">
+            🟢 Bắt đầu ca
+          </button>
+          <button v-if="authStore.user?.work_status === 'on_shift'" @click="isCheckoutModalOpen = true" class="btn-checkout">
+            🔴 Chốt ca
+          </button>
+          <router-link to="/" class="btn-back-client">👁️ Xem Client Website</router-link>
+        </div>
       </header>
 
       <!-- TAB 1: DASHBOARD STATS & CHARTS -->
@@ -305,10 +401,25 @@
         <MoviesView />
       </div>
 
-      <!-- TAB 3: DYNAMIC SHOWTIMES CRUD -->
-      <div v-if="activeTab === 'showtimes'">
-        <ShowtimesView />
-      </div>
+        <!-- TAB 3: DYNAMIC SHOWTIMES CRUD -->
+        <div v-if="activeTab === 'showtimes'">
+          <ShowtimesView />
+        </div>
+  
+        <!-- TAB: ORDERS MANAGEMENT -->
+        <div v-if="activeTab === 'orders'">
+          <OrderManagementView />
+        </div>
+    
+        <!-- TAB: BOOKING LOOKUP -->
+        <div v-if="activeTab === 'lookup'">
+          <BookingLookupView />
+        </div>
+
+        <!-- TAB: QUÉT MÃ QR -->
+        <div v-if="activeTab === 'scan'">
+          <TicketScannerView />
+        </div>
 
       <!-- TAB: QUẢN LÝ RẠP & GHẾ -->
       <div v-if="activeTab === 'rooms'">
@@ -338,14 +449,56 @@
         <UserManagement />
       </div>
 
-      <!-- TAB: ARTICLES/TOP MOVIES MANAGEMENT -->
       <div v-if="activeTab === 'articles'">
         <ArticleManagementView />
       </div>
 
+      <div v-if="activeTab === 'blogs'">
+        <BlogList />
+      </div>
+
+      <div v-if="activeTab === 'blog-categories'">
+        <BlogCategoryList />
+      </div>
+
       <!-- TAB: COMBO MANAGEMENT -->
      
-    
+      <!-- MODALS CA TRỰC -->
+      <div v-if="isCheckinModalOpen" class="modal-overlay" @click.self="isCheckinModalOpen = false">
+        <div class="modal-content" style="max-width: 450px; background: white; padding: 25px; border-radius: 12px;">
+          <h2 style="margin-top: 0; color: #10b981; margin-bottom: 20px;">Bắt đầu ca trực</h2>
+          <div class="form-group" style="margin-bottom: 15px;">
+            <label>Tên ca (ví dụ: Ca Sáng, Ca Tối)</label>
+            <input v-model="shiftData.shift_name" class="cinego-input" style="width: 100%; box-sizing: border-box;" />
+          </div>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label>Vị trí quầy</label>
+            <input v-model="shiftData.workstation" class="cinego-input" style="width: 100%; box-sizing: border-box;" />
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button @click="isCheckinModalOpen = false" class="btn-action-text" style="background: #e2e8f0; color: #475569; padding: 8px 16px; border-radius: 6px;">Hủy</button>
+            <button @click="submitCheckin" class="btn-cinego-submit" style="margin: 0; max-width: 150px;">Bắt đầu</button>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="isCheckoutModalOpen" class="modal-overlay" @click.self="isCheckoutModalOpen = false">
+        <div class="modal-content" style="max-width: 450px; background: white; padding: 25px; border-radius: 12px;">
+          <h2 style="margin-top: 0; color: #ef4444; margin-bottom: 20px;">Chốt ca trực</h2>
+          <div class="form-group" style="margin-bottom: 15px;">
+            <label>Tiền mặt thực tế đếm được (VNĐ)</label>
+            <input v-model="shiftData.reported_cash" type="number" class="cinego-input" style="width: 100%; box-sizing: border-box;" />
+          </div>
+          <div class="form-group" style="margin-bottom: 20px;">
+            <label>Tiền chuyển khoản (VNĐ)</label>
+            <input v-model="shiftData.reported_transfer" type="number" class="cinego-input" style="width: 100%; box-sizing: border-box;" />
+          </div>
+          <div style="display: flex; gap: 10px; justify-content: flex-end;">
+            <button @click="isCheckoutModalOpen = false" class="btn-action-text" style="background: #e2e8f0; color: #475569; padding: 8px 16px; border-radius: 6px;">Hủy</button>
+            <button @click="submitCheckout" class="btn-cinego-submit" style="margin: 0; background: #ef4444; max-width: 150px;">Chốt ca</button>
+          </div>
+        </div>
+      </div>
 
     </main>
   </div>
@@ -365,15 +518,80 @@ import RoomManagementView from './RoomManagementView.vue';
 import RoomEditorView from './RoomEditorView.vue';
 import ComboSelection from './ComboSelection.vue'; 
 import VoucherManager from './VoucherManager.vue';
-import ArticleManagementView from './ArticleManagementView.vue';
 import ReviewManagement from './ReviewManagement.vue';
+import ArticleManagementView from './ArticleManagementView.vue';
+import BlogList from "./blog/BlogListView.vue";
+import BlogCategoryList from "./blog/BlogCategoryList.vue";
+import BookingLookupView from "./BookingLookupView.vue";
+import OrderManagementView from "./OrderManagementView.vue";
+import TicketScannerView from "./TicketScannerView.vue";
 
 const authStore = useAuthStore();
 const router = useRouter();
 
+const isCheckinModalOpen = ref(false);
+const isCheckoutModalOpen = ref(false);
+const shiftData = ref({
+  shift_name: '',
+  workstation: '',
+  reported_cash: 0,
+  reported_transfer: 0
+});
+
+const submitCheckin = async () => {
+  if (!shiftData.value.shift_name || !shiftData.value.workstation) {
+    alert('Vui lòng nhập đầy đủ thông tin ca trực!');
+    return;
+  }
+  try {
+    const res = await api.post('/staff/shifts/start', {
+      shift_name: shiftData.value.shift_name,
+      workstation: shiftData.value.workstation
+    });
+    if (res.data.success) {
+      if (authStore.user) authStore.user.work_status = 'on_shift';
+      isCheckinModalOpen.value = false;
+      alert('Đã bắt đầu ca trực thành công!');
+    }
+  } catch (err) {
+    alert(err.response?.data?.message || 'Có lỗi xảy ra khi bắt đầu ca.');
+  }
+};
+
+const submitCheckout = async () => {
+  try {
+    const res = await api.post('/staff/shifts/end', {
+      reported_cash: shiftData.value.reported_cash,
+      reported_transfer: shiftData.value.reported_transfer
+    });
+    if (res.data.success) {
+      if (authStore.user) authStore.user.work_status = 'off_shift';
+      isCheckoutModalOpen.value = false;
+      alert('Đã gửi yêu cầu chốt ca thành công! Vui lòng đợi quản lý duyệt.');
+    }
+  } catch (err) {
+    alert(err.response?.data?.message || 'Có lỗi xảy ra khi chốt ca.');
+  }
+};
+
 const activeTab = ref(localStorage.getItem('admin_active_tab') || 'stats');
+
+const blogMenuOpen = ref(
+  activeTab.value === 'blogs' || activeTab.value === 'blog-categories'
+);
+
+const orderMenuOpen = ref(
+  activeTab.value === 'orders' || activeTab.value === 'lookup' || activeTab.value === 'scan'
+);
+
 watch(activeTab, (newVal) => {
   localStorage.setItem('admin_active_tab', newVal);
+  if (newVal !== 'blogs' && newVal !== 'blog-categories') {
+    blogMenuOpen.value = false;
+  }
+  if (newVal !== 'orders' && newVal !== 'lookup' && newVal !== 'scan') {
+    orderMenuOpen.value = false;
+  }
 });
 const moviesCount = ref(0);
 const showtimesCount = ref(0);
@@ -442,11 +660,14 @@ const getTabTitle = computed(() => {
     rooms: 'Quản Lý Phòng Chiếu & Ghế',
     genres: 'Quản Lý Thể Loại Phim',
     users: 'Quản Lý Tài Khoản & Phân Quyền',
+    orders: 'Quản Lý Đơn Hàng',
     lookup: 'Tra Cứu Đơn Hàng & Hỗ Trợ Khách',
     combos: 'Quản Lý Combo và Đồ ăn',
     vouchers: 'Quản Lý Mã Giảm Giá (Vouchers)',
     reviews: 'Kiểm Duyệt Đánh Giá & Bình Luận',
     articles: 'Quản Lý Bài Viết & Top Phim',
+    blogs: 'Quản Lý Blog',
+    'blog-categories': 'Quản Lý Thể Loại Blog',
     revenue: 'Báo Cáo & Thống Kê Doanh Thu'
   };
   return titles[activeTab.value];
@@ -462,11 +683,14 @@ const getTabDesc = computed(() => {
     rooms: 'Thiết kế trực quan sơ đồ không gian rạp, quản lý các loại ghế (Thường, VIP, Đôi) và lối đi.',
     genres: 'Quản lý danh mục thể loại phim của hệ thống CineGo.',
     users: 'Thêm, sửa, phân quyền (Admin/Staff/User) và khóa/mở khóa tài khoản người dùng.',
+    orders: 'Xem, lọc và tra cứu đơn hàng theo thời gian, phim và loại khách để quản lý bán vé hiệu quả.',
     lookup: 'Tìm đơn theo SĐT/email/mã đơn khi khách quên mã vé, xem ghế & bắp nước đã mua để hỗ trợ.',
     combos: 'Thêm, sửa, xóa, combo và đồ ăn kiểm kê số lượng tồn trong kho',
     vouchers: 'Tạo mã giảm giá, giới hạn số lần dùng, thiết lập điều kiện tối thiểu.',
     reviews: 'Xem toàn bộ bình luận, lọc theo sao/phim/từ khóa, ẩn - ghim - phản hồi - xóa bình luận.',
     articles: 'Quản lý các bài viết Top Phim, cấu hình danh sách phim xếp hạng và đánh giá.',
+    blogs: 'Quản lý nội dung blog, thêm/sửa/xóa bài viết và quản lý trạng thái hiển thị.',
+    'blog-categories': 'Quản lý thể loại blog, thêm/sửa/xóa và quản lý trạng thái hiển thị.',
     revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.'
   };
   return descs[activeTab.value];
@@ -679,6 +903,79 @@ onMounted(() => {
   font-size: 16px;
 }
 
+.nav-dropdown {
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdown-toggle {
+  justify-content: space-between;
+}
+
+.dropdown-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dropdown-arrow {
+  font-size: 12px;
+  transition: transform 0.25s;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.dropdown-content {
+  display: flex;
+  flex-direction: column;
+  margin-left: 20px;
+  margin-top: 6px;
+  gap: 4px;
+}
+
+.sub-nav-link {
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  transition: 0.25s;
+}
+
+.sub-nav-link:hover {
+  background: rgba(216, 45, 139, 0.05);
+  color: var(--accent-pink);
+}
+
+.sub-nav-link.active {
+  background: rgba(216, 45, 139, 0.08);
+  color: var(--accent-pink);
+}
+
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  max-height: 0;
+}
+
+.dropdown-enter-to,
+.dropdown-leave-from {
+  opacity: 1;
+  max-height: 200px;
+}
+
 .sidebar-footer {
   border-top: 1px solid rgba(0,0,0,0.06);
   padding-top: 20px;
@@ -764,6 +1061,26 @@ onMounted(() => {
 .btn-back-client:hover {
   background: rgba(216, 45, 139, 0.05);
   border-color: var(--accent-pink);
+}
+
+.btn-checkin, .btn-checkout {
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-checkin {
+  background: #d1fae5;
+  color: #059669;
+}
+.btn-checkout {
+  background: #fee2e2;
+  color: #dc2626;
 }
 
 /* WIDGETS STATS */
