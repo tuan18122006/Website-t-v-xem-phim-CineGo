@@ -11,8 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
+        //
         Schema::table('vouchers', function (Blueprint $table) {
-            $table->timestamp('starts_at')->nullable()->after('max_discount');
+            $table->integer('points_required')->nullable()->after('discount_value');
         });
     }
 
@@ -22,7 +23,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('vouchers', function (Blueprint $table) {
-            $table->dropColumn('starts_at');
+            $table->dropColumn('points_required');
         });
     }
 };

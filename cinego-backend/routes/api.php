@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
@@ -18,7 +18,9 @@ use App\Http\Controllers\Api\ComboController;
 use App\Http\Controllers\Api\ComboItemController;
 use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\BlogCategoryController;
-
+use App\Http\Controllers\Api\TicketController;
+use App\Http\Controllers\Api\LoyaltyController;
+use App\Http\Controllers\Api\PaymentController;
 
 // Đăng ký / Đăng nhập
 Route::post('/register', [AuthController::class, 'register']);
@@ -53,15 +55,26 @@ Route::get('/rooms', [RoomController::class, 'index']);
 Route::middleware('auth:sanctum')->group(function () {
 
     // Đăng xuất & hồ sơ cho MỌI user đã đăng nhập (khách hàng, staff, admin)
+    Route::get('/client/my-vouchers', [LoyaltyController::class, 'getMyVouchers']);
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/me', [AuthController::class, 'userProfile']);
 
+    Route::get('/me', [AuthController::class, 'userProfile']);    Route::put('/user/profile', [UserController::class, 'updateProfile']);
+    Route::post('/user/change-password', [UserController::class, 'changePassword']);
+    Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
+    
     Route::post('/seat-holds', [SeatHoldController::class, 'hold']);
     Route::post('/seat-holds/release', [SeatHoldController::class, 'release']);
 
     Route::post('/bookings', [BookingController::class, 'store']);
-    Route::get('/bookings/history', [BookingController::class, 'history']);
-    Route::post('/bookings/refund', [\App\Http\Controllers\Api\RefundController::class, 'requestRefund']);
+    // Các route của Phi
+    Route::get('/user/bookings', [BookingController::class, 'history']);
+    Route::post('/vouchers/verify', [VoucherController::class, 'verify']);
+    Route::get('/user/available-combos', [LoyaltyController::class, 'getAvailableCombos']);
+    Route::post('/vouchers/claim', [VoucherController::class, 'claimVoucher']);
+    Route::post('/payments/create', [PaymentController::class, 'createPayment']);
+    
+    // Các route của User
+        Route::post('/bookings/refund', [\App\Http\Controllers\Api\RefundController::class, 'requestRefund']);
     
     Route::post('/movies/{movieId}/reviews', [ReviewController::class, 'store']);
     Route::put('/movies/{movieId}/reviews/{reviewId}', [ReviewController::class, 'update']);
@@ -79,11 +92,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/notifications', [\App\Http\Controllers\Api\NotificationController::class, 'index']);
     Route::post('/notifications/read-all', [\App\Http\Controllers\Api\NotificationController::class, 'markAllAsRead']);
     Route::post('/notifications/{id}/read', [\App\Http\Controllers\Api\NotificationController::class, 'markAsRead']);
+
+    // === CHƯƠNG TRÌNH THÀNH VIÊN & TÍCH ĐIỂM (LOYALTY) ===
+    Route::prefix('loyalty')->group(function () {
+        Route::get('/profile', [LoyaltyController::class, 'getProfileAndHistories']);
+        Route::get('/vouchers', [LoyaltyController::class, 'getRedeemableVouchers']);
+        Route::get('/combos', [LoyaltyController::class, 'getRedeemableCombos']);
+        Route::post('/redeem-voucher/{voucher}', [LoyaltyController::class, 'redeemVoucher']);
+        Route::post('/redeem-combo', [LoyaltyController::class, 'redeemCombo']);
+    });
 });
 
-// =========================================================================
-// 3. ADMIN ROUTES - QUẢN TRỊ VIÊN (Yêu cầu quyền Admin-only)
-// =========================================================================
+// ==================================================================// 3. ADMIN ROUTES - QUẢN TRỊ VIÊN (Yêu cầu quyền Admin-only)
+// ==================================================================
 Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'userProfile']);
@@ -151,6 +172,7 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     Route::delete('/rooms/{id}', [RoomController::class, 'destroy']);
     // Quản lý Combo Items (Chi tiết Combo)
     Route::apiResource('combos', ComboController::class);
+    Route::get('combos/{combo}/items', [ComboItemController::class, 'getItems']);
     Route::post('/combo-items', [ComboItemController::class, 'store']);
     Route::put('/combo-items/{id}', [ComboItemController::class, 'update']);
     Route::delete('/combo-items/{id}', [ComboItemController::class, 'destroy']);
@@ -158,18 +180,23 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     // Quản lý Voucher
     Route::apiResource('vouchers', VoucherController::class);
     Route::get('movies/list', [App\Http\Controllers\Api\MovieController::class, 'listForSelection']);
-
     // Quản lý Blog
     Route::apiResource('blogs', BlogController::class);
     Route::apiResource('blog-categories', BlogCategoryController::class);
 
     // Quản lý Top Phim (Articles)
     Route::apiResource('articles', ArticleController::class);
+
+    Route::prefix('loyalty')->group(function () {
+        Route::get('/users', [LoyaltyController::class, 'adminGetUsers']);
+        Route::get('/users/{id}/histories', [LoyaltyController::class, 'adminGetUserHistories']);
+        Route::post('/users/{id}/adjust-points', [LoyaltyController::class, 'adminAdjustPoints']);
+    });
 });
 
-// =========================================================================
+// ==================================================================
 // 4. STAFF ROUTES - NHÂN VIÊN HỖ TRỢ (staff hoặc admin)
-// =========================================================================
+// ==================================================================
 Route::middleware(['auth:sanctum', 'can:staff-or-admin'])->prefix('staff')->group(function () {
     // Tra cứu đơn hàng / Hỗ trợ khách hàng
     Route::get('/bookings/lookup', [BookingLookupController::class, 'search']);
@@ -180,4 +207,10 @@ Route::middleware(['auth:sanctum', 'can:staff-or-admin'])->prefix('staff')->grou
     Route::post('/shifts/end', [\App\Http\Controllers\Api\ShiftController::class, 'checkOut']);
     Route::get('/shifts/active', [\App\Http\Controllers\Api\ShiftController::class, 'activeShift']);
 });
+Route::post('/vouchers/verify', [VoucherController::class, 'verify']);
+Route::get('/payment/vnpay/return', [PaymentController::class, 'vnpayReturn']);
+Route::get('/tickets/{bookingCode}', [TicketController::class, 'show']);
+// Danh sách combo công khai cho client
+Route::get('/combos', [ComboController::class, 'index']);
+
 

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="cinego-profile-container">
     <div class="cinego-main-header">
       <h2>THÔNG TIN CHUNG</h2>
@@ -7,7 +7,7 @@
     <div class="cinego-profile-body">
       <aside class="cinego-sidebar">
         <h3 class="sidebar-title">TÀI KHOẢN CINEGO</h3>
-        <nav class="cinego-menu">
+                <nav class="cinego-menu">
           <button
             class="cinego-menu-btn"
             :class="{ active: activeTab === 'info' }"
@@ -29,57 +29,50 @@
           >
             PHIM ĐÃ XEM
           </button>
+          <button
+            class="cinego-menu-btn"
+            :class="{ active: activeTab === 'loyalty' }"
+            @click="activeTab = 'loyalty'"
+          >
+            ĐIỂM & ƯU ĐÃI
+          </button>
+          <button
+            class="cinego-menu-btn"
+            :class="{ active: activeTab === 'my_vouchers' }"
+            @click="activeTab = 'my_vouchers'"
+          >
+            VÍ VOUCHER
+          </button>
+          <button
+            class="cinego-menu-btn"
+            :class="{ active: activeTab === 'notifications' }"
+            @click="activeTab = 'notifications'"
+          >
+            THÔNG BÁO
+          </button>
         </nav>
       </aside>
 
       <main class="cinego-content-area">
-        <div class="cinego-member-summary-box">
+                <div class="cinego-member-summary-box">
+          <div class="avatar-block">
+            <div class="avatar-frame">
+              <img :src="profileForm.avatar_url || '/default-avatar.png'" alt="Avatar" class="avatar-img" />
+            </div>
+            <label for="avatar-file" class="btn-cinego-small">Thay đổi</label>
+            <input type="file" id="avatar-file" @change="handleAvatarUpload" accept="image/*" hidden />
+          </div>
+
           <div class="summary-details">
             <p class="welcome-text">
-              Xin chào <strong>{{ profileForm.name }}</strong
-              >,
+              Xin chào <strong>{{ profileForm.name }}</strong>,
             </p>
             <p class="welcome-sub">
-              Với trang này, bạn sẽ quản lý được tất cả thông tin tài khoản của
-              mình.
+              Với trang này, bạn sẽ quản lý được tất cả thông tin tài khoản của mình.
             </p>
 
-            <div class="premium-profile-grid" style="grid-template-columns: 240px 100px; align-items: stretch; margin-bottom: 0;">
-              <!-- THẺ THÀNH VIÊN GRADIENT 3D TILT -->
-              <div @pointerup="isTierModalOpen = true" @mousemove="handleMouseMove" @mouseleave="handleMouseLeave" style="cursor: pointer; perspective: 1000px;" title="Nhấn để xem chi tiết hạng thẻ">
-                <div
-                  ref="cardRef"
-                  class="gilded-member-card"
-                  :class="'tier-bg-' + (loyaltyData.current_tier || 'Bronze').toLowerCase()"
-                >
-                  <div class="gmc-glow"></div>
-                  <div class="gmc-chip-wrap">
-                    <span class="gmc-chip-icon">💳</span>
-                  </div>
-                  <div class="gmc-header">
-                    <span style="font-size: 14px; margin-right: 4px; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));">🛡️</span>
-                    <span class="gmc-brand">CineGo Card</span>
-                  </div>
-                  <div class="gmc-body">
-                    <span class="gmc-title">{{ profileForm.name }}</span>
-                    <span class="gmc-email">{{ profileForm.email }}</span>
-                  </div>
-                  <div class="gmc-footer">
-                    <span class="gmc-tier">🏆 Thành viên {{ tierLabel(loyaltyData.current_tier || 'Bronze') }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- STATS VOUCHER -->
-              <div class="stat-col" style="justify-content: center; align-items: center;">
-                <p class="stat-label">Voucher</p>
-                <p class="stat-value" style="font-size: 18px; color: var(--accent-red);">{{ profileForm.vouchers?.length || 0 }}</p>
-                <button class="btn-stat-view" @click="isVoucherModalOpen = true">Xem</button>
-              </div>
-            </div>
-
             <!-- THANH TIẾN TRÌNH THĂNG HẠNG -->
-            <div v-if="loyaltyData.next_tier" class="loyalty-progress-bar-wrap">
+            <div v-if="loyaltyData.next_tier" class="loyalty-progress-bar-wrap" style="margin-bottom: 20px;">
               <div class="loyalty-progress-info">
                 <span>Hạng hiện tại: <strong>{{ tierLabel(loyaltyData.current_tier) }}</strong></span>
                 <span>Tiếp theo: <strong>{{ tierLabel(loyaltyData.next_tier) }}</strong></span>
@@ -91,13 +84,243 @@
                 Còn thiếu <strong>{{ formatCurrency(loyaltyData.remaining_amount || 0) }}</strong> nữa để thăng hạng {{ tierLabel(loyaltyData.next_tier) }}
               </p>
             </div>
-            <div v-else class="loyalty-progress-bar-wrap">
+            <div v-else class="loyalty-progress-bar-wrap" style="margin-bottom: 20px;">
               <p class="loyalty-max-rank">🏆 Chúc mừng! Bạn đã đạt hạng cao nhất - <strong>Kim Cương (Diamond)</strong></p>
+            </div>
+
+            <div class="member-stats-layout" style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 25px;">
+              <!-- THẺ THÀNH VIÊN GRADIENT 3D TILT -->
+              <div style="flex-shrink: 0; display: flex; align-items: stretch;">
+                <div @pointerup="isTierModalOpen = true" @mousemove="handleMouseMove" @mouseleave="handleMouseLeave" style="cursor: pointer; perspective: 1000px;" title="Nhấn để xem chi tiết hạng thẻ">
+                  <div
+                    ref="cardRef"
+                    class="gilded-member-card"
+                    :class="'tier-bg-' + (loyaltyData.current_tier || 'Bronze').toLowerCase()"
+                    style="height: 100%; display: flex; flex-direction: column;"
+                  >
+                    <div class="gmc-glow"></div>
+                    <div class="gmc-chip-wrap">
+                      <span class="gmc-chip-icon">💳</span>
+                    </div>
+                    <div class="gmc-header">
+                      <span style="font-size: 14px; margin-right: 4px; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));">🛡️</span>
+                      <span class="gmc-brand">CineGo Card</span>
+                    </div>
+                    <div class="gmc-body" style="flex: 1;">
+                      <span class="gmc-title">{{ profileForm.name }}</span>
+                      <span class="gmc-email" style="display: block; margin-bottom: 12px;">{{ profileForm.email }}</span>
+                      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <span class="gmc-points" style="padding: 4px 6px; font-size: 11px;">💰 Chi tiêu: {{ formatPrice(loyaltyData.total_spent) }} đ</span>
+                        <span class="gmc-points" style="padding: 4px 6px; font-size: 11px;">⭐ Điểm: {{ loyaltyData.loyalty_points || 0 }} P</span>
+                      </div>
+                    </div>
+                    <div class="gmc-footer">
+                      <span class="gmc-tier">🏆 Thành viên {{ tierLabel(loyaltyData.current_tier || 'Bronze') }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 3 Box thống kê bên phải -->
+              <div style="flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; align-content: start;">
+                <div class="stat-col" style="height: 100%; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; background: #ffffff;">
+                  <p class="stat-label">Hệ Số Tích Điểm</p>
+                  <p class="stat-value">x{{ loyaltyData.multiplier || 1 }}</p>
+                  <button class="btn-stat-view" @click="activeTab = 'loyalty'" style="align-self: flex-start; margin-top: auto;">Chi tiết</button>
+                </div>
+                <div class="stat-col" style="height: 100%; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; background: #ffffff;">
+                  <p class="stat-label">Voucher Đổi Được</p>
+                  <p class="stat-value">{{ availableVouchersCount }}</p>
+                  <button class="btn-stat-view" @click="activeTab = 'loyalty'" style="align-self: flex-start; margin-top: auto;">Đổi ngay</button>
+                </div>
+                <div class="stat-col" style="height: 100%; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; background: #ffffff;">
+                  <p class="stat-label">Combo Đổi Được</p>
+                  <p class="stat-value">{{ availableCombosCount }}</p>
+                  <button class="btn-stat-view" @click="activeTab = 'loyalty'" style="align-self: flex-start; margin-top: auto;">Đổi ngay</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
         <div class="cinego-tab-dynamic-content">
+          <!-- 🎟️ GIAO DIỆN VÍ VOUCHER CỦA TÔI -->
+          <div v-if="activeTab === 'my_vouchers'" class="cinego-section-block">
+            <div class="cinego-section-title"
+              style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <h3>Ví Voucher Của Tôi</h3>
+              <div class="history-filter-toggle">
+                <button :class="{ active: voucherFilter === 'unused' }" @click="voucherFilter = 'unused'">
+                  Sẵn sàng dùng ({{ unusedVoucherCount }})
+                </button>
+                <button :class="{ active: voucherFilter === 'used' }" @click="voucherFilter = 'used'">
+                  Đã dùng / Hết hạn
+                </button>
+                <button :class="{ active: voucherFilter === 'all' }" @click="voucherFilter = 'all'">
+                  Tất cả
+                </button>
+              </div>
+            </div>
+
+            <!-- 1. Trạng thái đang tải -->
+            <div v-if="loadingMyVouchers" class="cinego-loading"
+              style="padding: 30px; text-align: center; color: #94a3b8;">
+              Đang tải danh sách voucher trong ví...
+            </div>
+
+            <!-- 2. Trạng thái có dữ liệu -->
+            <div v-else-if="filteredMyVouchers.length > 0" class="my-vouchers-grid"
+              style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-top: 15px;">
+              <div v-for="item in filteredMyVouchers" :key="item.id" :style="{
+                border: '1px solid #e2e8f0',
+                padding: '15px',
+                borderRadius: '8px',
+                background: (item.is_used || item.is_expired) ? '#f1f5f9' : '#fff',
+                opacity: (item.is_used || item.is_expired) ? '0.7' : '1',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                position: 'relative',
+                borderLeft: (item.is_used || item.is_expired) ? '5px solid #94a3b8' : '5px solid var(--accent-red)'
+              }">
+                <div>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                    <h4 style="color: var(--accent-red); font-weight: 800; font-size: 16px; margin: 0;">{{ item.code }}
+                    </h4>
+                    <span v-if="item.is_used"
+                      style="background: #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">Đã
+                      dùng</span>
+                    <span v-else-if="item.is_expired"
+                      style="background: #fef3c7; color: #d97706; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">Hết
+                      hạn</span>
+                  </div>
+
+                  <p class="voucher-desc" style="font-size: 13px; color: #64748b; margin-top: 4px;">
+                    {{ item.description || (item.type === 'combo' ? 'Ưu đãi Bắp Nước' : 'Voucher giảm giá vé') }}
+                  </p>
+                  <p style="font-size: 12px; color: #64748b; margin-bottom: 8px;" v-if="item.min_order_value > 0">
+                    Đơn tối thiểu: {{ formatPrice(item.min_order_value) }}đ
+                  </p>
+                  <p style="font-size: 11.5px; color: #94a3b8; margin: 0;">
+                    HSD: {{ item.end_date ? formatDate(item.end_date) : 'Không giới hạn' }}
+                  </p>
+                </div>
+
+                <div style="margin-top: 15px; text-align: right;">
+                  <router-link v-if="!item.is_used && !item.is_expired" to="/quick-booking" class="btn-cinego-small"
+                    style="text-decoration: none; display: inline-block;">
+                    DÙNG NGAY
+                  </router-link>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. Trạng thái không có voucher nào -->
+            <div v-else class="text-center empty-msg" style="padding: 40px; color: #94a3b8;">
+              Chưa có voucher nào trong danh mục này.
+            </div>
+          </div>
+
+          <div v-if="activeTab === 'loyalty'" class="cinego-section-block">
+            <div class="cinego-section-title">
+              <h3>Đổi điểm tích lũy nhận ưu đãi</h3>
+              <div class="history-filter-toggle">
+                <button :class="{ active: loyaltySubTab === 'vouchers' }" @click="loyaltySubTab = 'vouchers'">
+                  🎟️ Đổi Voucher
+                </button>
+                <button :class="{ active: loyaltySubTab === 'combos' }" @click="loyaltySubTab = 'combos'">
+                  🍿 Đổi Combo
+                </button>
+                <button :class="{ active: loyaltySubTab === 'history' }" @click="loyaltySubTab = 'history'">
+                  📜 Lịch Sử Điểm
+                </button>
+              </div>
+            </div>
+
+            <!-- 1. TAB ĐỔI VOUCHER -->
+            <div v-if="loyaltySubTab === 'vouchers'">
+              <div v-if="redeemableVouchers.length > 0" class="loyalty-grid"
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                <div v-for="item in redeemableVouchers" :key="item.id"
+                  style="border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; background: #f8fafc; display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <h4 style="color: var(--accent-red); font-weight: 800; font-size: 16px; margin: 0 0 5px 0;">{{
+                      item.code }}</h4>
+                    <p style="font-size: 13px; color: #475569; margin-bottom: 10px;">
+                      {{ item.description || 'Voucher giảm giá vé xem phim' }}
+                    </p>
+                    <span
+                      style="background: #fef3c7; color: #d97706; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 12px;">
+                      Yêu cầu: {{ item.points_required }} điểm
+                    </span>
+                  </div>
+                  <button @click="redeemVoucher(item.id)"
+                    :disabled="loyaltyData.loyalty_points < item.points_required || btnLoading" class="btn-cinego-small"
+                    style="margin-top: 12px; width: 100%; text-align: center; justify-content: center;">
+                    {{ loyaltyData.loyalty_points < item.points_required ? 'Chưa đủ điểm' : 'ĐỔI NGAY' }} </button>
+                </div>
+              </div>
+              <div v-else class="text-center empty-msg" style="padding: 30px; color: #94a3b8;">
+                Hiện chưa có Voucher nào hỗ trợ đổi bằng điểm.
+              </div>
+            </div>
+
+            <!-- 2. TAB ĐỔI COMBO -->
+            <div v-if="loyaltySubTab === 'combos'">
+              <div v-if="redeemableCombos.length > 0" class="loyalty-grid"
+                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                <div v-for="item in redeemableCombos" :key="item.id"
+                  style="border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; background: #f8fafc; display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <h4 style="color: #1e293b; font-weight: 800; font-size: 16px; margin: 0 0 5px 0;">{{ item.name }}
+                    </h4>
+                    <p style="font-size: 13px; color: #475569; margin-bottom: 10px;">{{ item.description }}</p>
+                    <span
+                      style="background: #fef3c7; color: #d97706; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 12px;">
+                      Yêu cầu: {{ item.points_required }} điểm
+                    </span>
+                  </div>
+                  <button @click="redeemCombo(item.id)"
+                    :disabled="loyaltyData.loyalty_points < item.points_required || btnLoading" class="btn-cinego-small"
+                    style="margin-top: 12px; width: 100%; text-align: center; justify-content: center;">
+                    {{ btnLoading ? 'Đang xử lý...' : (loyaltyData.loyalty_points < item.points_required
+                      ? 'Chưa đủ điểm' : 'ĐỔI NGAY') }} </button>
+                </div>
+              </div>
+              <div v-else class="text-center empty-msg" style="padding: 30px; color: #94a3b8;">
+                Hiện chưa có Combo bắp nước nào hỗ trợ đổi bằng điểm.
+              </div>
+            </div>
+
+            <!-- 3. TAB LỊCH SỬ ĐIỂM -->
+            <div v-if="loyaltySubTab === 'history'" style="margin-top: 15px;">
+              <table class="cinego-table">
+                <thead>
+                  <tr>
+                    <th>Thời gian</th>
+                    <th>Loại giao dịch</th>
+                    <th>Nội dung</th>
+                    <th style="text-align: right;">Điểm</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="log in pointHistories" :key="log.id">
+                    <td>{{ formatDate(log.created_at) }}</td>
+                    <td style="font-weight: bold; color: #1e293b;">{{ formatLogType(log.type) }}</td>
+                    <td>{{ log.description }}</td>
+                    <td style="text-align: right; font-weight: 800;"
+                      :style="{ color: log.points > 0 ? '#10b981' : '#ef4444' }">
+                      {{ log.points > 0 ? '+' : '' }}{{ log.points }} P
+                    </td>
+                  </tr>
+                  <tr v-if="pointHistories.length === 0">
+                    <td colspan="4" class="text-center empty-msg">Chưa có lịch sử tích/trừ điểm nào.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
           <div v-if="activeTab === 'notifications'" class="cinego-section-block">
             <div class="cinego-section-title">
               <h3>Thông báo của tôi</h3>
@@ -933,6 +1156,29 @@ const btnLoading = ref(false);
 const loadingHistory = ref(false);
 const isQrModalOpen = ref(false);
 const isDetailModalOpen = ref(false);
+const loadingLoyalty = ref(false);
+const loadingMyVouchers = ref(false);
+const redeemableVouchers = ref([]);
+const redeemableCombos = ref([]);
+const myVouchers = ref([]);
+
+const availableVouchersCount = computed(() => redeemableVouchers.value.length);
+const availableCombosCount = computed(() => redeemableCombos.value.length);
+
+const filteredMyVouchers = computed(() => {
+  if (voucherFilter.value === 'unused') {
+    return myVouchers.value.filter(v => v.pivot.status === 'unused');
+  } else if (voucherFilter.value === 'used') {
+    return myVouchers.value.filter(v => v.pivot.status === 'used' || v.pivot.status === 'expired');
+  }
+  return myVouchers.value;
+});
+
+const unusedVoucherCount = computed(() => {
+  return myVouchers.value.filter(v => v.pivot.status === 'unused').length;
+});
+const loyaltySubTab = ref('vouchers');
+const voucherFilter = ref('unused');
 const isTierModalOpen = ref(false);
 const isVoucherModalOpen = ref(false);
 const isRefundModalOpen = ref(false);
@@ -1193,6 +1439,99 @@ const formatCurrency = (val) => {
   return parseInt(val).toLocaleString('vi-VN') + 'đ';
 };
 
+const fetchLoyaltyItems = async () => {
+  try {
+    loadingLoyalty.value = true;
+    const [voucherRes, comboRes] = await Promise.all([
+      api.get('/loyalty/vouchers'),
+      api.get('/loyalty/combos')
+    ]);
+    if (voucherRes.data.success) {
+      redeemableVouchers.value = voucherRes.data.data;
+    }
+    if (comboRes.data.success) {
+      redeemableCombos.value = comboRes.data.data;
+    }
+  } catch (error) {
+    console.error("Lỗi lấy ưu đãi:", error);
+  } finally {
+    loadingLoyalty.value = false;
+  }
+};
+
+const fetchMyVouchers = async () => {
+  try {
+    loadingMyVouchers.value = true;
+    const res = await api.get('/client/my-vouchers');
+    if (res.data.success) {
+      myVouchers.value = res.data.data;
+    }
+  } catch (error) {
+    console.error("Lỗi lấy ví voucher:", error);
+  } finally {
+    loadingMyVouchers.value = false;
+  }
+};
+
+const redeemVoucher = async (voucherId) => {
+  const result = await Swal.fire({
+    title: 'Xác nhận đổi ưu đãi?',
+    text: "Số điểm tương ứng sẽ bị trừ đi.",
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#e71a0f',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Đồng ý',
+    cancelButtonText: 'Hủy'
+  });
+
+  if (result.isConfirmed) {
+    try {
+      const res = await api.post(`/loyalty/redeem-voucher/${voucherId}`);
+      if (res.data.success) {
+        toast('Đổi voucher thành công!', 'success');
+        fetchLoyaltyProgress();
+  fetchLoyaltyItems();
+  fetchMyVouchers();
+        fetchMyVouchers();
+      } else {
+        toast(res.data.message || 'Đổi voucher thất bại', 'error');
+      }
+    } catch (error) {
+      toast(error.response?.data?.message || 'Lỗi hệ thống khi đổi voucher', 'error');
+    }
+  }
+};
+
+const redeemCombo = async (comboId) => {
+  const result = await Swal.fire({
+    title: 'Xác nhận đổi combo?',
+    text: "Số điểm tương ứng sẽ bị trừ đi.",
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#e71a0f',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Đồng ý',
+    cancelButtonText: 'Hủy'
+  });
+
+  if (result.isConfirmed) {
+    try {
+      const res = await api.post(`/loyalty/redeem-combo`, { combo_id: comboId });
+      if (res.data.success) {
+        toast('Đổi combo thành công!', 'success');
+        fetchLoyaltyProgress();
+  fetchLoyaltyItems();
+  fetchMyVouchers();
+      } else {
+        toast(res.data.message || 'Đổi combo thất bại', 'error');
+      }
+    } catch (error) {
+      toast(error.response?.data?.message || 'Lỗi hệ thống khi đổi combo', 'error');
+    }
+  }
+};
+
 const fetchLoyaltyProgress = async () => {
   try {
     const res = await api.get('/loyalty/progress');
@@ -1232,6 +1571,8 @@ onMounted(() => {
   fetchUserData();
   fetchBookingHistory();
   fetchLoyaltyProgress();
+  fetchLoyaltyItems();
+  fetchMyVouchers();
   fetchNotifications();
 });
 </script>
@@ -2358,3 +2699,5 @@ onMounted(() => {
   color: #94a3b8;
 }
 </style>
+
+

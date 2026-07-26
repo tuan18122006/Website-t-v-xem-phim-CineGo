@@ -54,7 +54,107 @@
                                     <button class="btn-action edit" @click="openEditModal(combo)">✏️ Sửa</button>
                                     <button class="btn-action delete" @click="deleteCombo(combo.id)">🗑️ Xóa</button>
 
-                                    <!-- Thành phần button removed -->
+
+                                    <div v-if="isItemsModalOpen" class="modal-overlay-cine">
+
+                                        <div class="glass-panel modal-content-cine">
+
+                                            <div class="modal-header">
+                                                <h3>
+                                                    Quản lý thành phần
+                                                    {{ currentCombo.name }}
+                                                </h3>
+
+                                                <button class="close-btn" @click="isItemsModalOpen = false">
+                                                    ×
+                                                </button>
+                                            </div>
+
+                                            <div class="modal-body">
+
+                                                <div class="form-group">
+                                                    <label>Đồ ăn / Nước</label>
+
+                                                    <select v-model="itemForm.item_id" class="form-control">
+
+                                                        <option value="">-- Chọn sản phẩm --</option>
+
+                                                        <option v-for="item in availableItems" :key="item.id"
+                                                            :value="item.id">
+                                                            {{ item.name }}
+                                                        </option>
+
+                                                    </select>
+                                                    <span v-if="itemFormError && itemFormError.item_id"
+                                                        class="error-text">
+                                                        {{ itemFormError.item_id[0] }}
+                                                    </span>
+                                                </div>
+
+                                                <div class="form-group">
+                                                    <label>Số lượng</label>
+                                                    <input type="number" min="1" class="form-control"
+                                                        v-model.number="itemForm.quantity" @keydown="filterNegative">
+                                                    <span v-if="itemFormError && itemFormError.quantity"
+                                                        class="error-text">
+                                                        {{ itemFormError.quantity[0] }}
+                                                    </span>
+                                                </div>
+
+                                                <button class="btn-primary-cine" @click="addComboItem">
+                                                    Thêm thành phần
+                                                </button>
+
+
+                                                <hr>
+
+                                                <table class="movies-table">
+
+                                                    <thead>
+
+                                                        <tr>
+
+                                                            <th>Tên</th>
+
+                                                            <th>Số lượng</th>
+
+                                                            <th></th>
+
+                                                        </tr>
+
+                                                    </thead>
+
+                                                    <tbody>
+
+                                                        <tr v-for="item in comboItems" :key="item.id">
+
+                                                            <td>{{ item.item.name }}</td>
+
+                                                            <td>{{ item.quantity }}</td>
+
+                                                            <td>
+
+                                                                <button class="btn-action delete"
+                                                                    @click="deleteComboItem(item.id)">
+                                                                    Xóa
+                                                                </button>
+
+                                                            </td>
+
+                                                        </tr>
+
+                                                    </tbody>
+
+                                                </table>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+                                    <button v-if="combo.type === 'combo'" class="btn-action setting"
+                                        @click="openItemsModal(combo)">⚙️ Thành phần
+                                    </button>
                                 </div>
                             </td>
                         </tr>
@@ -106,19 +206,64 @@
                     </div>
                     <div class="form-group">
                         <label>Giá tiền (VNĐ)</label>
-                        <input :value="formatNumber(comboForm.price)" @input="comboForm.price = parseNumber($event.target.value)" type="text" class="form-control" placeholder="0">
+                        <input v-model="comboForm.price" type="number" class="form-control" placeholder="0">
                         <span v-if="errors.price" class="error-text">{{ errors.price[0] }}</span>
                     </div>
 
                     <div class="form-group">
                         <label>Số lượng kho</label>
-                        <input :value="formatNumber(comboForm.stock)" @input="comboForm.stock = parseNumber($event.target.value)" type="text" class="form-control" placeholder="0">
+                        <input v-model="comboForm.stock" type="number" class="form-control" placeholder="0">
                         <span v-if="errors.stock" class="error-text">{{ errors.stock[0] }}</span>
                     </div>
 
+                    <div class="grid-inputs">
+                        <div class="form-group">
+                            <label>Điểm đổi (Points)</label>
+                            <input v-model.number="comboForm.points_required" type="number" min="0" class="form-control"
+                                placeholder="0 = Không cho đổi">
+                            <span v-if="errors.points_required" class="error-text">{{ errors.points_required[0]
+                                }}</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Hạn dùng (Số ngày)</label>
+                            <input v-model.number="comboForm.valid_days" type="number" min="1" class="form-control"
+                                placeholder="Không cần nhập nếu không phải để đổi">
+                            <span v-if="errors.valid_days" class="error-text">{{ errors.valid_days[0] }}</span>
+                        </div>
+                    </div>
+
+                    <div class="grid-inputs">
+                        <div class="form-group">
+                            <label>Hạn dùng (Số phút)</label>
+                            <input v-model.number="comboForm.valid_minutes" type="number" min="1" class="form-control"
+                                placeholder="VD: 15, 30, 60...">
+                            <small style="color: #64748b; font-size: 11px;">Dành cho Flash Sale ví dụ (15 phút, 60
+                                phút...). </small>
+                            <span v-if="errors.valid_minutes" class="error-text">{{ errors.valid_minutes[0] }}</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Mục đích sử dụng / Bán <span style="color:red">*</span></label>
+                            <select v-model="comboForm.purpose" class="form-control">
+                                <option value="sell_only">Bán(Trang Checkout)</option>
+                                <option value="redeem_only">Cho Đổi bằng điểm (Trang Tích điểm)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Giới hạn dùng / 1 tài khoản</label>
+                            <input v-model.number="comboForm.limit_per_user" type="number" min="1" class="form-control"
+                                placeholder="VD: 1 (Để trống nếu không GH)">
+                            <small style="color: #64748b; font-size: 11px;">Nhập 1 nếu mỗi khách chỉ được đổi/dùng sản
+                                phẩm
+                                này 1 lần.</small>
+                            <span v-if="errors.limit_per_user" class="error-text">{{ errors.limit_per_user[0] }}</span>
+                        </div>
+                    </div>
                     <div class="form-group">
                         <label>Hình ảnh (File)</label>
-                        <input type="file" accept="image/*" ref="fileInput" @change="handleFileChange" class="form-control" />
+                        <input type="file" ref="fileInput" @change="handleFileChange" class="form-control" />
 
                         <img v-if="previewUrl" :src="previewUrl" alt="Preview"
                             style="max-width: 150px; margin-top: 10px; border-radius: 8px;" />
@@ -142,7 +287,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import api from '../../api/axios';
-import { toast, confirmDialog } from '../../utils/alert';
 
 const combos = ref([]);
 const isCreateModalOpen = ref(false);
@@ -156,7 +300,12 @@ const comboForm = ref({
     price: '',
     stock: 0,
     image: null,
-    description: ''
+    description: '',
+    points_required: 0,
+    valid_days: null,
+    valid_minutes: null,
+    limit_per_user: null,
+    purpose: 'sell_only',
 });
 
 const errors = ref({});
@@ -165,22 +314,10 @@ const formatPrice = (val) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
 };
 
-const formatNumber = (val) => {
-    if (val === null || val === undefined || val === '') return '';
-    let num = String(val).replace(/\D/g, '');
-    return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-};
-
-const parseNumber = (val) => {
-    let num = String(val).replace(/\D/g, '');
-    return num ? parseInt(num, 10) : '';
-};
-
 const loading = ref(false);
 
 const fetchCombos = async () => {
     loading.value = true;
-
     try {
         const response = await api.get('admin/combos');
         combos.value = response.data.data;
@@ -193,22 +330,22 @@ const fetchCombos = async () => {
 
 const openCreateModal = () => {
     isEditing.value = false;
-
     comboForm.value = {
         name: '',
         price: '',
         type: '',
         stock: 0,
         description: '',
-        image: null
+        points_required: 0,
+        valid_days: null,
+        limit_per_user: null,
+        image: null,
+        is_sellable: true,
+        is_redeemable: false,
+        purpose: 'sell_only'
     };
-
     previewUrl.value = null;
-
-    if (fileInput.value) {
-        fileInput.value.value = '';
-    }
-
+    if (fileInput.value) fileInput.value.value = '';
     errors.value = {};
     isCreateModalOpen.value = true;
 };
@@ -217,15 +354,27 @@ const openCreateModal = () => {
 const openEditModal = (combo) => {
     isEditing.value = true;
 
-    comboForm.value = { ...combo };
-    
-    // Bỏ .00 đằng sau
-    comboForm.value.price = combo.price ? Number(combo.price) : 0;
-    comboForm.value.stock = combo.stock ? Number(combo.stock) : 0;
+    let currentPurpose = 'sell_only';
+    if (combo.is_sellable && combo.is_redeemable) {
+        currentPurpose = 'both';
+    } else if (combo.is_redeemable && !combo.is_sellable) {
+        currentPurpose = 'redeem_only';
+    } else if (combo.is_sellable && !combo.is_redeemable) {
+        currentPurpose = 'sell_only';
+    }
 
+    comboForm.value = {
+        ...combo,
+        points_required: combo.points_required ?? 0,
+        valid_days: combo.valid_days ?? null,
+        valid_minutes: combo.valid_minutes ?? null,
+        limit_per_user: combo.limit_per_user ?? null,
+        purpose: currentPurpose,
+        is_sellable: !!combo.is_sellable,
+        is_redeemable: !!combo.is_redeemable
+    };
 
     previewUrl.value = combo.image_url ? combo.image_url : null;
-
     errors.value = {};
     isCreateModalOpen.value = true;
 };
@@ -234,37 +383,57 @@ const saveCombo = async () => {
     errors.value = {};
     let formData = new FormData();
 
+    // Tính toán lại trạng thái bán / đổi dựa trên select box `purpose`
+    const isSellable = comboForm.value.purpose === 'sell_only' || comboForm.value.purpose === 'both';
+    const isRedeemable = comboForm.value.purpose === 'redeem_only' || comboForm.value.purpose === 'both';
+
     formData.append('name', comboForm.value.name);
     formData.append('description', comboForm.value.description || '');
     formData.append('type', comboForm.value.type);
     formData.append('price', comboForm.value.price);
     formData.append('stock', comboForm.value.stock);
 
+    // Gửi đúng 1 hay 0 lên Laravel
+    formData.append('is_sellable', isSellable ? 1 : 0);
+    formData.append('is_redeemable', isRedeemable ? 1 : 0);
+
+    if (comboForm.value.points_required !== null && comboForm.value.points_required !== '') {
+        formData.append('points_required', comboForm.value.points_required);
+    }
+    if (comboForm.value.valid_days) {
+        formData.append('valid_days', comboForm.value.valid_days);
+    }
+    if (comboForm.value.valid_minutes) {
+        formData.append('valid_minutes', comboForm.value.valid_minutes);
+    }
+    if (comboForm.value.limit_per_user) {
+        formData.append('limit_per_user', comboForm.value.limit_per_user);
+    }
+
     if (fileInput.value && fileInput.value.files[0]) {
         formData.append('image', fileInput.value.files[0]);
     }
 
     try {
-        let response;
         if (isEditing.value) {
-            formData.append('_method', 'PUT');
-            response = await api.post(`admin/combos/${comboForm.value.id}`, formData, {
+            formData.append('_method', 'PUT'); // Cần thiết đối với Multipart form trong Laravel
+            await api.post(`admin/combos/${comboForm.value.id}`, formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
         } else {
-            response = await api.post('admin/combos', formData, {
+            await api.post('admin/combos', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
         }
 
         await fetchCombos();
         isCreateModalOpen.value = false;
-        toast(isEditing.value ? "Cập nhật thành công!" : "Thêm mới thành công!");
+        alert(isEditing.value ? "Cập nhật thành công!" : "Thêm mới thành công!");
     } catch (error) {
         if (error.response?.status === 422) {
             errors.value = error.response.data.errors;
         } else {
-            toast('Có lỗi xảy ra, vui lòng thử lại!', 'error');
+            alert("Có lỗi xảy ra, vui lòng thử lại!");
         }
     }
 };
@@ -291,24 +460,17 @@ const handleImageUpload = (e) => {
 }
 
 const deleteCombo = async (id) => {
-    const isConfirm = await confirmDialog(
-        'Bạn có chắc chắn?',
-        'Bạn muốn xóa combo này? Hành động này không thể hoàn tác.',
-        'warning',
-        'Xóa',
-        'Hủy'
-    );
-    if (!isConfirm) return;
+    if (!confirm('Bạn có chắc muốn xóa combo này?')) return;
 
     try {
         await api.delete(`admin/combos/${id}`);
-        toast("Xóa thành công!");
+        alert("Xóa thành công!");
         fetchCombos();
     } catch (error) {
         if (error.response?.status === 409) {
-            toast(error.response.data.message, 'error');
+            alert(error.response.data.message);
         } else {
-            toast("Có lỗi xảy ra khi xóa.", 'error');
+            alert("Có lỗi xảy ra khi xóa.");
             console.error(error);
         }
     }
@@ -384,7 +546,7 @@ const addComboItem = async () => {
 
         if (Object.keys(localErrors).length > 0) {
             itemFormError.value = localErrors;
-            return; 
+            return;
         }
 
         await api.post("admin/combo-items", {
