@@ -2,8 +2,8 @@
 
 namespace App\Mail;
 
+use App\Models\Booking;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -20,7 +20,20 @@ class BookingSuccessMail extends Mailable
      */
     public function __construct($booking)
     {
-        $this->booking = $booking;
+        // 🔥 LOAD BỔ SUNG QUAN HỆ Combo/Quà tặng miễn phí mà người dùng đã dùng
+        if ($booking instanceof Booking) {
+            $this->booking = $booking->load([
+                'user',
+                'showtime.movie',
+                'showtime.room',
+                'bookingDetails.seat',
+                'bookingCombos.combo',
+                'voucher',
+                'userCombos', // 👈 Eager load quà tặng/combo đổi điểm ở đây
+            ]);
+        } else {
+            $this->booking = $booking;
+        }
     }
 
     /**

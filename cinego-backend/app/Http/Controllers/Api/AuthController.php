@@ -9,9 +9,18 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
+use App\Services\LoyaltyService;
 
 class AuthController extends Controller
 {
+
+    protected $loyaltyService;
+
+    public function __construct(LoyaltyService $loyaltyService)
+    {
+        $this->loyaltyService = $loyaltyService;
+    }
+
     public function register(Request $request)
     {
         $request->validate([
@@ -35,24 +44,42 @@ class AuthController extends Controller
             'password.confirmed' => 'Xác nhận mật khẩu không khớp.',
         ]);
 
+        // 1. Tạo user mới
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'birthday' => $request->birthday,
             'password' => Hash::make($request->password),
-            'role' => 'customer', // Mặc định là khách hàng
+            'role' => 'customer',
+            'loyalty_points' => 0, // Đảm bảo khởi tạo 0 điểm
+            'total_spent' => 0,
+            'membership_tier' => 'Bronze',
         ]);
 
+        // 2. Tự động cộng 20 điểm chào mừng
+        try {
+            $this->loyaltyService->addPoints(
+                $user,
+                20,
+                'Cộng 20 điểm thưởng tạo tài khoản mới CineGo'
+            );
+        } catch (\Exception $e) {
+            \Log::error('Lỗi tặng điểm đăng ký: ' . $e->getMessage());
+        }
+
+        // 3. Tạo Token
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        // 4. BẮT BUỘC dùng fresh() để lấy dữ liệu mới nhất (đã cộng 20 điểm) trả về cho Frontend
+        $updatedUser = $user->fresh();
 
         return response()->json([
             'token' => $token,
-            'user' => $user,
-            'message' => 'Đăng ký tài khoản thành công!'
+            'user' => $updatedUser,
+            'message' => 'Đăng ký tài khoản thành công! Bạn nhận được 20 điểm CinePoint chào mừng.'
         ], 201);
     }
-
     public function login(Request $request)
     {
         $request->validate([

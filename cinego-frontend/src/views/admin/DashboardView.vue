@@ -123,6 +123,11 @@
           <span>Quản Lý Mã Giảm Giá</span>
         </button>
 
+        <button class="nav-link" :class="{ active: activeTab === 'loyalty' }" @click="activeTab = 'loyalty'">
+          <span class="nav-icon">🌟</span>
+          <span>Loyalty</span>
+        </button>
+
         <button class="nav-link" :class="{ active: activeTab === 'reviews' }" @click="activeTab = 'reviews'">
           <span class="nav-icon">⭐</span>
           <span>Quản Lý Đánh Giá</span>
@@ -461,7 +466,12 @@
         <BlogCategoryList />
       </div>
 
-      <!-- TAB: COMBO MANAGEMENT -->
+              <!-- TAB: LOYALTY -->
+        <div v-if="activeTab === 'loyalty'" class="dashboard-tab-content" style="background: white; border-radius: 12px; min-height: 500px;">
+          <UserLoyaltyManager />
+        </div>
+
+        <!-- TAB: COMBO MANAGEMENT -->
      
       <!-- MODALS CA TRỰC -->
       <div v-if="isCheckinModalOpen" class="modal-overlay" @click.self="isCheckinModalOpen = false">
@@ -525,6 +535,7 @@ import BlogCategoryList from "./blog/BlogCategoryList.vue";
 import BookingLookupView from "./BookingLookupView.vue";
 import OrderManagementView from "./OrderManagementView.vue";
 import TicketScannerView from "./TicketScannerView.vue";
+import UserLoyaltyManager from './UserLoyaltyManager.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -691,7 +702,8 @@ const getTabDesc = computed(() => {
     articles: 'Quản lý các bài viết Top Phim, cấu hình danh sách phim xếp hạng và đánh giá.',
     blogs: 'Quản lý nội dung blog, thêm/sửa/xóa bài viết và quản lý trạng thái hiển thị.',
     'blog-categories': 'Quản lý thể loại blog, thêm/sửa/xóa và quản lý trạng thái hiển thị.',
-    revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.'
+    revenue: 'Lịch sử giao dịch chi tiết các hóa đơn đặt vé qua ví điện tử của người dùng.',
+      loyalty: 'Quản lý tích điểm của khách hàng'
   };
   return descs[activeTab.value];
 });

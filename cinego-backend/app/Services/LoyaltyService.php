@@ -3,192 +3,148 @@
 namespace App\Services;
 
 use App\Models\User;
-use App\Models\Voucher;
-use App\Notifications\TierUpgradeNotification;
-use Illuminate\Support\Str;
+use App\Models\PointHistory;
+use Illuminate\Support\Facades\DB;
 
 class LoyaltyService
 {
-    /**
-     * Bảng mốc thăng hạng dựa trên total_spent (VNĐ).
-     * Thứ tự: từ hạng cao nhất xuống thấp nhất.
-     */
-    const TIERS = [
+    public const TIERS = [
+        'Bronze' => 0,
+        'Silver' => 2000000,
+        'Gold' => 5000000,
         'Diamond' => 10000000,
-        'Gold'    => 3000000,
-        'Silver'  => 1000000,
-        'Bronze'  => 0,
     ];
 
-    /**
-     * Tỷ lệ quy đổi: 1.000 VNĐ = 1 điểm
-     */
-    const POINTS_PER_VND = 1000;
-
-    /**
-     * Cộng điểm và tổng chi tiêu sau khi thanh toán thành công.
-     * Tự động kiểm tra và thăng hạng nếu đạt mốc.
-     */
-    public static function rewardForBooking(User $user, float $totalAmount): array
+    public function processBookingPoints(User $user, float $spentAmount, $booking)
     {
-        $pointsEarned = (int) floor($totalAmount / self::POINTS_PER_VND);
+        return DB::transaction(function () use ($user, $spentAmount, $booking) {
+            // 1. Cộng tổng tiền chi tiêu
+            $user->total_spent = ($user->total_spent ?? 0) + $spentAmount;
 
-        $user->increment('loyalty_points', $pointsEarned);
-        $user->increment('total_spent', $totalAmount);
+            // 2. Cập nhật hạng thẻ dựa trên tổng chi tiêu tích lũy
+            $this->updateMembershipTier($user);
 
-        // Refresh lại model sau khi increment
-        $user->refresh();
+            // 3. Tính điểm thưởng dựa trên hệ số của User (mặc định 1 nếu null)
+            $multiplier = $user->point_multiplier ?? 1;
+            $earnedPoints = floor(($spentAmount / 10000) * $multiplier);
 
-        $result = [
-            'points_earned' => $pointsEarned,
-            'new_total_points' => $user->loyalty_points,
-            'new_total_spent' => $user->total_spent,
-            'tier_upgraded' => false,
-            'old_tier' => $user->membership_tier,
-            'new_tier' => $user->membership_tier,
-        ];
+            // 4. Cộng CinePoints
+            if ($earnedPoints > 0) {
+                $user->cine_points = ($user->cine_points ?? 0) + $earnedPoints;
+                $user->save();
 
-        // Kiểm tra thăng hạng
-        $newTier = self::calculateTier($user->total_spent);
-        if ($newTier !== $user->membership_tier) {
-            $result['tier_upgraded'] = true;
-            $result['new_tier'] = $newTier;
-            $user->membership_tier = $newTier;
-            $user->save();
+                // Ghi log lịch sử điểm
+                $user->pointHistories()->create([
+                    'points'         => $earnedPoints,
+                    'type'           => 'booking_earning',
+                    'description'    => "Tích điểm từ đơn đặt vé #{$booking->booking_code}",
+                    'reference_type' => get_class($booking),
+                    'reference_id'   => $booking->id,
+                ]);
+            }
 
-            self::handleTierUpgrade($user, $newTier);
-        }
-
-        return $result;
+            return $earnedPoints;
+        });
     }
 
-    /**
-     * Tính hạng thành viên dựa trên tổng chi tiêu.
-     */
-    private static function handleTierUpgrade(User $user, string $newTier)
+    public function updateMembershipTier(User $user)
     {
-        $message = "Chúc mừng! Bạn đã thăng hạng $newTier.";
-        $discountValue = 0;
+        $totalSpent = $user->total_spent ?? 0;
+        $tier = 'Bronze';
         
-        if ($newTier === 'Silver') {
-            $discountValue = 10;
-            $message .= " Bạn được tặng 1 Voucher giảm giá 10%.";
-        } elseif ($newTier === 'Gold') {
-            $discountValue = 20;
-            $message .= " Bạn được tặng 1 Voucher giảm giá 20%.";
-        } elseif ($newTier === 'Diamond') {
-            $discountValue = 30;
-            $message .= " Bạn được tặng 1 Voucher giảm giá 30%.";
-        }
-
-        if ($discountValue > 0) {
-            $voucher = Voucher::create([
-                'code' => strtoupper(Str::random(10)),
-                'discount_type' => 'percent',
-                'discount_value' => $discountValue,
-                'min_spend' => 0,
-                'max_discount' => null,
-                'starts_at' => now(),
-                'expires_at' => now()->addMonths(1),
-                'usage_limit' => 1,
-                'target_limit' => 'user',
-                'is_active' => true,
-            ]);
-            
-            $user->vouchers()->attach($voucher->id);
-        }
-
-        $user->notify(new TierUpgradeNotification($newTier, $message));
-    }
-
-    public static function calculateTier(float $totalSpent): string
-    {
-        foreach (self::TIERS as $tier => $threshold) {
+        foreach (self::TIERS as $t => $threshold) {
             if ($totalSpent >= $threshold) {
-                return $tier;
+                $tier = $t;
             }
         }
-        return 'Bronze';
-    }
 
-    /**
-     * Admin cộng / trừ điểm thủ công.
-     * $amount dương = cộng, âm = trừ.
-     */
-    public static function adjustPoints(User $user, int $amount, string $reason = ''): array
-    {
-        $newPoints = max(0, $user->loyalty_points + $amount);
-        $user->loyalty_points = $newPoints;
-        $user->save();
-
-        return [
-            'adjusted_amount' => $amount,
-            'new_total_points' => $newPoints,
-            'reason' => $reason,
-        ];
-    }
-
-    /**
-     * Admin set rank thủ công (không cần đạt mốc chi tiêu).
-     */
-    public static function setTier(User $user, string $tier): void
-    {
+        // Chỉ update khi có sự thay đổi hạng
         if ($user->membership_tier !== $tier) {
             $user->membership_tier = $tier;
             $user->save();
-            self::handleTierUpgrade($user, $tier);
         }
     }
 
-    /**
-     * Lấy thông tin tiến trình thăng hạng cho hiển thị trên Profile.
-     */
+    public function addPoints(User $user, int $points, string $description)
+    {
+        if ($points <= 0) {
+            return;
+        }
+
+        $user->cine_points = ($user->cine_points ?? 0) + $points;
+        $user->save();
+
+        PointHistory::create([
+            'user_id'     => $user->id,
+            'points'      => $points,
+            'type'        => 'earn',
+            'description' => $description,
+        ]);
+
+        $this->updateMembershipTier($user);
+    }
+
+    public function redeemWithPoints(User $user, int $pointsRequired, string $description, $itemModel)
+    {
+        if (($user->cine_points ?? 0) < $pointsRequired) {
+            throw new \Exception("Bạn không đủ CinePoints để đổi ưu đãi này.");
+        }
+
+        return DB::transaction(function () use ($user, $pointsRequired, $description, $itemModel) {
+            $user->cine_points -= $pointsRequired;
+            $user->save();
+
+            return $user->pointHistories()->create([
+                'points'         => -$pointsRequired,
+                'type'           => 'redemption',
+                'description'    => $description,
+                'reference_type' => get_class($itemModel),
+                'reference_id'   => $itemModel->id,
+            ]);
+        });
+    }
+
     public static function getProgressInfo(User $user): array
     {
-        $currentTier = $user->membership_tier;
-        $totalSpent = (float) $user->total_spent;
+        $currentTier = $user->membership_tier ?: 'Bronze';
+        $totalSpent = (float) ($user->total_spent ?? 0);
 
-        // Tìm hạng tiếp theo
-        $tiers = array_reverse(self::TIERS, true); // Bronze -> Diamond
+        // Đảo lại để tìm logic đúng hơn (từ bé đến lớn)
+        $tiersNormal = self::TIERS;
         $nextTier = null;
         $nextThreshold = null;
-        $currentThreshold = 0;
-        $foundCurrent = false;
-
-        foreach ($tiers as $tier => $threshold) {
-            if ($foundCurrent) {
+        foreach ($tiersNormal as $tier => $threshold) {
+            if ($threshold > $totalSpent) {
                 $nextTier = $tier;
                 $nextThreshold = $threshold;
                 break;
             }
-            if ($tier === $currentTier) {
-                $currentThreshold = $threshold;
-                $foundCurrent = true;
-            }
+        }
+        
+        $currentThreshold = self::TIERS[$currentTier] ?? 0;
+
+        if (!$nextTier) {
+            // Đã đạt hạng cao nhất
+            return [
+                'current_tier' => $currentTier,
+                'next_tier' => null,
+                'progress_percent' => 100,
+                'remaining_amount' => 0,
+            ];
         }
 
-        $progress = 0;
-        $remaining = 0;
-        if ($nextThreshold !== null) {
-            $range = $nextThreshold - $currentThreshold;
-            $spent = $totalSpent - $currentThreshold;
-            $progress = $range > 0 ? min(100, round(($spent / $range) * 100, 1)) : 100;
-            $remaining = max(0, $nextThreshold - $totalSpent);
-        } else {
-            $progress = 100; // Đã đạt hạng cao nhất (Diamond)
-        }
+        $tierRange = $nextThreshold - $currentThreshold;
+        $spentInCurrentTier = $totalSpent - $currentThreshold;
+        
+        if ($tierRange <= 0) $tierRange = 1;
+
+        $progressPercent = min(100, max(0, ($spentInCurrentTier / $tierRange) * 100));
 
         return [
             'current_tier' => $currentTier,
             'next_tier' => $nextTier,
-            'total_spent' => $totalSpent,
-            'current_threshold' => $currentThreshold,
-            'next_threshold' => $nextThreshold,
-            'progress_percent' => $progress,
-            'remaining_amount' => $remaining,
-            'loyalty_points' => $user->loyalty_points,
+            'progress_percent' => round($progressPercent, 2),
+            'remaining_amount' => $nextThreshold - $totalSpent,
         ];
     }
 }
-
-

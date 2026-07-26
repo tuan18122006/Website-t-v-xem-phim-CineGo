@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use App\Models\Booking;
 use App\Models\BookingDetail;
@@ -13,319 +14,192 @@ use App\Models\Seat;
 use App\Models\Review;
 use App\Helpers\BookingHelper;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Carbon\Carbon;
+use App\Services\BookingService;
+use App\Services\LoyaltyService;
 
 class BookingController extends Controller
 {
-    public function index(Request $request)
+    protected $bookingService;
+    protected $loyaltyService;
+    public function __construct(BookingService $bookingService, LoyaltyService $loyaltyService)
     {
-        $query = Booking::query()->with([
-            'user:id,name,email,phone',
-            'showtime.movie:id,title',
-            'showtime.room:id,name',
-            'refundRequests:id,booking_id,status',
-        ]);
-
-        if ($request->filled('from_date')) {
-            $query->whereDate('created_at', '>=', $request->from_date);
-        }
-
-        if ($request->filled('to_date')) {
-            $query->whereDate('created_at', '<=', $request->to_date);
-        }
-
-        if ($request->filled('movie')) {
-            $movie = trim($request->movie);
-            $query->whereHas('showtime.movie', function ($q) use ($movie) {
-                $q->where('title', 'like', "%{$movie}%");
-            });
-        }
-
-        if ($request->filled('search')) {
-            $search = trim($request->search);
-            $query->where(function ($q) use ($search) {
-                $q->where('booking_code', 'like', "%{$search}%")
-                    ->orWhereHas('user', function ($u) use ($search) {
-                        $u->where('name', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%")
-                            ->orWhere('phone', 'like', "%{$search}%");
-                    })
-                    ->orWhereHas('showtime.movie', function ($m) use ($search) {
-                        $m->where('title', 'like', "%{$search}%");
-                    });
-            });
-        }
-
-        if ($request->filled('customer_type')) {
-            $type = $request->customer_type;
-            if ($type === 'member') {
-                $query->whereNotNull('user_id');
-            } elseif ($type === 'guest') {
-                $query->whereNull('user_id');
-            }
-        }
-
-        if ($request->filled('order_status')) {
-            $status = $request->order_status;
-            if ($status === 'cancelled') {
-                $query->where('booking_status', 'cancelled');
-            } else {
-                $query->where('payment_status', $status);
-                $query->where('booking_status', '!=', 'cancelled');
-            }
-        }
-
-        $bookings = $query->orderByDesc('created_at')->get()->map(function ($booking) {
-            return [
-                'id' => $booking->id,
-                'booking_code' => $booking->booking_code,
-                'customer_name' => $booking->user?->name ?? 'Khách vãng lai',
-                'customer_email' => $booking->user?->email,
-                'customer_phone' => $booking->user?->phone,
-                'customer_type' => $booking->user_id ? 'member' : 'guest',
-                'movie_title' => $booking->showtime?->movie?->title ?? 'Không xác định',
-                'room_name' => $booking->showtime?->room?->name ?? '—',
-                'showtime_at' => $booking->showtime?->start_time
-                    ? $booking->showtime->start_time->format('H:i d/m/Y')
-                    : null,
-                'total_amount' => (float) $booking->total_amount,
-                'payment_status' => $booking->payment_status,
-                'booking_status' => $booking->booking_status,
-                'order_status' => $booking->order_status,
-                'payment_method' => $booking->payment_method,
-                'created_at' => $booking->created_at?->format('H:i d/m/Y'),
-                'created_at_full' => $booking->created_at?->format('Y-m-d H:i:s'),
-            ];
-        });
-
-        return response()->json([
-            'count' => $bookings->count(),
-            'data' => $bookings,
-        ], 200);
+        $this->bookingService = $bookingService;
+        $this->loyaltyService = $loyaltyService;
     }
 
-    public function history(Request $request)
-    {
-        $user = $request->user();
+    
 
-        $bookings = Booking::with(['showtime.movie', 'showtime.room'])
-            ->where('user_id', $user->id)
-            ->orderByDesc('created_at')
-            ->get();
 
-        $response = $bookings->map(function ($booking) use ($user) {
-            $showtime = $booking->showtime;
-            $movie = $showtime?->movie;
-            $hasReviewed = false;
-            $canReview = false;
 
-            if ($movie) {
-                $hasReviewed = Review::where('user_id', $user->id)
-                    ->where('movie_id', $movie->id)
-                    ->exists();
 
-                $showtimeEnded = $showtime?->end_time && Carbon::parse($showtime->end_time)->lte(Carbon::now());
-                $canReview = !$hasReviewed
-                    && $showtimeEnded
-                    && $booking->payment_status === 'paid'
-                    && $booking->booking_status === 'confirmed';
-            }
-
-            return [
-                'booking_id' => $booking->id,
-                'booking_code' => $booking->booking_code,
-                'movie_id' => $movie?->id,
-                'movie_title' => $movie?->title,
-                'poster_url' => $movie?->poster_url,
-                'room_name' => $showtime?->room?->name,
-                'showtime_start' => $showtime?->start_time?->format('H:i d/m/Y'),
-                'showtime_end' => $showtime?->end_time?->format('H:i d/m/Y'),
-                'movie_duration' => $movie?->duration,
-                'payment_status' => $booking->payment_status,
-                'booking_status' => $booking->booking_status,
-                'order_status' => $booking->order_status,
-                'can_review' => $canReview,
-                'reviewed' => $hasReviewed,
-                'review_message' => $hasReviewed
-                    ? 'Bạn đã đánh giá phim này.'
-                    : ($canReview ? 'Bạn có thể đánh giá phim này.' : 'Bạn có thể đánh giá sau khi suất chiếu kết thúc.'),
-            ];
-        });
-
-        return response()->json([
-            'success' => true,
-            'data' => $response,
-        ], 200);
-    }
-
-    public function updateStatus(Request $request, $id)
-    {
-        $request->validate([
-            'order_status' => ['required', 'string', Rule::in(['pending', 'paid', 'cancelled', 'refunded'])],
-        ]);
-
-        $booking = Booking::find($id);
-        if (!$booking) {
-            return response()->json(['success' => false, 'message' => 'Không tìm thấy đơn hàng'], 404);
-        }
-
-        if ($request->order_status === 'paid') {
-            $booking->payment_status = 'paid';
-            $booking->booking_status = 'confirmed';
-        } elseif ($request->order_status === 'pending') {
-            $booking->payment_status = 'pending';
-            $booking->booking_status = 'pending';
-        } elseif ($request->order_status === 'cancelled') {
-            $booking->booking_status = 'cancelled';
-        } elseif ($request->order_status === 'refunded') {
-            $booking->booking_status = 'cancelled';
-        }
-
-        $booking->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Trạng thái đơn hàng đã được cập nhật.',
-            'data' => [
-                'order_status' => $booking->order_status,
-                'payment_status' => $booking->payment_status,
-                'booking_status' => $booking->booking_status,
-            ],
-        ], 200);
-    }
 
     public function store(Request $request)
     {
         $request->validate([
-            'showtime_id' => 'required|integer|exists:showtimes,id',
-            'seat_ids' => 'required|array|min:1',
-            'seat_ids.*' => 'required|integer|exists:seats,id',
-            'combos' => 'nullable|array',
-            'combos.*.id' => 'required|integer|exists:combos,id',
-            'combos.*.quantity' => 'required|integer|min:1',
-            'payment_method' => 'required|string',
-            'total_amount' => 'required|numeric'
+            'showtime_id'           => 'required|integer|exists:showtimes,id',
+            'seat_ids'              => 'required|array|min:1',
+            'seat_ids.*'            => 'required|integer|exists:seats,id',
+            'combos'                => 'nullable|array',
+            'combos.*.id'          => 'required|integer|exists:combos,id',
+            'combos.*.quantity'    => 'required|integer|min:1',
+            'used_user_combo_ids'   => 'nullable|array',
+            'used_user_combo_ids.*' => 'integer',
+            'voucher_id'            => 'nullable|integer|exists:vouchers,id',
+            'payment_method'        => 'required|string',
+            'total_amount'          => 'required|numeric'
         ]);
 
-        $showtimeId = $request->showtime_id;
-        $seatIds = $request->seat_ids;
-        $combosInput = $request->combos ?? [];
-        $paymentMethod = $request->payment_method;
-        $userId = $request->user()?->id;
-
         try {
-            $booking = DB::transaction(function () use ($showtimeId, $seatIds, $combosInput, $paymentMethod, $userId) {
-                // 1. Check showtime
-                $showtime = Showtime::findOrFail($showtimeId);
-                $now = Carbon::now();
+            $booking = $this->bookingService->createBooking(
+                $request->showtime_id,
+                $request->seat_ids,
+                $request->combos ?? [],
+                $request->payment_method,
+                auth()->id(),
+                $request->voucher_id,
+                'paid',
+                null,
+                $request->used_user_combo_ids ?? []
+            );
 
-                // 2. Lock and check seats
-                foreach ($seatIds as $seatId) {
-                    $seat = DB::table('seats')->where('id', $seatId)->lockForUpdate()->first();
-                    if (!$seat) {
-                        throw new \Exception('Ghế không tồn tại.');
-                    }
-                    if ($seat->room_id !== $showtime->room_id) {
-                        throw new \Exception('Ghế không thuộc phòng chiếu của suất chiếu này.');
-                    }
-                    if ($seat->status !== 'available') {
-                        throw new \Exception("Ghế {$seat->row}{$seat->number} đã bị hỏng hoặc không khả dụng.");
-                    }
-
-                    // Check if already booked
-                    $isBooked = DB::table('booking_details')
-                        ->join('bookings', 'booking_details.booking_id', '=', 'bookings.id')
-                        ->where('bookings.showtime_id', $showtimeId)
-                        ->where('booking_details.seat_id', $seatId)
-                        ->where('bookings.payment_status', 'paid')
-                        ->exists();
-
-                    if ($isBooked) {
-                        throw new \Exception("Ghế {$seat->row}{$seat->number} đã có người đặt mua trước.");
-                    }
-
-                    // Check if held by another user
-                    $activeHold = DB::table('seat_holds')
-                        ->where('showtime_id', $showtimeId)
-                        ->where('seat_id', $seatId)
-                        ->where('expires_at', '>', $now)
-                        ->first();
-
-                    if ($activeHold && $activeHold->user_id != $userId) {
-                        throw new \Exception("Ghế {$seat->row}{$seat->number} đang bị giữ bởi người dùng khác.");
-                    }
-                }
-
-                // 3. Backend calculations using BookingHelper to prevent spoofing
-                $seatsCalc = BookingHelper::calculateSeats($showtimeId, $seatIds);
-                $combosCalc = BookingHelper::calculateCombos($combosInput);
-
-                $subtotal = $seatsCalc['subtotal'] + $combosCalc['subtotal'];
-                $totalAmount = $subtotal;
-
-                // 4. Generate unique Booking Code
-                do {
-                    $bookingCode = 'CG-' . mt_rand(100000, 999999);
-                } while (Booking::where('booking_code', $bookingCode)->exists());
-
-                // 5. Store official Booking
-                $booking = Booking::create([
-                    'booking_code' => $bookingCode,
-                    'user_id' => $userId,
-                    'showtime_id' => $showtimeId,
-                    'voucher_id' => null,
-                    'subtotal' => $subtotal,
-                    'discount_amount' => 0.00,
-                    'total_amount' => $totalAmount,
-                    'payment_method' => $paymentMethod,
-                    'payment_status' => 'paid', // Mark as paid immediately for demo
-                    'booking_status' => 'confirmed',
-                    'order_status' => 'paid',
-                ]);
-
-                // 6. Store Booking Details
-                foreach ($seatsCalc['details'] as $seatDetail) {
-                    BookingDetail::create([
+            // 1. Trừ combo quà tặng
+            if ($request->has('used_user_combo_ids') && count($request->used_user_combo_ids) > 0) {
+                DB::table('user_combos')
+                    ->whereIn('id', $request->used_user_combo_ids)
+                    ->where('user_id', auth()->id())
+                    ->update([
+                        'is_used'    => true,
                         'booking_id' => $booking->id,
-                        'seat_id' => $seatDetail['seat_id'],
-                        'price' => $seatDetail['price'],
-                        'ticket_code' => 'TC-' . strtoupper(Str::random(10)),
-                        'is_checked_in' => false
+                        'used_at'    => now(),
+                        'updated_at' => now()
                     ]);
-                }
+            }
 
-                // 7. Store Booking Combos
-                foreach ($combosCalc['details'] as $comboDetail) {
-                    BookingCombo::create([
+            // 2. Trừ voucher
+            if ($request->voucher_id) {
+                DB::table('user_vouchers')
+                    ->where('voucher_id', $request->voucher_id)
+                    ->where('user_id', auth()->id())
+                    ->where('is_used', false)
+                    ->limit(1)
+                    ->update([
+                        'is_used'    => true,
                         'booking_id' => $booking->id,
-                        'combo_id' => $comboDetail['combo_id'],
-                        'quantity' => $comboDetail['quantity'],
-                        'price' => $comboDetail['price']
+                        'used_at'    => now(),
+                        'updated_at' => now()
+                        
                     ]);
+            }
+
+        
+            if ($booking->user) {
+                $this->loyaltyService->processBookingPoints(
+                    $booking->user,
+                    $booking->total_amount,
+                    $booking
+                );
+            }
+
+            // 3. Gửi email
+            try {
+                if ($booking->user && $booking->user->email) {
+                    \Illuminate\Support\Facades\Mail::to($booking->user->email)
+                        ->send(new \App\Mail\BookingSuccessMail($booking));
                 }
-
-                // 8. Remove seat holds for this user and seats
-                DB::table('seat_holds')
-                    ->where('showtime_id', $showtimeId)
-                    ->whereIn('seat_id', $seatIds)
-                    ->where('user_id', $userId)
-                    ->delete();
-
-                return $booking;
-            });
+            } catch (\Exception $mailEx) {
+                \Illuminate\Support\Facades\Log::error('Failed to send booking success email: ' . $mailEx->getMessage());
+            }
 
             return response()->json([
-                'success' => true,
-                'message' => 'Đặt vé thành công',
+                'success'      => true,
+                'message'      => 'Đặt vé thành công',
                 'booking_code' => $booking->booking_code
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
             ], 422);
         }
+    }
+
+    /**
+     * Lấy lịch sử đặt vé của user đang đăng nhập
+     */
+    
+
+
+
+public function history(Request $request)
+    {
+        $userId = auth()->id();
+
+        $bookings = Booking::with([
+            'showtime.movie:id,title',
+            'showtime.room:id,name',
+            'bookingDetails.seat',
+            'bookingCombos.combo'
+        ])
+            ->where('user_id', $userId)
+            ->orderBy('id', 'desc')
+            ->get();
+
+        $formattedTickets = $bookings->map(function ($booking) {
+
+            $seatsList = [];
+            if ($booking->bookingDetails) {
+                foreach ($booking->bookingDetails as $detail) {
+                    if ($detail && $detail->seat) {
+                        $seatsList[] = [
+                            'row'    => $detail->seat->row,
+                            'number' => $detail->seat->number,
+                            'type'   => $detail->seat->type ?? 'standard' 
+                        ];
+                    }
+                }
+            }
+
+            $combosList = [];
+            if ($booking->bookingCombos) {
+                $combosList = $booking->bookingCombos->map(function ($bc) {
+                    return $bc->combo ? $bc->combo->name . ' (x' . $bc->quantity . ')' : null;
+                })->filter()->values()->toArray();
+            }
+
+            $totalTicketPrice = $booking->bookingDetails->sum('price');
+            $totalComboPrice = $booking->bookingCombos->sum(function ($bc) {
+                return $bc->price_at_purchase * $bc->quantity;
+            });
+            $totalTicketPrice = $booking->bookingDetails ? $booking->bookingDetails->sum('price') : 0;
+            $totalComboPrice = $booking->bookingCombos ? $booking->bookingCombos->sum(function ($bc) {
+                return ($bc->price_at_purchase ?? 0) * ($bc->quantity ?? 0);
+            }) : 0;
+
+            return [
+                'id'             => $booking->id,
+                'booking_code'   => $booking->booking_code,
+                'movie_title'    => $booking->showtime?->movie?->title ?? 'Phim hệ thống',
+                'room_name'      => $booking->showtime?->room?->name ?? 'Phòng chiếu CineGo',
+                'start_time'     => $booking->showtime?->start_time ? Carbon::parse($booking->showtime->start_time)->format('H:i') : '00:00',
+                'date'           => $booking->showtime?->start_time ? Carbon::parse($booking->showtime->start_time)->format('Y-m-d') : Carbon::now()->format('Y-m-d'),
+                'seats'          => $seatsList,
+                'combos'         => $combosList,
+                'total_ticket_price' => $totalTicketPrice,
+                'total_combo_price'  => $totalComboPrice,
+                'subtotal'       => $booking->subtotal,
+                'discount_amount' => $booking->discount_amount,
+                'total_price'    => $booking->total_amount,
+                'payment_method' => $booking->payment_method,
+                'created_at'     => $booking->created_at ? $booking->created_at->format('H:i d/m/Y') : '',
+                'status'         => $booking->payment_status,
+                'status_label'   => $booking->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa hoàn tất'
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data'    => $formattedTickets
+        ], 200);
     }
 }
