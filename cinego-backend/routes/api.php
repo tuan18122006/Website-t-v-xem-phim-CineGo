@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
@@ -51,6 +51,9 @@ Route::get('/movies/{id}/available-dates', [ShowtimeController::class, 'getAvail
 Route::get('/movies/{id}/showtimes', [ShowtimeController::class, 'getShowtimesByMovie']);
 Route::get('/showtimes/{id}/seats', [ShowtimeController::class, 'getSeats']);
 Route::get('/rooms', [RoomController::class, 'index']);
+
+// Chatbot AI (Trợ lý CineGo) — công khai cho cả khách vãng lai
+Route::post('/chatbot', [\App\Http\Controllers\Api\ChatbotController::class, 'chat']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
