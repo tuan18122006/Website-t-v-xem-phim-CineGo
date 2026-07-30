@@ -212,5 +212,4 @@ Route::get('/payment/vnpay/return', [PaymentController::class, 'vnpayReturn']);
 Route::get('/tickets/{bookingCode}', [TicketController::class, 'show']);
 // Danh sách combo công khai cho client
 Route::get('/combos', [ComboController::class, 'index']);
-
-
+Route::get('/combos/active', [ComboController::class, 'index']);
