@@ -2,7 +2,7 @@
   <div v-if="movie" class="movie-detail-view">
     <div class="detail-header glass-panel">
       <div class="poster-container">
-        <img :src="movie.poster_url" :alt="movie.title" class="detail-poster" />
+        <img :src="getPosterUrl(movie.poster_url)" :alt="movie.title" class="detail-poster" />
         <span class="detail-rating-badge" :class="getRatingClass(movie.rating)">
           {{ movie.rating }}
         </span>
@@ -340,21 +340,6 @@ const fetchAvailableDates = async () => {
     availableDays.value = defaultDays();
   }
 };
-
-const getPosterUrl = (url) => {
-  if (!url) return 'https://via.placeholder.com/300x450?text=No+Poster';
-  
-  // Nếu đã là link đầy đủ (http/https)
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
-  }
-  
-  // Nối domain Backend + path
-  const cleanPath = url.startsWith('/') ? url : `/${url}`;
-  return `${API_BASE}${cleanPath.startsWith('/storage') ? '' : '/storage'}${cleanPath}`;
-};
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 // 🔥 HÀM LẤY SUẤT CHIẾU THEO PHÒNG THUẦN TỪ DATABASE
 const fetchShowtimes = async () => {
