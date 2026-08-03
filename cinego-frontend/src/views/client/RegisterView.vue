@@ -45,16 +45,7 @@
           />
         </div>
 
-        <div class="form-group">
-          <label for="birthday">Ngày sinh</label>
-          <input 
-            v-model="birthday" 
-            type="date" 
-            id="birthday" 
-            required 
-            class="form-input"
-          />
-        </div>
+
 
         <div class="form-group">
           <label for="password">Mật khẩu</label>
@@ -119,7 +110,6 @@ const authStore = useAuthStore();
 const name = ref('');
 const email = ref('');
 const phone = ref('');
-const birthday = ref('');
 const password = ref('');
 const passwordConfirmation = ref('');
 const loading = ref(false);
@@ -154,7 +144,7 @@ const handleRegister = async () => {
       name.value, 
       email.value, 
       phone.value,
-      birthday.value,
+      null,
       password.value, 
       passwordConfirmation.value
     );

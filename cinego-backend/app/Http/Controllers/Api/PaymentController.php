@@ -62,6 +62,14 @@ class PaymentController extends Controller
             ], 422);
         }
 
+        if ($request->payment_method === 'bank_transfer') {
+            $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+            return response()->json([
+                'success' => true,
+                'payment_url' => $frontendUrl . '/payment/qrcode?booking_id=' . $booking->id,
+            ]);
+        }
+
         $paymentUrl = $this->vnpayService->createPaymentUrl([
             'txn_ref'    => $txnRef,
             'order_info' => 'Thanh toán vé phim - ' . $booking->booking_code,
@@ -70,6 +78,7 @@ class PaymentController extends Controller
         ]);
 
         return response()->json([
+            'success'     => true,
             'payment_url' => $paymentUrl,
         ]);
     }

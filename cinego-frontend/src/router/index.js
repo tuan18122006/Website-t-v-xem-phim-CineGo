@@ -12,6 +12,7 @@ const MovieDetail = () => import("../views/client/MovieDetailView.vue");
 const SeatSelection = () => import("../views/client/SeatSelectionView.vue");
 const Payment = () => import("../views/client/PaymentView.vue");
 const PaymentResult = () => import("../views/client/PaymentResultView.vue");
+const QRCodePayment = () => import("../views/client/QRCodePaymentView.vue");
 const Login = () => import("../views/client/LoginView.vue");
 const Register = () => import("../views/client/RegisterView.vue");
 const QuickBooking = () => import("../views/client/QuickBookingView.vue");
@@ -90,6 +91,12 @@ const routes = [
     path: "/payment/result",
     name: "payment-result",
     component: PaymentResult,
+  },
+  {
+    path: "/payment/qrcode",
+    name: "payment-qrcode",
+    component: QRCodePayment,
+    meta: { requiresAuth: true },
   },
   {
     path: "/login",
@@ -216,12 +223,18 @@ const routes = [
     component: () => import("../views/admin/VoucherManager.vue"),
     meta: { requiresAuth: true, role: "admin" }
   },
-  {
-    path: '/admin/loyalty',
-    name: 'AdminLoyalty',
-    component: () => import('../views/admin/UserLoyaltyManager.vue'),
-    meta: { requiresAuth: true, isAdmin: true }
-  },
+    {
+      path: '/admin/loyalty',
+      name: 'AdminLoyalty',
+      component: () => import('../views/admin/UserLoyaltyManager.vue'),
+      meta: { requiresAuth: true, role: "admin" }
+    },
+    {
+      path: '/admin/settings/payment',
+      name: 'admin-PaymentSettings',
+      component: () => import('../views/admin/PaymentSettingsView.vue'),
+      meta: { requiresAuth: true, role: "admin" }
+    },
   {
     path: "/staff",
     redirect: "/staff/dashboard",

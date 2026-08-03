@@ -29,7 +29,7 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 10px;">
+        <div style="display: flex; gap: 10px; flex-shrink: 0;">
           <button class="stv-hero__cta" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white;" @click="openPricingModal">
             <span class="stv-hero__cta-plus">⚙️</span>
             <span>Cấu Hình Giá</span>
@@ -1045,7 +1045,7 @@ onUnmounted(() => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 .stv-hero__kicker {
   display: inline-block;

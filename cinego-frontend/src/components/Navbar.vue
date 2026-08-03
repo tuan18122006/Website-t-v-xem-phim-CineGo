@@ -67,10 +67,6 @@
             </div>
           </div>
 
-          <!-- Admin shortcut link -->
-          <router-link v-if="authStore.isStaff" :to="authStore.isAdmin ? '/admin/dashboard' : '/staff/dashboard'" class="btn-admin-panel">
-            Trang Quản Lý
-          </router-link>
 
           <div class="user-dropdown-wrapper">
             <div class="user-profile-trigger">
@@ -86,6 +82,7 @@
                 <strong>{{ authStore.user?.name }}</strong>
                 <span>{{ authStore.user?.email }}</span>
               </div>
+              <router-link v-if="authStore.isStaff" :to="authStore.isAdmin ? '/admin/dashboard' : '/staff/dashboard'" class="dropdown-link admin-link">Trang Quản Lý</router-link>
               <router-link to="/profile?tab=info" class="dropdown-link">Hồ sơ cá nhân</router-link>
               <router-link to="/profile?tab=history" class="dropdown-link">Lịch sử mua hàng</router-link>
               <router-link to="/profile?tab=watched" class="dropdown-link">Phim đã xem</router-link>
@@ -520,6 +517,16 @@ const handleLogout = async () => {
   background-color: rgba(216, 45, 139, 0.06);
   color: var(--accent-pink);
   padding-left: 24px;
+}
+
+.dropdown-link.admin-link {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.dropdown-link.admin-link:hover {
+  background-color: #fef2f2;
+  color: #b91c1c;
 }
 
 .dropdown-divider {

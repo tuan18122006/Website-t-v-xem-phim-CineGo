@@ -108,7 +108,7 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name'     => 'required|string|max:255',
+            'name'     => 'required|string|max:20',
             'email'    => 'required|email|max:255|unique:users,email',
             'password' => 'required|string|min:8',
             'phone'    => 'nullable|string|max:20',
@@ -123,7 +123,7 @@ class UserController extends Controller
             'password' => Hash::make($request->password),
             'phone'    => $request->phone,
             'role'     => $request->role,
-            'status'   => $request->status ?? 'active',
+            'lock_reason' => ($request->status === 'locked') ? 'Khóa khi tạo tài khoản' : null,
             'age'      => $request->age,
         ]);
 
@@ -140,7 +140,7 @@ class UserController extends Controller
         $user = User::findOrFail($id);
 
         $request->validate([
-            'name'     => 'required|string|max:255',
+            'name'     => 'required|string|max:20',
             'email'    => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($id)],
             'password' => 'nullable|string|min:8',
             'phone'    => 'nullable|string|max:20',
@@ -153,7 +153,13 @@ class UserController extends Controller
         $user->email  = $request->email;
         $user->phone  = $request->phone;
         $user->role   = $request->role;
-        $user->status = $request->status;
+        
+        if ($request->status === 'locked' && !$user->lock_reason) {
+            $user->lock_reason = 'Khóa bởi quản trị viên';
+        } elseif ($request->status === 'active') {
+            $user->lock_reason = null;
+        }
+        
         $user->age    = $request->age;
 
         if ($request->filled('password')) {
@@ -341,8 +347,8 @@ class UserController extends Controller
         $user = $request->user();
 
         $request->validate([
-            'name'  => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
+            'name'     => ['required', 'string', 'max:20', 'regex:/^[\pL\pN]+$/u'],
+            'phone'    => 'nullable|string|max:20',
         ]);
 
         $user->name = $request->name;
