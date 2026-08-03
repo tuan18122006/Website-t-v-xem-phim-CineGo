@@ -42,7 +42,7 @@
             <div class="overlay-gradient"></div>
             
             <!-- Play Button simulation -->
-            <button class="btn-play-preview" title="Xem trailer review">
+            <button class="btn-play-preview" title="Xem trailer review" @click="openTrailer(review.trailerUrl)">
               <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
@@ -94,6 +94,19 @@
         Chưa có đánh giá nào được đăng. Hãy là người đầu tiên chia sẻ cảm nhận sau khi xem phim!
       </p>
     </div>
+
+    <!-- TRAILER MODAL -->
+    <div v-if="isTrailerOpen" class="trailer-modal-backdrop" @click.self="closeTrailer">
+      <div class="trailer-modal-content">
+        <button class="trailer-close-btn" @click="closeTrailer">✕</button>
+        <div class="video-responsive-container">
+          <iframe v-if="embedTrailerUrl" :src="embedTrailerUrl" frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen></iframe>
+          <div class="no-trailer-msg" v-else>Không có dữ liệu Trailer cho phim này.</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -108,6 +121,32 @@ const pagedReviews = computed(() => {
   const start = (page.value - 1) * perPage;
   return movieReviews.value.slice(start, start + perPage);
 });
+
+const isTrailerOpen = ref(false);
+const currentTrailerUrl = ref('');
+
+const embedTrailerUrl = computed(() => {
+  if (!currentTrailerUrl.value) return '';
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = currentTrailerUrl.value.match(regExp);
+  return (match && match[2].length === 11)
+    ? `https://www.youtube.com/embed/${match[2]}?autoplay=1`
+    : currentTrailerUrl.value;
+});
+
+const openTrailer = (url) => {
+  if (url && url !== 'null' && url !== 'undefined') {
+    currentTrailerUrl.value = url;
+    isTrailerOpen.value = true;
+  } else {
+    alert('Phim hiện chưa có trailer chính thức!');
+  }
+};
+
+const closeTrailer = () => {
+  isTrailerOpen.value = false;
+  currentTrailerUrl.value = '';
+};
 
 const AVATAR_COLORS = [
   'linear-gradient(135deg, #e50914, #9b000e)',
@@ -130,6 +169,14 @@ const timeAgo = (dt) => {
   return Math.floor(diff / 86400) + ' ngày trước';
 };
 
+const getPosterUrl = (url) => {
+  if (!url) return FALLBACK_POSTER;
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('blob:')) return url;
+  const cleanPath = url.replace(/^(.*\/storage\/)/, '');
+  return `http://127.0.0.1:8000/storage/${cleanPath}`;
+};
+
 const movieReviews = ref([]);
 const loaded = ref(false);
 
@@ -140,7 +187,7 @@ const fetchReviews = async () => {
     movieReviews.value = list.map((r, i) => ({
       id: r.id,
       movieTitle: r.movie?.title || 'Phim CineGo',
-      moviePoster: r.movie?.poster_url || FALLBACK_POSTER,
+      moviePoster: getPosterUrl(r.movie?.poster_url),
       duration: r.movie?.duration || '',
       genres: [],
       rating: Number(r.rating || 0).toFixed(1),
@@ -151,6 +198,7 @@ const fetchReviews = async () => {
       comment: r.comment || '',
       isFeatured: r.is_featured,
       adminReply: r.admin_reply,
+      trailerUrl: r.movie?.trailer_url,
     }));
   } catch (e) {
     console.error('fetch featured reviews error', e);
@@ -567,4 +615,67 @@ onMounted(fetchReviews);
 .reviews-pager button:hover:not(:disabled) { border-color: #e50914; color: #e50914; }
 .reviews-pager button:disabled { opacity: 0.45; cursor: not-allowed; }
 .reviews-pager span { font-size: 13.5px; color: #64748b; font-weight: 600; }
+
+/* ===== TRAILER MODAL ===== */
+.trailer-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.trailer-modal-content {
+  position: relative;
+  width: 90%;
+  max-width: 900px;
+  background: #000;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+.trailer-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 20px;
+  cursor: pointer;
+  z-index: 2;
+  transition: 0.2s;
+}
+.trailer-close-btn:hover {
+  background: #e50914;
+}
+.video-responsive-container {
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 */
+  height: 0;
+  overflow: hidden;
+}
+.video-responsive-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.no-trailer-msg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 1.2rem;
+}
 </style>

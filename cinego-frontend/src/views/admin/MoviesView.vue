@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="admin-movies-view-container">
     <div class="glass-panel list-card">
       <div class="header-row">
@@ -74,7 +74,7 @@
       </div>
     </div>
 
-    <!-- MODAL THÊM / SỬA PHIM (TÔNG MÀU TRẮNG ĐỎ CHỦ ĐẠO) -->
+<!-- MODAL THÊM / SỬA PHIM (TÔNG MÀU TRẮNG ĐỎ CHỦ ĐẠO) -->
     <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
       <div class="modal-content-cine">
         <div class="modal-header">
@@ -186,8 +186,8 @@
         </form>
       </div>
     </div>
-  </div>
-</template>
+
+  </div>`n</template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
@@ -196,6 +196,7 @@ import api from '../../api/axios';
 
 const movies = ref([]);
 const genres = ref([]);
+
 const loading = ref(false);
 const showModal = ref(false);
 const isEdit = ref(false);
@@ -441,7 +442,7 @@ const deleteMovie = async (id) => {
 onMounted(async () => {
   await fetchMovies();
   await fetchGenres();
-});
+  });
 </script>
 
 <style scoped>
@@ -1029,3 +1030,4 @@ onMounted(async () => {
   font-weight: 600;
 }
 </style>
+

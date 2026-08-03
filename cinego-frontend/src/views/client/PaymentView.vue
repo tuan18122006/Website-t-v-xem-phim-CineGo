@@ -238,6 +238,13 @@
                 Hủy
               </button>
             </div>
+            <!-- Vouchers trong ví -->
+            <div v-if="walletVouchers.length > 0 && !bookingStore.appliedVoucher" class="voucher-chips">
+              <span class="chip-label">Sẵn có:</span>
+              <button v-for="v in walletVouchers" :key="v.id" class="voucher-chip" @click="applyWalletVoucher(v.code)">
+                🎟 {{ v.code }} (-{{ v.discount_amount }}{{ v.discount_type === 'percent' ? '%' : 'đ' }})
+              </button>
+            </div>
             <p v-if="voucherMessage" :class="voucherSuccess ? 'voucher-msg-success' : 'voucher-msg-error'">
               {{ voucherMessage }}
             </p>
@@ -304,6 +311,7 @@ const voucherSuccess = ref(false);
 const selectedPaymentMethod = ref("vnpay");
 const activeComboTab = ref("buy");
 const walletCombos = ref([]);
+const walletVouchers = ref([]);
 const selectedGifts = ref([]);
 const availableCombos = ref([]);
 const loadingCombos = ref(true);
@@ -345,6 +353,18 @@ const fetchWalletCombos = async () => {
     });
   } catch (err) {
     console.error("Lỗi khi tải combo từ ví:", err);
+  }
+};
+
+const fetchWalletVouchers = async () => {
+  if (!authStore.user) return;
+  try {
+    const res = await api.get("/client/my-vouchers");
+    const allItems = res.data?.data || [];
+    // Lọc ra các voucher chưa sử dụng (loại bỏ combo vì API trả về cả combo)
+    walletVouchers.value = allItems.filter(v => v.code && !v.is_used);
+  } catch (err) {
+    console.error("Lỗi tải ví voucher:", err);
   }
 };
 
@@ -410,8 +430,8 @@ const paymentMethods = [
   },
   {
     id: "momo",
-    name: "Thanh toán trực tiếp",
-    desc: "Thanh toán trực tiếp tại quầy",
+    name: "Ví điện tử MoMo",
+    desc: "Thanh toán bảo mật tức thì bằng app MoMo siêu tốc",
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff007f" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>',
   },
 ];
@@ -456,6 +476,11 @@ const applyVoucher = async () => {
     voucherMessage.value =
       error.response?.data?.message || "Mã giảm giá không hợp lệ hoặc đã hết hạn.";
   }
+};
+
+const applyWalletVoucher = (code) => {
+  voucherCode.value = code;
+  applyVoucher();
 };
 
 const removeVoucher = () => {
@@ -541,6 +566,7 @@ const backToHome = () => {
 onMounted(() => {
   fetchCombos();
   fetchWalletCombos();
+  fetchWalletVouchers();
 });
 </script>
 
@@ -862,6 +888,36 @@ onMounted(() => {
 .voucher-msg-error {
   color: #ff5555;
   font-size: 12px;
+}
+
+.voucher-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.chip-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.voucher-chip {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--accent-pink);
+  color: var(--accent-pink);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.voucher-chip:hover {
+  background: var(--accent-pink);
+  color: #fff;
 }
 
 .text-discount,

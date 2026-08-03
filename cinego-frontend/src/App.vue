@@ -12,6 +12,9 @@
     </main>
 
     <Footer v-if="!isBackofficeRoute" />
+
+    <!-- Trợ lý AI CineGo (chỉ hiện ở trang khách) -->
+    <ChatWidget v-if="!isBackofficeRoute" />
   </div>
 </template>
 
@@ -20,6 +23,7 @@ import { computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import Navbar from './components/Navbar.vue';
 import Footer from './components/Footer.vue';
+import ChatWidget from './components/ChatWidget.vue';
 import { useAuthStore } from './stores/auth';
 
 const route = useRoute();
