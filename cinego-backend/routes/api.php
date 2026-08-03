@@ -234,4 +234,5 @@ Route::get('/tickets/{bookingCode}', [TicketController::class, 'show']);
 // Danh sách combo công khai cho client
 Route::get('/combos/active', [ComboController::class, 'getActive']);
 Route::get('/combos', [ComboController::class, 'index']);
-Route::get('/combos/active', [ComboController::class, 'index']);
+
+
