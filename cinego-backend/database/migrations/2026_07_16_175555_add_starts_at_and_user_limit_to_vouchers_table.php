@@ -12,10 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('vouchers', function (Blueprint $table) {
-            
-            $table->timestamp('starts_at')->nullable()->after('expires_at');
+            if (!Schema::hasColumn('vouchers', 'starts_at')) {
+                $table->timestamp('starts_at')->nullable()->after('expires_at');
+            }
 
-            $table->integer('user_limit')->nullable()->default(1)->after('usage_limit');
+            if (!Schema::hasColumn('vouchers', 'user_limit')) {
+                $table->integer('user_limit')->nullable()->default(1)->after('usage_limit');
+            }
         });
     }
 

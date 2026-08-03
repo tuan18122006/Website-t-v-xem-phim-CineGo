@@ -52,8 +52,14 @@ Route::get('/movies/{id}/showtimes', [ShowtimeController::class, 'getShowtimesBy
 Route::get('/showtimes/{id}/seats', [ShowtimeController::class, 'getSeats']);
 Route::get('/rooms', [RoomController::class, 'index']);
 
+// Public Banner route
+Route::get('/banners/public', [\App\Http\Controllers\Api\BannerController::class, 'publicFeatured']);
+
 // Chatbot AI (Trợ lý CineGo) — công khai cho cả khách vãng lai
 Route::post('/chatbot', [\App\Http\Controllers\Api\ChatbotController::class, 'chat']);
+
+// Cấu hình công khai
+Route::get('/settings/payment', [\App\Http\Controllers\Api\SettingController::class, 'getPaymentSettings']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -71,6 +77,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/bookings', [BookingController::class, 'store']);
     // Các route của Phi
     Route::get('/user/bookings', [BookingController::class, 'history']);
+    Route::get('/bookings/{id}', [BookingController::class, 'show']);
     Route::post('/vouchers/verify', [VoucherController::class, 'verify']);
     Route::get('/user/available-combos', [LoyaltyController::class, 'getAvailableCombos']);
     Route::post('/vouchers/claim', [VoucherController::class, 'claimVoucher']);
@@ -123,6 +130,14 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     Route::post('/reviews/{id}/reply', [ReviewController::class, 'reply']);
     Route::delete('/reviews/{id}', [ReviewController::class, 'adminDestroy']);
 
+    // Quản lý Banners
+    Route::get('/banners', [\App\Http\Controllers\Api\BannerController::class, 'index']);
+    Route::post('/banners', [\App\Http\Controllers\Api\BannerController::class, 'store']);
+    Route::post('/banners/{id}', [\App\Http\Controllers\Api\BannerController::class, 'update']);
+    Route::put('/banners/{id}', [\App\Http\Controllers\Api\BannerController::class, 'update']);
+    Route::patch('/banners/{id}/toggle', [\App\Http\Controllers\Api\BannerController::class, 'toggleActive']);
+    Route::delete('/banners/{id}', [\App\Http\Controllers\Api\BannerController::class, 'destroy']);
+
     // Đối soát ca
     Route::get('/shifts/pending-audits', [\App\Http\Controllers\Api\ShiftController::class, 'pendingAudits']);
     Route::post('/shifts/{id}/audit', [\App\Http\Controllers\Api\ShiftController::class, 'audit']);
@@ -134,6 +149,9 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     Route::post('/orders/{id}/refund', [\App\Http\Controllers\Api\RefundController::class, 'requestRefundById']);
     Route::get('/refunds/pending', [\App\Http\Controllers\Api\RefundController::class, 'pendingRefunds']);
     Route::post('/refunds/{id}/approve', [\App\Http\Controllers\Api\RefundController::class, 'approveRefund']);
+
+    // Cấu hình thanh toán
+    Route::post('/settings/payment', [\App\Http\Controllers\Api\SettingController::class, 'updatePaymentSettings']);
 
     // Quản lý tài khoản User
     Route::get('/users', [UserController::class, 'index']);
@@ -214,6 +232,7 @@ Route::post('/vouchers/verify', [VoucherController::class, 'verify']);
 Route::get('/payment/vnpay/return', [PaymentController::class, 'vnpayReturn']);
 Route::get('/tickets/{bookingCode}', [TicketController::class, 'show']);
 // Danh sách combo công khai cho client
+Route::get('/combos/active', [ComboController::class, 'getActive']);
 Route::get('/combos', [ComboController::class, 'index']);
 
 

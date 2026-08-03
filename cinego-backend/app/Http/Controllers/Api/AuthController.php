@@ -27,7 +27,6 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'phone' => ['required', 'regex:/^(84|0[3|5|7|8|9])+([0-9]{8})\b$/'],
-            'birthday' => 'required|date|before:-13 years',
             'password' => ['required', 'string', 'min:8', 'regex:/[a-zA-Z]/', 'regex:/[0-9]/', 'confirmed'],
         ], [
             'name.required'      => 'Vui lòng nhập họ tên.',
@@ -36,8 +35,6 @@ class AuthController extends Controller
             'email.unique'       => 'Email này đã được đăng ký. Vui lòng dùng email khác hoặc đăng nhập.',
             'phone.required'     => 'Vui lòng nhập số điện thoại.',
             'phone.regex'        => 'Số điện thoại không hợp lệ.',
-            'birthday.required'  => 'Vui lòng nhập ngày sinh.',
-            'birthday.before'    => 'Bạn phải đủ 13 tuổi để đăng ký.',
             'password.required'  => 'Vui lòng nhập mật khẩu.',
             'password.min'       => 'Mật khẩu phải có ít nhất 8 ký tự.',
             'password.regex'     => 'Mật khẩu phải bao gồm cả chữ cái và số.',

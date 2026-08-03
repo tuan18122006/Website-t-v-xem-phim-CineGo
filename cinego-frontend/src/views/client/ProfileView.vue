@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="cinego-profile-container">
     <div class="cinego-main-header">
       <h2>THÔNG TIN CHUNG</h2>
@@ -49,6 +49,13 @@
             @click="activeTab = 'notifications'"
           >
             THÔNG BÁO
+          </button>
+          <button
+            class="cinego-menu-btn"
+            :class="{ active: activeTab === 'password' }"
+            @click="activeTab = 'password'"
+          >
+            ĐỔI MẬT KHẨU
           </button>
         </nav>
       </aside>
@@ -109,7 +116,7 @@
                     <div class="gmc-body" style="flex: 1;">
                       <span class="gmc-title">{{ profileForm.name }}</span>
                       <span class="gmc-email" style="display: block; margin-bottom: 12px;">{{ profileForm.email }}</span>
-                      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                      <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start;">
                         <span class="gmc-points" style="padding: 4px 6px; font-size: 11px;">💰 Chi tiêu: {{ formatPrice(loyaltyData.total_spent) }} đ</span>
                         <span class="gmc-points" style="padding: 4px 6px; font-size: 11px;">⭐ Điểm: {{ loyaltyData.loyalty_points || 0 }} P</span>
                       </div>
@@ -131,12 +138,12 @@
                 <div class="stat-col" style="height: 100%; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; background: #ffffff;">
                   <p class="stat-label">Voucher Đổi Được</p>
                   <p class="stat-value">{{ availableVouchersCount }}</p>
-                  <button class="btn-stat-view" @click="activeTab = 'loyalty'" style="align-self: flex-start; margin-top: auto;">Đổi ngay</button>
+                  <button class="btn-stat-view" @click="activeTab = 'loyalty'; loyaltySubTab = 'vouchers'" style="align-self: flex-start; margin-top: auto;">Đổi ngay</button>
                 </div>
                 <div class="stat-col" style="height: 100%; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; background: #ffffff;">
                   <p class="stat-label">Combo Đổi Được</p>
                   <p class="stat-value">{{ availableCombosCount }}</p>
-                  <button class="btn-stat-view" @click="activeTab = 'loyalty'" style="align-self: flex-start; margin-top: auto;">Đổi ngay</button>
+                  <button class="btn-stat-view" @click="activeTab = 'loyalty'; loyaltySubTab = 'combos'" style="align-self: flex-start; margin-top: auto;">Đổi ngay</button>
                 </div>
               </div>
             </div>
@@ -321,6 +328,39 @@
             </div>
           </div>
           
+          <!-- TAB ĐỔI MẬT KHẨU -->
+          <div v-if="activeTab === 'password'" class="cinego-section-block">
+            <div class="cinego-section-title">
+              <h3>Đổi mật khẩu</h3>
+            </div>
+            <div class="cinego-info-form professional-form" style="max-width: 600px; margin-top: 20px;">
+              <div class="form-group-custom">
+                <label class="form-label-custom">Mật khẩu hiện tại</label>
+                <input type="password" v-model="passwordForm.old_password" class="cinego-input" placeholder="Nhập mật khẩu hiện tại" />
+              </div>
+              
+              <div class="form-group-custom">
+                <label class="form-label-custom">Mật khẩu mới</label>
+                <input type="password" v-model="passwordForm.new_password" class="cinego-input" placeholder="Nhập mật khẩu mới (ít nhất 8 ký tự)" />
+              </div>
+              
+              <div class="form-group-custom">
+                <label class="form-label-custom">Xác nhận mật khẩu</label>
+                <input type="password" v-model="passwordForm.confirm_password" class="cinego-input" placeholder="Nhập lại mật khẩu mới" />
+              </div>
+              
+              <div v-if="passwordError" style="color: #dc2626; background: #fef2f2; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; border-left: 4px solid #dc2626;">
+                <i class="fi fi-rr-exclamation" style="margin-right: 5px;"></i> {{ passwordError }}
+              </div>
+              
+              <div style="text-align: right; margin-top: 10px;">
+                <button class="btn-cinego-main" @click="changePassword" :disabled="passwordLoading" style="padding: 12px 30px; border-radius: 8px; font-weight: bold; background: var(--accent-red); color: white; border: none; cursor: pointer; transition: all 0.2s;">
+                  {{ passwordLoading ? 'Đang xử lý...' : 'LƯU MẬT KHẨU' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div v-if="activeTab === 'notifications'" class="cinego-section-block">
             <div class="cinego-section-title">
               <h3>Thông báo của tôi</h3>
@@ -630,7 +670,7 @@
         >
           <p style="margin: 0 0 5px 0">
             Phòng: <strong>{{ selectedTicket?.room_name }}</strong> | Ghế:
-            <strong>{{ selectedTicket?.seats.join(", ") }}</strong>
+            <strong>{{ selectedTicket?.seats ? selectedTicket.seats.map((seat) => typeof seat === 'object' ? `${seat.row}${seat.number}` : seat).join(", ") : '' }}</strong>
           </p>
           <p style="margin: 0">
             Suất: <strong>{{ selectedTicket?.start_time }}</strong> - Ngày:
@@ -1167,15 +1207,15 @@ const availableCombosCount = computed(() => redeemableCombos.value.length);
 
 const filteredMyVouchers = computed(() => {
   if (voucherFilter.value === 'unused') {
-    return myVouchers.value.filter(v => v.pivot.status === 'unused');
+    return myVouchers.value.filter(v => !v.is_used && !v.is_expired);
   } else if (voucherFilter.value === 'used') {
-    return myVouchers.value.filter(v => v.pivot.status === 'used' || v.pivot.status === 'expired');
+    return myVouchers.value.filter(v => v.is_used || v.is_expired);
   }
   return myVouchers.value;
 });
 
 const unusedVoucherCount = computed(() => {
-  return myVouchers.value.filter(v => v.pivot.status === 'unused').length;
+  return myVouchers.value.filter(v => !v.is_used && !v.is_expired).length;
 });
 const loyaltySubTab = ref('vouchers');
 const voucherFilter = ref('unused');
@@ -1564,6 +1604,48 @@ const submitRefund = async () => {
   } catch (err) {
     console.error(err);
     toast(err.response?.data?.message || 'Có lỗi xảy ra, không thể gửi yêu cầu.', 'error');
+  }
+};
+
+const passwordForm = ref({
+  old_password: '',
+  new_password: '',
+  confirm_password: ''
+});
+const passwordError = ref('');
+const passwordLoading = ref(false);
+
+const changePassword = async () => {
+  if (!passwordForm.value.old_password || !passwordForm.value.new_password) {
+    passwordError.value = 'Vui lòng nhập đầy đủ thông tin!';
+    return;
+  }
+  if (passwordForm.value.new_password !== passwordForm.value.confirm_password) {
+    passwordError.value = 'Mật khẩu xác nhận không khớp!';
+    return;
+  }
+  if (passwordForm.value.new_password.length < 8) {
+    passwordError.value = 'Mật khẩu mới phải có ít nhất 8 ký tự!';
+    return;
+  }
+  
+  passwordError.value = '';
+  passwordLoading.value = true;
+  
+  try {
+    const res = await api.post('/profile/password', {
+      old_password: passwordForm.value.old_password,
+      new_password: passwordForm.value.new_password
+    });
+    
+    if (res.data.success) {
+      toast('Đổi mật khẩu thành công!', 'success');
+      passwordForm.value = { old_password: '', new_password: '', confirm_password: '' };
+    }
+  } catch (err) {
+    passwordError.value = err.response?.data?.message || 'Có lỗi xảy ra khi đổi mật khẩu.';
+  } finally {
+    passwordLoading.value = false;
   }
 };
 

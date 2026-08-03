@@ -2,23 +2,38 @@
   <div class="home-view">
     <!-- HERO SLIDER BANNER -->
     <header class="hero-slider">
-      <div v-for="(banner, idx) in banners" :key="banner.id" class="slide" :class="{ active: activeSlideIndex === idx }"
-        :style="{ backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.95) 35%, rgba(15, 23, 42, 0.6) 65%, rgba(15, 23, 42, 0.2) 100%), url(${banner.bg_url})` }">
-        <div class="slide-content">
-          <span class="slide-badge glow-text-pink">SIÊU PHẨM HOT TUẦN NÀY</span>
-          <h1 class="slide-title">{{ banner.title }}</h1>
+      <div v-for="(banner, idx) in banners" :key="banner.id"
+        class="slide" :class="{ active: activeSlideIndex === idx }">
 
-          <div class="slide-meta">
-            <span class="rating-badge-slide" :class="getRatingClass(banner.rating)">{{ banner.rating }}</span>
-            <span class="meta-item-slide">⏱️ {{ banner.duration }} phút</span>
-            <span class="meta-item-slide">📁 {{ banner.genres.join(', ') }}</span>
+        <!-- Nền mờ từ poster phim -->
+        <div class="slide-bg" :style="{ backgroundImage: `url(${banner.poster_url})` }"></div>
+        <!-- Lớp phủ gradient từ trái sang phải -->
+        <div class="slide-overlay"></div>
+
+        <!-- Nội dung bên trong -->
+        <div class="slide-inner">
+          <!-- Bên trái: Thông tin phim -->
+          <div class="slide-content">
+            <span class="slide-badge glow-text-pink">SIÊU PHẨM HOT TUẦN NÀY</span>
+            <h1 class="slide-title">{{ banner.title }}</h1>
+
+            <div class="slide-meta">
+              <span class="rating-badge-slide" :class="getRatingClass(banner.rating)">{{ banner.rating }}</span>
+              <span class="meta-item-slide">⏱️ {{ banner.duration }} phút</span>
+              <span class="meta-item-slide">📁 {{ banner.genres.join(', ') }}</span>
+            </div>
+
+            <p class="slide-desc">{{ banner.description }}</p>
+
+            <div class="slide-actions">
+              <button @click="goToDetail(banner.id)" class="btn-slide-book">ĐẶT VÉ NGAY</button>
+              <router-link to="/mua-ve" class="btn-slide-quick">Mua Vé Nhanh</router-link>
+            </div>
           </div>
 
-          <p class="slide-desc">{{ banner.description }}</p>
-
-          <div class="slide-actions">
-            <button @click="goToDetail(banner.id)" class="btn-slide-book">ĐẶT VÉ NGAY</button>
-            <router-link to="/mua-ve" class="btn-slide-quick">Mua Vé Nhanh</router-link>
+          <!-- Bên phải: Poster phim sắc nét -->
+          <div class="slide-poster-side">
+            <img :src="banner.poster_url" :alt="banner.title" class="slide-poster-img" />
           </div>
         </div>
       </div>
@@ -255,89 +270,25 @@ const genreList = ref([
 
 const featuredComments = ref([]);
 
-const allFeaturedComments = [
-  {
-    id: 'f-1',
-    movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
-    userName: 'Thanh Hòa',
-    timeAgo: '2 giờ trước',
-    rating: 5,
-    comment: 'Kỹ xảo cực đã, xem rạp xin luôn trải nghiệm này.'
-  },
-  {
-    id: 'f-2',
-    movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
-    userName: 'Minh Quân',
-    timeAgo: '4 giờ trước',
-    rating: 4,
-    comment: 'Cốt truyện phức tạp nhưng vẫn rất cuốn. Nên xem vài lần mới hiểu hết.'
-  },
-  {
-    id: 'f-3',
-    movieTitle: 'Avatar: Dòng Chảy Của Nước',
-    userName: 'Thu Trang',
-    timeAgo: '30 phút trước',
-    rating: 5,
-    comment: 'Màu sắc và không gian nước rất đẹp, như bước vào một thế giới khác.'
-  },
-  {
-    id: 'f-4',
-    movieTitle: 'Avatar: Dòng Chảy Của Nước',
-    userName: 'Phúc Lộc',
-    timeAgo: '1 giờ trước',
-    rating: 5,
-    comment: 'Cảnh hành động hoành tráng quá! Nhạc phim cũng rất phù hợp.'
-  },
-  {
-    id: 'f-5',
-    movieTitle: 'Kẻ Kiến Tạo (The Creator)',
-    userName: 'Hà Vy',
-    timeAgo: '15 phút trước',
-    rating: 4,
-    comment: 'Đề tài AI rất hợp thời, cảm xúc nhẹ nhàng mà vẫn sâu sắc.'
-  },
-  {
-    id: 'f-6',
-    movieTitle: 'Kẻ Kiến Tạo (The Creator)',
-    userName: 'Tuấn Anh',
-    timeAgo: '3 giờ trước',
-    rating: 5,
-    comment: 'Diễn xuất nhập vai, kịch bản có nhiều twist bất ngờ.'
-  },
-  {
-    id: 'f-7',
-    movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
-    userName: 'Lan Anh',
-    timeAgo: '2 ngày trước',
-    rating: 5,
-    comment: 'Thích nhất phần xây dựng đa vũ trụ, mọi thứ rất mượt.'
-  },
-  {
-    id: 'f-8',
-    movieTitle: 'Avatar: Dòng Chảy Của Nước',
-    userName: 'Phương Nam',
-    timeAgo: '5 giờ trước',
-    rating: 4,
-    comment: 'Tiết tấu vừa phải, phù hợp đi xem cùng gia đình.'
-  },
-  {
-    id: 'f-9',
-    movieTitle: 'Kẻ Kiến Tạo (The Creator)',
-    userName: 'Kim Ngọc',
-    timeAgo: '7 giờ trước',
-    rating: 5,
-    comment: 'Khoa học viễn tưởng và triết lý kết hợp rất tốt.'
+const fetchFeaturedComments = async () => {
+  try {
+    const res = await api.get('/reviews/featured');
+    const list = res.data?.data || [];
+    // filter 5 stars
+    const fiveStar = list.filter(r => Number(r.rating) === 5);
+    featuredComments.value = fiveStar.slice(0, 6).map((r, i) => ({
+      id: r.id,
+      movieTitle: r.movie?.title || 'Phim CineGo',
+      userName: r.user?.name || 'Khách CineGo',
+      timeAgo: timeAgo(r.created_at),
+      rating: 5,
+      comment: r.comment || '',
+    }));
+  } catch (e) {
+    console.error('Lỗi khi lấy bình luận tiêu biểu:', e);
   }
-];
-
-const shuffleArray = (arr) => {
-  const copy = [...arr];
-  for (let i = copy.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [copy[i], copy[j]] = [copy[j], copy[i]];
-  }
-  return copy;
 };
+
 
 const filters = ref({
   genre_id: '',
@@ -346,18 +297,39 @@ const filters = ref({
   keyword: ''
 });
 
-// Cấu hình Banners hiển thị trên cùng (Bạn có thể sửa text/ảnh tùy ý)
-const banners = ref([
-  {
-    id: 4,
-    title: 'Star Wars: Mandalorian',
-    bg_url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1600&q=80',
-    rating: 'T13',
-    duration: 145,
-    genres: ['Khoa Học Viễn Tưởng', 'Phiêu Lưu'],
-    description: 'Hành trình vượt qua các tinh vân xa xôi của thợ săn tiền thưởng Mandalorian.'
+const banners = ref([]);
+
+const fetchBanners = async () => {
+  try {
+    const res = await api.get('/banners/public');
+    const data = res.data.data;
+    if (data && data.length > 0) {
+      banners.value = data.map(b => ({
+        id: b.movie?.id || b.id,
+        title: b.movie?.title || 'CineGo',
+        poster_url: getPosterUrl(b.movie?.poster_url),
+        rating: b.movie?.rating || 'G',
+        duration: b.movie?.duration || 120,
+        genres: b.movie?.genres?.map(g => g.name) || [],
+        description: b.movie?.description || ''
+      }));
+    } else {
+      banners.value = [
+        {
+          id: 4,
+          title: 'Star Wars: Mandalorian',
+          poster_url: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=400&q=80',
+          rating: 'T13',
+          duration: 145,
+          genres: ['Khoa Học Viễn Tưởng', 'Phiêu Lưu'],
+          description: 'Hành trình vượt qua các tinh vân xa xôi của thợ săn tiền thưởng Mandalorian.'
+        }
+      ];
+    }
+  } catch (e) {
+    console.error('Lỗi lấy banners:', e);
   }
-]);
+};
 
 const nextSlide = () => {
   if (banners.value.length > 0) {
@@ -533,11 +505,20 @@ const getInitials = (name) => {
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
 };
 
-onMounted(() => {
-  featuredComments.value = shuffleArray(allFeaturedComments).slice(0, 5);
+onMounted(async () => {
+  await fetchBanners();
+  fetchFeaturedComments();
   fetchMovies();
   slideInterval = setInterval(nextSlide, 5000);
 });
+
+const timeAgo = (dt) => {
+  if (!dt) return '';
+  const diff = (Date.now() - new Date(dt).getTime()) / 1000;
+  if (diff < 3600) return Math.max(1, Math.floor(diff / 60)) + ' phút trước';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' giờ trước';
+  return Math.floor(diff / 86400) + ' ngày trước';
+};
 
 onUnmounted(() => {
   if (slideInterval) clearInterval(slideInterval);

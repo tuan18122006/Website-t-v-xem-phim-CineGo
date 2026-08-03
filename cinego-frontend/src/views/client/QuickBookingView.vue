@@ -59,7 +59,7 @@
           <div v-else class="movie-list">
             <div v-for="movie in movies" :key="movie.movie_id" class="movie-item">
               <div class="movie-poster-box" @click="goToDetail(movie.movie_id)">
-                <img :src="movie.poster_url" :alt="movie.title" class="movie-poster" />
+                <img :src="getPosterUrl(movie.poster_url)" :alt="movie.title" class="movie-poster" />
               </div>
               
               <div class="movie-info">
@@ -101,6 +101,14 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useBookingStore } from '../../stores/booking';
 import api from '../../api/axios';
+
+const getPosterUrl = (url) => {
+  if (!url) return 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=600&q=80';
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('blob:')) return url;
+  const cleanPath = url.replace(/^(.*\/storage\/)/, '');
+  return `http://127.0.0.1:8000/storage/${cleanPath}`;
+};
 
 const router = useRouter();
 const bookingStore = useBookingStore();
