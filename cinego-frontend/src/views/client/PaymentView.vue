@@ -72,65 +72,62 @@
           <div class="combo-tabs">
             <button type="button" :class="['tab-btn', { active: activeComboTab === 'buy' }]"
               @click="activeComboTab = 'buy'">
-               Combo bắp nước
+              🍿 Mua Bắp Nước
             </button>
             <button type="button" :class="['tab-btn', { active: activeComboTab === 'wallet' }]"
               @click="activeComboTab = 'wallet'">
-               Ví Quà Tặng ({{ walletCombos.length }})
+              🎁 Ví Quà Tặng ({{ walletCombos.length }})
             </button>
           </div>
 
-            <!-- TAB 1: MUA MỚI BẰNG TIỀN -->
-            <div v-if="activeComboTab === 'buy'">
-              <template v-if="loadingCombos">
-                <div v-for="i in 3" :key="i" class="combo-item glass-panel skeleton-card">
-                  <div class="skeleton skeleton-img"></div>
-                  <div class="combo-info">
-                    <div class="skeleton skeleton-title"></div>
-                    <div class="skeleton skeleton-text"></div>
-                    <div class="skeleton skeleton-price"></div>
-                  </div>
-                  <div class="combo-action">
-                    <div class="skeleton skeleton-btn"></div>
-                    <div class="skeleton skeleton-stock"></div>
-                  </div>
+          <!-- TAB 1: MUA MỚI BẰNG TIỀN -->
+          <div v-if="activeComboTab === 'buy'">
+            <template v-if="loadingCombos">
+              <div v-for="i in 3" :key="i" class="combo-item glass-panel skeleton-card">
+                <div class="skeleton skeleton-img"></div>
+                <div class="combo-info">
+                  <div class="skeleton skeleton-title"></div>
+                  <div class="skeleton skeleton-text"></div>
+                  <div class="skeleton skeleton-price"></div>
                 </div>
-              </template>
+                <div class="combo-action">
+                  <div class="skeleton skeleton-btn"></div>
+                  <div class="skeleton skeleton-stock"></div>
+                </div>
+              </div>
+            </template>
 
-             <div v-else class="combos-list">
-  <div v-for="combo in availableCombos" :key="combo.id" class="combo-item glass-panel">
-    <img :src="getComboImageUrl(combo.image_url)" :alt="combo.name" class="combo-img"
-      @error="handleComboImageError" />
+            <div v-else class="combos-list">
+              <div v-for="combo in availableCombos" :key="combo.id" class="combo-item glass-panel">
+                <img :src="getComboImageUrl(combo.image_url)" :alt="combo.name" class="combo-img"
+                  @error="handleComboImageError" />
 
-    <!-- Thông tin tên & mô tả -->
-    <div class="combo-info">
-      <h3 class="combo-name">{{ combo.name }}</h3>
-      <p class="combo-desc">{{ combo.description }}</p>
-    </div>
+                <div class="combo-info">
+                  <h3 class="combo-name">{{ combo.name }}</h3>
+                  <p class="combo-desc">{{ combo.description }}</p>
+                  <span class="combo-price">{{ formatCurrency(combo.price) }}</span>
+                </div>
 
-    <!-- Cụm bên phải: Giá tiền + Nút tăng giảm -->
-    <div class="combo-action">
-      <span class="combo-price">{{ formatCurrency(combo.price) }}</span>
-      
-      <div class="combo-controls">
-        <button @click="bookingStore.removeCombo(combo)" class="ctrl-btn">-</button>
-        <span class="ctrl-qty">{{ getComboQty(combo.id) }}</span>
-        <button @click="bookingStore.addCombo(combo)" class="ctrl-btn" :disabled="isMaxStock(combo)"
-          :title="isMaxStock(combo) ? 'Đã đạt số lượng tồn kho' : ''">
-          +
-        </button>
-      </div>
-
-      <small :class="{
-        'stock-info': getRemainingStock(combo) > 3,
-        'stock-low': getRemainingStock(combo) <= 3 && !isMaxStock(combo),
-        'stock-warning': isMaxStock(combo)
-      }">
-      </small>
-    </div>
-  </div>
-</div>
-</div>
+                <div class="combo-action">
+                  <div class="combo-controls">
+                    <button @click="bookingStore.removeCombo(combo)" class="ctrl-btn">-</button>
+                    <span class="ctrl-qty">{{ getComboQty(combo.id) }}</span>
+                    <button @click="bookingStore.addCombo(combo)" class="ctrl-btn" :disabled="isMaxStock(combo)"
+                      :title="isMaxStock(combo) ? 'Đã đạt số lượng tồn kho' : ''">
+                      +
+                    </button>
+                  </div>
+                  <small :class="{
+                    'stock-info': getRemainingStock(combo) > 3,
+                    'stock-low': getRemainingStock(combo) <= 3 && !isMaxStock(combo),
+                    'stock-warning': isMaxStock(combo)
+                  }">
+                    {{ isMaxStock(combo) ? 'Đã đạt số lượng tối đa' : `Còn lại ${getRemainingStock(combo)} Combo` }}
+                  </small>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- TAB 2: VÍ QUÀ TẶNG -->
           <div v-if="activeComboTab === 'wallet'">
@@ -429,10 +426,10 @@ const paymentMethods = [
     icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7000ff" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>',
   },
   {
-    id: "momo",
-    name: "Ví điện tử MoMo",
-    desc: "Thanh toán bảo mật tức thì bằng app MoMo siêu tốc",
-    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff007f" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>',
+    id: "bank_transfer",
+    name: "Chuyển khoản Ngân hàng (Quét mã VietQR)",
+    desc: "Quét mã QR bằng ứng dụng ngân hàng, an toàn và tiện lợi",
+    icon: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00bfff" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><path d="M7 7h3v3H7z"></path><path d="M14 7h3v3h-3z"></path><path d="M7 14h3v3H7z"></path><path d="M14 14h3v3h-3z"></path></svg>',
   },
 ];
 
@@ -613,9 +610,9 @@ onMounted(() => {
 
 .combo-item {
   display: flex;
+  padding: 16px;
+  gap: 20px;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
 }
 
 .btn-cancel-payment {
@@ -651,28 +648,26 @@ onMounted(() => {
 }
 
 .combo-info {
-  flex: 1; 
-  display: flex;
-  flex-direction: column;
+  flex: 1;
 }
 
 .combo-name {
+  font-size: 15px;
   font-weight: 700;
-  color: #000;
-  margin: 0 0 4px 0;
+  margin-bottom: 4px;
 }
 
 .combo-desc {
-  color: #666;
-  font-size: 0.85rem;
-  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  margin-bottom: 6px;
 }
 
-.combo-price.combo-price {
-  color: #000000;
+.combo-price {
+  color: var(--accent-pink);
   font-weight: 700;
-  font-size: 1rem;
-  white-space: nowrap; 
+  font-size: 14px;
 }
 
 .combo-controls {
@@ -1086,8 +1081,10 @@ onMounted(() => {
 
 .combo-action {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px; 
+  gap: 8px;
+  min-width: 170px;
 }
 
 .stock-info {
