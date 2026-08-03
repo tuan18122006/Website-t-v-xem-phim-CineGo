@@ -28,14 +28,45 @@
           <span>Quản Lý Thể Loại</span>
         </button>
 
-        <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'movies' }" 
-          @click="activeTab = 'movies'"
-        >
-          <span class="nav-icon">🎬</span>
-          <span>Quản Lý Phim</span>
-        </button>
+        <!-- MOVIES DROPDOWN -->
+        <div class="nav-dropdown">
+          <button
+            class="nav-link dropdown-toggle"
+            :class="{
+              active: activeTab === 'movies' || activeTab === 'banners',
+            }"
+            @click="movieMenuOpen = !movieMenuOpen"
+          >
+            <div class="dropdown-left">
+              <span class="nav-icon">🎬</span>
+              <span>Quản Lý Phim</span>
+            </div>
+
+            <span class="dropdown-arrow" :class="{ open: movieMenuOpen }">
+              ▼
+            </span>
+          </button>
+
+          <transition name="dropdown">
+            <div v-show="movieMenuOpen" class="dropdown-content">
+              <button
+                class="sub-nav-link"
+                :class="{ active: activeTab === 'movies' }"
+                @click="activeTab = 'movies'"
+              >
+                🎬 Danh sách phim
+              </button>
+
+              <button
+                class="sub-nav-link"
+                :class="{ active: activeTab === 'banners' }"
+                @click="activeTab = 'banners'"
+              >
+                🖼️ Quản lý Banner
+              </button>
+            </div>
+          </transition>
+        </div>
         
         <button 
           class="nav-link" 
@@ -89,6 +120,14 @@
                 @click="activeTab = 'scan'"
               >
                 📷 Quét mã QR / Soát vé
+              </button>
+
+              <button
+                class="sub-nav-link"
+                :class="{ active: activeTab === 'payment_settings' }"
+                @click="activeTab = 'payment_settings'"
+              >
+                ⚙️ Cấu hình thanh toán
               </button>
             </div>
           </transition>
@@ -406,6 +445,11 @@
         <MoviesView />
       </div>
 
+      <!-- TAB: BANNERS -->
+      <div v-if="activeTab === 'banners'" class="view-content">
+        <BannerManagement />
+      </div>
+
         <!-- TAB 3: DYNAMIC SHOWTIMES CRUD -->
         <div v-if="activeTab === 'showtimes'">
           <ShowtimesView />
@@ -424,6 +468,12 @@
         <!-- TAB: QUÉT MÃ QR -->
         <div v-if="activeTab === 'scan'">
           <TicketScannerView />
+        </div>
+
+        <!-- TAB: PAYMENT SETTINGS -->
+        <div v-if="activeTab === 'payment_settings'">
+          <PaymentSettingsView />
+          <p class="text-muted" style="margin-top: 15px; font-size: 0.9em;">Cấu hình cổng thanh toán và phương thức giao dịch cho hệ thống rạp.</p>
         </div>
 
       <!-- TAB: QUẢN LÝ RẠP & GHẾ -->
@@ -470,8 +520,6 @@
         <div v-if="activeTab === 'loyalty'" class="dashboard-tab-content" style="background: white; border-radius: 12px; min-height: 500px;">
           <UserLoyaltyManager />
         </div>
-
-        <!-- TAB: COMBO MANAGEMENT -->
      
       <!-- MODALS CA TRỰC -->
       <div v-if="isCheckinModalOpen" class="modal-overlay" @click.self="isCheckinModalOpen = false">
@@ -520,6 +568,7 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import api from '../../api/axios';
 import MoviesView from './MoviesView.vue';
+import BannerManagement from './BannerManagement.vue';
 import ShowtimesView from './ShowtimesView.vue';
 import GenreManagement from './GenreManagement.vue';
 import UserManagement from './UserManagement.vue';
@@ -536,6 +585,7 @@ import BookingLookupView from "./BookingLookupView.vue";
 import OrderManagementView from "./OrderManagementView.vue";
 import TicketScannerView from "./TicketScannerView.vue";
 import UserLoyaltyManager from './UserLoyaltyManager.vue';
+import PaymentSettingsView from './PaymentSettingsView.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
@@ -591,6 +641,10 @@ const blogMenuOpen = ref(
   activeTab.value === 'blogs' || activeTab.value === 'blog-categories'
 );
 
+const movieMenuOpen = ref(
+  activeTab.value === 'movies' || activeTab.value === 'banners'
+);
+
 const orderMenuOpen = ref(
   activeTab.value === 'orders' || activeTab.value === 'lookup' || activeTab.value === 'scan'
 );
@@ -599,6 +653,9 @@ watch(activeTab, (newVal) => {
   localStorage.setItem('admin_active_tab', newVal);
   if (newVal !== 'blogs' && newVal !== 'blog-categories') {
     blogMenuOpen.value = false;
+  }
+  if (newVal !== 'movies' && newVal !== 'banners') {
+    movieMenuOpen.value = false;
   }
   if (newVal !== 'orders' && newVal !== 'lookup' && newVal !== 'scan') {
     orderMenuOpen.value = false;
@@ -665,14 +722,17 @@ const chart = computed(() => {
 
 const getTabTitle = computed(() => {
   const titles = {
-    stats: 'Dashboard Quản Trị Hệ Thống',
-    movies: 'Quản Lý Danh Sách Phim',
-    showtimes: 'Quản Lý Suất Chiếu & Lịch Trình',
+    stats: 'Dashboard Tổng Quan',
+    movies: 'Danh Sách Phim',
+    banners: 'Quản Lý Banner Trang Chủ',
+    showtimes: 'Quản Lý Lịch Chiếu & Lịch Trình',
     rooms: 'Quản Lý Phòng Chiếu & Ghế',
     genres: 'Quản Lý Thể Loại Phim',
     users: 'Quản Lý Tài Khoản & Phân Quyền',
     orders: 'Quản Lý Đơn Hàng',
     lookup: 'Tra Cứu Đơn Hàng & Hỗ Trợ Khách',
+    scan: 'Quét mã QR soát vé',
+    payment_settings: 'Cấu hình thông tin tài khoản nhận tiền',
     combos: 'Quản Lý Combo và Đồ ăn',
     vouchers: 'Quản Lý Mã Giảm Giá (Vouchers)',
     reviews: 'Kiểm Duyệt Đánh Giá & Bình Luận',
@@ -690,12 +750,15 @@ const getTabDesc = computed(() => {
   const descs = {
     stats: 'Xem tổng quan báo cáo doanh thu kinh doanh và biểu đồ tăng trưởng hệ thống CineGo.',
     movies: 'Quản lý phim đang chiếu, sắp chiếu, cấu hình các thể loại phim và hình ảnh poster.',
+    banners: 'Quản lý cấu hình banner trang chủ',
     showtimes: 'Quản lý lịch chiếu các phòng chiếu, kiểm tra phòng và dịch thuật, định dạng 2D/3D.',
     rooms: 'Thiết kế trực quan sơ đồ không gian rạp, quản lý các loại ghế (Thường, VIP, Đôi) và lối đi.',
     genres: 'Quản lý danh mục thể loại phim của hệ thống CineGo.',
     users: 'Thêm, sửa, phân quyền (Admin/Staff/User) và khóa/mở khóa tài khoản người dùng.',
     orders: 'Xem, lọc và tra cứu đơn hàng theo thời gian, phim và loại khách để quản lý bán vé hiệu quả.',
     lookup: 'Tìm đơn theo SĐT/email/mã đơn khi khách quên mã vé, xem ghế & bắp nước đã mua để hỗ trợ.',
+    scan: 'Sử dụng camera hoặc nhập mã thủ công để kiểm tra tính hợp lệ của vé và soát vé cho khách.',
+    payment_settings: 'Cài đặt mã ngân hàng, số tài khoản để nhận tiền thanh toán mã QR từ khách hàng.',
     combos: 'Thêm, sửa, xóa, combo và đồ ăn kiểm kê số lượng tồn trong kho',
     vouchers: 'Tạo mã giảm giá, giới hạn số lần dùng, thiết lập điều kiện tối thiểu.',
     reviews: 'Xem toàn bộ bình luận, lọc theo sao/phim/từ khóa, ẩn - ghim - phản hồi - xóa bình luận.',

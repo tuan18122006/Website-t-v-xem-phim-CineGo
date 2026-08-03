@@ -565,8 +565,16 @@ const validateSeatSelection = () => {
     return false;
   }
 
+  // Bỏ qua luật "không để trống 1 ghế" nếu khách chỉ đặt 1 ghế duy nhất
+  if (bookingStore.selectedSeats.length < 2) {
+    return true;
+  }
+
   const rows = {};
   mappedSeats.value.forEach(seat => {
+    // Chỉ đưa các ghế thật (standard, vip, couple) vào lưới duyệt luật "chống để trống"
+    if (!['standard', 'vip', 'couple'].includes(seat.type)) return;
+
     if (!rows[seat.row]) rows[seat.row] = [];
     rows[seat.row].push(seat);
   });

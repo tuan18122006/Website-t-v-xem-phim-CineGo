@@ -17,6 +17,8 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
 
+    protected $appends = ['status'];
+
     /**
      * The attributes that are mass assignable.
      *
@@ -40,6 +42,11 @@ class User extends Authenticatable
         'avatar_url',
         'birthday',
     ];
+
+    public function getStatusAttribute()
+    {
+        return $this->lock_reason === null ? 'active' : 'locked';
+    }
 
     public function pointHistories(): HasMany
     {

@@ -955,6 +955,9 @@ const validateForm = () => {
   if (!form.value.name || form.value.name.trim() === '') {
     errors.value.name = ['Vui lòng nhập họ và tên.'];
     isValid = false;
+  } else if (form.value.name.length > 20) {
+    errors.value.name = ['Tên không được vượt quá 20 ký tự.'];
+    isValid = false;
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -985,20 +988,33 @@ const submitForm = async () => {
   if (!validateForm()) return;
 
   loading.value = true; error.value = null;
+  
+  // Chuẩn hóa dữ liệu trước khi gửi (tránh lỗi validate chuỗi rỗng)
+  const payload = { ...form.value };
+  if (payload.password === '') delete payload.password;
+  if (payload.age === '') payload.age = null;
+
   try {
     if (isEdit.value) {
       // Cập nhật lướt qua (Optimistic cho Edit)
       const u = allUsers.value.find(user => user.id === editingId.value);
       if (u) {
-        u.name = form.value.name;
-        u.phone = form.value.phone;
+        u.name = payload.name;
+        u.phone = payload.phone;
+        u.status = payload.status;
+        u.role = payload.role;
+        u.email = payload.email;
       }
-      await api.put(`/admin/users/${editingId.value}`, form.value);
+      await api.put(`/admin/users/${editingId.value}`, payload);
+      toast('Cập nhật tài khoản thành công!');
     }
-    else await api.post('/admin/users', form.value);
+    else {
+        await api.post('/admin/users', payload);
+        toast('Tạo tài khoản thành công!');
+    }
     
+    await fetchUsers(); // Đợi fetch xong mới đóng modal
     closeModal();
-    fetchUsers(); // Sync ngầm
 
   } catch (err) {
     error.value = err.response?.data?.message

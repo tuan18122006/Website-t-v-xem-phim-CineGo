@@ -202,4 +202,103 @@ public function history(Request $request)
             'data'    => $formattedTickets
         ], 200);
     }
+
+    /**
+     * Admin: Lấy danh sách toàn bộ đơn hàng
+     */
+    public function index(Request $request)
+    {
+        $query = Booking::with([
+            'user:id,name,email,phone',
+            'showtime.movie:id,title',
+            'showtime.room:id,name'
+        ])->orderBy('id', 'desc');
+
+        // Lọc theo trạng thái
+        if ($request->has('status') && $request->status !== '') {
+            $query->where('payment_status', $request->status);
+        }
+
+        // Tìm kiếm theo mã đơn hoặc số điện thoại
+        if ($request->has('search') && $request->search !== '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('booking_code', 'like', '%' . $search . '%')
+                  ->orWhereHas('user', function($userQuery) use ($search) {
+                      $userQuery->where('phone', 'like', '%' . $search . '%')
+                                ->orWhere('email', 'like', '%' . $search . '%');
+                  });
+            });
+        }
+
+        $bookings = $query->paginate($request->get('per_page', 15));
+
+        return response()->json([
+            'success' => true,
+            'data'    => $bookings
+        ]);
+    }
+
+    /**
+     * Admin: Cập nhật trạng thái đơn hàng (để duyệt đơn VietQR)
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|string|in:pending,paid,cancelled'
+        ]);
+
+        $booking = Booking::with('user')->findOrFail($id);
+
+        $oldStatus = $booking->payment_status;
+        $newStatus = $request->status;
+
+        $booking->payment_status = $newStatus;
+        $booking->save();
+
+        // Nếu trạng thái từ pending -> paid, cộng điểm loyalty và gửi mail
+        if ($oldStatus === 'pending' && $newStatus === 'paid') {
+            if ($booking->user) {
+                $this->loyaltyService->processBookingPoints(
+                    $booking->user,
+                    $booking->total_amount,
+                    $booking
+                );
+
+                try {
+                    if ($booking->user->email) {
+                        \Illuminate\Support\Facades\Mail::to($booking->user->email)
+                            ->send(new \App\Mail\BookingSuccessMail($booking));
+                    }
+                } catch (\Exception $mailEx) {
+                    \Illuminate\Support\Facades\Log::error('Failed to send booking success email on manual approval: ' . $mailEx->getMessage());
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Cập nhật trạng thái thành công',
+            'data'    => $booking
+        ]);
+    }
+
+    /**
+     * User: Lấy chi tiết 1 đơn hàng (để hiển thị mã QR)
+     */
+    public function show($id)
+    {
+        $booking = Booking::with([
+            'showtime.movie:id,title',
+            'showtime.room:id,name',
+            'bookingDetails.seat:id,row,number',
+            'bookingCombos.combo:id,name'
+        ])->where('user_id', auth()->id())
+          ->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $booking
+        ]);
+    }
 }
