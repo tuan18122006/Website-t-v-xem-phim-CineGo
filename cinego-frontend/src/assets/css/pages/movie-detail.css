@@ -861,8 +861,215 @@
 }
 
 .no-reviews {
+border-radius: 999px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.review-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.sample-reviews-section {
+  margin-top: 24px;
+  padding: 22px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+}
+
+.sample-reviews-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 18px;
+  color: #f8fafc;
+}
+
+.sample-reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.sample-review-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(248, 250, 252, 0.04));
+  border: 1px solid rgba(59, 130, 246, 0.16);
+  border-radius: 22px;
+  padding: 18px;
+}
+
+.sample-review-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.sample-user-meta {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.sample-user-avatar-text {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #ffffff;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  box-shadow: 0 10px 20px rgba(236, 72, 153, 0.18);
+}
+
+.sample-review-user {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.sample-review-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.sample-review-date {
+  font-size: 13px;
+  color: #e2e8f0;
+}
+
+.sample-review-rating-badge {
+  background: linear-gradient(135deg, #f97316, #f59e0b);
+  color: #fff;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sample-review-stars {
+  display: flex;
+  gap: 2px;
+  margin-top: 8px;
+}
+
+.sample-star-filled { color: #facc15; font-size: 14px; }
+.sample-star-empty { color: rgba(248, 250, 252, 0.46); font-size: 14px; }
+
+.sample-review-text {
+  color: #f1f5f9;
+  font-size: 14px;
+  line-height: 1.8;
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .sample-reviews-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sample-reviews-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 18px;
+  color: #ffffff;
+}
+
+.sample-reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.sample-review-card {
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid rgba(96, 165, 250, 0.18);
+  border-radius: 26px;
+  padding: 20px;
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.14);
+}
+
+.sample-review-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.sample-user-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sample-user-avatar-text {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #ffffff;
+  background: linear-gradient(135deg, #ec4899, #8b5cf6);
+  box-shadow: 0 12px 30px rgba(236, 72, 153, 0.18);
+}
+
+.sample-review-user {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.sample-review-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.sample-review-date {
+  font-size: 13px;
+  color: rgba(248, 250, 252, 0.72);
+}
+
+.sample-review-rating-badge {
+  background: linear-gradient(135deg, #f97316, #f59e0b);
+  color: #fff;
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.no-reviews {
   text-align: center;
   color: var(--text-muted);
   padding: 20px;
   font-size: 14px;
+}
+
+@keyframes blinkHighlight {
+  0% { background-color: rgba(229, 9, 20, 0.2); transform: scale(1.02); }
+  50% { background-color: transparent; transform: scale(1); }
+  100% { background-color: rgba(229, 9, 20, 0.2); transform: scale(1.02); }
+}
+
+.highlight-blink {
+  animation: blinkHighlight 0.5s ease-in-out 4 alternate;
+  border: 1px solid var(--accent-pink);
+  box-shadow: 0 0 15px rgba(229, 9, 20, 0.15);
 }
