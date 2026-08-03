@@ -622,7 +622,11 @@ const validateSeatSelection = () => {
 const proceedToPayment = () => {
   if (bookingStore.selectedSeats.length > 0) {
     if (validateSeatSelection()) {
-      router.push("/booking/payment");
+      if (route.query.mode === 'pos') {
+        router.push({ path: '/staff/pos/checkout' });
+      } else {
+        router.push("/booking/payment");
+      }
     }
   }
 };
