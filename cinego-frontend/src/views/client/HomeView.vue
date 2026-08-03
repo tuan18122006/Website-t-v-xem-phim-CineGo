@@ -2,23 +2,38 @@
   <div class="home-view">
     <!-- HERO SLIDER BANNER -->
     <header class="hero-slider">
-      <div v-for="(banner, idx) in banners" :key="banner.id" class="slide" :class="{ active: activeSlideIndex === idx }"
-        :style="{ backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.95) 35%, rgba(15, 23, 42, 0.6) 65%, rgba(15, 23, 42, 0.2) 100%), url(${banner.bg_url})` }">
-        <div class="slide-content">
-          <span class="slide-badge glow-text-pink">SIÊU PHẨM HOT TUẦN NÀY</span>
-          <h1 class="slide-title">{{ banner.title }}</h1>
+      <div v-for="(banner, idx) in banners" :key="banner.id"
+        class="slide" :class="{ active: activeSlideIndex === idx }">
 
-          <div class="slide-meta">
-            <span class="rating-badge-slide" :class="getRatingClass(banner.rating)">{{ banner.rating }}</span>
-            <span class="meta-item-slide">⏱️ {{ banner.duration }} phút</span>
-            <span class="meta-item-slide">📁 {{ banner.genres.join(', ') }}</span>
+        <!-- Nền mờ từ poster phim -->
+        <div class="slide-bg" :style="{ backgroundImage: `url(${banner.poster_url})` }"></div>
+        <!-- Lớp phủ gradient từ trái sang phải -->
+        <div class="slide-overlay"></div>
+
+        <!-- Nội dung bên trong -->
+        <div class="slide-inner">
+          <!-- Bên trái: Thông tin phim -->
+          <div class="slide-content">
+            <span class="slide-badge glow-text-pink">SIÊU PHẨM HOT TUẦN NÀY</span>
+            <h1 class="slide-title">{{ banner.title }}</h1>
+
+            <div class="slide-meta">
+              <span class="rating-badge-slide" :class="getRatingClass(banner.rating)">{{ banner.rating }}</span>
+              <span class="meta-item-slide">⏱️ {{ banner.duration }} phút</span>
+              <span class="meta-item-slide">📁 {{ banner.genres.join(', ') }}</span>
+            </div>
+
+            <p class="slide-desc">{{ banner.description }}</p>
+
+            <div class="slide-actions">
+              <button @click="goToDetail(banner.id)" class="btn-slide-book">ĐẶT VÉ NGAY</button>
+              <router-link to="/mua-ve" class="btn-slide-quick">Mua Vé Nhanh</router-link>
+            </div>
           </div>
 
-          <p class="slide-desc">{{ banner.description }}</p>
-
-          <div class="slide-actions">
-            <button @click="goToDetail(banner.id)" class="btn-slide-book">ĐẶT VÉ NGAY</button>
-            <router-link to="/mua-ve" class="btn-slide-quick">Mua Vé Nhanh</router-link>
+          <!-- Bên phải: Poster phim sắc nét -->
+          <div class="slide-poster-side">
+            <img :src="banner.poster_url" :alt="banner.title" class="slide-poster-img" />
           </div>
         </div>
       </div>
@@ -167,7 +182,7 @@
         </div>
 
         <div v-else class="cg-filter-movies-grid">
-          <div v-for="movie in filteredMovies" :key="'filter-' + movie.id" class="cg-filter-movie-card">
+          <div v-for="movie in paginatedMovies" :key="'filter-' + movie.id" class="cg-filter-movie-card">
             <div class="cg-filter-poster-box">
               <img :src="getPosterUrl(movie.poster_url)" :alt="movie.title" class="cg-filter-movie-poster" @click="goToDetail(movie.id)" />
               <div class="cg-filter-play-overlay" @click="goToDetail(movie.id)">
@@ -184,6 +199,58 @@
               <p class="cg-filter-movie-genres">
                 {{ movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Hành động' }}
               </p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Pagination Controls -->
+        <div class="reviews-pager" v-if="totalPages > 1 && !filterLoading">
+          <button @click="prevPage" :disabled="currentPage === 1">Trang trước</button>
+          <span>Trang {{ currentPage }} / {{ totalPages }}</span>
+          <button @click="nextPage" :disabled="currentPage === totalPages">Trang sau</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="home-featured-comments-section">
+      <div class="home-featured-comments-container">
+        <h2 class="home-featured-comments-title">Bình luận tiêu biểu</h2>
+        <div class="home-featured-comments-grid">
+          <div v-for="review in featuredComments" :key="review.id" class="review-card glass-panel">
+            <!-- Movie Trailer Preview Area -->
+            <div class="movie-preview-box" @click="goToDetailWithReview(review.movieId, review.id)" style="cursor: pointer;">
+              <img :src="review.moviePoster" :alt="review.movieTitle" class="movie-backdrop-img" />
+              <div class="overlay-gradient"></div>
+              
+              <!-- Play Button -->
+              <button class="btn-play-preview" title="Xem trailer review" @click.stop="openTrailer(review.trailerUrl)">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+              </button>
+              
+              <span class="movie-rating-pill">⭐ {{ review.rating }}/5</span>
+              <span v-if="review.duration" class="movie-duration-pill">{{ review.duration }} phút</span>
+            </div>
+            
+            <!-- Card Info -->
+            <div class="review-card-body" @click="goToDetailWithReview(review.movieId, review.id)" style="cursor: pointer;">
+              <h3 class="movie-title">{{ review.movieTitle }}</h3>
+              
+              <div class="user-comment-wrap">
+                <div class="user-meta">
+                  <div class="user-meta-header" style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                    <span class="user-avatar" :style="{ background: review.avatarColor }">{{ review.userInitials }}</span>
+                    <div class="user-info-text">
+                      <h4 class="user-name">{{ review.userName }}</h4>
+                      <small class="comment-time">{{ review.timeAgo }}</small>
+                    </div>
+                  </div>
+                  <!-- Verification Badge -->
+                  <span class="verified-buyer-badge" style="width: fit-content; margin-top: 8px; align-self: flex-start;">✓ Đã mua vé qua CineGo</span>
+                </div>
+                <p class="user-comment-text">"{{ review.comment }}"</p>
+              </div>
             </div>
           </div>
         </div>
@@ -222,6 +289,21 @@ const currentTrailerUrl = ref('');
 const movies = ref([]); 
 const filteredMovies = ref([]);
 
+const currentPage = ref(1);
+const itemsPerPage = 8; // Hoặc 10, 12 tùy thiết kế
+
+const paginatedMovies = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return filteredMovies.value.slice(start, start + itemsPerPage);
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredMovies.value.length / itemsPerPage);
+});
+
+const prevPage = () => { if (currentPage.value > 1) currentPage.value--; };
+const nextPage = () => { if (currentPage.value < totalPages.value) currentPage.value++; };
+
 const loading = ref(false);
 const filterLoading = ref(false);
 const genreList = ref([
@@ -232,6 +314,35 @@ const genreList = ref([
   { id: 5, name: 'Phiêu Lưu' }
 ]);
 
+const featuredComments = ref([]);
+
+const fetchFeaturedComments = async () => {
+  try {
+    const res = await api.get('/reviews/featured');
+    const list = res.data?.data || [];
+    // filter 5 stars
+    const fiveStar = list.filter(r => Number(r.rating) === 5);
+    featuredComments.value = fiveStar.slice(0, 6).map((r, i) => ({
+      id: r.id,
+      movieId: r.movie?.id,
+      movieTitle: r.movie?.title || 'Phim CineGo',
+      moviePoster: getPosterUrl(r.movie?.poster_url),
+      duration: r.movie?.duration || '',
+      genres: r.movie?.genres?.map(g => g.name) || [],
+      rating: Number(r.rating || 0).toFixed(1),
+      userName: r.user?.name || 'Khách CineGo',
+      userInitials: getInitials(r.user?.name),
+      avatarColor: ['linear-gradient(135deg, #e50914, #9b000e)', 'linear-gradient(135deg, #7c4dff, #512da8)', 'linear-gradient(135deg, #00bcd4, #00838f)', 'linear-gradient(135deg, #ff9800, #e65100)'][i % 4],
+      timeAgo: timeAgo(r.created_at),
+      comment: r.comment || '',
+      trailerUrl: r.movie?.trailer_url,
+    }));
+  } catch (e) {
+    console.error('Lỗi khi lấy bình luận tiêu biểu:', e);
+  }
+};
+
+
 const filters = ref({
   genre_id: '',
   country: '',
@@ -239,18 +350,39 @@ const filters = ref({
   keyword: ''
 });
 
-// Cấu hình Banners hiển thị trên cùng (Bạn có thể sửa text/ảnh tùy ý)
-const banners = ref([
-  {
-    id: 4,
-    title: 'Star Wars: Mandalorian',
-    bg_url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1600&q=80',
-    rating: 'T13',
-    duration: 145,
-    genres: ['Khoa Học Viễn Tưởng', 'Phiêu Lưu'],
-    description: 'Hành trình vượt qua các tinh vân xa xôi của thợ săn tiền thưởng Mandalorian.'
+const banners = ref([]);
+
+const fetchBanners = async () => {
+  try {
+    const res = await api.get('/banners/public');
+    const data = res.data.data;
+    if (data && data.length > 0) {
+      banners.value = data.map(b => ({
+        id: b.movie?.id || b.id,
+        title: b.movie?.title || 'CineGo',
+        poster_url: getPosterUrl(b.movie?.poster_url),
+        rating: b.movie?.rating || 'G',
+        duration: b.movie?.duration || 120,
+        genres: b.movie?.genres?.map(g => g.name) || [],
+        description: b.movie?.description || ''
+      }));
+    } else {
+      banners.value = [
+        {
+          id: 4,
+          title: 'Star Wars: Mandalorian',
+          poster_url: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=400&q=80',
+          rating: 'T13',
+          duration: 145,
+          genres: ['Khoa Học Viễn Tưởng', 'Phiêu Lưu'],
+          description: 'Hành trình vượt qua các tinh vân xa xôi của thợ săn tiền thưởng Mandalorian.'
+        }
+      ];
+    }
+  } catch (e) {
+    console.error('Lỗi lấy banners:', e);
   }
-]);
+};
 
 const nextSlide = () => {
   if (banners.value.length > 0) {
@@ -356,12 +488,19 @@ const goToDetail = (id) => {
   router.push(`/movie/${id}`);
 };
 
+const goToDetailWithReview = (movieId, reviewId) => {
+  if (movieId) {
+    router.push({ path: `/movie/${movieId}`, query: { reviewId: reviewId } });
+  }
+};
+
 const fetchFilteredMovies = async () => {
   filterLoading.value = true;
   try {
     const response = await api.get('/movies/search', { params: filters.value });
     const resData = response.data?.data || response.data;
     filteredMovies.value = resData || [];
+    currentPage.value = 1; // Reset to page 1 on new search
   } catch (error) {
     console.error('Lỗi tìm kiếm từ DB:', error);
     filteredMovies.value = [];
@@ -419,10 +558,27 @@ const scrollUpcoming = (direction) => {
   }
 };
 
-onMounted(() => {
+const getInitials = (name) => {
+  if (!name) return 'U';
+  const parts = name.trim().split(' ').filter(Boolean);
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+};
+
+onMounted(async () => {
+  await fetchBanners();
+  fetchFeaturedComments();
   fetchMovies();
   slideInterval = setInterval(nextSlide, 5000);
 });
+
+const timeAgo = (dt) => {
+  if (!dt) return '';
+  const diff = (Date.now() - new Date(dt).getTime()) / 1000;
+  if (diff < 3600) return Math.max(1, Math.floor(diff / 60)) + ' phút trước';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' giờ trước';
+  return Math.floor(diff / 86400) + ' ngày trước';
+};
 
 onUnmounted(() => {
   if (slideInterval) clearInterval(slideInterval);
@@ -433,4 +589,119 @@ onUnmounted(() => {
 
 <style scoped>
 @import '../../assets/css/pages/home-view.css';
+
+.home-featured-comments-section {
+  padding: 48px 0 28px;
+  background: radial-gradient(circle at top left, rgba(96, 165, 250, 0.16), transparent 34%),
+    radial-gradient(circle at top right, rgba(236, 72, 153, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 1) 100%);
+}
+
+.home-featured-comments-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.home-featured-comments-title {
+  font-size: 30px;
+  font-weight: 900;
+  color: #dc2626;
+  margin-bottom: 22px;
+  letter-spacing: -0.04em;
+  text-shadow: 0 4px 18px rgba(220, 38, 38, 0.12);
+}
+
+.home-featured-comments-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.home-featured-comment-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(252, 232, 255, 0.92));
+  border: 1px solid rgba(168, 85, 247, 0.24);
+  border-radius: 32px;
+  box-shadow: 0 20px 55px rgba(59, 130, 246, 0.14);
+  padding: 28px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.home-featured-comment-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 28px 78px rgba(59, 130, 246, 0.22);
+}
+
+.comment-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.comment-user-block {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.comment-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ec4899 0%, #f97316 100%);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 14px;
+  box-shadow: 0 12px 28px rgba(236, 72, 153, 0.18);
+}
+
+.comment-movie {
+  font-size: 15px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0 0 6px;
+}
+
+.comment-user {
+  font-size: 13px;
+  color: #7c3aed;
+  margin: 0;
+}
+
+.comment-rating {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  height: 36px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ec4899 0%, #f59e0b 100%);
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.comment-text {
+  color: #334155;
+  font-size: 15px;
+  line-height: 1.9;
+  margin: 0;
+}
+
+@media (max-width: 1024px) {
+  .home-featured-comments-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .home-featured-comments-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

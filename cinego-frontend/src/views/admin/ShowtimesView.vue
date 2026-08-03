@@ -29,7 +29,7 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 10px;">
+        <div style="display: flex; gap: 10px; flex-shrink: 0;">
           <button class="stv-hero__cta" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white;" @click="openPricingModal">
             <span class="stv-hero__cta-plus">⚙️</span>
             <span>Cấu Hình Giá</span>
@@ -327,49 +327,101 @@
               </div>
             </transition>
 
-            <div class="stv-field">
-              <label>Chọn phim <i>*</i></label>
-              <select v-model="form.movie_id" class="stv-input stv-input--select" @change="onMovieChange">
-                <option value="" disabled>— Chọn phim cần chiếu —</option>
-                <option v-for="movie in movies" :key="movie.id" :value="movie.id">
-                  {{ movie.title }} • {{ movie.duration }} phút
-                </option>
-              </select>
-              <span v-if="errors.movie_id" class="error-msg">{{ errors.movie_id[0] }}</span>
-            </div>
-
-            <div class="stv-field">
-              <label>Phòng chiếu <i>*</i></label>
-              <select
-                v-model="form.room_id"
-                class="stv-input stv-input--select"
-                :class="{ 'is-error': formError }"
-                @change="formError = ''"
-              >
-                <option value="" disabled>— Chọn phòng chiếu —</option>
-                <option v-for="room in rooms" :key="room.id" :value="room.id">
-                  {{ room.name }} • {{ room.total_seats }} ghế
-                </option>
-              </select>
-              <span v-if="errors.room_id" class="error-msg">{{ errors.room_id[0] }}</span>
-            </div>
-
             <div class="stv-grid2">
+              <div class="stv-field" style="position: relative;">
+                <label>Chọn phim <i>*</i></label>
+                <div class="combobox-wrapper">
+                  <input type="text" class="stv-input combobox-input" v-model="movieSearch" @focus="showMovieDropdown = true" placeholder="Gõ tìm phim..." />
+                  <span class="combobox-arrow">▼</span>
+                </div>
+                <ul v-show="showMovieDropdown" class="combobox-dropdown">
+                  <li v-for="movie in filteredMovieOptions" :key="movie.id" @click.stop="selectMovie(movie)">
+                    {{ movie.title }} • {{ movie.duration }} phút
+                  </li>
+                  <li v-if="filteredMovieOptions.length === 0" class="combobox-empty">Không tìm thấy</li>
+                </ul>
+                <span v-if="errors.movie_id" class="error-msg">{{ errors.movie_id[0] }}</span>
+              </div>
+  
+              <div class="stv-field" style="position: relative;">
+                <label>Phòng chiếu <i>*</i></label>
+                <div class="combobox-wrapper">
+                  <input type="text" class="stv-input combobox-input" v-model="roomSearch" @focus="showRoomDropdown = true" placeholder="Gõ tìm phòng..." :class="{ 'is-error': formError }" />
+                  <span class="combobox-arrow">▼</span>
+                </div>
+                <ul v-show="showRoomDropdown" class="combobox-dropdown">
+                  <li v-for="room in filteredRoomOptions" :key="room.id" @click.stop="selectRoom(room)">
+                    {{ room.name }} • {{ room.total_seats }} ghế
+                  </li>
+                  <li v-if="filteredRoomOptions.length === 0" class="combobox-empty">Không tìm thấy</li>
+                </ul>
+                <span v-if="errors.room_id" class="error-msg">{{ errors.room_id[0] }}</span>
+              </div>
+            </div>
+            
+            <!-- EDIT MODE -->
+            <div v-if="editingId" class="stv-grid2">
               <div class="stv-field">
                 <label>Giờ bắt đầu <i>*</i></label>
                 <input
                   v-model="form.start_time"
                   type="datetime-local"
                   class="stv-input"
+                  :min="minDateTime"
                   :class="{ 'is-error': formError }"
                   @change="onStartTimeChange"
                 />
                 <span v-if="errors.start_time" class="error-msg">{{ errors.start_time[0] }}</span>
               </div>
               <div class="stv-field">
-                <label>Giờ kết thúc <span class="stv-auto">tự tính</span></label>
+                <label>Giờ kết thúc <span class="stv-auto">đã chừa 15p dọn phòng</span></label>
                 <input v-model="form.end_time" type="datetime-local" readonly class="stv-input stv-input--readonly" />
               </div>
+            </div>
+
+            <!-- CREATE MODE -->
+            <div v-if="!editingId" class="stv-grid2">
+              <div class="stv-field">
+                <label>Ngày chiếu <i>*</i></label>
+                <input
+                  v-model="form.start_date"
+                  type="date"
+                  class="stv-input"
+                  :min="minDate"
+                />
+                <span v-if="errors.start_date" class="error-msg">{{ errors.start_date[0] }}</span>
+              </div>
+            </div>
+            
+            <div v-if="!editingId" class="stv-field">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <label style="margin-bottom: 0;">Các khung giờ chiếu <i>*</i></label>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" @click="form.times = ['']" class="btn-add-time" style="padding: 4px 10px; font-size: 0.85rem; color: #64748b; border-color: #cbd5e1;">Xóa tất cả</button>
+                        <button type="button" @click="addTimeSlot" class="btn-add-time" style="padding: 4px 10px; font-size: 0.85rem;">+ Thêm khung giờ</button>
+                    </div>
+                </div>
+                <div class="times-container">
+                    <div v-for="(t, idx) in form.times" :key="idx" class="time-slot-row">
+                        <input type="time" v-model="form.times[idx]" class="stv-input" style="width: 150px;" required />
+                        <button type="button" v-if="form.times.length > 1" @click="removeTimeSlot(idx)" class="btn-remove-time">✕</button>
+                    </div>
+                    
+                </div>
+                <span v-if="errors.times" class="error-msg">{{ errors.times[0] }}</span>
+            </div>
+
+            <!-- Dải ngày lặp lại -->
+            <div class="stv-field" v-if="!editingId">
+              <label>Lặp lại hàng ngày đến <i>(Tạo hàng loạt)</i></label>
+              <input
+                v-model="form.end_date"
+                type="date"
+                class="stv-input"
+                :min="form.start_date ? form.start_date : minDate"
+              />
+              <span class="help-text" style="font-size: 0.8rem; color: #64748b; margin-top: 4px; display: block;">Nếu chọn, hệ thống sẽ tạo lịch chiếu cho mỗi ngày vào cùng khung giờ trên.</span>
+              <span v-if="errors.end_date" class="error-msg">{{ errors.end_date[0] }}</span>
             </div>
 
             <div class="stv-grid2">
@@ -423,7 +475,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
 import api from '../../api/axios';
 import { toast, confirmDialog } from '../../utils/alert';
 
@@ -468,14 +520,66 @@ const getShowtimeStatus = (startStr, endStr) => {
   return { label: 'Đã kết thúc', color: '#9e9e9e' };
 };
 
-const form = ref({
-  movie_id: '',
-  room_id: '',
-  start_time: '',
-  end_time: '',
-  format: '2D',
-  translation: 'Phụ đề'
+  const form = ref({
+    movie_id: '',
+    room_id: '',
+    start_date: '',
+    times: [''],
+    start_time: '',
+    end_time: '',
+    end_date: '',
+    format: '2D',
+    translation: 'Phụ đề'
+  });
+  
+  const addTimeSlot = () => form.value.times.push('');
+  const removeTimeSlot = (idx) => form.value.times.splice(idx, 1);
+
+const movieSearch = ref('');
+const roomSearch = ref('');
+const showMovieDropdown = ref(false);
+const showRoomDropdown = ref(false);
+
+const filteredMovieOptions = computed(() => {
+  if (!movieSearch.value) return movies.value;
+  const q = movieSearch.value.toLowerCase();
+  return movies.value.filter(m => m.title.toLowerCase().includes(q));
 });
+
+const filteredRoomOptions = computed(() => {
+  if (!roomSearch.value) return rooms.value;
+  const q = roomSearch.value.toLowerCase();
+  return rooms.value.filter(r => r.name.toLowerCase().includes(q));
+});
+
+const selectMovie = (movie) => {
+  form.value.movie_id = movie.id;
+  movieSearch.value = movie.title;
+  showMovieDropdown.value = false;
+  onMovieChange();
+};
+
+const selectRoom = (room) => {
+  form.value.room_id = room.id;
+  roomSearch.value = room.name;
+  showRoomDropdown.value = false;
+  formError.value = '';
+};
+
+const minDateTime = computed(() => {
+  const now = new Date();
+  const tzOffset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - tzOffset).toISOString().slice(0, 16);
+});
+
+const minDate = computed(() => minDateTime.value.split('T')[0]);
+
+const closeDropdowns = (e) => {
+  if (!e.target.closest('.combobox-wrapper') && !e.target.closest('.combobox-dropdown')) {
+    showMovieDropdown.value = false;
+    showRoomDropdown.value = false;
+  }
+};
 
 /* ---------- Computed ---------- */
 const activeCount = computed(() => showtimes.value.filter(s => s.status === 'active').length);
@@ -605,12 +709,14 @@ const parseInput = (val) => {
 };
 
 /* ---------- Modal ---------- */
-const openCreateModal = () => {
-  editingId.value = null;
-  form.value = { 
-    movie_id: '', room_id: '', start_time: '', end_time: '', 
-    format: '2D', translation: 'Phụ đề'
-  };
+  const openCreateModal = () => {
+    editingId.value = null;
+    form.value = { 
+      movie_id: '', room_id: '', start_date: '', times: [''], start_time: '', end_time: '', end_date: '',
+      format: '2D', translation: 'Phụ đề'
+    };
+    movieSearch.value = '';
+  roomSearch.value = '';
   formError.value = '';
   appliedRules.value = [];
   isSneakShow.value = false;
@@ -623,14 +729,23 @@ const openEditModal = (st) => {
   const startStr = st.start_time ? new Date(new Date(st.start_time).getTime() - tzOffset).toISOString().slice(0, 16) : '';
   const endStr = st.end_time ? new Date(new Date(st.end_time).getTime() - tzOffset).toISOString().slice(0, 16) : '';
   
-  form.value = {
-    movie_id: st.movie_id,
-    room_id: st.room_id,
-    start_time: startStr,
-    end_time: endStr,
-    format: st.format,
-    translation: st.translation
-  };
+  const stMovie = movies.value.find(m => m.id === st.movie_id);
+  movieSearch.value = stMovie ? stMovie.title : '';
+  
+  const stRoom = rooms.value.find(r => r.id === st.room_id);
+  roomSearch.value = stRoom ? stRoom.name : '';
+
+    form.value = {
+      movie_id: st.movie_id,
+      room_id: st.room_id,
+      start_date: '',
+      times: [''],
+      start_time: startStr,
+      end_time: endStr,
+      end_date: '',
+      format: st.format,
+      translation: st.translation
+    };
   formError.value = '';
   showModal.value = true;
 };
@@ -728,7 +843,7 @@ const savePricingConfig = async () => {
   }
 };
 
-const onMovieChange = () => { formError.value = ''; calculateEndTime(); suggestPrice(); };
+const onMovieChange = () => { formError.value = ''; calculateEndTime(); };
 const onStartTimeChange = () => { formError.value = ''; calculateEndTime(); };
 
 const calculateEndTime = () => {
@@ -736,7 +851,8 @@ const calculateEndTime = () => {
   const movie = movies.value.find(m => m.id === form.value.movie_id);
   if (!movie) return;
   const start = new Date(form.value.start_time);
-  const end = new Date(start.getTime() + movie.duration * 60 * 1000);
+  // Thêm 15 phút thời gian dọn phòng vào Giờ kết thúc
+  const end = new Date(start.getTime() + (movie.duration + 15) * 60 * 1000);
   const tzOffset = end.getTimezoneOffset() * 60000;
   form.value.end_time = new Date(end.getTime() - tzOffset).toISOString().slice(0, 16);
 };
@@ -798,11 +914,21 @@ const validateForm = () => {
     errors.value.room_id = ['Vui lòng chọn phòng chiếu.'];
     isValid = false;
   }
-  
-  if (!form.value.start_time) {
-    errors.value.start_time = ['Vui lòng chọn thời gian bắt đầu.'];
-    isValid = false;
-  }
+    if (editingId.value) {
+      if (!form.value.start_time) {
+        errors.value.start_time = ['Vui lòng chọn thời gian bắt đầu.'];
+        isValid = false;
+      }
+    } else {
+      if (!form.value.start_date) {
+        errors.value.start_date = ['Vui lòng chọn ngày chiếu.'];
+        isValid = false;
+      }
+      if (!form.value.times || form.value.times.length === 0 || form.value.times.some(t => !t)) {
+        errors.value.times = ['Vui lòng điền đầy đủ các khung giờ.'];
+        isValid = false;
+      }
+    }
   
 
   return isValid;
@@ -857,14 +983,15 @@ const deleteShowtime = async (id) => {
 
 
 onMounted(async () => {
-  // Thay vì chờ tuần tự (mất 4x thời gian), ta gộp lại chạy song song cùng 1 lúc
-  // Tổng thời gian tải trang sẽ giảm xuống chỉ bằng thời gian của API phản hồi lâu nhất
-  await Promise.all([
-    preloadPricing(),
-    fetchShowtimes(),
-    fetchMovies(),
-    fetchRooms()
-  ]);
+  document.addEventListener('click', closeDropdowns);
+  await fetchShowtimes();
+  await preloadPricing();
+  await fetchMovies();
+  await fetchRooms();
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', closeDropdowns);
 });
 </script>
 
@@ -918,7 +1045,7 @@ onMounted(async () => {
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 .stv-hero__kicker {
   display: inline-block;
@@ -1356,7 +1483,7 @@ onMounted(async () => {
 }
 .stv-modal {
   width: 100%;
-  max-width: 580px;
+  max-width: 750px;
   background: #fff;
   border-radius: 20px;
   overflow: hidden;
@@ -1435,7 +1562,68 @@ onMounted(async () => {
   box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12) !important;
 }
 .stv-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 520px) { .stv-grid2 { grid-template-columns: 1fr; } }
+/* Combobox Styles */
+.combobox-wrapper {
+  position: relative;
+  width: 100%;
+}
+.combobox-input {
+  width: 100%;
+  padding-right: 35px;
+  cursor: text;
+}
+.combobox-arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+  font-size: 0.8rem;
+}
+.combobox-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.combobox-dropdown li {
+  padding: 10px 14px;
+  cursor: pointer;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.95rem;
+  color: #1e293b;
+  transition: background 0.15s;
+}
+.combobox-dropdown li:last-child {
+  border-bottom: none;
+}
+.combobox-dropdown li:hover {
+  background: #f8fafc;
+  color: var(--accent-pink);
+  font-weight: 600;
+}
+.combobox-empty {
+  color: #94a3b8 !important;
+  text-align: center;
+  font-style: italic;
+  background: white !important;
+  cursor: default !important;
+}
+
+@media (max-width: 768px) {
+  .stv-grid { grid-template-columns: 1fr; }
+}
 
 /* Preview */
 .stv-preview {
@@ -1580,3 +1768,82 @@ onMounted(async () => {
   font-weight: 600;
 }
 </style>
+
+<style scoped>
+.times-container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+.time-slot-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.btn-remove-time {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 16px;
+}
+.btn-add-time {
+  background: none;
+  border: 1px dashed var(--accent-red);
+  color: var(--accent-red);
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  width: max-content;
+}
+.btn-add-time:hover {
+  background: #fff5f5;
+}
+</style>
+<style scoped>
+.times-container {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+.time-slot-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.btn-remove-time {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 16px;
+}
+.btn-add-time {
+  background: none;
+  border: 1px dashed var(--accent-red);
+  color: var(--accent-red);
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  width: max-content;
+}
+.btn-add-time:hover {
+  background: #fff5f5;
+}
+</style>
+
+

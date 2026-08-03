@@ -32,13 +32,15 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async register(name, email, password, password_confirmation) {
+    async register(name, email, phone, birthday, password, password_confirmation) {
       this.loading = true;
       this.error = null;
       try {
         const response = await api.post('/register', {
           name,
           email,
+          phone,
+          birthday,
           password,
           password_confirmation,
         });
@@ -71,12 +73,26 @@ export const useAuthStore = defineStore('auth', {
     async fetchUser() {
       if (!this.token) return;
       try {
-        const response = await api.get('/me');
-        this.user = response.data;
-        localStorage.setItem('cinego_user', JSON.stringify(this.user));
+        const res = await api.get('/me');
+        if (res.data && res.data.data) {
+          this.user = res.data.data;
+          localStorage.setItem('cinego_user', JSON.stringify(this.user));
+        }
       } catch (err) {
-        console.error('Fetch user error:', err);
+        if (err.response?.status === 401) {
+          this.logout();
+        }
       }
+    },
+
+    loginWithGoogle() {
+      // Backend URL
+      const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+      window.location.href = `${backendUrl}/auth/google`;
+    },
+
+    handleGoogleCallback(token, user) {
+      this._persist(token, user);
     },
 
     // Lưu token + user vào state và localStorage

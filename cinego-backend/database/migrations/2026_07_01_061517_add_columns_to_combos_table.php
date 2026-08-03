@@ -12,10 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('combos', function (Blueprint $table) {
-            //
-            $table->integer('stock')->default(0)->after('price');
-
-            $table->softDeletes()->after('updated_at');
+            if (!Schema::hasColumn('combos', 'stock')) {
+                $table->integer('stock')->default(0)->after('price');
+            }
+            if (!Schema::hasColumn('combos', 'deleted_at')) {
+                $table->softDeletes()->after('updated_at');
+            }
         });
     }
 

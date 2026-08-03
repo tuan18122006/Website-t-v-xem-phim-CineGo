@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\RefundRequest;
 
 class Booking extends Model
 {
@@ -20,6 +21,13 @@ class Booking extends Model
         'payment_method',
         'payment_status',
         'booking_status',
+        'order_status',
+    ];
+
+    protected $casts = [
+        'subtotal' => 'decimal:2',
+        'discount_amount' => 'decimal:2',
+        'total_amount' => 'decimal:2',
     ];
 
     public function user(): BelongsTo
@@ -45,5 +53,23 @@ class Booking extends Model
     public function bookingCombos(): HasMany
     {
         return $this->hasMany(BookingCombo::class);
+    }
+    public function refundRequests(): HasMany
+    {
+        return $this->hasMany(RefundRequest::class);
+    }
+
+    public function getOrderStatusAttribute()
+    {
+        if ($this->booking_status === 'cancelled') {
+            return 'cancelled';
+        }
+        return $this->payment_status;
+    }
+
+    public function userCombos()
+    {
+        return $this->belongsToMany(Combo::class, 'user_combos', 'booking_id', 'combo_id')
+            ->withPivot('is_used', 'used_at');
     }
 }

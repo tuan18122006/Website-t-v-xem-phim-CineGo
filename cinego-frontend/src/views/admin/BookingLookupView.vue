@@ -181,6 +181,8 @@ import TicketPrintable from '../../components/TicketPrintable.vue';
 import { QrcodeStream, QrcodeCapture } from 'vue-qrcode-reader';
 
 const route = useRoute();
+
+
 const query = ref('');
 const loading = ref(false);
 const searched = ref(false);
