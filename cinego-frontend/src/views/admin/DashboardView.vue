@@ -178,8 +178,10 @@
           @click="activeTab = 'articles'"
         >
           <span class="nav-icon">📰</span>
-          <span>Quản Lý Top Phim</span>
+          <span>Quản Lý Bài Viết</span>
         </button>
+
+
 
         <!-- BLOG DROPDOWN -->
         <div class="nav-dropdown">
@@ -241,12 +243,37 @@
           <p class="header-desc">{{ getTabDesc }}</p>
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
-          <button v-if="authStore.user?.work_status === 'off_shift'" @click="isCheckinModalOpen = true" class="btn-checkin">
-            🟢 Bắt đầu ca
-          </button>
-          <button v-if="authStore.user?.work_status === 'on_shift'" @click="isCheckoutModalOpen = true" class="btn-checkout">
-            🔴 Chốt ca
-          </button>
+          <!-- Notification Dropdown -->
+          <div class="notification-wrapper" @click.stop="showNotiDropdown = !showNotiDropdown">
+            <div class="bell-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+              <span v-if="unreadNotiCount > 0" class="badge"></span>
+            </div>
+            
+            <div v-if="showNotiDropdown" class="notification-dropdown" @click.stop>
+              <div class="notif-header">
+                <strong>Thông báo</strong>
+                <button v-if="unreadNotiCount > 0" class="notif-read-all" @click="markAllAsRead">Đánh dấu đã đọc tất cả</button>
+              </div>
+              <div class="notif-list">
+                <div v-if="adminNotifications.length === 0" class="notif-empty">
+                  Chưa có thông báo nào.
+                </div>
+                <div v-for="notif in adminNotifications" :key="notif.id" 
+                     class="notif-item" 
+                     :class="{'unread': notif.read_at === null}"
+                     @click="markNotiAsRead(notif.id)">
+                  <div class="notif-icon">{{ notif.data.type === 'qr_payment_pending' ? '🧾' : '🔔' }}</div>
+                  <div class="notif-content">
+                    <p class="notif-message">{{ notif.data.message }}</p>
+                    <span class="notif-time">{{ new Date(notif.created_at).toLocaleString('vi-VN') }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
           <router-link to="/" class="btn-back-client">👁️ Xem Client Website</router-link>
         </div>
       </header>
@@ -520,50 +547,16 @@
         <div v-if="activeTab === 'loyalty'" class="dashboard-tab-content" style="background: white; border-radius: 12px; min-height: 500px;">
           <UserLoyaltyManager />
         </div>
-     
-      <!-- MODALS CA TRỰC -->
-      <div v-if="isCheckinModalOpen" class="modal-overlay" @click.self="isCheckinModalOpen = false">
-        <div class="modal-content" style="max-width: 450px; background: white; padding: 25px; border-radius: 12px;">
-          <h2 style="margin-top: 0; color: #10b981; margin-bottom: 20px;">Bắt đầu ca trực</h2>
-          <div class="form-group" style="margin-bottom: 15px;">
-            <label>Tên ca (ví dụ: Ca Sáng, Ca Tối)</label>
-            <input v-model="shiftData.shift_name" class="cinego-input" style="width: 100%; box-sizing: border-box;" />
-          </div>
-          <div class="form-group" style="margin-bottom: 20px;">
-            <label>Vị trí quầy</label>
-            <input v-model="shiftData.workstation" class="cinego-input" style="width: 100%; box-sizing: border-box;" />
-          </div>
-          <div style="display: flex; gap: 10px; justify-content: flex-end;">
-            <button @click="isCheckinModalOpen = false" class="btn-action-text" style="background: #e2e8f0; color: #475569; padding: 8px 16px; border-radius: 6px;">Hủy</button>
-            <button @click="submitCheckin" class="btn-cinego-submit" style="margin: 0; max-width: 150px;">Bắt đầu</button>
-          </div>
-        </div>
-      </div>
 
-      <div v-if="isCheckoutModalOpen" class="modal-overlay" @click.self="isCheckoutModalOpen = false">
-        <div class="modal-content" style="max-width: 450px; background: white; padding: 25px; border-radius: 12px;">
-          <h2 style="margin-top: 0; color: #ef4444; margin-bottom: 20px;">Chốt ca trực</h2>
-          <div class="form-group" style="margin-bottom: 15px;">
-            <label>Tiền mặt thực tế đếm được (VNĐ)</label>
-            <input v-model="shiftData.reported_cash" type="number" class="cinego-input" style="width: 100%; box-sizing: border-box;" />
-          </div>
-          <div class="form-group" style="margin-bottom: 20px;">
-            <label>Tiền chuyển khoản (VNĐ)</label>
-            <input v-model="shiftData.reported_transfer" type="number" class="cinego-input" style="width: 100%; box-sizing: border-box;" />
-          </div>
-          <div style="display: flex; gap: 10px; justify-content: flex-end;">
-            <button @click="isCheckoutModalOpen = false" class="btn-action-text" style="background: #e2e8f0; color: #475569; padding: 8px 16px; border-radius: 6px;">Hủy</button>
-            <button @click="submitCheckout" class="btn-cinego-submit" style="margin: 0; background: #ef4444; max-width: 150px;">Chốt ca</button>
-          </div>
-        </div>
-      </div>
+
+     
 
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import api from '../../api/axios';
@@ -589,6 +582,39 @@ import PaymentSettingsView from './PaymentSettingsView.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();
+
+const adminNotifications = ref([]);
+const showNotiDropdown = ref(false);
+const unreadNotiCount = computed(() => adminNotifications.value.filter(n => !n.read_at).length);
+
+const fetchAdminNotifications = async () => {
+  try {
+    const res = await api.get('/notifications');
+    adminNotifications.value = res.data.notifications.data || res.data.notifications;
+  } catch (err) {
+    console.error('Lỗi tải thông báo admin:', err);
+  }
+};
+
+const markNotiAsRead = async (id) => {
+  try {
+    await api.post(`/notifications/${id}/read`);
+    fetchAdminNotifications();
+    showNotiDropdown.value = false;
+    activeTab.value = 'orders';
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+const markAllAsRead = async () => {
+  try {
+    await api.post('/notifications/read-all');
+    fetchAdminNotifications();
+  } catch (err) {
+    console.error(err);
+  }
+};
 
 const isCheckinModalOpen = ref(false);
 const isCheckoutModalOpen = ref(false);
@@ -848,8 +874,13 @@ const fetchBookings = () => {
   ];
 };
 
+let adminNotiInterval;
+
 onMounted(() => {
   fetchOverview();
+  fetchAdminNotifications();
+  adminNotiInterval = setInterval(fetchAdminNotifications, 10000); // Tự động lấy thông báo mỗi 10 giây
+  
   fetchRevenue();
   fetchBookings();
   
@@ -862,6 +893,12 @@ onMounted(() => {
         isLiveUpdated.value = true;
         setTimeout(() => isLiveUpdated.value = false, 3000);
       });
+  }
+});
+
+onUnmounted(() => {
+  if (adminNotiInterval) {
+    clearInterval(adminNotiInterval);
   }
 });
 </script>
@@ -1652,4 +1689,141 @@ onMounted(() => {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Notification Styles */
+.notification-wrapper {
+  position: relative;
+  margin-right: 15px;
+  display: flex;
+  align-items: center;
+}
+
+.bell-icon {
+  position: relative;
+  cursor: pointer;
+  padding: 8px;
+  color: var(--text-dark);
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bell-icon:hover {
+  color: var(--accent-pink);
+}
+
+.badge {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  background-color: var(--accent-pink);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.notification-dropdown {
+  position: absolute;
+  top: 100%;
+  right: -10px;
+  width: 320px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  border: 1px solid rgba(0,0,0,0.05);
+  z-index: 1000;
+  margin-top: 10px;
+  overflow: hidden;
+  animation: dropIn 0.2s ease-out;
+  text-align: left;
+}
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.notif-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.notif-header strong {
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.notif-read-all {
+  background: none;
+  border: none;
+  color: var(--accent-pink);
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.notif-read-all:hover {
+  text-decoration: underline;
+}
+
+.notif-list {
+  max-height: 350px;
+  overflow-y: auto;
+}
+
+.notif-empty {
+  padding: 24px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.notif-item {
+  display: flex;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  cursor: pointer;
+  transition: background 0.2s;
+  gap: 12px;
+}
+
+.notif-item:hover {
+  background: #f8fafc;
+}
+
+.notif-item.unread {
+  background: #fff5f5;
+}
+
+.notif-icon {
+  font-size: 20px;
+  margin-top: 2px;
+}
+
+.notif-content {
+  flex: 1;
+}
+
+.notif-message {
+  margin: 0 0 4px 0;
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.4;
+}
+
+.notif-item.unread .notif-message {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.notif-time {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
 </style>

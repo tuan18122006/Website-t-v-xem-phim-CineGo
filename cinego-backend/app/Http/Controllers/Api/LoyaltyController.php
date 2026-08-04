@@ -26,7 +26,7 @@ class LoyaltyController extends Controller
         $user = $request->user();
 
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'data' => [
                 'cine_points' => $user->cine_points,
                 'membership_tier' => $user->membership_tier,
@@ -42,10 +42,14 @@ class LoyaltyController extends Controller
         $vouchers = Voucher::whereNotNull('points_required')
             ->where('points_required', '>', 0)
             ->where('is_active', true)
+            ->where(function ($q) {
+                $q->whereNull('expires_at')
+                  ->orWhere('expires_at', '>', now());
+            })
             ->get();
 
         return response()->json([
-            'status' => 'success',
+            'success' => true,
             'data' => $vouchers
         ]);
     }
@@ -59,8 +63,8 @@ class LoyaltyController extends Controller
             ->get();
 
         return response()->json([
-            'status'   => 'success',
-            'data'     => $combos
+            'success' => true,
+            'data'    => $combos
         ]);
     }
 
@@ -72,6 +76,10 @@ class LoyaltyController extends Controller
         return response()->json(['message' => 'Voucher này không áp dụng đổi điểm.'], 400);
     }
 
+    if (($user->cine_points ?? 0) < $voucher->points_required) {
+        return response()->json(['message' => 'Bạn không đủ điểm để đổi voucher này.'], 400);
+    }
+
     $maxExchanges = $voucher->max_exchanges ?? $voucher->user_limit ?? 0;
     if ($maxExchanges > 0) {
         $alreadyRedeemedCount = $user->vouchers()->where('voucher_id', $voucher->id)->count();
@@ -81,18 +89,32 @@ class LoyaltyController extends Controller
     }
 
     try {
-        $this->loyaltyService->redeemWithPoints(...);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($user, $voucher) {
+            // Trừ điểm
+            $user->cine_points -= $voucher->points_required;
+            $user->save();
 
-        $user->vouchers()->attach($voucher->id, [
-            'is_used'    => false,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+            // Ghi lịch sử điểm
+            $user->pointHistories()->create([
+                'points'         => -$voucher->points_required,
+                'type'           => 'redemption',
+                'description'    => "Đổi điểm nhận Voucher: {$voucher->code}",
+                'reference_type' => get_class($voucher),
+                'reference_id'   => $voucher->id,
+            ]);
+
+            // Cấp voucher cho user
+            $user->vouchers()->attach($voucher->id, [
+                'is_used'    => false,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
 
         return response()->json([
-            'status' => 'success',
-            'message' => 'Đổi voucher thành công!',
-            'cine_points' => $user->cine_points
+            'success'     => true,
+            'message'     => 'Đổi voucher thành công!',
+            'cine_points' => $user->fresh()->cine_points
         ]);
     } catch (\Exception $e) {
         return response()->json(['message' => $e->getMessage()], 400);
@@ -146,7 +168,7 @@ class LoyaltyController extends Controller
                 ]);
 
                 return response()->json([
-                    'status'      => 'success',
+                    'success'     => true,
                     'message'     => 'Đổi Combo thành công!',
                     'cine_points' => $user->fresh()->cine_points
                 ]);
