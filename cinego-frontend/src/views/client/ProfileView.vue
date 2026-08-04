@@ -47,8 +47,10 @@
             class="cinego-menu-btn"
             :class="{ active: activeTab === 'notifications' }"
             @click="activeTab = 'notifications'"
+            style="position: relative;"
           >
             THÔNG BÁO
+            <span v-if="unreadNotiCount > 0" style="position: absolute; top: 12px; right: 15px; width: 8px; height: 8px; background-color: #ef4444; border-radius: 50%; box-shadow: 0 0 0 2px white;"></span>
           </button>
           <button
             class="cinego-menu-btn"
@@ -87,9 +89,14 @@
               <div class="loyalty-progress-track">
                 <div class="loyalty-progress-fill" :style="{ width: loyaltyData.progress_percent + '%' }"></div>
               </div>
-              <p class="loyalty-progress-remaining">
-                Còn thiếu <strong>{{ formatCurrency(loyaltyData.remaining_amount || 0) }}</strong> nữa để thăng hạng {{ tierLabel(loyaltyData.next_tier) }}
-              </p>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                <p class="loyalty-progress-remaining" style="margin: 0;">
+                  Còn thiếu <strong>{{ formatCurrency(loyaltyData.remaining_amount || 0) }}</strong> nữa để thăng hạng {{ tierLabel(loyaltyData.next_tier) }}
+                </p>
+                <button @click="openTierModal" style="background: none; border: none; color: var(--accent-red); font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: underline; padding: 0;">
+                  Quyền lợi hạng thẻ
+                </button>
+              </div>
             </div>
             <div v-else class="loyalty-progress-bar-wrap" style="margin-bottom: 20px;">
               <p class="loyalty-max-rank">🏆 Chúc mừng! Bạn đã đạt hạng cao nhất - <strong>Kim Cương (Diamond)</strong></p>
@@ -98,7 +105,7 @@
             <div class="member-stats-layout" style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 25px;">
               <!-- THẺ THÀNH VIÊN GRADIENT 3D TILT -->
               <div style="flex-shrink: 0; display: flex; align-items: stretch;">
-                <div @pointerup="isTierModalOpen = true" @mousemove="handleMouseMove" @mouseleave="handleMouseLeave" style="cursor: pointer; perspective: 1000px;" title="Nhấn để xem chi tiết hạng thẻ">
+                <div @click="openTierModal" @mousemove="handleMouseMove" @mouseleave="handleMouseLeave" style="cursor: pointer; perspective: 1000px;">
                   <div
                     ref="cardRef"
                     class="gilded-member-card"
@@ -373,7 +380,7 @@
                    class="notif-page-item" 
                    :class="{'unread': notif.read_at === null}"
                    @click="markAsRead(notif.id)">
-                <div class="notif-page-icon">🎁</div>
+                <div class="notif-page-icon">{{ notif.data.type === 'booking_confirmed' ? '🎟️' : '🎁' }}</div>
                 <div class="notif-page-content">
                   <p class="notif-page-message">{{ notif.data.message }}</p>
                   <span class="notif-page-time">{{ new Date(notif.created_at).toLocaleString('vi-VN') }}</span>
@@ -533,13 +540,24 @@
                     </td>
                     <td>
                       <div class="table-actions">
-                        <button
-                          v-if="subTab === 'upcoming'"
-                          @click="viewQrCode(ticket)"
-                          class="btn-table-action"
-                        >
-                          Mã QR
-                        </button>
+                        <template v-if="subTab === 'upcoming'">
+                          <!-- Nút QR chỉ hiển thị nếu đã thanh toán -->
+                          <button
+                            v-if="ticket.status === 'paid'"
+                            @click="viewQrCode(ticket)"
+                            class="btn-table-action"
+                          >
+                            Mã QR
+                          </button>
+                          <!-- Badge chờ xác nhận -->
+                          <span v-else-if="ticket.status === 'waiting_confirmation'" class="badge badge-warning" title="Admin đang xác nhận chuyển khoản của bạn">
+                            ⏳ Chờ xác nhận
+                          </span>
+                          <!-- Badge chưa thanh toán -->
+                          <span v-else class="badge badge-pending">
+                            Chờ thanh toán
+                          </span>
+                        </template>
                         <span v-else class="badge badge-success">
                           Đã chiếu
                         </span>
@@ -1001,9 +1019,11 @@
                 fontSize: '12.5px',
                 fontWeight: '700',
                 backgroundColor:
-                  selectedTicket?.status === 'paid' ? '#d1fae5' : '#fee2e2',
+                  selectedTicket?.status === 'paid' ? '#d1fae5' :
+                  selectedTicket?.status === 'waiting_confirmation' ? '#fef9c3' : '#fee2e2',
                 color:
-                  selectedTicket?.status === 'paid' ? '#059669' : '#dc2626',
+                  selectedTicket?.status === 'paid' ? '#059669' :
+                  selectedTicket?.status === 'waiting_confirmation' ? '#854d0e' : '#dc2626',
               }"
             >
               {{ selectedTicket?.status_label }}
@@ -1019,10 +1039,9 @@
       </div>
 
       <!-- Modal Quyền lợi Thành viên -->
-      <!-- Modal Quyền lợi Thành viên -->
-      <div v-if="isTierModalOpen" class="modal-overlay" @click.self="isTierModalOpen = false" style="z-index: 9999;">
+      <div v-show="isTierModalOpen" class="modal-overlay" @click.self="closeTierModal" style="z-index: 9999;">
         <div class="modal-content tier-modal-wrapper hide-scrollbar" style="max-width: 700px; padding: 30px;">
-          <button class="btn-close" @click="isTierModalOpen = false">✕</button>
+          <button class="btn-close" @click="closeTierModal">✕</button>
           
           <h2 class="tier-modal-title" style="text-align: center; margin-bottom: 10px; font-weight: 800; color: #1e293b;">🌟 QUYỀN LỢI HẠNG THÀNH VIÊN</h2>
           <p class="tier-modal-subtitle" style="text-align: center; color: #64748b; margin-bottom: 30px;">Tích điểm đổi quà, nhận ưu đãi đặc quyền và trải nghiệm điện ảnh đỉnh cao cùng CineGo</p>
@@ -1158,11 +1177,24 @@ import api from "../../api/axios";
 import Swal from "sweetalert2";
 import WatchedMoviesList from "../../components/WatchedMoviesList.vue";
 
+const toast = (title, icon = 'success') => {
+  Swal.fire({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 3000,
+    timerProgressBar: true,
+    icon: icon,
+    title: title
+  });
+};
+
 import { useRoute } from "vue-router";
 
 const route = useRoute();
 const activeTab = ref(route.query.tab || "info");
 const notifications = ref([]);
+const unreadNotiCount = computed(() => notifications.value.filter(n => !n.read_at).length);
 
 const fetchNotifications = async () => {
   try {
@@ -1201,6 +1233,7 @@ const loadingMyVouchers = ref(false);
 const redeemableVouchers = ref([]);
 const redeemableCombos = ref([]);
 const myVouchers = ref([]);
+const pointHistories = ref([]);
 
 const availableVouchersCount = computed(() => redeemableVouchers.value.length);
 const availableCombosCount = computed(() => redeemableCombos.value.length);
@@ -1218,9 +1251,18 @@ const unusedVoucherCount = computed(() => {
   return myVouchers.value.filter(v => !v.is_used && !v.is_expired).length;
 });
 const loyaltySubTab = ref('vouchers');
-const voucherFilter = ref('unused');
-const isTierModalOpen = ref(false);
-const isVoucherModalOpen = ref(false);
+  const voucherFilter = ref('unused');
+  const isTierModalOpen = ref(false);
+
+  const openTierModal = () => {
+    isTierModalOpen.value = true;
+  };
+
+  const closeTierModal = () => {
+    isTierModalOpen.value = false;
+  };
+
+  const isVoucherModalOpen = ref(false);
 const isRefundModalOpen = ref(false);
 const refundReason = ref('');
 const selectedTicket = ref(null);
@@ -1391,6 +1433,16 @@ const viewDetails = (ticket) => {
   isDetailModalOpen.value = true;
 };
 
+const formatLogType = (type) => {
+  const types = {
+    'redeem': 'Đổi quà',
+    'redemption': 'Đổi quà',
+    'admin_adjustment': 'Admin điều chỉnh',
+    'earn': 'Tích điểm'
+  };
+  return types[type] || type;
+};
+
 const formatDate = (dateStr) => {
   if (!dateStr) return "";
   const d = new Date(dateStr);
@@ -1531,8 +1583,9 @@ const redeemVoucher = async (voucherId) => {
       if (res.data.success) {
         toast('Đổi voucher thành công!', 'success');
         fetchLoyaltyProgress();
-  fetchLoyaltyItems();
-  fetchMyVouchers();
+        fetchLoyaltyHistories();
+        fetchLoyaltyItems();
+        fetchMyVouchers();
         fetchMyVouchers();
       } else {
         toast(res.data.message || 'Đổi voucher thất bại', 'error');
@@ -1561,8 +1614,9 @@ const redeemCombo = async (comboId) => {
       if (res.data.success) {
         toast('Đổi combo thành công!', 'success');
         fetchLoyaltyProgress();
-  fetchLoyaltyItems();
-  fetchMyVouchers();
+        fetchLoyaltyHistories();
+        fetchLoyaltyItems();
+        fetchMyVouchers();
       } else {
         toast(res.data.message || 'Đổi combo thất bại', 'error');
       }
@@ -1580,6 +1634,17 @@ const fetchLoyaltyProgress = async () => {
     }
   } catch (err) {
     console.error('Lỗi lấy tiến trình thẻ thành viên:', err);
+  }
+};
+
+const fetchLoyaltyHistories = async () => {
+  try {
+    const res = await api.get('/loyalty/profile');
+    if (res.data.success) {
+      pointHistories.value = res.data.data.histories.data;
+    }
+  } catch (err) {
+    console.error('Lỗi lấy lịch sử điểm:', err);
   }
 };
 
@@ -1653,6 +1718,7 @@ onMounted(() => {
   fetchUserData();
   fetchBookingHistory();
   fetchLoyaltyProgress();
+  fetchLoyaltyHistories();
   fetchLoyaltyItems();
   fetchMyVouchers();
   fetchNotifications();
@@ -2335,6 +2401,11 @@ onMounted(() => {
 .badge-danger {
   background: #fee2e2;
   color: #991b1b;
+}
+
+.badge-pending {
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 .btn-table-action {

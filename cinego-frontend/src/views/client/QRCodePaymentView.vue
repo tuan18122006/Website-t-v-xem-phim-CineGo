@@ -68,9 +68,14 @@
           </div>
 
           <div class="actions">
-            <button class="btn-cinego-main" @click="checkStatus" :disabled="checking">
-              {{ checking ? 'Đang kiểm tra...' : 'Tôi đã thanh toán xong' }}
-            </button>
+            <template v-if="booking.payment_status !== 'waiting_confirmation'">
+              <button class="btn-cinego-main" @click="confirmTransfer" :disabled="checking">
+                {{ checking ? 'Đang gửi...' : 'Tôi đã chuyển khoản xong' }}
+              </button>
+            </template>
+            <div v-else class="waiting-alert">
+              <i class="fi fi-rr-time-fast"></i> Đơn hàng đang được xác nhận. Vui lòng chờ Admin kiểm duyệt.
+            </div>
             <button class="btn-cinego-outline" @click="goBack">Quay lại trang chủ</button>
           </div>
         </div>
@@ -144,25 +149,24 @@ const goBack = () => {
   router.push('/');
 };
 
-const checkStatus = async () => {
+const confirmTransfer = async () => {
   checking.value = true;
   try {
-    const bookingRes = await api.get(`/bookings/${bookingId}`);
-    if (bookingRes.data.success) {
-      const status = bookingRes.data.data.payment_status || bookingRes.data.data.status;
-      if (status === 'paid') {
-        toast('Thanh toán thành công!', 'success');
-        router.push('/payment/result?status=00');
-      } else {
-        toast('Hệ thống chưa nhận được thanh toán. Vui lòng thử lại sau giây lát hoặc chờ Admin duyệt.', 'warning');
+    const res = await api.patch(`/bookings/${bookingId}/confirm-transfer`);
+    if (res.data.success) {
+      toast('Đã báo cáo chuyển khoản thành công!', 'success');
+      if (booking.value) {
+        booking.value.payment_status = 'waiting_confirmation';
       }
     }
   } catch (err) {
-    toast('Có lỗi xảy ra khi kiểm tra trạng thái.', 'error');
+    if (err.response?.data?.message) {
+      toast(err.response.data.message, 'error');
+    } else {
+      toast('Có lỗi xảy ra khi xác nhận thanh toán.', 'error');
+    }
   } finally {
-    setTimeout(() => {
-      checking.value = false;
-    }, 2000);
+    checking.value = false;
   }
 };
 
@@ -392,5 +396,20 @@ onMounted(() => {
   display: inline-block;
   padding: 10px 30px;
   margin-top: 20px;
+}
+
+.waiting-alert {
+  background: #fff3cd;
+  color: #856404;
+  padding: 12px 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  text-align: center;
+  font-weight: 500;
+  border: 1px solid #ffeeba;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 </style>

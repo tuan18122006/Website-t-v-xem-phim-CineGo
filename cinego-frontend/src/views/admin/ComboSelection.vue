@@ -287,6 +287,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import api from '../../api/axios';
+import { toast, confirmDialog } from '../../utils/alert';
 
 const combos = ref([]);
 const isCreateModalOpen = ref(false);
@@ -428,12 +429,12 @@ const saveCombo = async () => {
 
         await fetchCombos();
         isCreateModalOpen.value = false;
-        alert(isEditing.value ? "Cập nhật thành công!" : "Thêm mới thành công!");
+        toast(isEditing.value ? "Cập nhật thành công!" : "Thêm mới thành công!");
     } catch (error) {
         if (error.response?.status === 422) {
             errors.value = error.response.data.errors;
         } else {
-            alert("Có lỗi xảy ra, vui lòng thử lại!");
+            toast("Có lỗi xảy ra, vui lòng thử lại!", "error");
         }
     }
 };
@@ -460,17 +461,18 @@ const handleImageUpload = (e) => {
 }
 
 const deleteCombo = async (id) => {
-    if (!confirm('Bạn có chắc muốn xóa combo này?')) return;
+    const isConfirmed = await confirmDialog('Bạn có chắc muốn xóa combo này?');
+    if (!isConfirmed) return;
 
     try {
         await api.delete(`admin/combos/${id}`);
-        alert("Xóa thành công!");
+        toast("Xóa thành công!");
         fetchCombos();
     } catch (error) {
         if (error.response?.status === 409) {
-            alert(error.response.data.message);
+            toast(error.response.data.message, "error");
         } else {
-            alert("Có lỗi xảy ra khi xóa.");
+            toast("Có lỗi xảy ra khi xóa.", "error");
             console.error(error);
         }
     }
@@ -561,7 +563,7 @@ const addComboItem = async () => {
         };
 
         await fetchComboItems(currentCombo.value.id);
-        alert("Thêm thành phần vào combo thành công!");
+        toast("Thêm thành phần vào combo thành công!");
 
     } catch (error) {
         if (error.response && error.response.status === 422) {
@@ -569,10 +571,10 @@ const addComboItem = async () => {
             if (resData.errors) {
                 itemFormError.value = resData.errors;
             } else if (resData.message) {
-                alert(resData.message);
+                toast(resData.message, "error");
             }
         } else {
-            alert("Đã có lỗi hệ thống xảy ra.");
+            toast("Đã có lỗi hệ thống xảy ra.", "error");
             console.error(error);
         }
     }
@@ -580,7 +582,8 @@ const addComboItem = async () => {
 
 const deleteComboItem = async (id) => {
 
-    if (!confirm("Xóa thành phần?")) return;
+    const isConfirmed = await confirmDialog("Xóa thành phần?");
+    if (!isConfirmed) return;
 
     await api.delete(`admin/combo-items/${id}`);
 
