@@ -193,7 +193,12 @@ public function history(Request $request)
                 'payment_method' => $booking->payment_method,
                 'created_at'     => $booking->created_at ? $booking->created_at->format('H:i d/m/Y') : '',
                 'status'         => $booking->payment_status,
-                'status_label'   => $booking->payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa hoàn tất'
+                'status_label'   => match($booking->payment_status) {
+                    'paid'                 => 'Đã thanh toán',
+                    'waiting_confirmation' => 'Đang chờ xác nhận',
+                    'cancelled'            => 'Đã hủy',
+                    default                => 'Chưa hoàn tất',
+                }
             ];
         });
 
@@ -245,7 +250,7 @@ public function history(Request $request)
     public function updateStatus(Request $request, $id)
     {
         $request->validate([
-            'status' => 'required|string|in:pending,paid,cancelled'
+            'status' => 'required|string|in:pending,waiting_confirmation,paid,cancelled'
         ]);
 
         $booking = Booking::with('user')->findOrFail($id);
@@ -257,8 +262,13 @@ public function history(Request $request)
         $booking->save();
 
         // Nếu trạng thái từ pending -> paid, cộng điểm loyalty và gửi mail
-        if ($oldStatus === 'pending' && $newStatus === 'paid') {
+        if (($oldStatus === 'pending' || $oldStatus === 'waiting_confirmation') && $newStatus === 'paid') {
             if ($booking->user) {
+                $booking->user->notify(new \App\Notifications\BookingConfirmedNotification(
+                    $booking->booking_code,
+                    "Đơn hàng " . $booking->booking_code . " đã được thanh toán thành công. Chúc bạn xem phim vui vẻ!"
+                ));
+
                 $this->loyaltyService->processBookingPoints(
                     $booking->user,
                     $booking->total_amount,
@@ -298,6 +308,36 @@ public function history(Request $request)
 
         return response()->json([
             'success' => true,
+            'data'    => $booking
+        ]);
+    }
+
+    /**
+     * User: Xác nhận đã chuyển khoản
+     */
+    public function confirmTransfer(Request $request, $id)
+    {
+        $booking = Booking::where('user_id', auth()->id())->findOrFail($id);
+
+        if ($booking->payment_status !== 'pending') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Trạng thái đơn hàng không hợp lệ.'
+            ], 400);
+        }
+
+        $booking->payment_status = 'waiting_confirmation';
+        $booking->save();
+
+        $admins = \App\Models\User::where('role', 'admin')->get();
+        \Illuminate\Support\Facades\Notification::send($admins, new \App\Notifications\QrPaymentPendingNotification(
+            $booking->booking_code,
+            "Khách hàng " . (auth()->user()->name ?? 'Ẩn danh') . " vừa báo cáo đã chuyển khoản cho mã vé " . $booking->booking_code . ". Cần bạn kiểm duyệt!"
+        ));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã báo cáo chuyển khoản thành công',
             'data'    => $booking
         ]);
     }

@@ -42,7 +42,7 @@
           <div class="notification-wrapper" @click.stop="toggleNotifications">
             <div class="bell-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-              <span v-if="unreadCount > 0" class="badge">{{ unreadCount }}</span>
+              <span v-if="unreadCount > 0" class="badge"></span>
             </div>
             
             <div v-if="isNotificationOpen" class="notification-dropdown" @click.stop>
@@ -103,7 +103,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
 import { useBookingStore } from '../stores/booking';
@@ -138,7 +138,7 @@ const fetchNotifications = async () => {
 
 const markAsRead = async (id) => {
   try {
-    await api.post(/notifications//read);
+    await api.post(`/notifications/${id}/read`);
     fetchNotifications();
   } catch (err) {
     console.error(err);
@@ -190,6 +190,12 @@ onMounted(() => {
   document.addEventListener('click', () => {
     isNotificationOpen.value = false;
   });
+});
+
+watch(() => authStore.isAuthenticated, (newVal) => {
+  if (newVal) {
+    fetchNotifications();
+  }
 });
 
 onUnmounted(() => {
@@ -577,19 +583,17 @@ const handleLogout = async () => {
 }
 
 .bell-icon:hover {
-  color: var(--accent-red);
+  color: var(--accent-pink);
 }
 
 .badge {
   position: absolute;
-  top: 0;
-  right: 0;
-  background-color: var(--accent-red);
-  color: white;
-  font-size: 10px;
-  font-weight: bold;
-  padding: 2px 6px;
-  border-radius: 10px;
+  top: 5px;
+  right: 6px;
+  background-color: var(--accent-pink);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
   border: 2px solid white;
 }
 
@@ -629,7 +633,7 @@ const handleLogout = async () => {
 .notif-read-all {
   background: none;
   border: none;
-  color: var(--accent-red);
+  color: var(--accent-pink);
   font-size: 12px;
   cursor: pointer;
   font-weight: 500;

@@ -127,7 +127,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import Swal from 'sweetalert2';
 import { useBookingStore } from "../../stores/booking";
 import api from "../../api/axios";
@@ -137,6 +137,7 @@ import echo from "../../api/echo";
 import SeatMap from "../../components/SeatMap.vue";
 
 const router = useRouter();
+const route = useRoute();
 const bookingStore = useBookingStore();
 
 const rawSeatsFromAPI = ref([]); // Nơi lưu mảng gốc tải về từ database

@@ -129,7 +129,7 @@
             <section class="lk-section">
               <h4 class="lk-section__title">🎬 Suất chiếu</h4>
               <div class="lk-movie">
-                <img v-if="detail.movie.poster_url" :src="detail.movie.poster_url" :alt="detail.movie.title" />
+                <img v-if="detail.movie.poster_url" :src="getPosterUrl(detail.movie.poster_url)" :alt="detail.movie.title" />
                 <div>
                   <strong>{{ detail.movie.title }}</strong>
                   <p class="muted">
@@ -207,6 +207,14 @@ const onDetect = (detectedCodes) => {
 const showDetail = ref(false);
 const detail = ref(null);
 const detailLoading = ref(false);
+
+const getPosterUrl = (url) => {
+  if (!url) return 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=100&q=80';
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('blob:')) return url;
+  const cleanPath = url.replace(/^(.*\/storage\/)/, '');
+  return `http://127.0.0.1:8000/storage/${cleanPath}`;
+};
 
 const formatCurrency = (val) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);

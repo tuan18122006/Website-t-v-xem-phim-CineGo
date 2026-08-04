@@ -25,6 +25,7 @@
         <select v-model="ordersStatusFilter">
           <option value="">Tất cả trạng thái</option>
           <option value="pending">Chờ thanh toán</option>
+          <option value="waiting_confirmation">Chờ xác nhận QR</option>
           <option value="paid">Đã thanh toán</option>
           <option value="cancelled">Đã hủy</option>
           <option value="refunded">Đã hoàn tiền</option>
@@ -133,7 +134,10 @@
                 <strong>{{ methodLabel(selectedOrderDetail.payment_method) }}</strong>
               </div>
 
-              <div v-if="selectedOrderDetail.payment_method === 'bank_transfer' && selectedOrderDetail.payment_status === 'pending'" style="margin-top: 15px;">
+              <div v-if="selectedOrderDetail.payment_method === 'bank_transfer' && (selectedOrderDetail.payment_status === 'waiting_confirmation' || selectedOrderDetail.payment_status === 'pending')" style="margin-top: 15px;">
+                <div v-if="selectedOrderDetail.payment_status === 'waiting_confirmation'" style="background: #fef9c3; border: 1px solid #fde047; padding: 10px 14px; border-radius: 8px; font-size: 13px; color: #854d0e; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                  ⏳ Khách hàng đã báo cáo chuyển khoản. Vui lòng kiểm tra và xác nhận!
+                </div>
                 <button class="btn-primary" style="width: 100%; background: #10b981; border: none;" :disabled="orderStatusUpdating" @click="confirmQRPayment">
                   {{ orderStatusUpdating ? 'Đang xử lý…' : 'Xác nhận đơn hàng đã thanh toán' }}
                 </button>
@@ -181,6 +185,7 @@ const initials = (name) => {
 const payLabel = (status) => {
   return {
     pending: 'Chờ xử lý',
+    waiting_confirmation: 'Chờ xác nhận QR',
     paid: 'Đã thanh toán',
     cancelled: 'Đã hủy',
     refunded: 'Đã hoàn tiền',
@@ -199,6 +204,7 @@ const payClass = (status) => {
   return {
     paid: 'is-paid',
     pending: 'is-pending',
+    waiting_confirmation: 'is-waiting',
     cancelled: 'is-failed',
     refunded: 'is-refunded',
   }[status] || '';
@@ -271,7 +277,8 @@ const viewOrderDetail = async (order) => {
 };
 
 const confirmQRPayment = async () => {
-  if (!selectedOrder.value || selectedOrderDetail.value?.payment_status !== 'pending') {
+  const currentStatus = selectedOrderDetail.value?.payment_status;
+  if (!selectedOrder.value || !['pending', 'waiting_confirmation'].includes(currentStatus)) {
     return;
   }
   
@@ -360,6 +367,7 @@ onMounted(() => {
 .pay-pill { padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; display: inline-block; }
 .pay-pill.is-paid { background: #edfcf5; color: var(--accent-mint); }
 .pay-pill.is-pending { background: #fffaf0; color: #dd6b20; }
+.pay-pill.is-waiting { background: #fef9c3; color: #854d0e; }
 .pay-pill.is-failed { background: #fee2e2; color: #dc2626; }
 .pay-pill.is-refunded { background: #f1f5f9; color: #475569; }
 
