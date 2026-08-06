@@ -245,18 +245,6 @@ const routes = [
     component: () => import("../views/staff/StaffDashboardView.vue"),
     meta: { requiresAuth: true, role: "staff" },
   },
-  {
-    path: "/staff/pos",
-    name: "staff-pos",
-    component: () => import("../views/staff/POSMovieSelectionView.vue"),
-    meta: { requiresAuth: true, role: "staff" },
-  },
-  {
-    path: "/staff/pos/checkout",
-    name: "staff-pos-checkout",
-    component: () => import("../views/staff/POSPaymentView.vue"),
-    meta: { requiresAuth: true, role: "staff" },
-  },
   // Wildcard redirect
   {
     path: "/:pathMatch(.*)*",

@@ -21,7 +21,6 @@
           <router-link to="/top-phim" class="nav-item">Top phim</router-link>
           <router-link to="/blog-phim" class="nav-item">Blog phim</router-link>
           <router-link to="/ve-cinego" class="nav-item font-bold">Về CineGo</router-link>
-          <!-- <router-link v-if="authStore.isStaff" to="/staff/pos" class="nav-item pos-link" style="color: #10b981; font-weight: bold;">[POS] Bán vé</router-link> -->
         </div>
       </div>
       
