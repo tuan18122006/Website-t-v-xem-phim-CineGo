@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use App\Mail\BookingSuccessMail;
 use App\Services\LoyaltyService;
+use Carbon\Carbon;
 
 class PaymentController extends Controller
 {
@@ -32,8 +33,8 @@ class PaymentController extends Controller
             'seat_ids'              => 'required|array|min:1',
             'seat_ids.*'            => 'required|integer|exists:seats,id',
             'combos'                => 'nullable|array',
-            'combos.*.id'          => 'required|integer|exists:combos,id',
-            'combos.*.quantity'    => 'required|integer|min:1',
+            'combos.*.id'           => 'required|integer|exists:combos,id',
+            'combos.*.quantity'     => 'required|integer|min:1',
             'used_user_combo_ids'   => 'nullable|array',
             'used_user_combo_ids.*' => 'integer',
             'voucher_id'            => 'nullable|exists:vouchers,id',
@@ -41,6 +42,23 @@ class PaymentController extends Controller
             'total_amount'          => 'required|numeric',
         ]);
 
+        $hold = DB::table('seat_holds')
+            ->where('user_id', auth()->id())
+            ->where('showtime_id', $request->showtime_id)
+            ->whereIn('seat_id', $request->seat_ids)
+            ->where('expires_at', '>', now())
+            ->orderBy('expires_at', 'asc')
+            ->first();
+
+        if (!$hold) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Thời gian giữ ghế đã hết. Vui lòng thực hiện lại!'
+            ], 400);
+        }
+
+        $vnpayExpireDate = \Carbon\Carbon::parse($hold->expires_at)->format('YmdHis');
+        
         $txnRef = 'CG' . time() . rand(100, 999);
 
         try {
@@ -65,20 +83,23 @@ class PaymentController extends Controller
         if ($request->payment_method === 'bank_transfer') {
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
             return response()->json([
-                'success' => true,
+                'success'     => true,
+                'booking_id'  => $booking->id,
                 'payment_url' => $frontendUrl . '/payment/qrcode?booking_id=' . $booking->id,
             ]);
         }
 
         $paymentUrl = $this->vnpayService->createPaymentUrl([
-            'txn_ref'    => $txnRef,
-            'order_info' => 'Thanh toán vé phim - ' . $booking->booking_code,
-            'amount'     => $booking->total_amount,
-            'ip_address' => $request->ip(),
+            'txn_ref'     => $txnRef,
+            'order_info'  => 'Thanh toán vé phim - ' . $booking->booking_code,
+            'amount'      => $booking->total_amount,
+            'ip_address'  => $request->ip(),
+            'expire_date' => $vnpayExpireDate,
         ]);
 
         return response()->json([
             'success'     => true,
+            'booking_id'  => $booking->id,
             'payment_url' => $paymentUrl,
         ]);
     }
@@ -114,7 +135,6 @@ class PaymentController extends Controller
                         ));
                     }
 
-                    // Thông báo cho các admin
                     $admins = \App\Models\User::where('role', 'admin')->get();
                     foreach ($admins as $admin) {
                         $admin->notify(new \App\Notifications\BookingConfirmedNotification(
@@ -137,53 +157,55 @@ class PaymentController extends Controller
         }
 
         $this->bookingService->markAsFailed($booking);
+
         return redirect($frontendUrl . '/payment/result?status=failed');
     }
 
     public function handlePaymentSuccess($booking)
-{
-    if (!$booking->user) {
-        return;
+    {
+        if (!$booking->user) {
+            return;
+        }
+
+        DB::transaction(function () use ($booking) {
+            if ($booking->voucher_id) {
+                DB::table('user_vouchers')
+                    ->where('voucher_id', $booking->voucher_id)
+                    ->where('user_id', $booking->user_id)
+                    ->where('is_used', false)
+                    ->limit(1)
+                    ->update([
+                        'is_used'    => true,
+                        'booking_id' => $booking->id,
+                        'used_at'    => now(),
+                        'updated_at' => now()
+                    ]);
+            }
+
+            $bookingCombos = DB::table('booking_combos')
+                ->where('booking_id', $booking->id)
+                ->where('price_at_purchase', 0)
+                ->get();
+
+            foreach ($bookingCombos as $bCombo) {
+                DB::table('user_combos')
+                    ->where('user_id', $booking->user_id)
+                    ->where('combo_id', $bCombo->combo_id)
+                    ->where('is_used', false)
+                    ->limit($bCombo->quantity ?? 1)
+                    ->update([
+                        'is_used'    => true,
+                        'booking_id' => $booking->id,
+                        'used_at'    => now(),
+                        'updated_at' => now()
+                    ]);
+            }
+
+            $this->loyaltyService->processBookingPoints(
+                $booking->user,
+                $booking->total_amount,
+                $booking
+            );
+        });
     }
-
-    DB::transaction(function () use ($booking) {
-        if ($booking->voucher_id) {
-            DB::table('user_vouchers')
-                ->where('voucher_id', $booking->voucher_id)
-                ->where('user_id', $booking->user_id)
-                ->where('is_used', false)
-                ->limit(1)
-                ->update([
-                    'is_used'    => true,
-                    'used_at'    => now(),
-                    'updated_at' => now()
-                ]);
-        }
-
-        $bookingCombos = DB::table('booking_combos')
-            ->where('booking_id', $booking->id)
-            ->where('price_at_purchase', 0) 
-            ->get();
-
-        foreach ($bookingCombos as $bCombo) {
-            DB::table('user_combos')
-                ->where('user_id', $booking->user_id)
-                ->where('combo_id', $bCombo->combo_id)
-                ->where('is_used', false)
-                ->limit($bCombo->quantity ?? 1)
-                ->update([
-                    'is_used'    => true,
-                    'booking_id' => $booking->id, 
-                    'used_at'    => now(),        
-                    'updated_at' => now()
-                ]);
-        }
-
-        $this->loyaltyService->processBookingPoints(
-            $booking->user,
-            $booking->total_amount,
-            $booking
-        );
-    });
-}
 }

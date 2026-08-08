@@ -1323,6 +1323,10 @@ const getQrUrl = (code) => {
   return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}`;
 };
 
+
+
+
+
 const fetchUserData = async () => {
   try {
     const response = await api.get("/me");
@@ -1420,6 +1424,8 @@ const handleAvatarUpload = async (event) => {
     console.error(err);
   }
 };
+
+
 
 
 

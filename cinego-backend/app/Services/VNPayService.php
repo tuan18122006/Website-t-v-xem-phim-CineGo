@@ -15,6 +15,8 @@ class VNPayService
         $vnp_OrderInfo = $data['order_info'];
         $vnp_Amount = $data['amount'] * 100;
         $vnp_IpAddr = $data['ip_address'] ?? request()->ip();
+        $vnp_ExpireDate = $data['expire_date'] ?? now()->addMinutes(9)->format('YmdHis');
+
 
         $inputData = [
             "vnp_Version" => "2.1.0",
@@ -22,6 +24,7 @@ class VNPayService
             "vnp_Amount" => $vnp_Amount,
             "vnp_Command" => "pay",
             "vnp_CreateDate" => now()->format('YmdHis'),
+            "vnp_ExpireDate" => $vnp_ExpireDate,
             "vnp_CurrCode" => "VND",
             "vnp_IpAddr" => $vnp_IpAddr,
             "vnp_Locale" => "vn",

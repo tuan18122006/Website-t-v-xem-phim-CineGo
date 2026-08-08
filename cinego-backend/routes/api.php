@@ -83,6 +83,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/available-combos', [LoyaltyController::class, 'getAvailableCombos']);
     Route::post('/vouchers/claim', [VoucherController::class, 'claimVoucher']);
     Route::post('/payments/create', [PaymentController::class, 'createPayment']);
+    // giữ ghế
+    Route::post('/seats/hold', [BookingController::class, 'holdSeats']);
     
     // Các route của User
         Route::post('/bookings/refund', [\App\Http\Controllers\Api\RefundController::class, 'requestRefund']);
