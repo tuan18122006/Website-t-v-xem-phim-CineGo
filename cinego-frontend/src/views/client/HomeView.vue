@@ -2,8 +2,8 @@
   <div class="home-view">
     <!-- HERO SLIDER BANNER -->
     <header class="hero-slider">
-      <div v-for="(banner, idx) in banners" :key="banner.id"
-        class="slide" :class="{ active: activeSlideIndex === idx }">
+      <div v-for="(banner, idx) in banners" :key="banner.id" class="slide"
+        :class="{ active: activeSlideIndex === idx }">
 
         <!-- Nền mờ từ poster phim -->
         <div class="slide-bg" :style="{ backgroundImage: `url(${banner.poster_url})` }"></div>
@@ -23,7 +23,12 @@
               <span class="meta-item-slide">📁 {{ banner.genres.join(', ') }}</span>
             </div>
 
-            <p class="slide-desc">{{ banner.description }}</p>
+            <p class="banner-description">
+              {{ banner.description }}
+            </p>
+            <router-link :to="`/movie/${banner.id}`" class="read-more-btn">
+              ... xem thêm
+            </router-link>
 
             <div class="slide-actions">
               <button @click="goToDetail(banner.id)" class="btn-slide-book">ĐẶT VÉ NGAY</button>
@@ -62,7 +67,8 @@
         <div v-else class="movies-carousel">
           <div v-for="(movie, index) in activeMovies" :key="movie.id" class="movie-carousel-card">
             <div class="poster-container">
-              <img :src="getPosterUrl(movie.poster_url)" :alt="movie.title" class="carousel-poster" @click="goToDetail(movie.id)" />
+              <img :src="getPosterUrl(movie.poster_url)" :alt="movie.title" class="carousel-poster"
+                @click="goToDetail(movie.id)" />
 
               <div class="play-overlay" @click="goToDetail(movie.id)">
                 <div class="play-icon-btn" @click.stop="openTrailer(movie.trailer_url)">
@@ -80,7 +86,7 @@
             <div class="movie-meta-info" @click="bookMovie(movie)">
               <h3 class="movie-carousel-title">{{ movie.title }}</h3>
               <p class="movie-carousel-genres">
-                {{ movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Hành động, Viễn tưởng' }}
+                {{movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Hành động, Viễn tưởng'}}
               </p>
               <div class="rating-row">
                 <span class="star-rating">★ {{ getStarRating(movie.id) }}</span>
@@ -105,7 +111,8 @@
           <div class="movies-carousel-light" ref="upcomingCarouselRef">
             <div v-for="movie in upcomingMovies" :key="'upcoming-' + movie.id" class="movie-card-light">
               <div class="poster-container-light">
-                <img :src="getPosterUrl(movie.poster_url)" :alt="movie.title" class="poster-light" @click="goToDetail(movie.id)" />
+                <img :src="getPosterUrl(movie.poster_url)" :alt="movie.title" class="poster-light"
+                  @click="goToDetail(movie.id)" />
 
                 <div class="play-overlay" @click="goToDetail(movie.id)">
                   <div class="play-icon-btn" @click.stop="openTrailer(movie.trailer_url)">
@@ -121,14 +128,15 @@
               <div class="info-light" @click="goToDetail(movie.id)">
                 <h3 class="title-light">{{ movie.title }}</h3>
                 <p class="genres-light">
-                  {{ movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Sắp chiếu' }}
+                  {{movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Sắp chiếu'}}
                 </p>
 
                 <p v-if="movie.duration" class="duration-light">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
                     stroke="currentColor" width="13" height="13"
                     style="display: inline-block; vertical-align: middle; margin-right: 3px;">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                   </svg>
                   {{ movie.duration }} phút
                 </p>
@@ -184,7 +192,8 @@
         <div v-else class="cg-filter-movies-grid">
           <div v-for="movie in paginatedMovies" :key="'filter-' + movie.id" class="cg-filter-movie-card">
             <div class="cg-filter-poster-box">
-              <img :src="getPosterUrl(movie.poster_url)" :alt="movie.title" class="cg-filter-movie-poster" @click="goToDetail(movie.id)" />
+              <img :src="getPosterUrl(movie.poster_url)" :alt="movie.title" class="cg-filter-movie-poster"
+                @click="goToDetail(movie.id)" />
               <div class="cg-filter-play-overlay" @click="goToDetail(movie.id)">
                 <div class="cg-filter-play-icon-btn" @click.stop="openTrailer(movie.trailer_url)">
                   <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
@@ -197,12 +206,12 @@
             <div class="cg-filter-movie-info">
               <h3 class="cg-filter-movie-title" @click="goToDetail(movie.id)">{{ movie.title }}</h3>
               <p class="cg-filter-movie-genres">
-                {{ movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Hành động' }}
+                {{movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Hành động'}}
               </p>
             </div>
           </div>
         </div>
-        
+
         <!-- Pagination Controls -->
         <div class="reviews-pager" v-if="totalPages > 1 && !filterLoading">
           <button @click="prevPage" :disabled="currentPage === 1">Trang trước</button>
@@ -218,36 +227,40 @@
         <div class="home-featured-comments-grid">
           <div v-for="review in featuredComments" :key="review.id" class="review-card glass-panel">
             <!-- Movie Trailer Preview Area -->
-            <div class="movie-preview-box" @click="goToDetailWithReview(review.movieId, review.id)" style="cursor: pointer;">
+            <div class="movie-preview-box" @click="goToDetailWithReview(review.movieId, review.id)"
+              style="cursor: pointer;">
               <img :src="review.moviePoster" :alt="review.movieTitle" class="movie-backdrop-img" />
               <div class="overlay-gradient"></div>
-              
+
               <!-- Play Button -->
               <button class="btn-play-preview" title="Xem trailer review" @click.stop="openTrailer(review.trailerUrl)">
                 <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
                   <polygon points="5 3 19 12 5 21 5 3" />
                 </svg>
               </button>
-              
+
               <span class="movie-rating-pill">⭐ {{ review.rating }}/5</span>
               <span v-if="review.duration" class="movie-duration-pill">{{ review.duration }} phút</span>
             </div>
-            
+
             <!-- Card Info -->
-            <div class="review-card-body" @click="goToDetailWithReview(review.movieId, review.id)" style="cursor: pointer;">
+            <div class="review-card-body" @click="goToDetailWithReview(review.movieId, review.id)"
+              style="cursor: pointer;">
               <h3 class="movie-title">{{ review.movieTitle }}</h3>
-              
+
               <div class="user-comment-wrap">
                 <div class="user-meta">
                   <div class="user-meta-header" style="display: flex; align-items: center; gap: 12px; width: 100%;">
-                    <span class="user-avatar" :style="{ background: review.avatarColor }">{{ review.userInitials }}</span>
+                    <span class="user-avatar" :style="{ background: review.avatarColor }">{{ review.userInitials
+                      }}</span>
                     <div class="user-info-text">
                       <h4 class="user-name">{{ review.userName }}</h4>
                       <small class="comment-time">{{ review.timeAgo }}</small>
                     </div>
                   </div>
                   <!-- Verification Badge -->
-                  <span class="verified-buyer-badge" style="width: fit-content; margin-top: 8px; align-self: flex-start;">✓ Đã mua vé qua CineGo</span>
+                  <span class="verified-buyer-badge"
+                    style="width: fit-content; margin-top: 8px; align-self: flex-start;">✓ Đã mua vé qua CineGo</span>
                 </div>
                 <p class="user-comment-text">"{{ review.comment }}"</p>
               </div>
@@ -265,7 +278,6 @@
           <iframe v-if="embedTrailerUrl" :src="embedTrailerUrl" frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen></iframe>
-          <div class="no-trailer-msg">Không có dữ liệu Trailer cho phim này.</div>
         </div>
       </div>
     </div>
@@ -286,7 +298,7 @@ let slideInterval = null;
 const isTrailerOpen = ref(false);
 const currentTrailerUrl = ref('');
 
-const movies = ref([]); 
+const movies = ref([]);
 const filteredMovies = ref([]);
 
 const currentPage = ref(1);
@@ -424,11 +436,11 @@ const activeMovies = computed(() => {
     if (!movie.status) return false;
     // Chuyển về chữ thường để so sánh
     const s = movie.status.toLowerCase();
-    return s === 'showing' || 
-           s === 'now-showing' || 
-           s === 'now_showing' || 
-           s === 'đang-chiếu' || // Thêm trường hợp này
-           s === 'đang chiếu';   // Và trường hợp này
+    return s === 'showing' ||
+      s === 'now-showing' ||
+      s === 'now_showing' ||
+      s === 'đang-chiếu' || // Thêm trường hợp này
+      s === 'đang chiếu';   // Và trường hợp này
   });
 });
 
@@ -436,16 +448,16 @@ const activeMovies = computed(() => {
 const upcomingMovies = computed(() => {
   return movies.value.filter(movie => {
     if (!movie.status) return false;
-    
+
     // Chuẩn hóa trạng thái về dạng chữ thường và thay thế khoảng trắng/gạch dưới bằng gạch ngang
     const s = movie.status.toLowerCase().replace(/[\s_]/g, '-');
-    
+
     // Thêm các từ khóa tiếng Việt vào điều kiện lọc
-    return s === 'upcoming' || 
-           s === 'coming-soon' || 
-           s === 'coming-soon' || 
-           s === 'sắp-chiếu' || 
-           s === 'sap-chieu';
+    return s === 'upcoming' ||
+      s === 'coming-soon' ||
+      s === 'coming-soon' ||
+      s === 'sắp-chiếu' ||
+      s === 'sap-chieu';
   });
 });
 
@@ -453,7 +465,7 @@ const getPosterUrl = (url) => {
   if (!url) return 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=100&q=80';
   if (url.startsWith('http')) return url;
   if (url.startsWith('blob:')) return url;
-  
+
   // Trỏ về port 8000 của Laravel
   const cleanPath = url.replace(/^(.*\/storage\/)/, '');
   return `http://127.0.0.1:8000/storage/${cleanPath}`;
@@ -526,7 +538,7 @@ const fetchMovies = async () => {
   try {
     const response = await api.get('/movies');
     const apiData = response.data?.data || response.data;
-    
+
     if (apiData && apiData.length > 0) {
       movies.value = apiData.map(movie => ({
         ...movie,
@@ -703,5 +715,30 @@ onUnmounted(() => {
   .home-featured-comments-grid {
     grid-template-columns: 1fr;
   }
+}
+.banner-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* Giới hạn tối đa 3 dòng */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 6px;
+  line-height: 1.5;
+  color: #cbd5e1;
+}
+
+.read-more-btn {
+  display: inline-block;
+  color: #f43f5e; /* Màu hồng/đỏ nổi bật */
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+  margin-bottom: 16px;
+  transition: color 0.2s ease;
+}
+
+.read-more-btn:hover {
+  color: #e11d48;
+  text-decoration: underline;
 }
 </style>
