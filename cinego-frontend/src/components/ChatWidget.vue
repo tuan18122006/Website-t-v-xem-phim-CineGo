@@ -108,7 +108,7 @@ const send = async () => {
     .map((m) => ({ role: m.role, text: m.text }));
 
   try {
-    const res = await api.post('/chatbot', { message: text, history });
+    const res = await api.post('/chatbot', { message: text, history }, { timeout: 60000 });
     messages.value.push({ role: 'bot', text: res.data.reply || 'Xin lỗi, mình chưa trả lời được.' });
   } catch (e) {
     console.error('Chatbot error:', e);

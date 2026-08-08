@@ -182,7 +182,7 @@
         </div>
 
         <div v-else class="cg-filter-movies-grid">
-          <div v-for="movie in filteredMovies" :key="'filter-' + movie.id" class="cg-filter-movie-card">
+          <div v-for="movie in paginatedMovies" :key="'filter-' + movie.id" class="cg-filter-movie-card">
             <div class="cg-filter-poster-box">
               <img :src="getPosterUrl(movie.poster_url)" :alt="movie.title" class="cg-filter-movie-poster" @click="goToDetail(movie.id)" />
               <div class="cg-filter-play-overlay" @click="goToDetail(movie.id)">
@@ -202,6 +202,13 @@
             </div>
           </div>
         </div>
+        
+        <!-- Pagination Controls -->
+        <div class="reviews-pager" v-if="totalPages > 1 && !filterLoading">
+          <button @click="prevPage" :disabled="currentPage === 1">Trang trước</button>
+          <span>Trang {{ currentPage }} / {{ totalPages }}</span>
+          <button @click="nextPage" :disabled="currentPage === totalPages">Trang sau</button>
+        </div>
       </div>
     </section>
 
@@ -209,18 +216,42 @@
       <div class="home-featured-comments-container">
         <h2 class="home-featured-comments-title">Bình luận tiêu biểu</h2>
         <div class="home-featured-comments-grid">
-          <div v-for="comment in featuredComments" :key="comment.id" class="home-featured-comment-card">
-            <div class="comment-card-header">
-              <div class="comment-user-block">
-                <span class="comment-avatar">{{ getInitials(comment.userName) }}</span>
-                <div>
-                  <p class="comment-movie">{{ comment.movieTitle }}</p>
-                  <p class="comment-user">{{ comment.userName }} • {{ comment.timeAgo }}</p>
-                </div>
-              </div>
-              <span class="comment-rating">{{ comment.rating }}/5</span>
+          <div v-for="review in featuredComments" :key="review.id" class="review-card glass-panel">
+            <!-- Movie Trailer Preview Area -->
+            <div class="movie-preview-box" @click="goToDetailWithReview(review.movieId, review.id)" style="cursor: pointer;">
+              <img :src="review.moviePoster" :alt="review.movieTitle" class="movie-backdrop-img" />
+              <div class="overlay-gradient"></div>
+              
+              <!-- Play Button -->
+              <button class="btn-play-preview" title="Xem trailer review" @click.stop="openTrailer(review.trailerUrl)">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+              </button>
+              
+              <span class="movie-rating-pill">⭐ {{ review.rating }}/5</span>
+              <span v-if="review.duration" class="movie-duration-pill">{{ review.duration }} phút</span>
             </div>
-            <p class="comment-text">{{ comment.comment }}</p>
+            
+            <!-- Card Info -->
+            <div class="review-card-body" @click="goToDetailWithReview(review.movieId, review.id)" style="cursor: pointer;">
+              <h3 class="movie-title">{{ review.movieTitle }}</h3>
+              
+              <div class="user-comment-wrap">
+                <div class="user-meta">
+                  <div class="user-meta-header" style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                    <span class="user-avatar" :style="{ background: review.avatarColor }">{{ review.userInitials }}</span>
+                    <div class="user-info-text">
+                      <h4 class="user-name">{{ review.userName }}</h4>
+                      <small class="comment-time">{{ review.timeAgo }}</small>
+                    </div>
+                  </div>
+                  <!-- Verification Badge -->
+                  <span class="verified-buyer-badge" style="width: fit-content; margin-top: 8px; align-self: flex-start;">✓ Đã mua vé qua CineGo</span>
+                </div>
+                <p class="user-comment-text">"{{ review.comment }}"</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -258,6 +289,21 @@ const currentTrailerUrl = ref('');
 const movies = ref([]); 
 const filteredMovies = ref([]);
 
+const currentPage = ref(1);
+const itemsPerPage = 8; // Hoặc 10, 12 tùy thiết kế
+
+const paginatedMovies = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  return filteredMovies.value.slice(start, start + itemsPerPage);
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredMovies.value.length / itemsPerPage);
+});
+
+const prevPage = () => { if (currentPage.value > 1) currentPage.value--; };
+const nextPage = () => { if (currentPage.value < totalPages.value) currentPage.value++; };
+
 const loading = ref(false);
 const filterLoading = ref(false);
 const genreList = ref([
@@ -278,11 +324,18 @@ const fetchFeaturedComments = async () => {
     const fiveStar = list.filter(r => Number(r.rating) === 5);
     featuredComments.value = fiveStar.slice(0, 6).map((r, i) => ({
       id: r.id,
+      movieId: r.movie?.id,
       movieTitle: r.movie?.title || 'Phim CineGo',
+      moviePoster: getPosterUrl(r.movie?.poster_url),
+      duration: r.movie?.duration || '',
+      genres: r.movie?.genres?.map(g => g.name) || [],
+      rating: Number(r.rating || 0).toFixed(1),
       userName: r.user?.name || 'Khách CineGo',
+      userInitials: getInitials(r.user?.name),
+      avatarColor: ['linear-gradient(135deg, #e50914, #9b000e)', 'linear-gradient(135deg, #7c4dff, #512da8)', 'linear-gradient(135deg, #00bcd4, #00838f)', 'linear-gradient(135deg, #ff9800, #e65100)'][i % 4],
       timeAgo: timeAgo(r.created_at),
-      rating: 5,
       comment: r.comment || '',
+      trailerUrl: r.movie?.trailer_url,
     }));
   } catch (e) {
     console.error('Lỗi khi lấy bình luận tiêu biểu:', e);
@@ -435,12 +488,19 @@ const goToDetail = (id) => {
   router.push(`/movie/${id}`);
 };
 
+const goToDetailWithReview = (movieId, reviewId) => {
+  if (movieId) {
+    router.push({ path: `/movie/${movieId}`, query: { reviewId: reviewId } });
+  }
+};
+
 const fetchFilteredMovies = async () => {
   filterLoading.value = true;
   try {
     const response = await api.get('/movies/search', { params: filters.value });
     const resData = response.data?.data || response.data;
     filteredMovies.value = resData || [];
+    currentPage.value = 1; // Reset to page 1 on new search
   } catch (error) {
     console.error('Lỗi tìm kiếm từ DB:', error);
     filteredMovies.value = [];

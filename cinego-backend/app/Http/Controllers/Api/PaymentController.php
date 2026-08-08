@@ -107,6 +107,22 @@ class PaymentController extends Controller
                 $this->handlePaymentSuccess($booking);
 
                 try {
+                    if ($booking->user) {
+                        $booking->user->notify(new \App\Notifications\BookingConfirmedNotification(
+                            $booking->booking_code,
+                            "Đơn hàng " . $booking->booking_code . " đã được thanh toán thành công qua VNPay."
+                        ));
+                    }
+
+                    // Thông báo cho các admin
+                    $admins = \App\Models\User::where('role', 'admin')->get();
+                    foreach ($admins as $admin) {
+                        $admin->notify(new \App\Notifications\BookingConfirmedNotification(
+                            $booking->booking_code,
+                            "Khách hàng đã thanh toán thành công đơn vé " . $booking->booking_code . " qua VNPay."
+                        ));
+                    }
+
                     if ($booking->user && $booking->user->email) {
                         Mail::to($booking->user->email)->send(new BookingSuccessMail($booking));
                     }

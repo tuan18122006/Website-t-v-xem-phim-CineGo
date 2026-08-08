@@ -157,7 +157,7 @@
       </div>
 
       <div v-else class="reviews-list">
-        <div v-for="review in reviews" :key="review.id" class="review-item-card">
+        <div v-for="review in reviews" :key="review.id" :id="'review-' + review.id" class="review-item-card" :class="{ 'highlighted-review': route.query.reviewId == review.id }">
           <div class="review-user-header">
             <div class="user-meta">
               <span class="user-avatar-text">{{ getDisplayName(review.user?.name || review.user_name || 'U').charAt(0).toUpperCase() }}</span>
@@ -390,6 +390,20 @@ const fetchMovieReviews = async () => {
     canSubmitReview.value = false;
   } finally {
     reviewsLoading.value = false;
+    
+    // Scroll to specific review if reviewId is in query
+    if (route.query.reviewId) {
+      setTimeout(() => {
+        const reviewEl = document.getElementById('review-' + route.query.reviewId);
+        if (reviewEl) {
+          reviewEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          reviewEl.classList.add('highlight-blink');
+          setTimeout(() => {
+            reviewEl.classList.remove('highlight-blink');
+          }, 2000);
+        }
+      }, 500); // Give DOM a little time to render reviews
+    }
   }
 };
 
@@ -454,7 +468,7 @@ const cancelEditReview = () => {
 const canManageReview = (review) => {
   const authUser = JSON.parse(localStorage.getItem('cinego_user') || 'null');
   if (!authUser) return false;
-  return authUser.id === review.user_id || authUser.role === 'admin';
+  return authUser.id === review.user_id;
 };
 
 const getPosterUrl = (url) => {
@@ -563,7 +577,11 @@ const proceedToSeatSelection = () => {
       dateLabel: availableDays.value[selectedDayIndex.value].fullLabel
     };
     bookingStore.selectShowtime(formattedShowtime);
-    router.push('/booking/seats');
+    if (route.query.mode === 'pos') {
+      router.push({ path: '/booking/seats', query: { mode: 'pos' } });
+    } else {
+      router.push('/booking/seats');
+    }
   }
 };
 </script>

@@ -25,6 +25,7 @@
         <select v-model="ordersStatusFilter">
           <option value="">Tất cả trạng thái</option>
           <option value="pending">Chờ thanh toán</option>
+          <option value="waiting_confirmation">Chờ xác nhận QR</option>
           <option value="paid">Đã thanh toán</option>
           <option value="cancelled">Đã hủy</option>
           <option value="refunded">Đã hoàn tiền</option>
@@ -126,16 +127,21 @@
               <h4 class="lk-section__title">⚙️ Trạng thái đơn hàng</h4>
               <div class="lk-kv">
                 <span>Trạng thái hiện tại</span>
-                <select v-model="selectedOrderStatus" class="status-select">
-                  <option value="pending">Chờ thanh toán</option>
-                  <option value="paid">Đã thanh toán</option>
-                  <option value="cancelled">Đã hủy</option>
-                  <option value="refunded">Đã hoàn tiền</option>
-                </select>
+                <strong>{{ payLabel(selectedOrderDetail.payment_status) }}</strong>
               </div>
-              <button class="btn-primary" :disabled="orderStatusUpdating || !selectedOrderStatus" @click="saveOrderStatus">
-                {{ orderStatusUpdating ? 'Đang cập nhật…' : 'Cập nhật trạng thái' }}
-              </button>
+              <div class="lk-kv">
+                <span>Phương thức thanh toán</span>
+                <strong>{{ methodLabel(selectedOrderDetail.payment_method) }}</strong>
+              </div>
+
+              <div v-if="selectedOrderDetail.payment_method === 'bank_transfer' && (selectedOrderDetail.payment_status === 'waiting_confirmation' || selectedOrderDetail.payment_status === 'pending')" style="margin-top: 15px;">
+                <div v-if="selectedOrderDetail.payment_status === 'waiting_confirmation'" style="background: #fef9c3; border: 1px solid #fde047; padding: 10px 14px; border-radius: 8px; font-size: 13px; color: #854d0e; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                  ⏳ Khách hàng đã báo cáo chuyển khoản. Vui lòng kiểm tra và xác nhận!
+                </div>
+                <button class="btn-primary" style="width: 100%; background: #10b981; border: none;" :disabled="orderStatusUpdating" @click="confirmQRPayment">
+                  {{ orderStatusUpdating ? 'Đang xử lý…' : 'Xác nhận đơn hàng đã thanh toán' }}
+                </button>
+              </div>
             </section>
           </div>
         </div>
@@ -147,6 +153,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import api from '../../api/axios';
+import Swal from 'sweetalert2';
 import TicketPrintable from '../../components/TicketPrintable.vue';
 
 const orders = ref([]);
@@ -178,16 +185,26 @@ const initials = (name) => {
 const payLabel = (status) => {
   return {
     pending: 'Chờ xử lý',
+    waiting_confirmation: 'Chờ xác nhận QR',
     paid: 'Đã thanh toán',
     cancelled: 'Đã hủy',
     refunded: 'Đã hoàn tiền',
   }[status] || status;
 };
 
+const methodLabel = (method) => {
+  return {
+    vnpay: 'VNPay',
+    bank_transfer: 'Chuyển khoản (QR)',
+    cash: 'Tiền mặt',
+  }[method] || method;
+};
+
 const payClass = (status) => {
   return {
     paid: 'is-paid',
     pending: 'is-pending',
+    waiting_confirmation: 'is-waiting',
     cancelled: 'is-failed',
     refunded: 'is-refunded',
   }[status] || '';
@@ -206,7 +223,19 @@ const loadOrders = async () => {
         order_status: ordersStatusFilter.value,
       },
     });
-    orders.value = res.data.data || [];
+    const rawData = res.data?.data?.data || res.data?.data || [];
+    orders.value = rawData.map(order => ({
+      ...order,
+      customer_name: order.user?.name,
+      customer_phone: order.user?.phone,
+      customer_email: order.user?.email,
+      movie_title: order.showtime?.movie?.title,
+      room_name: order.showtime?.room?.name,
+      showtime_at: order.showtime?.start_time,
+      order_status: order.payment_status,
+      customer_type: order.user_id ? 'member' : 'guest',
+      created_at_full: order.created_at
+    }));
     movieOptions.value = [...new Set(orders.value.map((o) => o.movie_title).filter(Boolean))];
   } catch (err) {
     console.error('Load orders error:', err);
@@ -247,22 +276,50 @@ const viewOrderDetail = async (order) => {
   }
 };
 
-const saveOrderStatus = async () => {
-  if (!selectedOrder.value || !selectedOrderStatus.value) {
+const confirmQRPayment = async () => {
+  const currentStatus = selectedOrderDetail.value?.payment_status;
+  if (!selectedOrder.value || !['pending', 'waiting_confirmation'].includes(currentStatus)) {
     return;
   }
+  
+  const result = await Swal.fire({
+    title: 'Xác nhận đơn hàng?',
+    text: 'Bạn có chắc chắn đã nhận được tiền chuyển khoản của đơn hàng này và muốn xuất vé?',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#10b981',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Đã nhận tiền & Xuất vé',
+    cancelButtonText: 'Hủy bỏ'
+  });
+
+  if (!result.isConfirmed) {
+    return;
+  }
+
   orderStatusUpdating.value = true;
   try {
     await api.patch(`/admin/orders/${selectedOrder.value.id}/status`, {
-      order_status: selectedOrderStatus.value,
+      status: 'paid',
     });
     await loadOrders();
     if (selectedOrderDetail.value) {
-      selectedOrderDetail.value.order_status = selectedOrderStatus.value;
+      selectedOrderDetail.value.payment_status = 'paid';
     }
+    Swal.fire({
+      icon: 'success',
+      title: 'Thành công',
+      text: 'Xác nhận thanh toán và xuất vé thành công!',
+      timer: 1500,
+      showConfirmButton: false
+    });
   } catch (err) {
     console.error('Update order status error:', err);
-    alert(err.response?.data?.message || 'Không thể cập nhật trạng thái đơn hàng.');
+    Swal.fire({
+      icon: 'error',
+      title: 'Lỗi cập nhật',
+      text: err.response?.data?.message || 'Không thể cập nhật trạng thái đơn hàng.',
+    });
   } finally {
     orderStatusUpdating.value = false;
   }
@@ -280,8 +337,8 @@ onMounted(() => {
 .orders-panel__head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .orders-panel__head h3 { margin: 0 0 4px; font-size: 20px; color: #1e293b; }
 .orders-panel__head p { margin: 0; color: var(--text-secondary); font-size: 13px; }
-.orders-toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-.orders-toolbar input, .orders-toolbar select { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; min-width: 170px; }
+.orders-toolbar { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 10px; align-items: center; }
+.orders-toolbar input, .orders-toolbar select { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; }
 .orders-toolbar input:focus, .orders-toolbar select:focus { outline: none; border-color: var(--accent-pink); box-shadow: 0 0 0 3px rgba(216, 45, 139, 0.12); }
 .orders-filter-btn { border: none; background: linear-gradient(135deg, var(--accent-pink), var(--accent-violet)); color: white; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 700; }
 /* TABLE ROW STYLING LIKE BOOKING LOOKUP */
@@ -310,6 +367,7 @@ onMounted(() => {
 .pay-pill { padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; display: inline-block; }
 .pay-pill.is-paid { background: #edfcf5; color: var(--accent-mint); }
 .pay-pill.is-pending { background: #fffaf0; color: #dd6b20; }
+.pay-pill.is-waiting { background: #fef9c3; color: #854d0e; }
 .pay-pill.is-failed { background: #fee2e2; color: #dc2626; }
 .pay-pill.is-refunded { background: #f1f5f9; color: #475569; }
 

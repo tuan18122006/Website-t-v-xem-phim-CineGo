@@ -78,6 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Các route của Phi
     Route::get('/user/bookings', [BookingController::class, 'history']);
     Route::get('/bookings/{id}', [BookingController::class, 'show']);
+    Route::patch('/bookings/{id}/confirm-transfer', [BookingController::class, 'confirmTransfer']);
     Route::post('/vouchers/verify', [VoucherController::class, 'verify']);
     Route::get('/user/available-combos', [LoyaltyController::class, 'getAvailableCombos']);
     Route::post('/vouchers/claim', [VoucherController::class, 'claimVoucher']);
@@ -219,8 +220,13 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
 // 4. STAFF ROUTES - NHÂN VIÊN HỖ TRỢ (staff hoặc admin)
 // ==================================================================
 Route::middleware(['auth:sanctum', 'can:staff-or-admin'])->prefix('staff')->group(function () {
+    // POS (Bán vé tại quầy)
+    Route::get('/customers/search', [\App\Http\Controllers\Api\POSController::class, 'searchCustomer']);
+    Route::post('/bookings/pos', [\App\Http\Controllers\Api\POSController::class, 'storePOSBooking']);
+
     // Tra cứu đơn hàng / Hỗ trợ khách hàng
     Route::get('/bookings/lookup', [BookingLookupController::class, 'search']);
+    Route::post('/bookings/verify', [BookingLookupController::class, 'verify']);
     Route::get('/bookings/{id}', [BookingLookupController::class, 'show']);
     
     // Đối soát ca trực (Dành cho nhân viên)

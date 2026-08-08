@@ -322,10 +322,10 @@ class ReviewController extends Controller
     public function publicFeatured()
     {
         $reviews = Review::where('is_hidden', false)
+            ->where('rating', 5)
             ->with(['user:id,name', 'movie:id,title,poster_url,duration,trailer_url'])
-            ->orderByDesc('is_featured')
             ->latest()
-            ->limit(30)
+            ->limit(6)
             ->get();
 
         return response()->json([

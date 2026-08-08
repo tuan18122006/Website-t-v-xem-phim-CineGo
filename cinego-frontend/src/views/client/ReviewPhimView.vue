@@ -37,7 +37,7 @@
       <div class="reviews-grid">
         <div v-for="review in pagedReviews" :key="review.id" class="review-card glass-panel">
           <!-- Movie Trailer Preview Area -->
-          <div class="movie-preview-box">
+          <div class="movie-preview-box" @click="goToDetail(review.movieId, review.id)" style="cursor: pointer;">
             <img :src="review.moviePoster" :alt="review.movieTitle" class="movie-backdrop-img" />
             <div class="overlay-gradient"></div>
             
@@ -54,19 +54,21 @@
           </div>
           
           <!-- Card Info -->
-          <div class="review-card-body">
+          <div class="review-card-body" @click="goToDetail(review.movieId, review.id)" style="cursor: pointer;">
             <h3 class="movie-title">{{ review.movieTitle }}</h3>
             <span class="movie-genres">{{ review.genres.join(', ') }}</span>
             
             <div class="user-comment-wrap">
               <div class="user-meta">
-                <span class="user-avatar" :style="{ background: review.avatarColor }">{{ review.userInitials }}</span>
-                <div>
-                  <h4 class="user-name">{{ review.userName }}</h4>
-                  <small class="comment-time">{{ review.timeAgo }}</small>
+                <div class="user-meta-header" style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                  <span class="user-avatar" :style="{ background: review.avatarColor }">{{ review.userInitials }}</span>
+                  <div class="user-info-text">
+                    <h4 class="user-name" :title="review.userName">{{ review.userName }}</h4>
+                    <small class="comment-time">{{ review.timeAgo }}</small>
+                  </div>
                 </div>
                 <!-- Verification Badge -->
-                <span class="verified-buyer-badge">✓ Đã mua vé qua CineGo</span>
+                <span class="verified-buyer-badge" style="width: fit-content; margin-top: 8px; align-self: flex-start;">✓ Đã mua vé qua CineGo</span>
               </div>
               <p class="user-comment-text">"{{ review.comment }}"</p>
               <div v-if="review.adminReply" class="admin-reply-box">
@@ -112,8 +114,10 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import api from '../../api/axios';
 
+const router = useRouter();
 const page = ref(1);
 const perPage = 8; // 4 cột x 2 hàng
 const totalPages = computed(() => Math.max(1, Math.ceil(movieReviews.value.length / perPage)));
@@ -146,6 +150,12 @@ const openTrailer = (url) => {
 const closeTrailer = () => {
   isTrailerOpen.value = false;
   currentTrailerUrl.value = '';
+};
+
+const goToDetail = (movieId, reviewId) => {
+  if (movieId) {
+    router.push({ path: `/movie/${movieId}`, query: { reviewId: reviewId } });
+  }
 };
 
 const AVATAR_COLORS = [
@@ -186,6 +196,7 @@ const fetchReviews = async () => {
     const list = res.data?.data || [];
     movieReviews.value = list.map((r, i) => ({
       id: r.id,
+      movieId: r.movie?.id,
       movieTitle: r.movie?.title || 'Phim CineGo',
       moviePoster: getPosterUrl(r.movie?.poster_url),
       duration: r.movie?.duration || '',
@@ -331,7 +342,7 @@ onMounted(fetchReviews);
 /* REVIEWS GRID */
 .reviews-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 
@@ -510,15 +521,25 @@ onMounted(fetchReviews);
 
 .user-meta {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 12px;
   position: relative;
+}
+
+.user-info-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .user-avatar {
   width: 32px;
   height: 32px;
+  min-width: 32px;
+  flex-shrink: 0;
   border-radius: 50%;
   color: #ffffff;
   display: inline-flex;
@@ -533,6 +554,9 @@ onMounted(fetchReviews);
   font-weight: 700;
   color: #1e293b;
   margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .comment-time {
@@ -541,7 +565,6 @@ onMounted(fetchReviews);
 }
 
 .verified-buyer-badge {
-  margin-left: auto;
   background: rgba(16, 185, 129, 0.08);
   color: #10b981;
   padding: 3px 8px;
@@ -549,6 +572,8 @@ onMounted(fetchReviews);
   font-size: 9.5px;
   font-weight: 700;
   border: 1px solid rgba(16, 185, 129, 0.15);
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .user-comment-text {
@@ -593,7 +618,7 @@ onMounted(fetchReviews);
 .btn-play-preview { width: 40px; height: 40px; }
 .btn-play-preview svg { width: 18px; height: 18px; }
 .movie-rating-pill { padding: 4px 9px; font-size: 11px; }
-.user-avatar { width: 30px; height: 30px; font-size: 11px; }
+.user-avatar { width: 30px; height: 30px; min-width: 30px; flex-shrink: 0; font-size: 11px; }
 .user-name { font-size: 13px; }
 .comment-time { font-size: 10.5px; }
 .verified-buyer-badge { font-size: 9px; padding: 2px 6px; }

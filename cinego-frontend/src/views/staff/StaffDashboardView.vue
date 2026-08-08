@@ -10,15 +10,6 @@
       </div>
 
       <nav class="sidebar-nav">
-        <!-- <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'pos' }" 
-          @click="activeTab = 'pos'"
-        >
-          <span class="nav-icon">🎟️</span>
-          <span>Bán Vé Tại Quầy (POS)</span>
-        </button> -->
-
         <button 
           class="nav-link" 
           :class="{ active: activeTab === 'lookup' }" 
@@ -56,11 +47,6 @@
         </div>
         <router-link to="/" class="btn-back-client">👁️ Xem Client Website</router-link>
       </header>
-
-      <!-- TAB: BÁN VÉ TẠI QUẦY (POS) - Tạm ẩn -->
-      <!-- <div v-if="activeTab === 'pos'">
-        <StaffPOSView />
-      </div> -->
 
       <!-- TAB: TRA CỨU ĐƠN HÀNG -->
       <div v-show="activeTab === 'lookup'">
@@ -120,7 +106,6 @@ import { ref, computed, nextTick, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import BookingLookupView from '../admin/BookingLookupView.vue';
-import StaffPOSView from './StaffPOSView.vue';
 import api from '../../api/axios';
 import { QrcodeStream, QrcodeCapture } from 'vue-qrcode-reader';
 
@@ -159,12 +144,10 @@ watch(activeTab, (newVal) => {
 });
 
 const getTabTitle = computed(() => {
-  if (activeTab.value === 'pos') return 'Bán Vé Tại Quầy (POS)';
   return activeTab.value === 'lookup' ? 'Tra Cứu Đơn Hàng & Hỗ Trợ Khách' : 'Soát Vé & Quét Mã QR';
 });
 
 const getTabDesc = computed(() => {
-  if (activeTab.value === 'pos') return 'Bán vé trực tiếp cho khách vãng lai, thao tác nhanh chọn phim, ghế, bắp nước và thu tiền mặt.';
   return activeTab.value === 'lookup' 
     ? 'Tìm đơn theo SĐT/email/mã đơn khi khách quên mã vé, xem ghế & bắp nước đã mua để hỗ trợ.' 
     : 'Kiểm tra tính hợp lệ của vé. Đảm bảo vé chưa được sử dụng và đúng suất chiếu.';
