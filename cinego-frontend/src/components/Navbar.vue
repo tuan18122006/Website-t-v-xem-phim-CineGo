@@ -15,8 +15,16 @@
         </router-link>
         
         <div class="nav-links">
-          <router-link to="/mua-ve" class="nav-item">Lịch chiếu</router-link>
-          <router-link to="/" class="nav-item">Phim chiếu</router-link>
+          <div class="nav-dropdown-wrapper">
+  <span class="nav-item has-dropdown">
+    Phim <svg class="dropdown-arrow" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+  </span>
+  <div class="nav-dropdown-menu">
+    <router-link to="/phim?type=now_showing" class="nav-dropdown-item">Tìm kiếm phim</router-link>
+
+    <router-link to="/mua-ve" class="nav-dropdown-item">Lịch chiếu</router-link>
+  </div>
+</div>
           <router-link to="/review-phim" class="nav-item">Review phim</router-link>
           <router-link to="/top-phim" class="nav-item">Top phim</router-link>
           <router-link to="/blog-phim" class="nav-item">Blog phim</router-link>
@@ -27,9 +35,7 @@
       <!-- Account & Search Section -->
       <div class="nav-right">
         <!-- Search icon/bar simulated -->
-        <div class="search-box">
-          <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        </div>
+      
 
         <div v-if="bookingStore.holdExpiresAt && remainingTime > 0" class="nav-timer">
           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
@@ -103,15 +109,31 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router'; 
 import { useAuthStore } from '../stores/auth';
 import { useBookingStore } from '../stores/booking';
+import api from '../api/axios';
 
 const authStore = useAuthStore();
 const bookingStore = useBookingStore();
 const router = useRouter();
+const route = useRoute(); 
 
-import api from '../api/axios';
+const currentTab = ref('now_showing');
+const movies = ref([]);
+const isLoading = ref(false);
+
+const fetchMovies = async (type) => {
+  isLoading.value = true;
+  try {
+    const response = await api.get(`/movies?status=${type}`);
+    movies.value = response.data.data || response.data;
+  } catch (error) {
+    console.error('Lỗi tải danh sách phim:', error);
+  } finally {
+    isLoading.value = false;
+  }
+};
 
 const notifications = ref([]);
 const unreadCount = ref(0);
@@ -153,7 +175,6 @@ const markAllAsRead = async () => {
   }
 };
 
-
 const remainingTime = ref(0);
 let timerId = null;
 
@@ -189,12 +210,21 @@ onMounted(() => {
   document.addEventListener('click', () => {
     isNotificationOpen.value = false;
   });
+
+  currentTab.value = route.query.type || 'now_showing';
+  fetchMovies(currentTab.value);
 });
 
+// 3. Fixed watcher syntax and handled route.query changes separately
 watch(() => authStore.isAuthenticated, (newVal) => {
   if (newVal) {
     fetchNotifications();
   }
+});
+
+watch(() => route.query.type, (newType) => {
+  currentTab.value = newType || 'now_showing';
+  fetchMovies(currentTab.value);
 });
 
 onUnmounted(() => {
@@ -695,5 +725,62 @@ const handleLogout = async () => {
 .notif-time {
   font-size: 11px;
   color: #94a3b8;
+}
+.nav-dropdown-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.nav-item.has-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.dropdown-arrow {
+  transition: transform 0.2s ease;
+}
+
+.nav-dropdown-wrapper:hover .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.nav-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: #ffffff;
+  min-width: 170px;
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  z-index: 200;
+  padding: 6px 0;
+  overflow: hidden;
+}
+
+.nav-dropdown-wrapper:hover .nav-dropdown-menu {
+  display: block;
+  animation: fadeIn 0.2s ease;
+}
+
+.nav-dropdown-item {
+  color: #334155;
+  padding: 10px 16px;
+  text-decoration: none;
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.nav-dropdown-item:hover,
+.router-link-active.nav-dropdown-item {
+  background-color: rgba(216, 45, 139, 0.06);
+  color: var(--accent-pink);
+  padding-left: 20px;
 }
 </style>

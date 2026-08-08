@@ -69,7 +69,11 @@ const routes = [
     component: () => import("../views/client/ProfileView.vue"),
     meta: { requiresAuth: true }
   },
-
+  {
+  path: '/phim',
+  name: 'Movies',
+  component: () => import('../views/client/MoviesView.vue')
+},
   {
     path: "/booking/seats",
     name: "seat-selection",
