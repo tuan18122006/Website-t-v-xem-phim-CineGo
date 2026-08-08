@@ -140,7 +140,16 @@ class VoucherController extends Controller
         $data = $request->validate([
             'code'            => 'required|unique:vouchers,code|max:20|alpha_dash',
             'discount_type'   => 'required|in:fixed,percentage',
-            'discount_value'  => 'required|numeric|min:0',
+            'discount_value'  => [
+                'required',
+                'numeric',
+                'min:0',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->discount_type === 'percentage' && $value > 100) {
+                        $fail('Giá trị giảm giá theo % không được vượt quá 100%.');
+                    }
+                }
+            ],
             'min_spend'       => 'required|numeric|min:0',
             'starts_at'       => 'nullable|date',
             'max_discount'    => 'nullable|numeric|min:0',
@@ -171,7 +180,16 @@ class VoucherController extends Controller
         $data = $request->validate([
             'code'            => 'required|max:20|unique:vouchers,code,' . $id,
             'discount_type'   => 'required|in:fixed,percentage',
-            'discount_value'  => 'required|numeric|min:0',
+            'discount_value'  => [
+                'required',
+                'numeric',
+                'min:0',
+                function ($attribute, $value, $fail) use ($request) {
+                    if ($request->discount_type === 'percentage' && $value > 100) {
+                        $fail('Giá trị giảm giá theo % không được vượt quá 100%.');
+                    }
+                }
+            ],
             'min_spend'       => 'required|numeric|min:0',
             'max_discount'    => 'nullable|numeric|min:0',
             'starts_at'       => 'nullable|date',

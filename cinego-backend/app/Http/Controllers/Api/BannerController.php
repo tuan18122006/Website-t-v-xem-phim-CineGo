@@ -78,9 +78,11 @@ class BannerController extends Controller
             ], 422);
         }
 
+        $movie = Movie::find($request->movie_id);
+
         $banner = Banner::create([
             'movie_id' => $request->movie_id,
-            'image_url' => null, // dùng poster từ movie
+            'image_url' => $movie->poster_url ?? '',
             'is_active' => filter_var($request->is_active, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) ?? true,
             'order' => $request->order ?? 0
         ]);

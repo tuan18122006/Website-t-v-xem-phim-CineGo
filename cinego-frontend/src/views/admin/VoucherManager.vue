@@ -121,8 +121,16 @@
                         <span v-if="errors.discount_type" class="error-text">{{ errors.discount_type[0] }}</span>
                     </div>
                     <div class="form-group">
-                        <label>Giá trị giảm</label>
-                        <input v-model="voucherForm.discount_value" type="number" :class="{ 'is-invalid': errors.discount_value }" class="form-control">
+                        <label>Giá trị giảm <span v-if="voucherForm.discount_type === 'percentage'" style="color:#ef4444;font-size:12px;">(tối đa 100%)</span></label>
+                        <input
+                            v-model.number="voucherForm.discount_value"
+                            type="number"
+                            :max="voucherForm.discount_type === 'percentage' ? 100 : undefined"
+                            min="0"
+                            step="1"
+                            :class="{ 'is-invalid': errors.discount_value }"
+                            class="form-control"
+                        >
                         <span v-if="errors.discount_value" class="error-text">{{ errors.discount_value[0] }}</span>
                     </div>
                 </div>
@@ -237,6 +245,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import api from '../../api/axios';
+import { toast, confirmDialog } from '../../utils/alert';
 
 const vouchers = ref([]);
 const isModalOpen = ref(false);
@@ -365,6 +374,8 @@ const saveVoucher = async () => {
     }
     if (!voucherForm.value.discount_value || voucherForm.value.discount_value <= 0) {
         errors.value.discount_value = ["Giá trị giảm phải lớn hơn 0."];
+    } else if (voucherForm.value.discount_type === 'percentage' && voucherForm.value.discount_value > 100) {
+        errors.value.discount_value = ["Giá trị giảm giá theo % không được vượt quá 100%."];
     }
     if (!voucherForm.value.starts_at) {
         errors.value.starts_at = ["Vui lòng chọn ngày bắt đầu."];
@@ -393,8 +404,10 @@ const saveVoucher = async () => {
     try {
         if (isEditing.value) {
             await api.put(`admin/vouchers/${payload.id}`, payload);
+            toast("Cập nhật mã giảm giá thành công!");
         } else {
             await api.post('admin/vouchers', payload);
+            toast("Thêm mã giảm giá mới thành công!");
         }
         isModalOpen.value = false;
         fetchVouchers();
@@ -402,7 +415,7 @@ const saveVoucher = async () => {
         if (error.response?.status === 422 && error.response?.data?.errors) {
             errors.value = error.response.data.errors;
         } else {
-            alert("Lỗi: " + (error.response?.data?.message || "Có lỗi xảy ra!"));
+            toast("Lỗi: " + (error.response?.data?.message || "Có lỗi xảy ra!"), "error");
         }
     }
 };
@@ -412,12 +425,14 @@ const isVoucherExpired = (expires_at) => {
 };
 
 const deleteVoucher = async (id) => {
-    if (confirm('Bạn có chắc chắn muốn xóa mã này?')) {
+    const isConfirmed = await confirmDialog('Bạn có chắc chắn muốn xóa mã này?');
+    if (isConfirmed) {
         try {
             await api.delete(`admin/vouchers/${id}`);
+            toast("Xóa mã giảm giá thành công!");
             fetchVouchers();
         } catch (error) {
-            alert(error.response?.data?.message || "Xóa thất bại!");
+            toast(error.response?.data?.message || "Xóa thất bại!", "error");
         }
     }
 };

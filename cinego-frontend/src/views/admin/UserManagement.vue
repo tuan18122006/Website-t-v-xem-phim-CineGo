@@ -91,7 +91,7 @@
               <tr>
                 <th>{{ activeSection === 'staff' ? 'Nhân viên' : 'Khách hàng' }}</th>
                 <th>Liên hệ</th>
-                <th>{{ activeSection === 'staff' ? 'Ca trực POS' : 'Hạng thành viên & Điểm' }}</th>
+                <th>{{ activeSection === 'staff' ? 'Trạng thái ca' : 'Hạng thành viên & Điểm' }}</th>
                 <th>Vai trò</th>
                 <th>Trạng thái hoạt động</th>
                 <th class="ta-right">Hành động</th>
@@ -126,7 +126,7 @@
                   </template>
                   <template v-else>
                     <span class="premium-badge" :class="u.work_status === 'on_shift' ? 'status-active' : 'role-customer'">
-                      💼 {{ u.work_status === 'on_shift' ? 'Đang trực POS' : 'Chưa vào ca' }}
+                      💼 {{ u.work_status === 'on_shift' ? 'Đang làm việc' : 'Chưa vào ca' }}
                     </span>
                   </template>
                 </td>
@@ -493,14 +493,6 @@
               <input v-model="adjustPointsReason" type="text" class="form-control" placeholder="Lý do (tùy chọn)..." style="margin-top: 6px; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; width: 100%;" />
             </div>
 
-            <!-- DANGER ZONE (ẨN DANH GDPR) -->
-            <div v-if="detail.user.role !== 'admin' && !detail.user.is_anonymized" class="crm-danger-zone">
-              <span class="danger-title">🗑️ Bảo mật dữ liệu (GDPR)</span>
-              <p>Ẩn hoàn toàn thông tin cá nhân của khách hàng vĩnh viễn (giữ lại hóa đơn phục vụ tài chính).</p>
-              <button type="button" class="btn-anonymize-premium" @click="anonymizeUser(detail.user.id)">
-                Kích hoạt ẩn danh tính
-              </button>
-            </div>
           </div>
 
           <!-- CỘT PHẢI: TABS LỊCH SỬ HOẠT ĐỘNG -->
@@ -690,11 +682,8 @@ const newVoucherCode = ref('');
 
 const sections = [
   { key: 'customer', label: 'Khách hàng', icon: IconUser,      role: 'customer', addLabel: 'Khách Hàng', title: 'Danh mục Khách hàng', desc: 'Quản lý thông tin, phân hạng thành viên, khóa/mở khóa tài khoản khách hàng.' },
-  { key: 'leaderboard', label: 'BXH Thành viên', icon: IconStar, role: 'customer', addLabel: null, title: 'Bảng xếp hạng (Leaderboard)', desc: 'Top khách hàng tích điểm và chi tiêu nhiều nhất.' },
   { key: 'staff',    label: 'Nhân viên',  icon: IconBriefcase, role: 'staff',    addLabel: 'Nhân Viên', title: 'Nhân sự vận hành', desc: 'Danh sách nhân sự trực tuyến đầu, theo dõi ca làm việc và quầy trực.' },
   { key: 'admin',    label: 'Quản trị',   icon: IconCrown,     role: 'admin',    addLabel: 'Quản Trị Viên', title: 'Quản trị viên hệ thống', desc: 'Tài khoản quản lý cấp cao có toàn quyền quản trị và thiết lập cấu hình rạp.' },
-  { key: 'shift',    label: 'Đối soát ca', icon: IconClock,     role: null,       addLabel: null, title: 'Đối soát ca trực POS', desc: 'Kiểm soát doanh thu chốt ca của nhân viên quầy, đối sánh giữa tiền thực tế khai báo và hệ thống.' },
-  { key: 'refund',   label: 'Duyệt hoàn vé', icon: IconTicket,   role: null,       addLabel: null, title: 'Duyệt yêu cầu hoàn vé', desc: 'Danh sách các yêu cầu hoàn tiền vé và hủy ghế ngồi từ nhân viên gửi lên.' },
 ];
 
 const activeSection = ref('customer');
@@ -808,7 +797,7 @@ const dashboardCards = computed(() => {
     const locked = allUsers.value.filter(u => u.role === 'staff' && u.status === 'locked').length;
     return [
       { label: 'Tổng nhân viên', value: total + ' nhân sự', icon: IconBriefcase, colorClass: 'card-violet' },
-      { label: 'Nhân viên đang làm ca', value: onShift + ' quầy POS', icon: IconCheck, colorClass: 'card-mint' },
+      { label: 'Nhân viên đang làm ca', value: onShift + ' người', icon: IconCheck, colorClass: 'card-mint' },
       { label: 'Tài khoản nhân sự bị khóa', value: locked + ' acc', icon: IconLock, colorClass: 'card-red' },
     ];
   } else if (activeSection.value === 'admin') {
