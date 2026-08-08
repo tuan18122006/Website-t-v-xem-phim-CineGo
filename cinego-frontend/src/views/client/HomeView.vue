@@ -278,6 +278,7 @@
           <iframe v-if="embedTrailerUrl" :src="embedTrailerUrl" frameborder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen></iframe>
+          <div class="no-trailer-msg">Không có dữ liệu Trailer cho phim này.</div>
         </div>
       </div>
     </div>
@@ -718,7 +719,7 @@ onUnmounted(() => {
 }
 .banner-description {
   display: -webkit-box;
-  -webkit-line-clamp: 3; /* Giới hạn tối đa 3 dòng */
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -729,7 +730,7 @@ onUnmounted(() => {
 
 .read-more-btn {
   display: inline-block;
-  color: #f43f5e; /* Màu hồng/đỏ nổi bật */
+  color: #f43f5e; 
   font-weight: 600;
   font-size: 14px;
   text-decoration: none;
