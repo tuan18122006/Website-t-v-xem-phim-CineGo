@@ -1,25 +1,25 @@
 <template>
-    <div class="seat-map-container">
+  <div class="seat-map-container">
     <!-- Đã bỏ công tắc khóa cuộn theo yêu cầu -->
 
     <div class="screen-indicator">MÀN HÌNH CHÍNH</div>
-    
+
     <!-- KHU VỰC VẼ KHUNG CHỌN (BOX SELECTION) -->
-    <div 
-      class="cinema-floor" 
+    <div
+      class="cinema-floor"
       ref="floorRef"
       @pointerdown="handlePointerDown"
       :style="mode === 'admin' ? 'touch-action: none;' : ''"
     >
       <!-- Vùng Chọn (Selection Box) màu xanh -->
-      <div 
+      <div
         v-if="box.show"
         class="selection-box"
         :style="{
           left: box.left + 'px',
           top: box.top + 'px',
           width: box.width + 'px',
-          height: box.height + 'px'
+          height: box.height + 'px',
         }"
       ></div>
 
@@ -29,8 +29,8 @@
       </div>
 
       <div class="seats-grid" :style="gridStyle">
-        <div 
-          v-for="seat in sortedSeats" 
+        <div
+          v-for="seat in sortedSeats"
           :key="seat.id"
           :data-seat-id="seat.id"
           :class="getSeatClass(seat)"
@@ -38,7 +38,10 @@
           @click="handleSeatClick(seat, $event)"
           class="seat-item"
         >
-          <span v-if="seat.type !== 'hidden' && seat.type !== 'couple_hidden'" class="seat-label">
+          <span
+            v-if="seat.type !== 'hidden' && seat.type !== 'couple_hidden'"
+            class="seat-label"
+          >
             {{ seat.row }}{{ displayNumbers.get(seat.id) }}
           </span>
         </div>
@@ -49,30 +52,62 @@
         <div class="aisle-text">LỐI RA</div>
       </div>
     </div>
-    
+
     <div class="legend">
-      <div class="legend-item"><div class="seat-box standard"></div> Thường</div>
-      <div class="legend-item"><div class="seat-box vip"></div> VIP</div>
-      <div class="legend-item"><div class="seat-box couple"></div> Đôi</div>
-      <div class="legend-item" v-if="mode === 'client'"><div class="seat-box booked"></div> Đã bán</div>
-      <div class="legend-item" v-if="mode === 'client'"><div class="seat-box selected"></div> Đang chọn</div>
-      <div class="legend-item" v-if="mode === 'admin'"><div class="seat-box hidden-demo"></div> Khoảng trống</div>
-      <div class="legend-item" v-if="mode === 'admin'"><div class="seat-box admin-selected"></div> Đang quét chọn</div>
+      <div class="legend-item">
+        <div class="seat-box standard"></div>
+        Thường
+      </div>
+      <div class="legend-item">
+        <div class="seat-box vip"></div>
+        VIP
+      </div>
+      <div class="legend-item">
+        <div class="seat-box couple"></div>
+        Đôi
+      </div>
+      <div class="legend-item" v-if="mode === 'client'">
+        <div class="seat-box booked"></div>
+        Đã bán
+      </div>
+      <div class="legend-item" v-if="mode === 'client'">
+        <div class="seat-box selected"></div>
+        Đang chọn
+      </div>
+      <div class="legend-item" v-if="mode === 'admin'">
+        <div class="seat-box admin-booked"></div>
+        Đã đặt
+      </div>
+
+      <div class="legend-item" v-if="mode === 'admin'">
+        <div class="seat-box admin-holding"></div>
+        Đang giữ
+      </div>
+
+      <div class="legend-item" v-if="mode === 'admin'">
+        <div class="seat-box hidden-demo"></div>
+        Khoảng trống
+      </div>
+
+      <div class="legend-item" v-if="mode === 'admin'">
+        <div class="seat-box admin-selected"></div>
+        Đang quét chọn
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed, ref, reactive, onBeforeUnmount } from 'vue';
+import { computed, ref, reactive, onBeforeUnmount } from "vue";
 
 const props = defineProps({
   seats: { type: Array, required: true },
-  mode: { type: String, default: 'client' },
+  mode: { type: String, default: "client" },
   selectedSeatIds: { type: Array, default: () => [] },
-  layout: { type: Object, default: () => ({ gap_cols: [], gap_rows: [] }) }
+  layout: { type: Object, default: () => ({ gap_cols: [], gap_rows: [] }) },
 });
 
-const emit = defineEmits(['seat-clicked', 'selection-changed']);
+const emit = defineEmits(["seat-clicked", "selection-changed"]);
 
 const floorRef = ref(null);
 
@@ -84,15 +119,15 @@ const sortedSeats = computed(() => {
 });
 
 const rowLetters = computed(() => {
-  const rows = new Set(props.seats.map(s => s.row));
+  const rows = new Set(props.seats.map((s) => s.row));
   return Array.from(rows).sort();
 });
 
 const displayNumbers = computed(() => {
   const map = new Map();
   const seatsByRow = {};
-  
-  props.seats.forEach(seat => {
+
+  props.seats.forEach((seat) => {
     if (!seatsByRow[seat.row]) seatsByRow[seat.row] = [];
     seatsByRow[seat.row].push(seat);
   });
@@ -100,8 +135,8 @@ const displayNumbers = computed(() => {
   for (const row in seatsByRow) {
     let currentDisplayNum = 1;
     const sorted = seatsByRow[row].sort((a, b) => a.number - b.number);
-    sorted.forEach(seat => {
-      if (seat.type !== 'hidden' && seat.type !== 'couple_hidden') {
+    sorted.forEach((seat) => {
+      if (seat.type !== "hidden" && seat.type !== "couple_hidden") {
         map.set(seat.id, currentDisplayNum);
         currentDisplayNum++;
       }
@@ -116,14 +151,14 @@ const getPhysicalGridPos = (seat) => {
   const gapRows = layout.gap_rows || [];
 
   let physicalCol = seat.number;
-  gapCols.forEach(gapCol => {
+  gapCols.forEach((gapCol) => {
     if (seat.number > gapCol) physicalCol++;
   });
 
   let rowIndex = rowLetters.value.indexOf(seat.row) + 1;
   let physicalRow = rowIndex;
-  
-  gapRows.forEach(gapRow => {
+
+  gapRows.forEach((gapRow) => {
     let gapRowIndex = rowLetters.value.indexOf(gapRow) + 1;
     if (rowIndex > gapRowIndex) physicalRow++;
   });
@@ -134,20 +169,20 @@ const getPhysicalGridPos = (seat) => {
 const gridStyle = computed(() => {
   const layout = props.layout || { gap_cols: [], gap_rows: [] };
   const gapCols = layout.gap_cols || [];
-  
+
   let maxCol = 10;
   if (props.seats && props.seats.length > 0) {
-      maxCol = Math.max(...props.seats.map(s => s.number));
+    maxCol = Math.max(...props.seats.map((s) => s.number));
   }
   const maxPhysicalCol = maxCol + gapCols.length;
-  
+
   return {
-    gridTemplateColumns: `repeat(${maxPhysicalCol}, minmax(40px, 1fr))`
+    gridTemplateColumns: `repeat(${maxPhysicalCol}, minmax(40px, 1fr))`,
   };
 });
 
 // --- ADMIN STATE ---
-const adminSelectedIds = ref(new Set()); 
+const adminSelectedIds = ref(new Set());
 
 // --- BOX SELECTION (LASSO) STATE ---
 const box = reactive({
@@ -157,7 +192,7 @@ const box = reactive({
   left: 0,
   top: 0,
   width: 0,
-  height: 0
+  height: 0,
 });
 
 // Cache DOM elements để tối ưu tốc độ tính toán, không gọi DOM API liên tục
@@ -169,7 +204,7 @@ let localAdminSelectedIds = new Set(); // Set cục bộ không kích hoạt Rea
 // --- LOGIC VẼ KHUNG CHỌN ---
 
 const initDrag = (clientX, clientY) => {
-  if (props.mode !== 'admin') return;
+  if (props.mode !== "admin") return;
   isDragging = true;
   box.show = true;
 
@@ -186,16 +221,18 @@ const initDrag = (clientX, clientY) => {
   localAdminSelectedIds = new Set(adminSelectedIds.value); // Copy state hiện tại
 
   // Cache lại toàn bộ vị trí của các ghế theo offset tương đối (Rất nhanh, không dính lỗi Scroll)
-  seatDOMElements = Array.from(floorRef.value.querySelectorAll('.seat-item')).map(el => {
+  seatDOMElements = Array.from(
+    floorRef.value.querySelectorAll(".seat-item"),
+  ).map((el) => {
     return {
       el: el,
-      id: parseInt(el.getAttribute('data-seat-id')),
+      id: parseInt(el.getAttribute("data-seat-id")),
       rect: {
         left: el.offsetLeft,
         top: el.offsetTop,
         right: el.offsetLeft + el.offsetWidth,
-        bottom: el.offsetTop + el.offsetHeight
-      }
+        bottom: el.offsetTop + el.offsetHeight,
+      },
     };
   });
 };
@@ -220,32 +257,48 @@ const updateDrag = (clientX, clientY) => {
     left: box.left,
     right: box.left + box.width,
     top: box.top,
-    bottom: box.top + box.height
+    bottom: box.top + box.height,
   };
 
   const BUFFER = 5; // Giảm tầm quét để không bị dính sang ghế bên cạnh khi quét hẹp
 
-  // NATIVE DOM MANIPULATION: 
+  // NATIVE DOM MANIPULATION:
   // Bypass Vue Reactivity để đổi màu class CSS trực tiếp (Giúp đạt 60FPS không giật lag)
   for (let i = 0; i < seatDOMElements.length; i++) {
-    const seat = seatDOMElements[i];
-    
-    // Kiểm tra Box Intersection với Buffer dãn vùng Hit Area
+    const seatDOM = seatDOMElements[i];
+
+    // Tìm dữ liệu ghế tương ứng
+    const seatData = props.seats.find(
+      (s) => Number(s.id) === Number(seatDOM.id),
+    );
+
+    if (!seatData) continue;
+
+    // Ghế đã đặt hoặc đang giữ KHÔNG được phép chọn
+    const isLocked =
+      seatData.status === "sold" || seatData.status === "holding";
+
+    if (isLocked) {
+      localAdminSelectedIds.delete(seatDOM.id);
+      seatDOM.el.classList.remove("seat-admin-selected");
+      continue;
+    }
+
     const isIntersecting = !(
-      boxRect.right < seat.rect.left - BUFFER || 
-      boxRect.left > seat.rect.right + BUFFER || 
-      boxRect.bottom < seat.rect.top - BUFFER || 
-      boxRect.top > seat.rect.bottom + BUFFER
+      boxRect.right < seatDOM.rect.left - BUFFER ||
+      boxRect.left > seatDOM.rect.right + BUFFER ||
+      boxRect.bottom < seatDOM.rect.top - BUFFER ||
+      boxRect.top > seatDOM.rect.bottom + BUFFER
     );
 
     if (isIntersecting) {
-      localAdminSelectedIds.add(seat.id);
-      seat.el.classList.add('seat-admin-selected');
+      localAdminSelectedIds.add(seatDOM.id);
+      seatDOM.el.classList.add("seat-admin-selected");
     } else {
-      // Nếu lúc đầu chưa được chọn thì bỏ class
-      if (!startSelectionIds.has(seat.id)) {
-        localAdminSelectedIds.delete(seat.id);
-        seat.el.classList.remove('seat-admin-selected');
+      // Nếu lúc đầu chưa được chọn thì bỏ chọn
+      if (!startSelectionIds.has(seatDOM.id)) {
+        localAdminSelectedIds.delete(seatDOM.id);
+        seatDOM.el.classList.remove("seat-admin-selected");
       }
     }
   }
@@ -255,24 +308,24 @@ const endDrag = () => {
   if (!isDragging) return;
   isDragging = false;
   box.show = false;
-  
+
   // Xong quá trình kéo mới đồng bộ ngược lại vào Vue State (1 lần duy nhất để không gây lag)
   adminSelectedIds.value = new Set(localAdminSelectedIds);
-  emit('selection-changed', Array.from(adminSelectedIds.value));
+  emit("selection-changed", Array.from(adminSelectedIds.value));
 };
 
 // --- POINTER EVENTS (THAY THẾ CHUỘT & CẢM ỨNG CÙNG LÚC) ---
 const handlePointerDown = (e) => {
-  if (props.mode !== 'admin') return;
+  if (props.mode !== "admin") return;
   // Cho phép quét mọi nơi (Bao gồm cả đè lên ghế)
-  
+
   // Captures pointer cho phép kéo ra ngoài vùng cinema-floor vẫn bắt được
   e.target.setPointerCapture(e.pointerId);
-  
+
   initDrag(e.clientX, e.clientY);
-  e.target.addEventListener('pointermove', handlePointerMove);
-  e.target.addEventListener('pointerup', handlePointerUp);
-  e.target.addEventListener('pointercancel', handlePointerUp);
+  e.target.addEventListener("pointermove", handlePointerMove);
+  e.target.addEventListener("pointerup", handlePointerUp);
+  e.target.addEventListener("pointercancel", handlePointerUp);
 };
 
 const handlePointerMove = (e) => {
@@ -283,31 +336,62 @@ const handlePointerMove = (e) => {
 const handlePointerUp = (e) => {
   endDrag();
   e.target.releasePointerCapture(e.pointerId);
-  e.target.removeEventListener('pointermove', handlePointerMove);
-  e.target.removeEventListener('pointerup', handlePointerUp);
-  e.target.removeEventListener('pointercancel', handlePointerUp);
+  e.target.removeEventListener("pointermove", handlePointerMove);
+  e.target.removeEventListener("pointerup", handlePointerUp);
+  e.target.removeEventListener("pointercancel", handlePointerUp);
 };
 
 onBeforeUnmount(() => {
   // Clearup
 });
 
-
 const handleSeatClick = (seat, event) => {
-  if (props.mode === 'client') {
-    if (seat.is_booked || seat.type === 'hidden' || seat.type === 'couple_hidden') return;
-    emit('seat-clicked', seat);
-  } else if (props.mode === 'admin') {
-    // Tránh việc Click đơn lẻ bị ảnh hưởng nếu người dùng vừa vuốt quét (Dựa vào diện tích hộp)
-    if (box.width > 5 || box.height > 5) return;
+  if (props.mode === "admin") {
+    // Ghế đã đặt
+    if (seat.status === "sold") {
+      alert("Ghế này đã được khách hàng đặt, không thể chỉnh sửa.");
+      return;
+    }
 
-    // Click đơn lẻ
+    // Ghế đang giữ
+    if (seat.status === "holding") {
+      alert("Ghế này đang được khách hàng giữ.");
+      return;
+    }
+
+    // Ghế ẩn
+    if (seat.type === "hidden" || seat.type === "couple_hidden") {
+      return;
+    }
+
+    // Nếu vừa thao tác kéo box thì không xử lý click
+    if (box.width > 5 || box.height > 5) {
+      return;
+    }
+
     if (adminSelectedIds.value.has(seat.id)) {
       adminSelectedIds.value.delete(seat.id);
     } else {
       adminSelectedIds.value.add(seat.id);
     }
-    emit('selection-changed', Array.from(adminSelectedIds.value));
+
+    emit("selection-changed", Array.from(adminSelectedIds.value));
+
+    return;
+  }
+
+  if (props.mode === "client") {
+    if (
+      seat.is_booked ||
+      seat.status === "sold" ||
+      seat.status === "holding" ||
+      seat.type === "hidden" ||
+      seat.type === "couple_hidden"
+    ) {
+      return;
+    }
+
+    emit("seat-clicked", seat);
   }
 };
 
@@ -315,71 +399,108 @@ const clearSelection = () => {
   adminSelectedIds.value.clear();
   // Native DOM clear để chắc chắn
   if (floorRef.value) {
-    const seats = floorRef.value.querySelectorAll('.seat-admin-selected');
-    seats.forEach(s => s.classList.remove('seat-admin-selected'));
+    const seats = floorRef.value.querySelectorAll(".seat-admin-selected");
+    seats.forEach((s) => s.classList.remove("seat-admin-selected"));
   }
-  emit('selection-changed', []);
+  emit("selection-changed", []);
 };
 
 defineExpose({ clearSelection });
 
-// --- CSS CLASSES ---
 const getSeatClass = (seat) => {
-  let classes = ['seat-base'];
-  
-  if (seat.type === 'standard') classes.push('seat-standard');
-  if (seat.type === 'vip') classes.push('seat-vip');
-  if (seat.type === 'couple') classes.push('seat-couple');
-  if (seat.type === 'couple_hidden') classes.push('seat-couple-hidden');
-  
-  if (props.mode === 'admin') {
-    if (seat.type === 'hidden') classes.push('seat-hidden-admin');
-    classes.push('cursor-pointer');
-    if (adminSelectedIds.value.has(seat.id)) {
-      classes.push('seat-admin-selected');
-    }
-  } 
-  else if (props.mode === 'client') {
-    if (seat.type === 'hidden' || seat.type === 'couple_hidden') {
-      classes.push('seat-hidden-client');
-    } else if (seat.is_booked) {
-      classes.push('seat-booked');
-    } else {
-      classes.push('cursor-pointer');
-      if (props.selectedSeatIds.includes(seat.id)) {
-        classes.push('seat-selected');
-      }
-    }
+  const classes = [];
+
+  // Ghế ẩn
+  if (seat.type === "hidden") {
+    classes.push("seat-hidden");
+    return classes;
   }
 
-  return classes.join(' ');
+  if (seat.type === "couple_hidden") {
+    classes.push("seat-couple-hidden");
+    return classes;
+  }
+
+  if (props.mode === "admin") {
+    // Ghế đã thanh toán / đã đặt
+    if (seat.status === "sold") {
+      classes.push("seat-admin-booked");
+      return classes;
+    }
+
+    // Ghế đang được người dùng giữ
+    if (seat.status === "holding") {
+      classes.push("seat-admin-holding");
+      return classes;
+    }
+
+    // Ghế bình thường
+    classes.push(`seat-${seat.type}`);
+
+    // Ghế đang được Admin chọn
+    if (adminSelectedIds.value.has(seat.id)) {
+      classes.push("seat-admin-selected");
+    }
+
+    return classes;
+  }
+
+  if (seat.status === "sold") {
+    classes.push("seat-booked");
+  } else if (seat.status === "holding") {
+    classes.push("seat-holding");
+  } else if (props.selectedSeatIds.includes(seat.id)) {
+    classes.push("seat-selected");
+  } else {
+    classes.push(`seat-${seat.type}`);
+  }
+
+  return classes;
 };
 </script>
 
 <style scoped>
 .seat-map-container {
-  display: flex; flex-direction: column; align-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 40px 20px;
   background: radial-gradient(circle at top, #1a1c29, #0b0f19);
-  border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-  border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   user-select: none;
 }
-.disable-scroll { touch-action: none; }
+.disable-scroll {
+  touch-action: none;
+}
 
 .screen-indicator {
-  width: 80%; max-width: 600px; height: 50px;
+  width: 80%;
+  max-width: 600px;
+  height: 50px;
   background: linear-gradient(to bottom, #ef4444, #7f1d1d);
-  border-top-left-radius: 50% 30px; border-top-right-radius: 50% 30px;
-  display: flex; justify-content: center; align-items: center;
-  color: #fff; font-weight: 900; font-size: 14px; letter-spacing: 12px;
+  border-top-left-radius: 50% 30px;
+  border-top-right-radius: 50% 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  font-weight: 900;
+  font-size: 14px;
+  letter-spacing: 12px;
   margin-bottom: 50px;
-  box-shadow: 0 15px 40px rgba(239, 68, 68, 0.4), inset 0 2px 5px rgba(255,255,255,0.5);
-  border-top: 2px solid rgba(255,255,255,0.4);
+  box-shadow:
+    0 15px 40px rgba(239, 68, 68, 0.4),
+    inset 0 2px 5px rgba(255, 255, 255, 0.5);
+  border-top: 2px solid rgba(255, 255, 255, 0.4);
 }
 
 .cinema-floor {
-  display: flex; align-items: center; gap: 30px; margin-bottom: 40px;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  margin-bottom: 40px;
   position: relative;
 }
 
@@ -394,70 +515,207 @@ const getSeatClass = (seat) => {
 }
 
 .decorative-aisle {
-  position: relative; width: 40px; height: 100%; min-height: 400px;
-  background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 20px; overflow: hidden; display: flex; justify-content: center; align-items: center;
+  position: relative;
+  width: 40px;
+  height: 100%;
+  min-height: 400px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 .aisle-text {
-  writing-mode: vertical-rl; text-orientation: upright;
-  color: rgba(255, 255, 255, 0.15); font-weight: 900; font-size: 18px; letter-spacing: 10px; z-index: 2;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  color: rgba(255, 255, 255, 0.15);
+  font-weight: 900;
+  font-size: 18px;
+  letter-spacing: 10px;
+  z-index: 2;
 }
 .aisle-track {
-  position: absolute; top: -100%; left: 0; width: 100%; height: 50%;
-  background: linear-gradient(to bottom, transparent, rgba(239, 68, 68, 0.5), transparent);
-  animation: slide-down 4s infinite linear; z-index: 1;
+  position: absolute;
+  top: -100%;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(239, 68, 68, 0.5),
+    transparent
+  );
+  animation: slide-down 4s infinite linear;
+  z-index: 1;
 }
-.right-aisle .aisle-track { animation-delay: 2s; }
-@keyframes slide-down { 0% { top: -100%; } 100% { top: 200%; } }
+.right-aisle .aisle-track {
+  animation-delay: 2s;
+}
+@keyframes slide-down {
+  0% {
+    top: -100%;
+  }
+  100% {
+    top: 200%;
+  }
+}
 
 .seats-grid {
-  display: grid; gap: 15px;
+  display: grid;
+  gap: 15px;
 }
 
 /* TỐI ƯU HIỆU NĂNG: Bỏ transition nặng, dùng will-change */
 .seat-base {
-  width: 45px; height: 45px; border-radius: 12px 12px 6px 6px;
-  display: flex; justify-content: center; align-items: center;
-  font-size: 13px; font-weight: 800; color: white;
+  width: 45px;
+  height: 45px;
+  border-radius: 12px 12px 6px 6px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: white;
   will-change: transform, border-color, background-color;
   position: relative;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.3); /* Giảm độ nặng bóng đổ */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3); /* Giảm độ nặng bóng đổ */
   border: 2px solid transparent;
 }
 .seat-base::after {
-  content: ''; position: absolute; bottom: 4px; width: 80%; height: 4px;
-  background: rgba(0,0,0,0.3); border-radius: 4px;
+  content: "";
+  position: absolute;
+  bottom: 4px;
+  width: 80%;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
 }
-.cursor-pointer { cursor: pointer; }
-.cursor-pointer:hover { transform: translateY(-2px); z-index: 10; }
+.cursor-pointer {
+  cursor: pointer;
+}
+.cursor-pointer:hover {
+  transform: translateY(-2px);
+  z-index: 10;
+}
 
-.seat-standard { background: linear-gradient(145deg, #4b5563, #374151); border-color: #6b7280; }
-.seat-vip { background: linear-gradient(145deg, #ef4444, #b91c1c); border-color: #f87171; color: #fff; }
-.seat-couple { background: linear-gradient(145deg, #ec4899, #be185d); grid-column: span 2; width: 100%; border-color: #f472b6; }
-.seat-couple-hidden { display: none !important; }
+.seat-standard {
+  background: linear-gradient(145deg, #4b5563, #374151);
+  border-color: #6b7280;
+}
+.seat-vip {
+  background: linear-gradient(145deg, #ef4444, #b91c1c);
+  border-color: #f87171;
+  color: #fff;
+}
+.seat-couple {
+  background: linear-gradient(145deg, #ec4899, #be185d);
+  grid-column: span 2;
+  width: 100%;
+  border-color: #f472b6;
+}
+.seat-couple-hidden {
+  display: none !important;
+}
 
-.seat-booked { background: linear-gradient(145deg, #1f2937, #111827) !important; color: #374151; cursor: not-allowed; opacity: 0.6; box-shadow: inset 0 4px 10px rgba(0,0,0,0.8) !important; }
-.seat-booked::after { display: none; }
+.seat-booked {
+  background: linear-gradient(145deg, #1f2937, #111827) !important;
+  color: #374151;
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.8) !important;
+}
+.seat-booked::after {
+  display: none;
+}
 
-.seat-selected { background: linear-gradient(145deg, #10b981, #059669) !important; border: 2px solid #fff !important; transform: translateY(-5px); color: white; }
-.seat-hidden-client { opacity: 0; pointer-events: none; }
-.seat-hidden-admin { background: transparent !important; border: 2px dashed #4b5563 !important; color: #4b5563; box-shadow: none; }
-.seat-hidden-admin::after { display: none; }
+.seat-selected {
+  background: linear-gradient(145deg, #10b981, #059669) !important;
+  border: 2px solid #fff !important;
+  transform: translateY(-5px);
+  color: white;
+}
+.seat-hidden-client {
+  opacity: 0;
+  pointer-events: none;
+}
+.seat-hidden-admin {
+  background: transparent !important;
+  border: 2px dashed #4b5563 !important;
+  color: #4b5563;
+  box-shadow: none;
+}
+.seat-hidden-admin::after {
+  display: none;
+}
 
 .seat-admin-selected {
   border: 3px solid #fbbf24 !important;
   box-shadow: 0 0 15px rgba(251, 191, 36, 0.8) !important;
-  transform: translateY(-5px); z-index: 5;
+  transform: translateY(-5px);
+  z-index: 5;
 }
 
-.legend { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); color: #e5e7eb; }
-.legend-item { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
-.seat-box { width: 20px; height: 20px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); }
-.seat-box.standard { background: linear-gradient(145deg, #4b5563, #374151); }
-.seat-box.vip { background: linear-gradient(145deg, #ef4444, #b91c1c); }
-.seat-box.couple { background: linear-gradient(145deg, #ec4899, #be185d); }
-.seat-box.booked { background: #1f2937; }
-.seat-box.selected { background: linear-gradient(145deg, #10b981, #059669); }
-.seat-box.admin-selected { border: 2px solid #fbbf24; background: transparent; }
-.seat-box.hidden-demo { border: 2px dashed #4b5563; background: transparent; }
+.legend {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e5e7eb;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.seat-box {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.seat-box.standard {
+  background: linear-gradient(145deg, #4b5563, #374151);
+}
+.seat-box.vip {
+  background: linear-gradient(145deg, #ef4444, #b91c1c);
+}
+.seat-box.couple {
+  background: linear-gradient(145deg, #ec4899, #be185d);
+}
+.seat-box.booked {
+  background: #1f2937;
+}
+.seat-box.selected {
+  background: linear-gradient(145deg, #10b981, #059669);
+}
+.seat-box.admin-selected {
+  border: 2px solid #fbbf24;
+  background: transparent;
+}
+.seat-box.hidden-demo {
+  border: 2px dashed #4b5563;
+  background: transparent;
+}
+
+.seat-admin-booked {
+  background: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: #fff !important;
+  cursor: not-allowed !important;
+  opacity: 0.9;
+}
+
+.seat-admin-holding {
+  background: #ffc107 !important;
+  border-color: #ffc107 !important;
+  color: #222 !important;
+  cursor: not-allowed !important;
+}
 </style>

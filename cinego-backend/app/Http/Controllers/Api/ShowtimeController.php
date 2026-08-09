@@ -271,6 +271,7 @@ class ShowtimeController extends Controller
                 'status' => $status,
                 'type' => $seat->type, // Lấy đúng type từ Admin Map thay vì hardcode
                 'price' => $prices[$seat->type] ?? 0, // Giá thật theo cấu hình của suất
+                
             ];
         });
 

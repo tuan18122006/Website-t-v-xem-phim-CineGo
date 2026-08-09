@@ -10,27 +10,176 @@
           <span class="stv-hero__kicker">🎬 PHÒNG ĐIỀU PHỐI</span>
           <h2 class="stv-hero__title">Lịch Chiếu &amp; Suất Phim</h2>
           <p class="stv-hero__desc">
-            Xếp phim vào phòng đúng giờ — hệ thống <b>tự động chống trùng lịch</b> trong cùng một phòng.
+            Xếp phim vào phòng đúng giờ — hệ thống
+            <b>tự động chống trùng lịch</b> trong cùng một phòng.
           </p>
-          <div v-if="currentPricing.standard_price" class="stv-hero__pricing-note" style="margin-top: 15px; padding: 12px 15px; background: rgba(0,0,0,0.4); border-radius: 8px; border-left: 4px solid var(--accent-pink); font-size: 0.95rem; color: #eee; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
-            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-              <strong style="color: white; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Giá cơ sở:</strong> 
-              <span style="background: rgba(229,9,20,0.2); border: 1px solid rgba(229,9,20,0.5); padding: 3px 8px; border-radius: 6px; color: #fff;">Thường <b style="margin-left:4px; font-size: 1.05rem;">{{ formatPrice(currentPricing.standard_price) }}</b></span>
-              <span style="background: rgba(255,215,0,0.2); border: 1px solid rgba(255,215,0,0.5); padding: 3px 8px; border-radius: 6px; color: #fff;">VIP <b style="margin-left:4px; color: var(--accent-gold); font-size: 1.05rem;">{{ formatPrice(currentPricing.vip_price) }}</b></span>
-              <span style="background: rgba(100,255,218,0.15); border: 1px solid rgba(100,255,218,0.4); padding: 3px 8px; border-radius: 6px; color: #fff;">Couple <b style="margin-left:4px; color: #64ffda; font-size: 1.05rem;">{{ formatPrice(currentPricing.couple_price) }}</b></span>
+          <div
+            v-if="currentPricing.standard_price"
+            class="stv-hero__pricing-note"
+            style="
+              margin-top: 15px;
+              padding: 12px 15px;
+              background: rgba(0, 0, 0, 0.4);
+              border-radius: 8px;
+              border-left: 4px solid var(--accent-pink);
+              font-size: 0.95rem;
+              color: #eee;
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            "
+          >
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex-wrap: wrap;
+              "
+            >
+              <strong
+                style="
+                  color: white;
+                  text-transform: uppercase;
+                  font-size: 0.85rem;
+                  letter-spacing: 1px;
+                "
+                >Giá cơ sở:</strong
+              >
+              <span
+                style="
+                  background: rgba(229, 9, 20, 0.2);
+                  border: 1px solid rgba(229, 9, 20, 0.5);
+                  padding: 3px 8px;
+                  border-radius: 6px;
+                  color: #fff;
+                "
+                >Thường
+                <b style="margin-left: 4px; font-size: 1.05rem">{{
+                  formatPrice(currentPricing.standard_price)
+                }}</b></span
+              >
+              <span
+                style="
+                  background: rgba(255, 215, 0, 0.2);
+                  border: 1px solid rgba(255, 215, 0, 0.5);
+                  padding: 3px 8px;
+                  border-radius: 6px;
+                  color: #fff;
+                "
+                >VIP
+                <b
+                  style="
+                    margin-left: 4px;
+                    color: var(--accent-gold);
+                    font-size: 1.05rem;
+                  "
+                  >{{ formatPrice(currentPricing.vip_price) }}</b
+                ></span
+              >
+              <span
+                style="
+                  background: rgba(100, 255, 218, 0.15);
+                  border: 1px solid rgba(100, 255, 218, 0.4);
+                  padding: 3px 8px;
+                  border-radius: 6px;
+                  color: #fff;
+                "
+                >Couple
+                <b
+                  style="margin-left: 4px; color: #64ffda; font-size: 1.05rem"
+                  >{{ formatPrice(currentPricing.couple_price) }}</b
+                ></span
+              >
             </div>
-            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-              <strong style="color: white; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Quy tắc phụ thu:</strong>
-              <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; color: #ddd; font-size: 0.9rem;">Cuối tuần <b style="color: var(--accent-pink); margin-left:4px;">+{{ formatPrice(currentPricing.weekend_surcharge) }}</b></span>
-              <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; color: #ddd; font-size: 0.9rem;">Giờ vàng <b style="color: #64ffda; margin-left:4px;">-{{ formatPrice(currentPricing.happy_hour_discount) }}</b></span>
-              <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; color: #ddd; font-size: 0.9rem;">3D <b style="color: var(--accent-pink); margin-left:4px;">+{{ formatPrice(currentPricing.format_3d_surcharge) }}</b></span>
-              <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; color: #ddd; font-size: 0.9rem;">Chiếu sớm <b style="color: var(--accent-pink); margin-left:4px;">+{{ formatPrice(currentPricing.sneak_show_surcharge) }}</b></span>
+            <div
+              style="
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                flex-wrap: wrap;
+              "
+            >
+              <strong
+                style="
+                  color: white;
+                  text-transform: uppercase;
+                  font-size: 0.85rem;
+                  letter-spacing: 1px;
+                "
+                >Quy tắc phụ thu:</strong
+              >
+              <span
+                style="
+                  background: rgba(255, 255, 255, 0.1);
+                  border: 1px solid rgba(255, 255, 255, 0.2);
+                  padding: 3px 8px;
+                  border-radius: 6px;
+                  color: #ddd;
+                  font-size: 0.9rem;
+                "
+                >Cuối tuần
+                <b style="color: var(--accent-pink); margin-left: 4px"
+                  >+{{ formatPrice(currentPricing.weekend_surcharge) }}</b
+                ></span
+              >
+              <span
+                style="
+                  background: rgba(255, 255, 255, 0.1);
+                  border: 1px solid rgba(255, 255, 255, 0.2);
+                  padding: 3px 8px;
+                  border-radius: 6px;
+                  color: #ddd;
+                  font-size: 0.9rem;
+                "
+                >Giờ vàng
+                <b style="color: #64ffda; margin-left: 4px"
+                  >-{{ formatPrice(currentPricing.happy_hour_discount) }}</b
+                ></span
+              >
+              <span
+                style="
+                  background: rgba(255, 255, 255, 0.1);
+                  border: 1px solid rgba(255, 255, 255, 0.2);
+                  padding: 3px 8px;
+                  border-radius: 6px;
+                  color: #ddd;
+                  font-size: 0.9rem;
+                "
+                >3D
+                <b style="color: var(--accent-pink); margin-left: 4px"
+                  >+{{ formatPrice(currentPricing.format_3d_surcharge) }}</b
+                ></span
+              >
+              <span
+                style="
+                  background: rgba(255, 255, 255, 0.1);
+                  border: 1px solid rgba(255, 255, 255, 0.2);
+                  padding: 3px 8px;
+                  border-radius: 6px;
+                  color: #ddd;
+                  font-size: 0.9rem;
+                "
+                >Chiếu sớm
+                <b style="color: var(--accent-pink); margin-left: 4px"
+                  >+{{ formatPrice(currentPricing.sneak_show_surcharge) }}</b
+                ></span
+              >
             </div>
           </div>
         </div>
 
-        <div style="display: flex; gap: 10px;">
-          <button class="stv-hero__cta" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white;" @click="openPricingModal">
+        <div style="display: flex; gap: 10px">
+          <button
+            class="stv-hero__cta"
+            style="
+              background: rgba(255, 255, 255, 0.1);
+              border: 1px solid rgba(255, 255, 255, 0.3);
+              color: white;
+            "
+            @click="openPricingModal"
+          >
             <span class="stv-hero__cta-plus">⚙️</span>
             <span>Cấu Hình Giá</span>
           </button>
@@ -57,22 +206,37 @@
       </div>
 
       <div class="stv-hero__timeline-filters">
-        <button v-for="t in timelineOptions" :key="t.value" 
+        <button
+          v-for="t in timelineOptions"
+          :key="t.value"
           @click="timelineFilter = t.value"
-          :class="['stv-timeline-btn', timelineFilter === t.value ? 'stv-timeline-btn--active' : '']">
+          :class="[
+            'stv-timeline-btn',
+            timelineFilter === t.value ? 'stv-timeline-btn--active' : '',
+          ]"
+        >
           {{ t.label }}
         </button>
       </div>
-
-
     </header>
 
     <!-- ===== TOOLBAR: tìm kiếm + lọc định dạng ===== -->
     <div class="stv-toolbar">
       <label class="stv-search">
         <span class="stv-search__icon">🔍</span>
-        <input v-model="searchQuery" type="text" placeholder="Tìm theo tên phim hoặc phòng chiếu…" />
-        <button v-if="searchQuery" class="stv-search__clear" @click="searchQuery = ''" aria-label="Xóa">✕</button>
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Tìm theo tên phim hoặc phòng chiếu…"
+        />
+        <button
+          v-if="searchQuery"
+          class="stv-search__clear"
+          @click="searchQuery = ''"
+          aria-label="Xóa"
+        >
+          ✕
+        </button>
       </label>
 
       <div class="stv-segment">
@@ -82,7 +246,9 @@
           class="stv-segment__btn"
           :class="{ active: formatFilter === f }"
           @click="formatFilter = f"
-        >{{ f }}</button>
+        >
+          {{ f }}
+        </button>
       </div>
     </div>
 
@@ -95,9 +261,27 @@
     <!-- ===== EMPTY ===== -->
     <div v-else-if="filteredShowtimes.length === 0" class="stv-empty">
       <div class="stv-empty__art">🎞️</div>
-      <h3>{{ showtimes.length === 0 ? 'Chưa có suất chiếu nào' : 'Không tìm thấy suất chiếu phù hợp' }}</h3>
-      <p>{{ showtimes.length === 0 ? 'Hãy tạo suất chiếu đầu tiên để khởi động phòng vé.' : 'Thử đổi từ khóa hoặc bộ lọc định dạng.' }}</p>
-      <button v-if="showtimes.length === 0" class="stv-empty__btn" @click="openCreateModal">＋ Tạo suất chiếu</button>
+      <h3>
+        {{
+          showtimes.length === 0
+            ? "Chưa có suất chiếu nào"
+            : "Không tìm thấy suất chiếu phù hợp"
+        }}
+      </h3>
+      <p>
+        {{
+          showtimes.length === 0
+            ? "Hãy tạo suất chiếu đầu tiên để khởi động phòng vé."
+            : "Thử đổi từ khóa hoặc bộ lọc định dạng."
+        }}
+      </p>
+      <button
+        v-if="showtimes.length === 0"
+        class="stv-empty__btn"
+        @click="openCreateModal"
+      >
+        ＋ Tạo suất chiếu
+      </button>
     </div>
 
     <!-- ===== TICKET GRID ===== -->
@@ -122,10 +306,15 @@
         <!-- Thân vé -->
         <div class="ticket__body">
           <div class="ticket__top">
-            <h3 class="ticket__movie" :title="st.movie_title">{{ st.movie_title }}</h3>
-            <span class="ticket__status" :class="st.status === 'active' ? 'is-on' : 'is-off'">
+            <h3 class="ticket__movie" :title="st.movie_title">
+              {{ st.movie_title }}
+            </h3>
+            <span
+              class="ticket__status"
+              :class="st.status === 'active' ? 'is-on' : 'is-off'"
+            >
               <span class="ticket__status-dot"></span>
-              {{ st.status === 'active' ? 'Hoạt động' : 'Đã hủy' }}
+              {{ st.status === "active" ? "Hoạt động" : "Đã hủy" }}
             </span>
           </div>
 
@@ -146,89 +335,309 @@
             <span class="tg tg--format">{{ st.format }}</span>
             <span class="tg tg--trans">💬 {{ st.translation }}</span>
           </div>
-
-
         </div>
 
         <div class="ticket__actions">
-          <button class="ticket__btn ticket__btn--edit" @click.stop="openEditModal(st)" title="Sửa suất chiếu">✏️</button>
-          <button class="ticket__btn ticket__btn--del" @click.stop="deleteShowtime(st.id)" title="Xóa suất chiếu">🗑️</button>
+          <button
+            class="ticket__btn ticket__btn--edit"
+            @click.stop="openEditModal(st)"
+            title="Sửa suất chiếu"
+          >
+            ✏️
+          </button>
+          <button
+            class="ticket__btn ticket__btn--del"
+            @click.stop="deleteShowtime(st.id)"
+            title="Xóa suất chiếu"
+          >
+            🗑️
+          </button>
         </div>
       </article>
     </div>
 
     <!-- Phân trang -->
     <div v-if="totalPages > 1" class="pagination-cine">
-      <button @click="currentPage--" :disabled="currentPage === 1" class="btn-page">Trước</button>
+      <button
+        @click="currentPage--"
+        :disabled="currentPage === 1"
+        class="btn-page"
+      >
+        Trước
+      </button>
       <span class="page-info">Trang {{ currentPage }} / {{ totalPages }}</span>
-      <button @click="currentPage++" :disabled="currentPage === totalPages" class="btn-page">Sau</button>
+      <button
+        @click="currentPage++"
+        :disabled="currentPage === totalPages"
+        class="btn-page"
+      >
+        Sau
+      </button>
     </div>
 
     <!-- ===== MODAL: CHI TIẾT SUẤT CHIẾU ===== -->
     <transition name="modal-fade">
-      <div v-if="showDetailModal" class="stv-backdrop" @click.self="closeDetailModal">
+      <div
+        v-if="showDetailModal"
+        class="stv-backdrop"
+        @click.self="closeDetailModal"
+      >
         <div class="stv-modal">
           <div class="stv-modal__marquee">
             <div class="stv-modal__marquee-dots"></div>
             <h3>🔍 Chi Tiết Suất Chiếu #{{ selectedDetail?.id }}</h3>
-            <button class="stv-modal__close" @click="closeDetailModal" aria-label="Đóng">✕</button>
+            <button
+              class="stv-modal__close"
+              @click="closeDetailModal"
+              aria-label="Đóng"
+            >
+              ✕
+            </button>
           </div>
-          
+
           <div class="stv-form" v-if="selectedDetail">
-            <div style="margin-bottom: 15px;">
-              <span v-if="getShowtimeStatus(selectedDetail.start_time, selectedDetail.end_time)"
-                    style="padding: 4px 10px; border-radius: 12px; color: white; font-size: 0.8rem; font-weight: bold; display: inline-block;"
-                    :style="{ backgroundColor: getShowtimeStatus(selectedDetail.start_time, selectedDetail.end_time).color }">
-                Trạng thái: {{ getShowtimeStatus(selectedDetail.start_time, selectedDetail.end_time).label }}
+            <div style="margin-bottom: 15px">
+              <span
+                v-if="
+                  getShowtimeStatus(
+                    selectedDetail.start_time,
+                    selectedDetail.end_time,
+                  )
+                "
+                style="
+                  padding: 4px 10px;
+                  border-radius: 12px;
+                  color: white;
+                  font-size: 0.8rem;
+                  font-weight: bold;
+                  display: inline-block;
+                "
+                :style="{
+                  backgroundColor: getShowtimeStatus(
+                    selectedDetail.start_time,
+                    selectedDetail.end_time,
+                  ).color,
+                }"
+              >
+                Trạng thái:
+                {{
+                  getShowtimeStatus(
+                    selectedDetail.start_time,
+                    selectedDetail.end_time,
+                  ).label
+                }}
               </span>
             </div>
             <div class="stv-field">
               <label>Tên phim</label>
-              <div class="stv-input stv-input--readonly">{{ selectedDetail.movie_title }}</div>
+              <div class="stv-input stv-input--readonly">
+                {{ selectedDetail.movie_title }}
+              </div>
             </div>
             <div class="stv-grid2">
               <div class="stv-field">
                 <label>Phòng chiếu</label>
-                <div class="stv-input stv-input--readonly">{{ selectedDetail.room_name }}</div>
+                <div class="stv-input stv-input--readonly">
+                  {{ selectedDetail.room_name }}
+                </div>
               </div>
               <div class="stv-field">
                 <label>Trạng thái</label>
-                <div class="stv-input stv-input--readonly">{{ selectedDetail.status === 'active' ? 'Đang hoạt động' : 'Đã hủy' }}</div>
+                <div class="stv-input stv-input--readonly">
+                  {{
+                    selectedDetail.status === "active"
+                      ? "Đang hoạt động"
+                      : "Đã hủy"
+                  }}
+                </div>
               </div>
             </div>
             <div class="stv-grid2">
               <div class="stv-field">
                 <label>Giờ chiếu</label>
-                <div class="stv-input stv-input--readonly">{{ timeOnly(selectedDetail.start_time) }} - {{ dateOnly(selectedDetail.start_time) }}</div>
+                <div class="stv-input stv-input--readonly">
+                  {{ timeOnly(selectedDetail.start_time) }} -
+                  {{ dateOnly(selectedDetail.start_time) }}
+                </div>
               </div>
               <div class="stv-field">
                 <label>Định dạng</label>
-                <div class="stv-input stv-input--readonly">{{ selectedDetail.format }} • {{ selectedDetail.translation }}</div>
+                <div class="stv-input stv-input--readonly">
+                  {{ selectedDetail.format }} • {{ selectedDetail.translation }}
+                </div>
               </div>
             </div>
             <div class="stv-field stv-field--price">
               <label>Cấu hình giá tại thời điểm chiếu</label>
-              <div style="font-size: 0.95rem; margin-top: 5px;">
-                <p style="margin: 0; color: #555; text-transform: uppercase; font-size: 0.8rem; margin-bottom: 5px; font-weight: bold;">Giá cơ sở</p>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                  <span style="background: rgba(229,9,20,0.1); padding: 4px 8px; border-radius: 4px; color: var(--accent-pink);">Thường: <b>{{ formatPrice(selectedDetail.pricing_snapshot?.standard_price || 0) }}</b></span>
-                  <span style="background: rgba(255,215,0,0.2); border: 1px solid rgba(255,215,0,0.3); padding: 4px 8px; border-radius: 4px; color: #b8860b;">VIP: <b>{{ formatPrice(selectedDetail.pricing_snapshot?.vip_price || 0) }}</b></span>
-                  <span style="background: rgba(0,150,136,0.1); padding: 4px 8px; border-radius: 4px; color: #00796b;">Couple: <b>{{ formatPrice(selectedDetail.pricing_snapshot?.couple_price || 0) }}</b></span>
+              <div style="font-size: 0.95rem; margin-top: 5px">
+                <p
+                  style="
+                    margin: 0;
+                    color: #555;
+                    text-transform: uppercase;
+                    font-size: 0.8rem;
+                    margin-bottom: 5px;
+                    font-weight: bold;
+                  "
+                >
+                  Giá cơ sở
+                </p>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap">
+                  <span
+                    style="
+                      background: rgba(229, 9, 20, 0.1);
+                      padding: 4px 8px;
+                      border-radius: 4px;
+                      color: var(--accent-pink);
+                    "
+                    >Thường:
+                    <b>{{
+                      formatPrice(
+                        selectedDetail.pricing_snapshot?.standard_price || 0,
+                      )
+                    }}</b></span
+                  >
+                  <span
+                    style="
+                      background: rgba(255, 215, 0, 0.2);
+                      border: 1px solid rgba(255, 215, 0, 0.3);
+                      padding: 4px 8px;
+                      border-radius: 4px;
+                      color: #b8860b;
+                    "
+                    >VIP:
+                    <b>{{
+                      formatPrice(
+                        selectedDetail.pricing_snapshot?.vip_price || 0,
+                      )
+                    }}</b></span
+                  >
+                  <span
+                    style="
+                      background: rgba(0, 150, 136, 0.1);
+                      padding: 4px 8px;
+                      border-radius: 4px;
+                      color: #00796b;
+                    "
+                    >Couple:
+                    <b>{{
+                      formatPrice(
+                        selectedDetail.pricing_snapshot?.couple_price || 0,
+                      )
+                    }}</b></span
+                  >
                 </div>
               </div>
-              <div style="font-size: 0.95rem; margin-top: 10px;">
-                <p style="margin: 0; color: #555; text-transform: uppercase; font-size: 0.8rem; margin-bottom: 5px; font-weight: bold;">Phụ thu đã lưu</p>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 0.85rem;">
-                  <span style="color: #444; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">Cuối tuần: <b style="color: var(--accent-pink);">+{{ formatPrice(selectedDetail.pricing_snapshot?.weekend_surcharge || 0) }}</b></span>
-                  <span style="color: #444; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">Giờ vàng: <b style="color: #00796b;">-{{ formatPrice(selectedDetail.pricing_snapshot?.happy_hour_discount || 0) }}</b></span>
-                  <span style="color: #444; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">3D: <b style="color: var(--accent-pink);">+{{ formatPrice(selectedDetail.pricing_snapshot?.format_3d_surcharge || 0) }}</b></span>
-                  <span style="color: #444; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">Chiếu sớm: <b style="color: var(--accent-pink);">+{{ formatPrice(selectedDetail.pricing_snapshot?.sneak_show_surcharge || 0) }}</b></span>
+              <div style="font-size: 0.95rem; margin-top: 10px">
+                <p
+                  style="
+                    margin: 0;
+                    color: #555;
+                    text-transform: uppercase;
+                    font-size: 0.8rem;
+                    margin-bottom: 5px;
+                    font-weight: bold;
+                  "
+                >
+                  Phụ thu đã lưu
+                </p>
+                <div
+                  style="
+                    display: flex;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                    font-size: 0.85rem;
+                  "
+                >
+                  <span
+                    style="
+                      color: #444;
+                      background: #f0f0f0;
+                      padding: 2px 6px;
+                      border-radius: 4px;
+                    "
+                    >Cuối tuần:
+                    <b style="color: var(--accent-pink)"
+                      >+{{
+                        formatPrice(
+                          selectedDetail.pricing_snapshot?.weekend_surcharge ||
+                            0,
+                        )
+                      }}</b
+                    ></span
+                  >
+                  <span
+                    style="
+                      color: #444;
+                      background: #f0f0f0;
+                      padding: 2px 6px;
+                      border-radius: 4px;
+                    "
+                    >Giờ vàng:
+                    <b style="color: #00796b"
+                      >-{{
+                        formatPrice(
+                          selectedDetail.pricing_snapshot
+                            ?.happy_hour_discount || 0,
+                        )
+                      }}</b
+                    ></span
+                  >
+                  <span
+                    style="
+                      color: #444;
+                      background: #f0f0f0;
+                      padding: 2px 6px;
+                      border-radius: 4px;
+                    "
+                    >3D:
+                    <b style="color: var(--accent-pink)"
+                      >+{{
+                        formatPrice(
+                          selectedDetail.pricing_snapshot
+                            ?.format_3d_surcharge || 0,
+                        )
+                      }}</b
+                    ></span
+                  >
+                  <span
+                    style="
+                      color: #444;
+                      background: #f0f0f0;
+                      padding: 2px 6px;
+                      border-radius: 4px;
+                    "
+                    >Chiếu sớm:
+                    <b style="color: var(--accent-pink)"
+                      >+{{
+                        formatPrice(
+                          selectedDetail.pricing_snapshot
+                            ?.sneak_show_surcharge || 0,
+                        )
+                      }}</b
+                    ></span
+                  >
                 </div>
               </div>
             </div>
             <div class="stv-form__footer">
-              <button type="button" class="stv-btn stv-btn--ghost" @click="closeDetailModal">Đóng</button>
-              <button type="button" class="stv-btn stv-btn--solid" @click="openEditModal(selectedDetail); closeDetailModal()">Sửa Suất Chiếu</button>
+              <button
+                type="button"
+                class="stv-btn stv-btn--ghost"
+                @click="closeDetailModal"
+              >
+                Đóng
+              </button>
+              <button
+                type="button"
+                class="stv-btn stv-btn--solid"
+                @click="
+                  openEditModal(selectedDetail);
+                  closeDetailModal();
+                "
+              >
+                Sửa Suất Chiếu
+              </button>
             </div>
           </div>
         </div>
@@ -237,65 +646,178 @@
 
     <!-- ===== MODAL: CẤU HÌNH GIÁ HỆ THỐNG ===== -->
     <transition name="modal-fade">
-      <div v-if="showPricingModal" class="stv-backdrop" @click.self="closePricingModal">
+      <div
+        v-if="showPricingModal"
+        class="stv-backdrop"
+        @click.self="closePricingModal"
+      >
         <div class="stv-modal stv-modal--pricing">
           <div class="stv-modal__marquee">
             <div class="stv-modal__marquee-dots"></div>
             <h3>⚙️ Cấu Hình Giá Hệ Thống</h3>
-            <button class="stv-modal__close" @click="closePricingModal" aria-label="Đóng">✕</button>
+            <button
+              class="stv-modal__close"
+              @click="closePricingModal"
+              aria-label="Đóng"
+            >
+              ✕
+            </button>
           </div>
 
-          <div v-if="loadingPricing" class="pricing-loading" style="padding: 30px; text-align: center; color: white;">
+          <div
+            v-if="loadingPricing"
+            class="pricing-loading"
+            style="padding: 30px; text-align: center; color: white"
+          >
             Đang tải dữ liệu...
           </div>
           <form v-else @submit.prevent="savePricingConfig" class="stv-form">
-            <h4 style="color: var(--accent-pink); margin-bottom: 10px;">1. Giá Vé Cơ Sở</h4>
+            <h4 style="color: var(--accent-pink); margin-bottom: 10px">
+              1. Giá Vé Cơ Sở
+            </h4>
             <div class="stv-grid2">
               <div class="stv-field">
                 <label>Ghế Thường (VNĐ)</label>
-                <input type="text" :value="formatInput(pricingForm.standard_price)" @input="pricingForm.standard_price = parseInput($event.target.value)" class="stv-input" />
-                <span v-if="pricingErrors.standard_price" class="error-msg">{{ pricingErrors.standard_price[0] }}</span>
+                <input
+                  type="text"
+                  :value="formatInput(pricingForm.standard_price)"
+                  @input="
+                    pricingForm.standard_price = parseInput($event.target.value)
+                  "
+                  class="stv-input"
+                />
+                <span v-if="pricingErrors.standard_price" class="error-msg">{{
+                  pricingErrors.standard_price[0]
+                }}</span>
               </div>
               <div class="stv-field">
                 <label>Ghế VIP (VNĐ)</label>
-                <input type="text" :value="formatInput(pricingForm.vip_price)" @input="pricingForm.vip_price = parseInput($event.target.value)" class="stv-input" />
-                <span v-if="pricingErrors.vip_price" class="error-msg">{{ pricingErrors.vip_price[0] }}</span>
+                <input
+                  type="text"
+                  :value="formatInput(pricingForm.vip_price)"
+                  @input="
+                    pricingForm.vip_price = parseInput($event.target.value)
+                  "
+                  class="stv-input"
+                />
+                <span v-if="pricingErrors.vip_price" class="error-msg">{{
+                  pricingErrors.vip_price[0]
+                }}</span>
               </div>
               <div class="stv-field">
                 <label>Ghế Đôi (VNĐ)</label>
-                <input type="text" :value="formatInput(pricingForm.couple_price)" @input="pricingForm.couple_price = parseInput($event.target.value)" class="stv-input" />
-                <span v-if="pricingErrors.couple_price" class="error-msg">{{ pricingErrors.couple_price[0] }}</span>
+                <input
+                  type="text"
+                  :value="formatInput(pricingForm.couple_price)"
+                  @input="
+                    pricingForm.couple_price = parseInput($event.target.value)
+                  "
+                  class="stv-input"
+                />
+                <span v-if="pricingErrors.couple_price" class="error-msg">{{
+                  pricingErrors.couple_price[0]
+                }}</span>
               </div>
             </div>
 
-            <h4 style="color: var(--accent-pink); margin-top: 15px; margin-bottom: 10px;">2. Quy Tắc Phụ Thu</h4>
+            <h4
+              style="
+                color: var(--accent-pink);
+                margin-top: 15px;
+                margin-bottom: 10px;
+              "
+            >
+              2. Quy Tắc Phụ Thu
+            </h4>
             <div class="stv-grid2">
               <div class="stv-field">
                 <label>Phụ thu cuối tuần (VNĐ)</label>
-                <input type="text" :value="formatInput(pricingForm.weekend_surcharge)" @input="pricingForm.weekend_surcharge = parseInput($event.target.value)" class="stv-input" />
-                <span v-if="pricingErrors.weekend_surcharge" class="error-msg">{{ pricingErrors.weekend_surcharge[0] }}</span>
+                <input
+                  type="text"
+                  :value="formatInput(pricingForm.weekend_surcharge)"
+                  @input="
+                    pricingForm.weekend_surcharge = parseInput(
+                      $event.target.value,
+                    )
+                  "
+                  class="stv-input"
+                />
+                <span
+                  v-if="pricingErrors.weekend_surcharge"
+                  class="error-msg"
+                  >{{ pricingErrors.weekend_surcharge[0] }}</span
+                >
               </div>
               <div class="stv-field">
                 <label>Giảm giá giờ vàng (VNĐ)</label>
-                <input type="text" :value="formatInput(pricingForm.happy_hour_discount)" @input="pricingForm.happy_hour_discount = parseInput($event.target.value)" class="stv-input" />
-                <span v-if="pricingErrors.happy_hour_discount" class="error-msg">{{ pricingErrors.happy_hour_discount[0] }}</span>
+                <input
+                  type="text"
+                  :value="formatInput(pricingForm.happy_hour_discount)"
+                  @input="
+                    pricingForm.happy_hour_discount = parseInput(
+                      $event.target.value,
+                    )
+                  "
+                  class="stv-input"
+                />
+                <span
+                  v-if="pricingErrors.happy_hour_discount"
+                  class="error-msg"
+                  >{{ pricingErrors.happy_hour_discount[0] }}</span
+                >
               </div>
               <div class="stv-field">
                 <label>Phụ thu Phim 3D (VNĐ)</label>
-                <input type="text" :value="formatInput(pricingForm.format_3d_surcharge)" @input="pricingForm.format_3d_surcharge = parseInput($event.target.value)" class="stv-input" />
-                <span v-if="pricingErrors.format_3d_surcharge" class="error-msg">{{ pricingErrors.format_3d_surcharge[0] }}</span>
+                <input
+                  type="text"
+                  :value="formatInput(pricingForm.format_3d_surcharge)"
+                  @input="
+                    pricingForm.format_3d_surcharge = parseInput(
+                      $event.target.value,
+                    )
+                  "
+                  class="stv-input"
+                />
+                <span
+                  v-if="pricingErrors.format_3d_surcharge"
+                  class="error-msg"
+                  >{{ pricingErrors.format_3d_surcharge[0] }}</span
+                >
               </div>
               <div class="stv-field">
                 <label>Phụ thu chiếu sớm (VNĐ)</label>
-                <input type="text" :value="formatInput(pricingForm.sneak_show_surcharge)" @input="pricingForm.sneak_show_surcharge = parseInput($event.target.value)" class="stv-input" />
-                <span v-if="pricingErrors.sneak_show_surcharge" class="error-msg">{{ pricingErrors.sneak_show_surcharge[0] }}</span>
+                <input
+                  type="text"
+                  :value="formatInput(pricingForm.sneak_show_surcharge)"
+                  @input="
+                    pricingForm.sneak_show_surcharge = parseInput(
+                      $event.target.value,
+                    )
+                  "
+                  class="stv-input"
+                />
+                <span
+                  v-if="pricingErrors.sneak_show_surcharge"
+                  class="error-msg"
+                  >{{ pricingErrors.sneak_show_surcharge[0] }}</span
+                >
               </div>
             </div>
 
-            <div class="stv-modal__actions" style="margin-top: 20px;">
-              <button type="button" class="stv-btn stv-btn--outline" @click="closePricingModal">Hủy bỏ</button>
-              <button type="submit" class="stv-btn stv-btn--solid" :disabled="savingPricing">
-                {{ savingPricing ? 'Đang lưu...' : 'Lưu Cấu Hình' }}
+            <div class="stv-modal__actions" style="margin-top: 20px">
+              <button
+                type="button"
+                class="stv-btn stv-btn--outline"
+                @click="closePricingModal"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="submit"
+                class="stv-btn stv-btn--solid"
+                :disabled="savingPricing"
+              >
+                {{ savingPricing ? "Đang lưu..." : "Lưu Cấu Hình" }}
               </button>
             </div>
           </form>
@@ -310,8 +832,20 @@
           <!-- Marquee header -->
           <div class="stv-modal__marquee">
             <div class="stv-modal__marquee-dots"></div>
-            <h3>{{ editingId ? '✨ Cập Nhật Suất Chiếu' : '✨ Lên Lịch Suất Chiếu Mới' }}</h3>
-            <button class="stv-modal__close" @click="closeModal" aria-label="Đóng">✕</button>
+            <h3>
+              {{
+                editingId
+                  ? "✨ Cập Nhật Suất Chiếu"
+                  : "✨ Lên Lịch Suất Chiếu Mới"
+              }}
+            </h3>
+            <button
+              class="stv-modal__close"
+              @click="closeModal"
+              aria-label="Đóng"
+            >
+              ✕
+            </button>
           </div>
 
           <form @submit.prevent="saveShowtime" class="stv-form">
@@ -320,22 +854,41 @@
               <div v-if="formError" class="error-banner" role="alert">
                 <span class="error-banner__icon">⚠️</span>
                 <div class="error-banner__body">
-                  <strong class="error-banner__title">Không thể xếp lịch</strong>
+                  <strong class="error-banner__title"
+                    >Không thể xếp lịch</strong
+                  >
                   <p class="error-banner__msg">{{ formError }}</p>
                 </div>
-                <button type="button" class="error-banner__close" @click="formError = ''" aria-label="Đóng">✕</button>
+                <button
+                  type="button"
+                  class="error-banner__close"
+                  @click="formError = ''"
+                  aria-label="Đóng"
+                >
+                  ✕
+                </button>
               </div>
             </transition>
 
             <div class="stv-field">
               <label>Chọn phim <i>*</i></label>
-              <select v-model="form.movie_id" class="stv-input stv-input--select" @change="onMovieChange">
+              <select
+                v-model="form.movie_id"
+                class="stv-input stv-input--select"
+                @change="onMovieChange"
+              >
                 <option value="" disabled>— Chọn phim cần chiếu —</option>
-                <option v-for="movie in movies" :key="movie.id" :value="movie.id">
+                <option
+                  v-for="movie in movies"
+                  :key="movie.id"
+                  :value="movie.id"
+                >
                   {{ movie.title }} • {{ movie.duration }} phút
                 </option>
               </select>
-              <span v-if="errors.movie_id" class="error-msg">{{ errors.movie_id[0] }}</span>
+              <span v-if="errors.movie_id" class="error-msg">{{
+                errors.movie_id[0]
+              }}</span>
             </div>
 
             <div class="stv-field">
@@ -351,7 +904,9 @@
                   {{ room.name }} • {{ room.total_seats }} ghế
                 </option>
               </select>
-              <span v-if="errors.room_id" class="error-msg">{{ errors.room_id[0] }}</span>
+              <span v-if="errors.room_id" class="error-msg">{{
+                errors.room_id[0]
+              }}</span>
             </div>
 
             <div class="stv-grid2">
@@ -364,18 +919,30 @@
                   :class="{ 'is-error': formError }"
                   @change="onStartTimeChange"
                 />
-                <span v-if="errors.start_time" class="error-msg">{{ errors.start_time[0] }}</span>
+                <span v-if="errors.start_time" class="error-msg">{{
+                  errors.start_time[0]
+                }}</span>
               </div>
               <div class="stv-field">
-                <label>Giờ kết thúc <span class="stv-auto">tự tính</span></label>
-                <input v-model="form.end_time" type="datetime-local" readonly class="stv-input stv-input--readonly" />
+                <label
+                  >Giờ kết thúc <span class="stv-auto">tự tính</span></label
+                >
+                <input
+                  v-model="form.end_time"
+                  type="datetime-local"
+                  readonly
+                  class="stv-input stv-input--readonly"
+                />
               </div>
             </div>
 
             <div class="stv-grid2">
               <div class="stv-field">
                 <label>Định dạng <i>*</i></label>
-                <select v-model="form.format" class="stv-input stv-input--select">
+                <select
+                  v-model="form.format"
+                  class="stv-input stv-input--select"
+                >
                   <option value="2D">2D</option>
                   <option value="3D">3D</option>
                   <option value="IMAX">IMAX</option>
@@ -383,14 +950,44 @@
               </div>
               <div class="stv-field">
                 <label>Dịch thuật <i>*</i></label>
-                <select v-model="form.translation" class="stv-input stv-input--select">
+                <select
+                  v-model="form.translation"
+                  class="stv-input stv-input--select"
+                >
                   <option value="Phụ đề">Phụ đề (Vietsub)</option>
                   <option value="Thuyết minh">Thuyết minh</option>
                 </select>
               </div>
             </div>
 
+            <div v-if="editingId" class="showtime-seat-section">
+              <div class="seat-section-header">
+                <div>
+                  <h4>🎟️ Sơ đồ ghế của suất chiếu</h4>
+                  <p>Ghế đã đặt sẽ được khóa và không thể chỉnh sửa.</p>
+                </div>
 
+                <div class="seat-summary">
+                  Đã đặt:
+                  <strong>
+                    {{
+                      showtimeSeats.filter((s) => s.status === "sold").length
+                    }}
+                  </strong>
+                  /
+                  {{ showtimeSeats.length }}
+                </div>
+              </div>
+
+              <div v-if="loadingSeats">Đang tải trạng thái ghế...</div>
+
+              <SeatMap
+                v-else
+                :seats="showtimeSeats"
+                mode="admin"
+                :layout="seatLayout"
+              />
+            </div>
 
             <!-- Preview vé trực tiếp -->
             <transition name="preview-pop">
@@ -401,18 +998,33 @@
                   <span class="stv-preview__fmt">{{ form.format }}</span>
                 </div>
                 <div class="stv-preview__time" v-if="form.start_time">
-                  🕒 {{ timeOnly(form.start_time) }} → {{ form.end_time ? timeOnly(form.end_time) : '—' }}
-                  <span class="stv-preview__dur">({{ previewMovie.duration }} phút)</span>
+                  🕒 {{ timeOnly(form.start_time) }} →
+                  {{ form.end_time ? timeOnly(form.end_time) : "—" }}
+                  <span class="stv-preview__dur"
+                    >({{ previewMovie.duration }} phút)</span
+                  >
                 </div>
-                <div class="stv-preview__time" v-else>Chọn giờ bắt đầu để xem khung giờ chiếu.</div>
+                <div class="stv-preview__time" v-else>
+                  Chọn giờ bắt đầu để xem khung giờ chiếu.
+                </div>
               </div>
             </transition>
 
             <div class="stv-form__footer">
-              <button type="button" class="stv-btn stv-btn--ghost" @click="closeModal">Hủy bỏ</button>
-              <button type="submit" class="stv-btn stv-btn--solid" :disabled="submitting">
+              <button
+                type="button"
+                class="stv-btn stv-btn--ghost"
+                @click="closeModal"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="submit"
+                class="stv-btn stv-btn--solid"
+                :disabled="submitting"
+              >
                 <span v-if="submitting" class="stv-btn__spin"></span>
-                {{ submitting ? 'Đang tạo…' : 'Xác nhận lên lịch' }}
+                {{ submitting ? "Đang tạo…" : "Xác nhận lên lịch" }}
               </button>
             </div>
           </form>
@@ -423,9 +1035,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
-import api from '../../api/axios';
-import { toast, confirmDialog } from '../../utils/alert';
+import { ref, computed, onMounted, watch } from "vue";
+import api from "../../api/axios";
+import { toast, confirmDialog } from "../../utils/alert";
+import SeatMap from "../../components/SeatMap.vue";
 
 const showtimes = ref([]);
 const movies = ref([]);
@@ -436,7 +1049,7 @@ const showDetailModal = ref(false);
 const selectedDetail = ref(null);
 const editingId = ref(null);
 const submitting = ref(false);
-const formError = ref('');
+const formError = ref("");
 const appliedRules = ref([]);
 const isSneakShow = ref(false);
 
@@ -447,15 +1060,25 @@ const savingPricing = ref(false);
 const pricingForm = ref({});
 const pricingErrors = ref({});
 
-const searchQuery = ref('');
-const formatFilter = ref('Tất cả');
-const formatOptions = ['Tất cả', 'Hôm nay', '2D', '3D', 'IMAX'];
+const searchQuery = ref("");
+const formatFilter = ref("Tất cả");
+const formatOptions = ["Tất cả", "Hôm nay", "2D", "3D", "IMAX"];
 
-const timelineFilter = ref('upcoming');
+const showtimeSeats = ref([]);
+const loadingSeats = ref(false);
+
+const seatLayout = ref({
+  gap_cols: [],
+  gap_rows: [],
+});
+
+const selectedSeatIds = ref([]);
+
+const timelineFilter = ref("upcoming");
 const timelineOptions = [
-  { label: 'Sắp diễn ra', value: 'upcoming' },
-  { label: 'Đang diễn ra', value: 'ongoing' },
-  { label: 'Đã kết thúc', value: 'past' }
+  { label: "Sắp diễn ra", value: "upcoming" },
+  { label: "Đang diễn ra", value: "ongoing" },
+  { label: "Đã kết thúc", value: "past" },
 ];
 
 const getShowtimeStatus = (startStr, endStr) => {
@@ -463,66 +1086,74 @@ const getShowtimeStatus = (startStr, endStr) => {
   const st = new Date(startStr).getTime();
   const et = new Date(endStr).getTime();
   const ct = new Date().getTime();
-  if (st > ct) return { label: 'Sắp chiếu', color: '#ff9800' };
-  if (st <= ct && et >= ct) return { label: 'Đang chiếu', color: '#4caf50' };
-  return { label: 'Đã kết thúc', color: '#9e9e9e' };
+  if (st > ct) return { label: "Sắp chiếu", color: "#ff9800" };
+  if (st <= ct && et >= ct) return { label: "Đang chiếu", color: "#4caf50" };
+  return { label: "Đã kết thúc", color: "#9e9e9e" };
 };
 
 const form = ref({
-  movie_id: '',
-  room_id: '',
-  start_time: '',
-  end_time: '',
-  format: '2D',
-  translation: 'Phụ đề'
+  movie_id: "",
+  room_id: "",
+  start_time: "",
+  end_time: "",
+  format: "2D",
+  translation: "Phụ đề",
 });
 
 /* ---------- Computed ---------- */
-const activeCount = computed(() => showtimes.value.filter(s => s.status === 'active').length);
+const activeCount = computed(
+  () => showtimes.value.filter((s) => s.status === "active").length,
+);
 
 const todayCount = computed(() => {
   const now = new Date();
-  return showtimes.value.filter(s => {
+  return showtimes.value.filter((s) => {
     if (!s.start_time) return false;
     const d = new Date(s.start_time);
-    return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    return (
+      d.getDate() === now.getDate() &&
+      d.getMonth() === now.getMonth() &&
+      d.getFullYear() === now.getFullYear()
+    );
   }).length;
 });
 
 const filteredShowtimes = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
   const now = new Date();
-  
-  let result = showtimes.value.filter(s => {
+
+  let result = showtimes.value.filter((s) => {
     let matchFormat = false;
-    
-    if (formatFilter.value === 'Tất cả') {
+
+    if (formatFilter.value === "Tất cả") {
       matchFormat = true;
-    } else if (formatFilter.value === 'Hôm nay') {
+    } else if (formatFilter.value === "Hôm nay") {
       if (s.start_time) {
         const d = new Date(s.start_time);
-        matchFormat = d.getDate() === now.getDate() && 
-                      d.getMonth() === now.getMonth() && 
-                      d.getFullYear() === now.getFullYear();
+        matchFormat =
+          d.getDate() === now.getDate() &&
+          d.getMonth() === now.getMonth() &&
+          d.getFullYear() === now.getFullYear();
       }
     } else {
       matchFormat = s.format === formatFilter.value;
     }
 
-    const matchSearch = !q
-      || (s.movie_title && s.movie_title.toLowerCase().includes(q))
-      || (s.room_name && s.room_name.toLowerCase().includes(q));
+    const matchSearch =
+      !q ||
+      (s.movie_title && s.movie_title.toLowerCase().includes(q)) ||
+      (s.room_name && s.room_name.toLowerCase().includes(q));
 
     let matchTimeline = true;
     if (s.start_time && s.end_time) {
       const st = new Date(s.start_time).getTime();
       const et = new Date(s.end_time).getTime();
       const ct = now.getTime();
-      if (timelineFilter.value === 'upcoming') {
+      if (timelineFilter.value === "upcoming") {
         matchTimeline = st > ct;
-      } else if (timelineFilter.value === 'ongoing') {
+      } else if (timelineFilter.value === "ongoing") {
         matchTimeline = st <= ct && et >= ct;
-      } else if (timelineFilter.value === 'past') {
+      } else if (timelineFilter.value === "past") {
         matchTimeline = et < ct;
       }
     }
@@ -536,12 +1167,12 @@ const filteredShowtimes = computed(() => {
     const bStart = new Date(b.start_time).getTime();
     const aEnd = new Date(a.end_time).getTime();
     const bEnd = new Date(b.end_time).getTime();
-    
-    if (timelineFilter.value === 'upcoming') {
+
+    if (timelineFilter.value === "upcoming") {
       return aStart - bStart;
-    } else if (timelineFilter.value === 'past') {
+    } else if (timelineFilter.value === "past") {
       return bEnd - aEnd;
-    } else if (timelineFilter.value === 'ongoing') {
+    } else if (timelineFilter.value === "ongoing") {
       return aEnd - bEnd;
     } else {
       return bStart - aStart;
@@ -551,13 +1182,17 @@ const filteredShowtimes = computed(() => {
   return result;
 });
 
-const previewMovie = computed(() => movies.value.find(m => m.id === form.value.movie_id) || null);
+const previewMovie = computed(
+  () => movies.value.find((m) => m.id === form.value.movie_id) || null,
+);
 
 // Pagination
 const currentPage = ref(1);
 const itemsPerPage = 12;
 
-const totalPages = computed(() => Math.ceil(filteredShowtimes.value.length / itemsPerPage));
+const totalPages = computed(() =>
+  Math.ceil(filteredShowtimes.value.length / itemsPerPage),
+);
 const paginatedShowtimes = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage;
   const end = start + itemsPerPage;
@@ -570,74 +1205,118 @@ watch([searchQuery, formatFilter], () => {
 
 /* ---------- Helpers ---------- */
 const timeOnly = (dt) => {
-  if (!dt) return '--:--';
-  return new Date(dt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+  if (!dt) return "--:--";
+  return new Date(dt).toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 const dateOnly = (dt) => {
-  if (!dt) return '';
-  return new Date(dt).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  if (!dt) return "";
+  return new Date(dt).toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 };
 
 const durationLabel = (st) => {
-  if (!st.start_time || !st.end_time) return '';
-  const mins = Math.round((new Date(st.end_time) - new Date(st.start_time)) / 60000);
-  if (mins <= 0) return '';
+  if (!st.start_time || !st.end_time) return "";
+  const mins = Math.round(
+    (new Date(st.end_time) - new Date(st.start_time)) / 60000,
+  );
+  if (mins <= 0) return "";
   const h = Math.floor(mins / 60);
   const m = mins % 60;
-  return h > 0 ? `${h}h${m ? m + "'" : ''}` : `${m}'`;
+  return h > 0 ? `${h}h${m ? m + "'" : ""}` : `${m}'`;
 };
 
 const formatPrice = (price) => {
-  if (!price) return '0đ';
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+  if (!price) return "0đ";
+  return new Intl.NumberFormat("vi-VN", {
+    style: "currency",
+    currency: "VND",
+  }).format(price);
 };
 
 const formatInput = (val) => {
-  if (!val && val !== 0) return '';
+  if (!val && val !== 0) return "";
   return val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 };
 
 const parseInput = (val) => {
-  if (val === '' || val === null || val === undefined) return '';
-  const parsed = parseInt(val.toString().replace(/[^\d]/g, ''));
-  return isNaN(parsed) ? '' : parsed;
+  if (val === "" || val === null || val === undefined) return "";
+  const parsed = parseInt(val.toString().replace(/[^\d]/g, ""));
+  return isNaN(parsed) ? "" : parsed;
 };
 
 /* ---------- Modal ---------- */
 const openCreateModal = () => {
   editingId.value = null;
-  form.value = { 
-    movie_id: '', room_id: '', start_time: '', end_time: '', 
-    format: '2D', translation: 'Phụ đề'
+  form.value = {
+    movie_id: "",
+    room_id: "",
+    start_time: "",
+    end_time: "",
+    format: "2D",
+    translation: "Phụ đề",
   };
-  formError.value = '';
+  formError.value = "";
   appliedRules.value = [];
   isSneakShow.value = false;
   showModal.value = true;
 };
 
-const openEditModal = (st) => {
+const openEditModal = async (st) => {
   editingId.value = st.id;
+
   const tzOffset = new Date().getTimezoneOffset() * 60000;
-  const startStr = st.start_time ? new Date(new Date(st.start_time).getTime() - tzOffset).toISOString().slice(0, 16) : '';
-  const endStr = st.end_time ? new Date(new Date(st.end_time).getTime() - tzOffset).toISOString().slice(0, 16) : '';
-  
+
+  const startStr = st.start_time
+    ? new Date(new Date(st.start_time).getTime() - tzOffset)
+        .toISOString()
+        .slice(0, 16)
+    : "";
+
+  const endStr = st.end_time
+    ? new Date(new Date(st.end_time).getTime() - tzOffset)
+        .toISOString()
+        .slice(0, 16)
+    : "";
+
   form.value = {
     movie_id: st.movie_id,
     room_id: st.room_id,
     start_time: startStr,
     end_time: endStr,
     format: st.format,
-    translation: st.translation
+    translation: st.translation,
   };
-  formError.value = '';
+
+  formError.value = "";
   showModal.value = true;
+
+  await fetchShowtimeSeats(st.id);
 };
 
+const fetchShowtimeSeats = async (showtimeId) => {
+  loadingSeats.value = true;
 
-const closeModal = () => { 
-  showModal.value = false; 
+  try {
+    const response = await api.get(`/admin/showtimes/${showtimeId}/seats`);
+
+    showtimeSeats.value = response.data.data ?? response.data;
+  } catch (error) {
+    console.error("Không thể tải trạng thái ghế:", error);
+    showtimeSeats.value = [];
+  } finally {
+    loadingSeats.value = false;
+  }
+};
+
+const closeModal = () => {
+  showModal.value = false;
   editingId.value = null;
 };
 
@@ -664,38 +1343,52 @@ const closePricingModal = () => {
 const validatePricingForm = () => {
   pricingErrors.value = {};
   let isValid = true;
-  
-  const fields = ['standard_price', 'vip_price', 'couple_price', 'weekend_surcharge', 'happy_hour_discount', 'format_3d_surcharge', 'sneak_show_surcharge'];
+
+  const fields = [
+    "standard_price",
+    "vip_price",
+    "couple_price",
+    "weekend_surcharge",
+    "happy_hour_discount",
+    "format_3d_surcharge",
+    "sneak_show_surcharge",
+  ];
   const labels = {
-    standard_price: 'Giá vé Thường',
-    vip_price: 'Giá vé VIP',
-    couple_price: 'Giá vé Đôi',
-    weekend_surcharge: 'Phụ thu cuối tuần',
-    happy_hour_discount: 'Giảm giá giờ vàng',
-    format_3d_surcharge: 'Phụ thu 3D',
-    sneak_show_surcharge: 'Phụ thu chiếu sớm'
+    standard_price: "Giá vé Thường",
+    vip_price: "Giá vé VIP",
+    couple_price: "Giá vé Đôi",
+    weekend_surcharge: "Phụ thu cuối tuần",
+    happy_hour_discount: "Giảm giá giờ vàng",
+    format_3d_surcharge: "Phụ thu 3D",
+    sneak_show_surcharge: "Phụ thu chiếu sớm",
   };
 
-  fields.forEach(field => {
+  fields.forEach((field) => {
     const val = pricingForm.value[field];
-    
+
     // Check required
-    if (val === '' || val === null || val === undefined) {
+    if (val === "" || val === null || val === undefined) {
       pricingErrors.value[field] = [`Vui lòng nhập ${labels[field]}.`];
       isValid = false;
     } else {
       const num = parseInt(val);
       if (num > 1000000000) {
-        pricingErrors.value[field] = [`${labels[field]} không được vượt quá 1 tỷ VNĐ.`];
+        pricingErrors.value[field] = [
+          `${labels[field]} không được vượt quá 1 tỷ VNĐ.`,
+        ];
         isValid = false;
-      } else if (['standard_price', 'vip_price', 'couple_price'].includes(field)) {
+      } else if (
+        ["standard_price", "vip_price", "couple_price"].includes(field)
+      ) {
         if (num <= 0) {
           pricingErrors.value[field] = [`${labels[field]} phải lớn hơn 0.`];
           isValid = false;
         }
       } else {
         if (num < 0) {
-          pricingErrors.value[field] = [`${labels[field]} không được nhỏ hơn 0.`];
+          pricingErrors.value[field] = [
+            `${labels[field]} không được nhỏ hơn 0.`,
+          ];
           isValid = false;
         }
       }
@@ -710,45 +1403,54 @@ const savePricingConfig = async () => {
   pricingErrors.value = {};
   savingPricing.value = true;
   try {
-    const res = await api.put('/admin/pricing-rules', pricingForm.value);
+    const res = await api.put("/admin/pricing-rules", pricingForm.value);
     if (res.data.success) {
-      toast('Cập nhật cấu hình giá thành công!');
+      toast("Cập nhật cấu hình giá thành công!");
       currentPricing.value = { ...res.data.data };
       closePricingModal();
     }
   } catch (err) {
-    console.error('Lỗi lưu cấu hình:', err);
+    console.error("Lỗi lưu cấu hình:", err);
     if (err.response?.data?.errors) {
       pricingErrors.value = err.response.data.errors;
     } else {
-      toast('Có lỗi xảy ra khi lưu!', 'error');
+      toast("Có lỗi xảy ra khi lưu!", "error");
     }
   } finally {
     savingPricing.value = false;
   }
 };
 
-const onMovieChange = () => { formError.value = ''; calculateEndTime(); suggestPrice(); };
-const onStartTimeChange = () => { formError.value = ''; calculateEndTime(); };
+const onMovieChange = () => {
+  formError.value = "";
+  calculateEndTime();
+  suggestPrice();
+};
+const onStartTimeChange = () => {
+  formError.value = "";
+  calculateEndTime();
+};
 
 const calculateEndTime = () => {
   if (!form.value.start_time || !form.value.movie_id) return;
-  const movie = movies.value.find(m => m.id === form.value.movie_id);
+  const movie = movies.value.find((m) => m.id === form.value.movie_id);
   if (!movie) return;
   const start = new Date(form.value.start_time);
   const end = new Date(start.getTime() + movie.duration * 60 * 1000);
   const tzOffset = end.getTimezoneOffset() * 60000;
-  form.value.end_time = new Date(end.getTime() - tzOffset).toISOString().slice(0, 16);
+  form.value.end_time = new Date(end.getTime() - tzOffset)
+    .toISOString()
+    .slice(0, 16);
 };
 
 /* ---------- API ---------- */
 const fetchShowtimes = async (showLoading = true) => {
   if (showLoading) loading.value = true;
   try {
-    const res = await api.get('/admin/showtimes');
+    const res = await api.get("/admin/showtimes");
     showtimes.value = res.data;
   } catch (err) {
-    console.error('Fetch showtimes error:', err);
+    console.error("Fetch showtimes error:", err);
   } finally {
     if (showLoading) loading.value = false;
   }
@@ -756,7 +1458,7 @@ const fetchShowtimes = async (showLoading = true) => {
 
 const preloadPricing = async () => {
   try {
-    const res = await api.get('/admin/pricing-rules');
+    const res = await api.get("/admin/pricing-rules");
     if (res.data.success && res.data.data) {
       currentPricing.value = { ...res.data.data };
     }
@@ -767,19 +1469,19 @@ const preloadPricing = async () => {
 
 const fetchMovies = async () => {
   try {
-    const res = await api.get('/movies');
+    const res = await api.get("/movies");
     movies.value = res.data.data || res.data;
   } catch (err) {
-    console.error('Fetch movies error:', err);
+    console.error("Fetch movies error:", err);
   }
 };
 
 const fetchRooms = async () => {
   try {
-    const res = await api.get('/rooms');
+    const res = await api.get("/rooms");
     rooms.value = res.data.data || res.data;
   } catch (err) {
-    console.error('Fetch rooms error:', err);
+    console.error("Fetch rooms error:", err);
   }
 };
 
@@ -790,20 +1492,19 @@ const validateForm = () => {
   let isValid = true;
 
   if (!form.value.movie_id) {
-    errors.value.movie_id = ['Vui lòng chọn phim.'];
+    errors.value.movie_id = ["Vui lòng chọn phim."];
     isValid = false;
   }
-  
+
   if (!form.value.room_id) {
-    errors.value.room_id = ['Vui lòng chọn phòng chiếu.'];
+    errors.value.room_id = ["Vui lòng chọn phòng chiếu."];
     isValid = false;
   }
-  
+
   if (!form.value.start_time) {
-    errors.value.start_time = ['Vui lòng chọn thời gian bắt đầu.'];
+    errors.value.start_time = ["Vui lòng chọn thời gian bắt đầu."];
     isValid = false;
   }
-  
 
   return isValid;
 };
@@ -812,25 +1513,25 @@ const saveShowtime = async () => {
   if (!validateForm()) return;
 
   submitting.value = true;
-  formError.value = '';
+  formError.value = "";
   try {
     if (editingId.value) {
       await api.put(`/admin/showtimes/${editingId.value}`, form.value);
-      toast('Cập nhật suất chiếu thành công!');
+      toast("Cập nhật suất chiếu thành công!");
     } else {
-      await api.post('/admin/showtimes', form.value);
-      toast('Thêm suất chiếu mới thành công!');
+      await api.post("/admin/showtimes", form.value);
+      toast("Thêm suất chiếu mới thành công!");
     }
     showModal.value = false;
     // Cập nhật lại danh sách ngầm (không báo loading để tránh giật lag toàn trang)
     await fetchShowtimes(false);
   } catch (err) {
-    console.error('Save showtime error:', err);
+    console.error("Save showtime error:", err);
     const res = err.response?.data;
     if (res?.message) {
       formError.value = res.message;
     } else {
-      toast.error('Đã xảy ra lỗi, vui lòng kiểm tra lại!');
+      toast.error("Đã xảy ra lỗi, vui lòng kiểm tra lại!");
     }
   } finally {
     submitting.value = false;
@@ -838,23 +1539,28 @@ const saveShowtime = async () => {
 };
 
 const deleteShowtime = async (id) => {
-  if (!(await confirmDialog('Bạn có chắc chắn muốn xóa suất chiếu này?', 'Hành động này không thể hoàn tác!'))) return;
-  
+  if (
+    !(await confirmDialog(
+      "Bạn có chắc chắn muốn xóa suất chiếu này?",
+      "Hành động này không thể hoàn tác!",
+    ))
+  )
+    return;
+
   // OPTIMISTIC DELETE: Xóa ngay lập tức trên UI để người dùng thấy phản hồi tức thì
   const originalShowtimes = [...showtimes.value];
-  showtimes.value = showtimes.value.filter(s => s.id !== id);
+  showtimes.value = showtimes.value.filter((s) => s.id !== id);
 
   try {
     await api.delete(`/admin/showtimes/${id}`);
-    toast('Xóa suất chiếu thành công!');
+    toast("Xóa suất chiếu thành công!");
   } catch (err) {
     // ROLBACK: Trả lại dữ liệu nếu API xóa thất bại
     showtimes.value = originalShowtimes;
-    console.error('Delete showtime error:', err);
-    toast('Không thể xóa suất chiếu này!', 'error');
+    console.error("Delete showtime error:", err);
+    toast("Không thể xóa suất chiếu này!", "error");
   }
 };
-
 
 onMounted(async () => {
   // Thay vì chờ tuần tự (mất 4x thời gian), ta gộp lại chạy song song cùng 1 lúc
@@ -863,7 +1569,7 @@ onMounted(async () => {
     preloadPricing(),
     fetchShowtimes(),
     fetchMovies(),
-    fetchRooms()
+    fetchRooms(),
   ]);
 });
 </script>
@@ -884,8 +1590,16 @@ onMounted(async () => {
   padding: 30px 34px 26px;
   color: #fff;
   background:
-    radial-gradient(circle at 88% -30%, rgba(229, 9, 20, 0.55) 0%, transparent 45%),
-    radial-gradient(circle at 10% 120%, rgba(255, 191, 0, 0.18) 0%, transparent 40%),
+    radial-gradient(
+      circle at 88% -30%,
+      rgba(229, 9, 20, 0.55) 0%,
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 10% 120%,
+      rgba(255, 191, 0, 0.18) 0%,
+      transparent 40%
+    ),
     linear-gradient(125deg, #1a0205 0%, #4a0610 45%, #7d0411 100%);
   box-shadow: 0 22px 48px rgba(123, 4, 17, 0.38);
   isolation: isolate;
@@ -896,21 +1610,30 @@ onMounted(async () => {
   inset: 0;
   z-index: -1;
   opacity: 0.5;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.08) 1px,
+    transparent 1px
+  );
   background-size: 4px 4px;
 }
 /* cuộn phim chạy dọc cạnh phải */
 .stv-hero__filmstrip {
   position: absolute;
-  top: 0; bottom: 0; right: 0;
+  top: 0;
+  bottom: 0;
+  right: 0;
   width: 26px;
   z-index: -1;
   background:
     linear-gradient(#0000 0 0) padding-box,
-    repeating-linear-gradient(to bottom, transparent 0 10px, rgba(255, 255, 255, 0.16) 10px 18px);
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 10px,
+      rgba(255, 255, 255, 0.16) 10px 18px
+    );
   border-left: 2px dashed rgba(255, 255, 255, 0.18);
   -webkit-mask: linear-gradient(to left, #000 60%, transparent);
-          mask: linear-gradient(to left, #000 60%, transparent);
+  mask: linear-gradient(to left, #000 60%, transparent);
 }
 
 .stv-hero__row {
@@ -946,7 +1669,10 @@ onMounted(async () => {
   line-height: 1.6;
   color: rgba(255, 255, 255, 0.82);
 }
-.stv-hero__desc b { color: #ffd6da; font-weight: 700; }
+.stv-hero__desc b {
+  color: #ffd6da;
+  font-weight: 700;
+}
 
 .stv-hero__cta {
   display: inline-flex;
@@ -961,16 +1687,25 @@ onMounted(async () => {
   font-weight: 800;
   cursor: pointer;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
-  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s;
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.22s;
   white-space: nowrap;
 }
-.stv-hero__cta:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 16px 34px rgba(0, 0, 0, 0.36); }
+.stv-hero__cta:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.36);
+}
 .stv-hero__cta-plus {
-  display: grid; place-items: center;
-  width: 24px; height: 24px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: linear-gradient(135deg, #e50914, #9b000e);
-  color: #fff; font-size: 18px; font-weight: 700;
+  color: #fff;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .stv-hero__timeline-filters {
@@ -1027,10 +1762,22 @@ onMounted(async () => {
   backdrop-filter: blur(8px);
   border-left: 4px solid #ff5a64;
 }
-.stv-stat--mint { border-left-color: #2ee6a6; }
-.stv-stat--gold { border-left-color: #ffce4d; }
-.stv-stat__num { font-size: 28px; font-weight: 800; line-height: 1; }
-.stv-stat__label { font-size: 12.5px; font-weight: 600; color: rgba(255, 255, 255, 0.78); }
+.stv-stat--mint {
+  border-left-color: #2ee6a6;
+}
+.stv-stat--gold {
+  border-left-color: #ffce4d;
+}
+.stv-stat__num {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+}
+.stv-stat__label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.78);
+}
 
 /* ===================== TOOLBAR ===================== */
 .stv-toolbar {
@@ -1052,8 +1799,14 @@ onMounted(async () => {
   border-radius: 14px;
   transition: all 0.2s;
 }
-.stv-search:focus-within { border-color: #e50914; box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1); }
-.stv-search__icon { font-size: 15px; opacity: 0.6; }
+.stv-search:focus-within {
+  border-color: #e50914;
+  box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
+}
+.stv-search__icon {
+  font-size: 15px;
+  opacity: 0.6;
+}
 .stv-search input {
   flex: 1;
   border: none;
@@ -1063,11 +1816,20 @@ onMounted(async () => {
   color: #1e293b;
 }
 .stv-search__clear {
-  border: none; background: #f1f5f9; color: #64748b;
-  width: 22px; height: 22px; border-radius: 50%;
-  cursor: pointer; font-size: 11px; line-height: 1;
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 11px;
+  line-height: 1;
 }
-.stv-search__clear:hover { background: #fee2e2; color: #e50914; }
+.stv-search__clear:hover {
+  background: #fee2e2;
+  color: #e50914;
+}
 
 .stv-segment {
   display: inline-flex;
@@ -1087,7 +1849,9 @@ onMounted(async () => {
   cursor: pointer;
   transition: all 0.2s;
 }
-.stv-segment__btn:hover { color: #9b000e; }
+.stv-segment__btn:hover {
+  color: #9b000e;
+}
 .stv-segment__btn.active {
   background: #fff;
   color: #e50914;
@@ -1096,33 +1860,75 @@ onMounted(async () => {
 
 /* ===================== LOADING / EMPTY ===================== */
 .stv-loading {
-  display: flex; flex-direction: column; align-items: center; gap: 16px;
-  padding: 70px 0; color: #94a3b8; font-weight: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 70px 0;
+  color: #94a3b8;
+  font-weight: 600;
 }
 .stv-spinner {
-  width: 42px; height: 42px; border-radius: 50%;
-  border: 4px solid #f1e3e5; border-top-color: #e50914;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 4px solid #f1e3e5;
+  border-top-color: #e50914;
   animation: spin 0.8s linear infinite;
 }
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 .stv-empty {
-  display: flex; flex-direction: column; align-items: center; text-align: center;
-  gap: 8px; padding: 64px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  padding: 64px 20px;
   background: #fff;
   border: 2px dashed #f0d5d9;
   border-radius: 22px;
 }
-.stv-empty__art { font-size: 54px; filter: grayscale(0.1); margin-bottom: 6px; animation: float 3s ease-in-out infinite; }
-@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
-.stv-empty h3 { margin: 0; font-size: 19px; font-weight: 800; color: #1e293b; }
-.stv-empty p { margin: 0; color: #94a3b8; font-size: 14.5px; }
+.stv-empty__art {
+  font-size: 54px;
+  filter: grayscale(0.1);
+  margin-bottom: 6px;
+  animation: float 3s ease-in-out infinite;
+}
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.stv-empty h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  color: #1e293b;
+}
+.stv-empty p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 14.5px;
+}
 .stv-empty__btn {
   margin-top: 14px;
-  border: none; cursor: pointer;
-  padding: 12px 24px; border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  padding: 12px 24px;
+  border-radius: 12px;
   background: linear-gradient(135deg, #e50914, #9b000e);
-  color: #fff; font-weight: 800; font-size: 14px;
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
   box-shadow: 0 8px 20px rgba(229, 9, 20, 0.28);
 }
 
@@ -1141,7 +1947,9 @@ onMounted(async () => {
   border-radius: 18px;
   border: 1px solid #f3dde0;
   box-shadow: 0 6px 22px rgba(15, 23, 42, 0.07);
-  transition: transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.26s;
+  transition:
+    transform 0.26s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.26s;
   overflow: hidden;
   cursor: pointer;
 }
@@ -1149,7 +1957,10 @@ onMounted(async () => {
   transform: translateY(-5px);
   box-shadow: 0 18px 38px rgba(229, 9, 20, 0.16);
 }
-.ticket--off { opacity: 0.62; filter: grayscale(0.35); }
+.ticket--off {
+  opacity: 0.62;
+  filter: grayscale(0.35);
+}
 
 /* Cuống vé */
 .ticket__stub {
@@ -1164,17 +1975,29 @@ onMounted(async () => {
   position: relative;
 }
 .ticket__stub::after {
-  content: '';
+  content: "";
   position: absolute;
   inset: 8px auto 8px 8px;
   width: 0;
 }
-.ticket__stub-time { font-size: 23px; font-weight: 800; font-family: 'Courier New', monospace; letter-spacing: 0.5px; }
-.ticket__stub-date { font-size: 11px; font-weight: 600; opacity: 0.85; text-align: center; }
+.ticket__stub-time {
+  font-size: 23px;
+  font-weight: 800;
+  font-family: "Courier New", monospace;
+  letter-spacing: 0.5px;
+}
+.ticket__stub-date {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.85;
+  text-align: center;
+}
 .ticket__stub-id {
   margin-top: 5px;
-  font-size: 10.5px; font-weight: 700;
-  padding: 2px 8px; border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
   background: rgba(255, 255, 255, 0.2);
 }
 
@@ -1184,20 +2007,23 @@ onMounted(async () => {
   background: #fff;
 }
 .ticket__tear::before {
-  content: '';
+  content: "";
   position: absolute;
-  top: 0; bottom: 0; left: 50%;
+  top: 0;
+  bottom: 0;
+  left: 50%;
   transform: translateX(-50%);
   border-left: 2.5px dashed #f3c9cd;
 }
 /* hai lỗ tròn khoét trên & dưới */
 .ticket__tear::after {
-  content: '';
+  content: "";
   position: absolute;
   left: 50%;
   top: -9px;
   transform: translateX(-50%);
-  width: 16px; height: 16px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: #fff;
   box-shadow:
@@ -1242,11 +2068,32 @@ onMounted(async () => {
   border-radius: 999px;
   white-space: nowrap;
 }
-.ticket__status.is-on { background: #e6f9f0; color: #047857; }
-.ticket__status.is-off { background: #fee2e2; color: #b91c1c; }
-.ticket__status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.ticket__status.is-on .ticket__status-dot { animation: livepulse 1.5s ease-in-out infinite; }
-@keyframes livepulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(4, 120, 87, 0.5); } 50% { box-shadow: 0 0 0 5px rgba(4, 120, 87, 0); } }
+.ticket__status.is-on {
+  background: #e6f9f0;
+  color: #047857;
+}
+.ticket__status.is-off {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.ticket__status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.ticket__status.is-on .ticket__status-dot {
+  animation: livepulse 1.5s ease-in-out infinite;
+}
+@keyframes livepulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(4, 120, 87, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(4, 120, 87, 0);
+  }
+}
 
 /* Phân trang */
 .pagination-cine {
@@ -1285,16 +2132,36 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
 }
-.tl-node { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
-.tl-node--start { background: #e50914; box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.15); }
-.tl-node--end { background: #94a3b8; box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.18); }
-.tl-time { font-size: 13px; font-weight: 800; color: #334155; font-family: 'Courier New', monospace; }
+.tl-node {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.tl-node--start {
+  background: #e50914;
+  box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.15);
+}
+.tl-node--end {
+  background: #94a3b8;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.18);
+}
+.tl-time {
+  font-size: 13px;
+  font-weight: 800;
+  color: #334155;
+  font-family: "Courier New", monospace;
+}
 .tl-track {
   flex: 1;
   position: relative;
   height: 3px;
   border-radius: 999px;
-  background: repeating-linear-gradient(to right, #e2c4c7 0 6px, transparent 6px 12px);
+  background: repeating-linear-gradient(
+    to right,
+    #e2c4c7 0 6px,
+    transparent 6px 12px
+  );
   display: flex;
   justify-content: center;
 }
@@ -1309,42 +2176,72 @@ onMounted(async () => {
 }
 
 /* Tags */
-.ticket__tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.ticket__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
 .tg {
   font-size: 12px;
   font-weight: 700;
   padding: 5px 11px;
   border-radius: 8px;
 }
-.tg--room { background: #f1f5f9; color: #334155; }
-.tg--format { background: #fee2e2; color: #b91c1c; }
-.tg--trans { background: #eef6f1; color: #047857; }
+.tg--room {
+  background: #f1f5f9;
+  color: #334155;
+}
+.tg--format {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.tg--trans {
+  background: #eef6f1;
+  color: #047857;
+}
 
 .ticket__actions {
   position: absolute;
-  top: 12px; right: 12px;
-  display: flex; gap: 6px;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  gap: 6px;
   opacity: 0;
   transform: translateY(-4px);
   transition: all 0.2s;
 }
-.ticket:hover .ticket__actions { opacity: 1; transform: translateY(0); }
+.ticket:hover .ticket__actions {
+  opacity: 1;
+  transform: translateY(0);
+}
 
 .ticket__btn {
-  width: 32px; height: 32px;
-  border: none; border-radius: 9px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 9px;
   background: #fff;
   border: 1px solid #fde0e2;
-  cursor: pointer; font-size: 14px;
-  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.2s;
 }
-.ticket__btn--edit:hover { background: #f0fdf4; border-color: #22c55e; }
-.ticket__btn--del:hover { background: #fee2e2; border-color: #e50914; }
+.ticket__btn--edit:hover {
+  background: #f0fdf4;
+  border-color: #22c55e;
+}
+.ticket__btn--del:hover {
+  background: #fee2e2;
+  border-color: #e50914;
+}
 
 /* ===================== MODAL ===================== */
 .stv-backdrop {
-  position: fixed; inset: 0;
+  position: fixed;
+  inset: 0;
   background: rgba(15, 6, 8, 0.55);
   backdrop-filter: blur(8px);
   z-index: 999;
@@ -1369,27 +2266,47 @@ onMounted(async () => {
   justify-content: space-between;
   padding: 20px 24px;
   background:
-    radial-gradient(circle at 90% -40%, rgba(229, 9, 20, 0.6) 0%, transparent 50%),
+    radial-gradient(
+      circle at 90% -40%,
+      rgba(229, 9, 20, 0.6) 0%,
+      transparent 50%
+    ),
     linear-gradient(120deg, #1a0205, #7d0411);
   color: #fff;
 }
-.stv-modal__marquee h3 { margin: 0; font-size: 19px; font-weight: 800; }
+.stv-modal__marquee h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+}
 .stv-modal__marquee-dots {
   position: absolute;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 5px;
-  background: repeating-linear-gradient(to right, #ffd6da 0 8px, transparent 8px 16px);
+  background: repeating-linear-gradient(
+    to right,
+    #ffd6da 0 8px,
+    transparent 8px 16px
+  );
   opacity: 0.5;
 }
 .stv-modal__close {
   border: none;
   background: rgba(255, 255, 255, 0.15);
   color: #fff;
-  width: 32px; height: 32px; border-radius: 9px;
-  font-size: 15px; cursor: pointer;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  font-size: 15px;
+  cursor: pointer;
   transition: all 0.2s;
 }
-.stv-modal__close:hover { background: rgba(255, 255, 255, 0.3); transform: rotate(90deg); }
+.stv-modal__close:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
 
 .stv-form {
   padding: 24px;
@@ -1397,16 +2314,30 @@ onMounted(async () => {
   flex-direction: column;
   gap: 18px;
 }
-.stv-field { display: flex; flex-direction: column; gap: 7px; }
-.stv-field label {
-  font-size: 13.5px; font-weight: 700; color: #334155;
-  display: flex; align-items: center; gap: 6px;
+.stv-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
 }
-.stv-field label i { color: #e50914; font-style: normal; }
+.stv-field label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stv-field label i {
+  color: #e50914;
+  font-style: normal;
+}
 .stv-auto {
-  font-size: 11px; font-weight: 700;
-  padding: 2px 8px; border-radius: 999px;
-  background: #eef6f1; color: #047857;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef6f1;
+  color: #047857;
 }
 .stv-input {
   padding: 10px;
@@ -1418,8 +2349,16 @@ onMounted(async () => {
   outline: none;
   transition: all 0.2s;
 }
-.stv-input:focus { border-color: #e50914; background: #fff; box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1); }
-.stv-input--readonly { background: #f1f5f9; color: #64748b; font-family: 'Courier New', monospace; }
+.stv-input:focus {
+  border-color: #e50914;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
+}
+.stv-input--readonly {
+  background: #f1f5f9;
+  color: #64748b;
+  font-family: "Courier New", monospace;
+}
 .stv-input--select {
   appearance: none;
   cursor: pointer;
@@ -1434,8 +2373,16 @@ onMounted(async () => {
   background: #fff5f5 !important;
   box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12) !important;
 }
-.stv-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 520px) { .stv-grid2 { grid-template-columns: 1fr; } }
+.stv-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 520px) {
+  .stv-grid2 {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* Preview */
 .stv-preview {
@@ -1446,10 +2393,16 @@ onMounted(async () => {
   border: 1px dashed #f3c2c7;
 }
 .stv-preview__tag {
-  position: absolute; top: -10px; left: 16px;
-  font-size: 10.5px; font-weight: 800; letter-spacing: 0.5px;
-  padding: 3px 10px; border-radius: 999px;
-  background: #9b000e; color: #fff;
+  position: absolute;
+  top: -10px;
+  left: 16px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: #9b000e;
+  color: #fff;
 }
 
 .price-inputs {
@@ -1467,15 +2420,33 @@ onMounted(async () => {
   font-weight: 700;
   color: #475569;
 }
-.stv-preview__line { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-.stv-preview__line strong { font-size: 15.5px; color: #1e293b; }
-.stv-preview__fmt {
-  font-size: 11px; font-weight: 800;
-  padding: 2px 8px; border-radius: 6px;
-  background: #fee2e2; color: #b91c1c;
+.stv-preview__line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
 }
-.stv-preview__time { font-size: 13.5px; font-weight: 600; color: #475569; }
-.stv-preview__dur { color: #9b000e; font-weight: 700; }
+.stv-preview__line strong {
+  font-size: 15.5px;
+  color: #1e293b;
+}
+.stv-preview__fmt {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #fee2e2;
+  color: #b91c1c;
+}
+.stv-preview__time {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #475569;
+}
+.stv-preview__dur {
+  color: #9b000e;
+  font-weight: 700;
+}
 
 .stv-form__footer {
   display: flex;
@@ -1487,24 +2458,45 @@ onMounted(async () => {
   padding-top: 18px;
 }
 .stv-btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  border: none; cursor: pointer;
-  padding: 13px 24px; border-radius: 12px;
-  font-size: 14.5px; font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  cursor: pointer;
+  padding: 13px 24px;
+  border-radius: 12px;
+  font-size: 14.5px;
+  font-weight: 800;
   transition: all 0.2s;
 }
-.stv-btn--ghost { background: #fff; color: #475569; border: 1.5px solid #e2e8f0; }
-.stv-btn--ghost:hover { background: #f8fafc; border-color: #cbd5e1; }
+.stv-btn--ghost {
+  background: #fff;
+  color: #475569;
+  border: 1.5px solid #e2e8f0;
+}
+.stv-btn--ghost:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
 .stv-btn--solid {
   background: linear-gradient(135deg, #e50914, #9b000e);
   color: #fff;
   box-shadow: 0 8px 20px rgba(229, 9, 20, 0.3);
 }
-.stv-btn--solid:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(229, 9, 20, 0.4); }
-.stv-btn--solid:disabled { opacity: 0.7; cursor: not-allowed; }
+.stv-btn--solid:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 26px rgba(229, 9, 20, 0.4);
+}
+.stv-btn--solid:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
 .stv-btn__spin {
-  width: 15px; height: 15px; border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.4); border-top-color: #fff;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
   animation: spin 0.7s linear infinite;
 }
 
@@ -1524,54 +2516,140 @@ onMounted(async () => {
   animation: banner-shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
 }
 .error-banner::after {
-  content: '';
+  content: "";
   position: absolute;
-  top: 0; left: -120%;
-  width: 60%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  top: 0;
+  left: -120%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent
+  );
   animation: banner-sheen 2.2s ease-in-out 0.4s infinite;
 }
 .error-banner__icon {
-  font-size: 24px; line-height: 1.2;
+  font-size: 24px;
+  line-height: 1.2;
   filter: drop-shadow(0 2px 3px rgba(229, 9, 20, 0.35));
   animation: icon-pulse 1.3s ease-in-out infinite;
 }
-.error-banner__body { flex: 1; min-width: 0; }
+.error-banner__body {
+  flex: 1;
+  min-width: 0;
+}
 .error-banner__title {
-  display: block; font-size: 15px; font-weight: 800;
-  color: #9b000e; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 3px;
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: #9b000e;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  margin-bottom: 3px;
 }
-.error-banner__msg { margin: 0; font-size: 14px; font-weight: 600; color: #b91c1c; line-height: 1.5; }
+.error-banner__msg {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b91c1c;
+  line-height: 1.5;
+}
 .error-banner__close {
-  background: transparent; border: none; color: #ef4444;
-  font-size: 16px; font-weight: 700; cursor: pointer;
-  padding: 2px 6px; border-radius: 6px; transition: all 0.18s; z-index: 1;
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: all 0.18s;
+  z-index: 1;
 }
-.error-banner__close:hover { background: rgba(229, 9, 20, 0.12); color: #9b000e; }
+.error-banner__close:hover {
+  background: rgba(229, 9, 20, 0.12);
+  color: #9b000e;
+}
 
 /* ===================== TRANSITIONS ===================== */
-.error-pop-enter-active { transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.error-pop-leave-active { transition: all 0.25s ease; }
-.error-pop-enter-from, .error-pop-leave-to { opacity: 0; transform: translateY(-10px) scale(0.97); }
+.error-pop-enter-active {
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.error-pop-leave-active {
+  transition: all 0.25s ease;
+}
+.error-pop-enter-from,
+.error-pop-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.97);
+}
 
-.preview-pop-enter-active { transition: all 0.3s ease; }
-.preview-pop-enter-from { opacity: 0; transform: translateY(8px); }
+.preview-pop-enter-active {
+  transition: all 0.3s ease;
+}
+.preview-pop-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
 
-.modal-fade-enter-active { transition: opacity 0.25s ease; }
-.modal-fade-enter-active .stv-modal { transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
-.modal-fade-enter-from { opacity: 0; }
-.modal-fade-enter-from .stv-modal { transform: translateY(-30px) scale(0.95); }
-.modal-fade-leave-active { transition: opacity 0.2s ease; }
-.modal-fade-leave-to { opacity: 0; }
+.modal-fade-enter-active {
+  transition: opacity 0.25s ease;
+}
+.modal-fade-enter-active .stv-modal {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.modal-fade-enter-from {
+  opacity: 0;
+}
+.modal-fade-enter-from .stv-modal {
+  transform: translateY(-30px) scale(0.95);
+}
+.modal-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.modal-fade-leave-to {
+  opacity: 0;
+}
 
 @keyframes banner-shake {
-  10%, 90% { transform: translateX(-1px); }
-  20%, 80% { transform: translateX(2px); }
-  30%, 50%, 70% { transform: translateX(-4px); }
-  40%, 60% { transform: translateX(4px); }
+  10%,
+  90% {
+    transform: translateX(-1px);
+  }
+  20%,
+  80% {
+    transform: translateX(2px);
+  }
+  30%,
+  50%,
+  70% {
+    transform: translateX(-4px);
+  }
+  40%,
+  60% {
+    transform: translateX(4px);
+  }
 }
-@keyframes banner-sheen { 0% { left: -120%; } 60%, 100% { left: 130%; } }
-@keyframes icon-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+@keyframes banner-sheen {
+  0% {
+    left: -120%;
+  }
+  60%,
+  100% {
+    left: 130%;
+  }
+}
+@keyframes icon-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.18);
+  }
+}
 .error-msg {
   color: #dc2626;
   font-size: 0.85rem;
