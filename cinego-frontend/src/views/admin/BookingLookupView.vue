@@ -166,6 +166,14 @@
 
           <div class="lk-modal__foot" v-if="detail">
             <button class="btn-ghost" @click="closeDetail">Đóng</button>
+            <button
+              v-if="detail.payment_status === 'paid'"
+              class="btn-verify"
+              :disabled="verifying || detail.booking_status === 'completed'"
+              @click="verifyTicket"
+            >
+              {{ detail.booking_status === 'completed' ? '✅ Đã soát' : (verifying ? 'Đang soát…' : '🎫 Soát vé') }}
+            </button>
           </div>
         </div>
       </div>
@@ -177,6 +185,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '../../api/axios';
+import { toast, confirmDialog } from '../../utils/alert';
 import TicketPrintable from '../../components/TicketPrintable.vue';
 import { QrcodeStream, QrcodeCapture } from 'vue-qrcode-reader';
 
@@ -286,6 +295,28 @@ const openDetail = async (id) => {
 const closeDetail = () => {
   showDetail.value = false;
   detail.value = null;
+};
+
+// Soát vé ngay trong modal — backend tự chặn ca chưa thanh toán / đã soát rồi
+const verifying = ref(false);
+
+const verifyTicket = async () => {
+  const d = detail.value;
+  if (!d) return;
+
+  const ok = await confirmDialog('Soát vé này?', `Đánh dấu đơn ${d.booking_code} là đã sử dụng?`);
+  if (!ok) return;
+
+  verifying.value = true;
+  try {
+    const { data } = await api.post('/staff/bookings/verify', { code: d.booking_code });
+    d.booking_status = 'completed';
+    toast(data.message || 'Soát vé hợp lệ!');
+  } catch (err) {
+    toast(err.response?.data?.message || 'Không soát được vé.', 'error');
+  } finally {
+    verifying.value = false;
+  }
 };
 </script>
 
@@ -489,12 +520,19 @@ const closeDetail = () => {
   font-size: 11px; font-weight: 700; text-transform: uppercase;
 }
 
-.lk-modal__foot { padding: 14px 22px 20px; display: flex; justify-content: flex-end; }
+.lk-modal__foot { padding: 14px 22px 20px; display: flex; justify-content: space-between; gap: 12px; }
 .btn-ghost {
   border: 1.5px solid #e2e8f0; background: #fff; color: #475569;
   padding: 10px 22px; border-radius: 10px; font-weight: 700; font-size: 13.5px; cursor: pointer;
 }
 .btn-ghost:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+.btn-verify {
+  border: none; cursor: pointer;
+  padding: 10px 22px; border-radius: 10px; font-weight: 800; font-size: 13.5px;
+  background: linear-gradient(135deg, #10b981, #059669); color: #fff;
+}
+.btn-verify:disabled { opacity: 0.55; cursor: not-allowed; }
 
 /* transitions */
 .lk-fade-enter-active { transition: opacity 0.2s; }
