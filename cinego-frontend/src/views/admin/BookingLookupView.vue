@@ -96,6 +96,7 @@
             <td class="cell-total">{{ formatCurrency(b.total_amount) }}</td>
             <td>
               <span class="pay-pill" :class="payClass(b.payment_status)">{{ payLabel(b.payment_status) }}</span>
+              <span v-if="b.booking_status === 'completed'" class="scan-pill">✅ Đã soát</span>
             </td>
           </tr>
         </tbody>
@@ -117,6 +118,11 @@
           </div>
 
           <div v-else-if="detail" class="lk-body">
+            <!-- Trạng thái soát vé -->
+            <div class="lk-checkin" :class="detail.booking_status === 'completed' ? 'is-done' : 'is-pending'">
+              {{ detail.booking_status === 'completed' ? '✅ Đã soát vé — đã sử dụng' : '🎫 Chưa soát vé' }}
+            </div>
+
             <!-- Khách hàng -->
             <section class="lk-section">
               <h4 class="lk-section__title">👤 Khách hàng</h4>
@@ -533,6 +539,17 @@ const verifyTicket = async () => {
   background: linear-gradient(135deg, #10b981, #059669); color: #fff;
 }
 .btn-verify:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Nhãn trạng thái soát vé trong modal */
+.lk-checkin { padding: 11px 14px; border-radius: 10px; text-align: center; font-weight: 800; font-size: 13.5px; }
+.lk-checkin.is-pending { background: #fffaf0; color: #dd6b20; border: 1px solid #fed7aa; }
+.lk-checkin.is-done { background: #edfcf5; color: #059669; border: 1px solid #a7f3d0; }
+
+/* Badge "đã soát" trên bảng kết quả */
+.scan-pill {
+  display: inline-block; margin-top: 4px; padding: 3px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; background: #edfcf5; color: #059669; white-space: nowrap;
+}
 
 /* transitions */
 .lk-fade-enter-active { transition: opacity 0.2s; }
