@@ -28,7 +28,9 @@ class BookingLookupController extends Controller
             ->where(function ($outer) use ($q) {
                 $outer->where('booking_code', 'like', "%{$q}%")
                     ->orWhereHas('user', function ($query) use ($q) {
-                        $query->where('email', 'like', "%{$q}%")
+                        // Tìm theo tên / email / SĐT của khách để hỗ trợ khi khách quên mã vé
+                        $query->where('name', 'like', "%{$q}%")
+                            ->orWhere('email', 'like', "%{$q}%")
                             ->orWhere('phone', 'like', "%{$q}%");
                     });
             })

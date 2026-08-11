@@ -4,7 +4,7 @@
     <div class="lookup-search glass-panel">
       <div class="lookup-search__head">
         <h3>🔎 Tra Cứu Đơn Hàng — Hỗ Trợ Khách</h3>
-        <p>Khách quên mã vé hoặc mất điện thoại? Tìm nhanh theo <b>số điện thoại</b>, <b>email</b> hoặc <b>mã đơn</b>.</p>
+        <p>Khách quên mã vé hoặc mất điện thoại? Tìm nhanh theo <b>tên khách</b>, <b>số điện thoại</b>, <b>email</b> hoặc <b>mã đơn</b>.</p>
       </div>
 
       <form class="lookup-search__bar" @submit.prevent="doSearch">
