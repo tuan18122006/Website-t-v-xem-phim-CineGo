@@ -142,7 +142,7 @@ class BookingLookupController extends Controller
             'code' => 'required|string',
         ]);
 
-        $booking = Booking::where('booking_code', $request->code)->first();
+        $booking = Booking::with('showtime:id,start_time')->where('booking_code', $request->code)->first();
 
         if (!$booking) {
             return response()->json(['message' => 'Mã vé không tồn tại trong hệ thống.'], 404);
@@ -150,6 +150,15 @@ class BookingLookupController extends Controller
 
         if ($booking->payment_status !== 'paid') {
             return response()->json(['message' => 'Đơn hàng này chưa được thanh toán thành công.'], 400);
+        }
+
+        // Chỉ cho soát vé trong vòng 20 phút trước giờ chiếu (tránh soát quá sớm)
+        $start = $booking->showtime?->start_time;
+        if ($start && now()->lt($start->copy()->subMinutes(20))) {
+            $openAt = $start->copy()->subMinutes(20);
+            return response()->json([
+                'message' => 'Chưa tới giờ soát vé. Chỉ soát trong vòng 20 phút trước suất chiếu (mở soát lúc ' . $openAt->format('H:i d/m/Y') . ').',
+            ], 400);
         }
 
         if ($booking->booking_status === 'completed') {

@@ -224,6 +224,8 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
 Route::middleware(['auth:sanctum', 'can:staff-or-admin'])->prefix('staff')->group(function () {
     // POS (Bán vé tại quầy)
     Route::get('/customers/search', [\App\Http\Controllers\Api\POSController::class, 'searchCustomer']);
+    Route::post('/customers', [\App\Http\Controllers\Api\POSController::class, 'quickCreateCustomer']);
+    Route::get('/combos', [\App\Http\Controllers\Api\POSController::class, 'listCombos']);
     Route::post('/bookings/pos', [\App\Http\Controllers\Api\POSController::class, 'storePOSBooking']);
 
     // Tra cứu đơn hàng / Hỗ trợ khách hàng
