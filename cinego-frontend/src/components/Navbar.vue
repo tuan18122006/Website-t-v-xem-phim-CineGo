@@ -37,9 +37,14 @@
         <!-- Search icon/bar simulated -->
       
 
-        <div v-if="bookingStore.holdExpiresAt && remainingTime > 0" class="nav-timer">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-          Giữ ghế: <span>{{ formatTime(remainingTime) }}</span>
+        <div v-if="bookingStore.holdExpiresAt && remainingTime > 0" class="nav-hold">
+          <router-link to="/booking/seats" class="nav-timer" :title="holdTooltip">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <span>Giữ ghế: <strong>{{ formatTime(remainingTime) }}</strong></span>
+          </router-link>
+          <button class="hold-cancel" title="Hủy giữ ghế" @click="cancelHold">
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
         </div>
         
         <template v-if="authStore.isAuthenticated">
@@ -108,11 +113,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router'; 
 import { useAuthStore } from '../stores/auth';
 import { useBookingStore } from '../stores/booking';
 import api from '../api/axios';
+import Swal from 'sweetalert2';
 
 const authStore = useAuthStore();
 const bookingStore = useBookingStore();
@@ -180,6 +186,39 @@ let timerId = null;
 
 const defaultAvatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80";
 
+const holdMovieTitle = computed(() => bookingStore.selectedMovie?.title || '');
+const holdTooltip = computed(() =>
+  `Đang giữ ${bookingStore.selectedSeats?.length || 0} ghế${holdMovieTitle.value ? ` của phim ${holdMovieTitle.value}` : ''}. Bấm để quay lại trang chọn ghế.`
+);
+
+const cancelHold = async () => {
+  const result = await Swal.fire({
+    title: 'Hủy giữ ghế?',
+    text: 'Các ghế đang chọn sẽ được giải phóng ngay lập tức.',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#e30613',
+    cancelButtonColor: '#6f6a63',
+    confirmButtonText: 'Đồng ý hủy',
+    cancelButtonText: 'Giữ tiếp'
+  });
+  if (!result.isConfirmed) return;
+
+  const showtimeId = bookingStore.selectedShowtime?.id;
+  const seats = bookingStore.selectedSeats || [];
+  if (showtimeId && seats.length > 0) {
+    await Promise.allSettled(
+      seats.map((seat) =>
+        api.post('/seat-holds/release', {
+          showtime_id: showtimeId,
+          seat_id: seat.id,
+        })
+      )
+    );
+  }
+  bookingStore.clearBooking();
+};
+
 const formatTime = (ms) => {
   if (ms <= 0) return '00:00';
   const minutes = Math.floor(ms / 60000);
@@ -215,7 +254,6 @@ onMounted(() => {
   fetchMovies(currentTab.value);
 });
 
-// 3. Fixed watcher syntax and handled route.query changes separately
 watch(() => authStore.isAuthenticated, (newVal) => {
   if (newVal) {
     fetchNotifications();
@@ -369,6 +407,12 @@ const handleLogout = async () => {
   color: var(--accent-pink);
 }
 
+.nav-hold {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .nav-timer {
   display: flex;
   align-items: center;
@@ -380,6 +424,34 @@ const handleLogout = async () => {
   border-radius: var(--radius-full);
   font-size: 13px;
   font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  white-space: nowrap;
+}
+
+.nav-timer:hover {
+  background: rgba(216, 45, 139, 0.14);
+  border-color: var(--accent-pink);
+}
+
+.hold-cancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(216, 45, 139, 0.2);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--accent-pink);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.hold-cancel:hover {
+  background: rgba(216, 45, 139, 0.12);
+  border-color: var(--accent-pink);
 }
 
 .user-profile {

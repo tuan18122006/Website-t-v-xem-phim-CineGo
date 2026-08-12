@@ -20,6 +20,7 @@ class Booking extends Model
         'total_amount',
         'payment_method',
         'payment_status',
+        'retry_count',
         'booking_status',
         'order_status',
     ];

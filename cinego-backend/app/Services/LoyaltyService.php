@@ -18,6 +18,22 @@ class LoyaltyService
     public function processBookingPoints(User $user, float $spentAmount, $booking)
     {
         return DB::transaction(function () use ($user, $spentAmount, $booking) {
+            // Chỉ cộng điểm khi đơn hàng đã thanh toán thành công
+            if (method_exists($booking, 'getAttribute') && $booking->payment_status !== 'paid') {
+                return 0;
+            }
+
+            // Chống cộng điểm trùng: mỗi đơn chỉ được tích điểm đúng 1 lần
+            $alreadyEarned = PointHistory::where('user_id', $user->id)
+                ->where('type', 'booking_earning')
+                ->where('reference_type', get_class($booking))
+                ->where('reference_id', $booking->id)
+                ->exists();
+
+            if ($alreadyEarned) {
+                return 0;
+            }
+
             // 1. Cộng tổng tiền chi tiêu
             $user->total_spent = ($user->total_spent ?? 0) + $spentAmount;
 
@@ -109,7 +125,6 @@ class LoyaltyService
         $currentTier = $user->membership_tier ?: 'Bronze';
         $totalSpent = (float) ($user->total_spent ?? 0);
 
-        // Đảo lại để tìm logic đúng hơn (từ bé đến lớn)
         $tiersNormal = self::TIERS;
         $nextTier = null;
         $nextThreshold = null;

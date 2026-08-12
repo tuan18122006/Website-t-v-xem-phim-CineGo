@@ -84,15 +84,19 @@ export const useBookingStore = defineStore('booking', {
 
   actions: {
     selectMovie(movie) {
+      const isSameMovie = this.selectedMovie && this.selectedMovie.id == movie.id;
       this.selectedMovie = movie;
+      setStorage('cinego_movie', movie);
+
+      // Quay lại ĐÚNG phim cũ → giữ nguyên suất chiếu, ghế đã chọn và bộ đếm giữ ghế
+      if (isSameMovie) return;
+
       this.selectedShowtime = null;
       this.selectedSeats = [];
       this.selectedCombos = [];
       this.appliedVoucher = null;
       this.holdExpiresAt = null;
 
-      // Cập nhật sessionStorage
-      setStorage('cinego_movie', movie);
       setStorage('cinego_showtime', null);
       setStorage('cinego_seats', []);
       setStorage('cinego_combos', []);
@@ -169,7 +173,7 @@ export const useBookingStore = defineStore('booking', {
       setStorage('cinego_voucher', null);
     },
 
-    setHoldExpiry(minutes = 10) {
+    setHoldExpiry(minutes = 3) {
       const expiry = Date.now() + minutes * 60 * 1000;
       this.holdExpiresAt = expiry;
       setStorage('cinego_holdExpiresAt', expiry);

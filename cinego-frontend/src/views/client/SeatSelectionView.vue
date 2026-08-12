@@ -133,16 +133,15 @@ import { useBookingStore } from "../../stores/booking";
 import api from "../../api/axios";
 import echo from "../../api/echo";
 
-// IMPORT THÀNH PHẦN THEO ĐÚNG YÊU CẦU CỦA TECH LEAD
 import SeatMap from "../../components/SeatMap.vue";
 
 const router = useRouter();
 const route = useRoute();
 const bookingStore = useBookingStore();
 
-const rawSeatsFromAPI = ref([]); // Nơi lưu mảng gốc tải về từ database
-const seatPrices = ref({ standard: 75000, vip: 95000, couple: 140000 }); // Giá thật lấy từ cấu hình của suất chiếu
-const countdownText = ref("10:00");
+const rawSeatsFromAPI = ref([]); 
+const seatPrices = ref({ standard: 75000, vip: 95000, couple: 140000 }); 
+const countdownText = ref("03:00");
 const featuredComments = ref([]);
 const processingSeatCount = ref(0);
 let timerInterval = null;
@@ -157,10 +156,26 @@ const cancelBooking = () => {
         cancelButtonColor: '#6f6a63',
         confirmButtonText: 'Đồng ý hủy',
         cancelButtonText: 'Tiếp tục đặt'
-    }).then((result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
-            const movieId = bookingStore.currentMovieId; 
-            router.push(`/movies/${movieId}`); 
+            const movieId = bookingStore.selectedMovie?.id;
+            const showtimeId = bookingStore.selectedShowtime?.id;
+
+            if (showtimeId && bookingStore.selectedSeats.length > 0) {
+                await Promise.allSettled(
+                    bookingStore.selectedSeats.map((seat) =>
+                        api.post("/seat-holds/release", {
+                            showtime_id: showtimeId,
+                            seat_id: seat.id,
+                        })
+                    )
+                );
+            }
+
+            stopTimer();
+            bookingStore.clearBooking();
+
+            router.push(movieId ? `/movies/${movieId}` : "/");
         }
     });
 };
@@ -172,12 +187,10 @@ const formatCurrency = (val) => {
   }).format(val);
 };
 
-// Lấy giá theo loại ghế từ bảng giá THẬT của suất chiếu (admin cấu hình)
 const getSeatPrice = (type) => {
   return seatPrices.value[type] ?? seatPrices.value.standard ?? 0;
 };
 
-// Định dạng gọn cho chú thích: 75000 -> "75k"
 const priceK = (val) => `${Math.round((val || 0) / 1000)}k`;
 
 const shuffleArray = (arr) => {
@@ -189,25 +202,23 @@ const shuffleArray = (arr) => {
   return copy;
 };
 
-// ÁNH XẠ DỮ LIỆU ĐẦU RA (COMPUTED): Chuyển đổi dữ liệu thô sang 5 trường Tech Lead yêu cầu
 const mappedSeats = computed(() => {
+  const myHeldSeatIds = bookingStore.selectedSeats.map(s => s.id);
   return rawSeatsFromAPI.value.map((seat) => {
     return {
-      id: seat.id, // 1. ID duy nhất của ghế
-      row: seat.row_name, // 2. Tên hàng ghế ('A','B'...)
-      number: seat.seat_number, // 3. Số thứ tự cột (1,2,3...)
-      type: seat.type || "standard", // 4. Khớp enum 4 loại từ DB trả về
-      is_booked: seat.status === "sold" || seat.status === "holding", // 5. Cấm click nếu đã bán/giữ
+      id: seat.id, 
+      row: seat.row_name, 
+      number: seat.seat_number, 
+      type: seat.type || "standard", 
+      is_booked: seat.status === "sold" || (seat.status === "holding" && !myHeldSeatIds.includes(seat.id)), 
     };
   });
 });
 
-// Trích xuất mảng ID các ghế đang chọn từ Store để đồng bộ hiệu ứng sáng của Ma Trận Ghế 3D
 const selectedSeatIds = computed(() => {
   return bookingStore.selectedSeats.map((s) => s.id);
 });
 
-// HỨNG SỰ KIỆN TỪ SEATMAP: Xử lý kích hoạt khi bấm chọn ghế trên giao diện 3D
 const handleSeatMapClick = async (seat) => {
   if (!localStorage.getItem('cinego_token')) {
     Swal.fire({
@@ -239,38 +250,31 @@ const handleSeatMapClick = async (seat) => {
 
   try {
     if (!isAlreadySelected) {
-      // OPTIMISTIC UPDATE: Đẩy ghế vào Store quản lý đơn hàng NGAY LẬP TỨC để UI phản hồi ngay (0 độ trễ)
       bookingStore.toggleSeat(seatObj);
 
-      // Nếu là ghế đầu tiên khởi tạo bộ đếm 10 phút
       if (bookingStore.selectedSeats.length === 1) {
-        bookingStore.setHoldExpiry(10);
+        bookingStore.setHoldExpiry(3);
         startTimer();
       }
 
-      // Gọi API giữ ghế tạm thời ở background
       await api.post("/seat-holds", {
         showtime_id: bookingStore.selectedShowtime.id,
         seat_id: seat.id,
       });
     } else {
-      // OPTIMISTIC UPDATE: Bỏ chọn ghế ngay lập tức trên UI
       bookingStore.toggleSeat(seatObj);
 
-      // Nếu hủy toàn bộ mảng ghế đang chọn -> Ngắt bộ đếm
       if (bookingStore.selectedSeats.length === 0) {
         bookingStore.holdExpiresAt = null;
         stopTimer();
       }
 
-      // Gọi API hủy giữ ghế ở background
       await api.post("/seat-holds/release", {
         showtime_id: bookingStore.selectedShowtime.id,
         seat_id: seat.id,
       });
     }
   } catch (error) {
-    // ROLBACK OPTIMISTIC UPDATE: Khôi phục lại trạng thái ban đầu do gọi API thất bại
     bookingStore.toggleSeat(seatObj);
     if (bookingStore.selectedSeats.length === 0) {
       bookingStore.holdExpiresAt = null;
@@ -284,7 +288,6 @@ const handleSeatMapClick = async (seat) => {
       icon: 'error',
       confirmButtonColor: '#e50914'
     });
-    // Tải lại sơ đồ ghế để cập nhật trạng thái mới nhất từ server
     fetchSeatStatus();
   } finally {
     processingSeatCount.value--;
@@ -472,8 +475,6 @@ const stopTimer = () => {
     timerInterval = null;
   }
 };
-
-// Gọi dữ liệu thô của cấu hình phòng chiếu và trạng thái từ backend
 const fetchSeatStatus = async () => {
   try {
     const response = await api.get(
@@ -481,10 +482,8 @@ const fetchSeatStatus = async () => {
     );
     const data = response.data;
     if (Array.isArray(data)) {
-      // Dạng cũ: chỉ là mảng ghế
       rawSeatsFromAPI.value = data;
     } else {
-      // Dạng mới: { seats, prices }
       rawSeatsFromAPI.value = data.seats || [];
       if (data.prices) {
         seatPrices.value = { ...seatPrices.value, ...data.prices };
@@ -493,14 +492,12 @@ const fetchSeatStatus = async () => {
   } catch (err) {
     console.warn("Fetch seats API error, using fallback mock data structures:");
 
-    // Tạo mảng dữ liệu thô giả lập cấu trúc DB (9 hàng x 12 cột) để map mượt mà nếu API chưa chạy
     const mockData = [];
     const rowsList = ["A", "B", "C", "D", "E", "F", "G", "H", "J"];
     let currentId = 1;
 
     rowsList.forEach((row) => {
       for (let col = 1; col <= 12; col++) {
-        // Giả lập trạng thái đã bán hoặc giữ ngẫu nhiên cho một vài ghế
         let initialStatus = "available";
         if (["A-5", "F-7", "J-4", "C-2", "G-10"].includes(`${row}-${col}`)) {
           initialStatus = "sold";
@@ -511,7 +508,7 @@ const fetchSeatStatus = async () => {
           row_name: row,
           seat_number: col,
           status: initialStatus,
-          is_aisle: col === 3 || col === 10, // Đánh dấu thử nghiệm lối đi để kích hoạt 'hidden'
+          is_aisle: col === 3 || col === 10, 
         });
       }
     });
@@ -526,7 +523,6 @@ onMounted(() => {
     startTimer();
   }
 
-  // Subscribe to real-time seat updates
   if (bookingStore.selectedShowtime?.id) {
     echo.channel(`showtime.${bookingStore.selectedShowtime.id}`)
       .listen('SeatLocked', (e) => {
@@ -566,14 +562,12 @@ const validateSeatSelection = () => {
     return false;
   }
 
-  // Bỏ qua luật "không để trống 1 ghế" nếu khách chỉ đặt 1 ghế duy nhất
   if (bookingStore.selectedSeats.length < 2) {
     return true;
   }
 
   const rows = {};
   mappedSeats.value.forEach(seat => {
-    // Chỉ đưa các ghế thật (standard, vip, couple) vào lưới duyệt luật "chống để trống"
     if (!['standard', 'vip', 'couple'].includes(seat.type)) return;
 
     if (!rows[seat.row]) rows[seat.row] = [];
@@ -620,15 +614,37 @@ const validateSeatSelection = () => {
   return true;
 };
 
-const proceedToPayment = () => {
-  if (bookingStore.selectedSeats.length > 0) {
-    if (validateSeatSelection()) {
-      if (route.query.mode === 'pos') {
-        router.push({ path: '/staff/pos/checkout' });
-      } else {
-        router.push("/booking/payment");
-      }
+const proceedToPayment = async () => {
+  if (bookingStore.selectedSeats.length === 0) return;
+  if (!validateSeatSelection()) return;
+
+  try {
+    const response = await api.post("/seat-holds/confirm", {
+      showtime_id: bookingStore.selectedShowtime.id,
+      seat_ids: bookingStore.selectedSeats.map((s) => s.id),
+    });
+
+    bookingStore.setHoldExpiry(10);
+    bookingStore.holdExpiresAt = Date.parse(response.data.expires_at);
+    startTimer();
+
+    if (route.query.mode === 'pos') {
+      router.push({ path: '/staff/pos/checkout' });
+    } else {
+      router.push("/booking/payment");
     }
+  } catch (error) {
+    const errorMsg =
+      error.response?.data?.message ||
+      "Thời gian giữ ghế đã hết. Vui lòng chọn lại ghế!";
+    Swal.fire({
+      title: "Hết thời gian giữ ghế",
+      text: errorMsg,
+      icon: "warning",
+      confirmButtonColor: "#e50914",
+    }).then(() => {
+      fetchSeatStatus();
+    });
   }
 };
 </script>

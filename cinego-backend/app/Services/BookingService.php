@@ -186,7 +186,6 @@ class BookingService
                 ]);
             }
 
-            // 🔥 2. BỔ SUNG: Lưu các Mã Quà Tặng (Mã đổi Combo miễn phí) vào bảng booking_combos
             if (!empty($usedUserComboIds)) {
                 foreach ($usedUserComboIds as $userComboId) {
                     $userCombo = DB::table('user_combos')
@@ -246,6 +245,14 @@ class BookingService
     {
         $booking->update([
             'payment_status' => 'failed',
+            'booking_status' => 'cancelled',
+        ]);
+    }
+
+    public function markAsCancelled(Booking $booking): void
+    {
+        $booking->update([
+            'payment_status' => 'payment_cancelled',
             'booking_status' => 'cancelled',
         ]);
     }
