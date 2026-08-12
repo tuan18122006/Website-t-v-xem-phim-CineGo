@@ -45,6 +45,13 @@ class BookingController extends Controller
         ]);
 
         try {
+            if (in_array($request->payment_method, ['vnpay', 'bank_transfer'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Đơn hàng thanh toán online sẽ được tạo khi xác nhận thanh toán, vui lòng dùng "Thanh toán" trên trang giỏ hàng.',
+                ], 422);
+            }
+
             $booking = $this->bookingService->createBooking(
                 $request->showtime_id,
                 $request->seat_ids,
@@ -190,9 +197,11 @@ public function history(Request $request)
                 'status_label'   => match($booking->payment_status) {
                     'paid'                 => 'Đã thanh toán',
                     'waiting_confirmation' => 'Đang chờ xác nhận',
+                    'payment_cancelled'    => 'Hủy thanh toán',
                     'cancelled'            => 'Đã hủy',
                     default                => 'Chưa hoàn tất',
-                }
+                },
+                'retry_count'    => (int) ($booking->retry_count ?? 0),
             ];
         });
 
@@ -332,7 +341,7 @@ public function holdSeats(Request $request)
             ->where('showtime_id', $request->showtime_id)
             ->delete();
 
-        $expiresAt = now()->addMinutes(10);
+        $expiresAt = now()->addMinutes(3);
         $holdsData = [];
 
         foreach ($request->seat_ids as $seatId) {
@@ -352,7 +361,7 @@ public function holdSeats(Request $request)
             'success'           => true,
             'message'           => 'Giữ ghế thành công!',
             'expires_at'        => $expiresAt->toIso8601String(),
-            'seconds_remaining' => 600 
+            'seconds_remaining' => 180 
         ]);
     });
 }

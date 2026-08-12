@@ -59,7 +59,6 @@ class ShowtimeController extends Controller
         ]);
 
         $movie = \App\Models\Movie::findOrFail($request->movie_id);
-        // Thêm 15 phút thời gian dọn phòng
         $duration = $movie->duration + 15; 
 
         $startDate = \Carbon\Carbon::parse($request->start_date)->startOfDay();
@@ -68,7 +67,6 @@ class ShowtimeController extends Controller
         $showtimeDates = [];
         $currentDate = $startDate->copy();
 
-        // Bước 1: Kiểm tra chống trùng lịch cho TOÀN BỘ dải ngày và khung giờ
         while ($currentDate <= $endDate) {
             foreach ($request->times as $timeStr) {
                 if (empty($timeStr)) continue;
@@ -215,8 +213,7 @@ class ShowtimeController extends Controller
             'is_sneak_show' => $isSneakShow
         ]);
 
-        // Không thay đổi pricing_snapshot khi update để bảo toàn lịch sử giá
-        // (Hoặc nếu muốn update thì có thể update tùy logic nghiệp vụ sau này)
+
 
         return response()->json([
             'success' => true,
@@ -250,8 +247,7 @@ class ShowtimeController extends Controller
             return response()->json(['message' => 'Không tìm thấy suất chiếu'], 404);
         }
 
-        // Bảng giá theo loại ghế của SUẤT CHIẾU này (admin cấu hình ở Phần 2).
-        // Nếu suất nào chưa có cấu hình thì dùng giá mặc định để không vỡ luồng đặt vé.
+        
         $prices = ['standard' => 75000, 'vip' => 95000, 'couple' => 140000];
         foreach ($showtime->priceConfigs as $config) {
             $prices[$config->seat_type] = (float) $config->price;
@@ -262,13 +258,7 @@ class ShowtimeController extends Controller
         // 1. Dọn dẹp tất cả các giữ ghế đã hết hạn trên hệ thống
         SeatHold::where('expires_at', '<=', $now)->delete();
 
-        // 2. Giải phóng các ghế chính tài khoản này đang giữ tại suất chiếu này để bắt đầu phiên mới sạch sẽ
-        $currentUser = auth('sanctum')->user();
-        if ($currentUser) {
-            SeatHold::where('showtime_id', $showtime->id)
-                ->where('user_id', $currentUser->id)
-                ->delete();
-        }
+        
 
         // 3. Lấy toàn bộ ghế của phòng chiếu
         $seats = Seat::where('room_id', $showtime->room_id)->get();
@@ -302,8 +292,8 @@ class ShowtimeController extends Controller
                 'row_name' => $seat->row,
                 'seat_number' => $seat->number,
                 'status' => $status,
-                'type' => $seat->type, // Lấy đúng type từ Admin Map thay vì hardcode
-                'price' => $prices[$seat->type] ?? 0, // Giá thật theo cấu hình của suất
+                'type' => $seat->type, 
+                'price' => $prices[$seat->type] ?? 0, 
             ];
         });
 
@@ -383,7 +373,6 @@ class ShowtimeController extends Controller
             ->orderBy('start_time', 'asc')
             ->get();
 
-        // Group by movie
         $grouped = $showtimes->groupBy('movie_id')->map(function ($items) {
             $movie = $items->first()->movie;
 

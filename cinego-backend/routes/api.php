@@ -72,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
     
     Route::post('/seat-holds', [SeatHoldController::class, 'hold']);
+    Route::post('/seat-holds/confirm', [SeatHoldController::class, 'confirmHold']);
     Route::post('/seat-holds/release', [SeatHoldController::class, 'release']);
 
     Route::post('/bookings', [BookingController::class, 'store']);
@@ -83,6 +84,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/available-combos', [LoyaltyController::class, 'getAvailableCombos']);
     Route::post('/vouchers/claim', [VoucherController::class, 'claimVoucher']);
     Route::post('/payments/create', [PaymentController::class, 'createPayment']);
+    Route::post('/payments/retry/{id}', [PaymentController::class, 'retryPayment']);
     // giữ ghế
     Route::post('/seats/hold', [BookingController::class, 'holdSeats']);
     

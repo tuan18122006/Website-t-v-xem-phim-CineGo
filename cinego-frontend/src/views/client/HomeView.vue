@@ -303,7 +303,7 @@ const movies = ref([]);
 const filteredMovies = ref([]);
 
 const currentPage = ref(1);
-const itemsPerPage = 8; // Hoặc 10, 12 tùy thiết kế
+const itemsPerPage = 8; 
 
 const paginatedMovies = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage;
@@ -333,7 +333,6 @@ const fetchFeaturedComments = async () => {
   try {
     const res = await api.get('/reviews/featured');
     const list = res.data?.data || [];
-    // filter 5 stars
     const fiveStar = list.filter(r => Number(r.rating) === 5);
     featuredComments.value = fiveStar.slice(0, 6).map((r, i) => ({
       id: r.id,
@@ -431,29 +430,24 @@ const closeTrailer = () => {
   currentTrailerUrl.value = '';
 };
 
-// 🔥 BỘ LỌC PHIM ĐANG CHIẾU - Lấy từ dữ liệu gốc của DB lên
 const activeMovies = computed(() => {
   return movies.value.filter(movie => {
     if (!movie.status) return false;
-    // Chuyển về chữ thường để so sánh
     const s = movie.status.toLowerCase();
     return s === 'showing' ||
       s === 'now-showing' ||
       s === 'now_showing' ||
-      s === 'đang-chiếu' || // Thêm trường hợp này
-      s === 'đang chiếu';   // Và trường hợp này
+      s === 'đang-chiếu' || 
+      s === 'đang chiếu';   
   });
 });
 
-// 🔥 BỘ LỌC PHIM SẮP CHIẾU - Lấy từ dữ liệu gốc của DB lên
 const upcomingMovies = computed(() => {
   return movies.value.filter(movie => {
     if (!movie.status) return false;
 
-    // Chuẩn hóa trạng thái về dạng chữ thường và thay thế khoảng trắng/gạch dưới bằng gạch ngang
     const s = movie.status.toLowerCase().replace(/[\s_]/g, '-');
 
-    // Thêm các từ khóa tiếng Việt vào điều kiện lọc
     return s === 'upcoming' ||
       s === 'coming-soon' ||
       s === 'coming-soon' ||
@@ -467,7 +461,6 @@ const getPosterUrl = (url) => {
   if (url.startsWith('http')) return url;
   if (url.startsWith('blob:')) return url;
 
-  // Trỏ về port 8000 của Laravel
   const cleanPath = url.replace(/^(.*\/storage\/)/, '');
   return `http://127.0.0.1:8000/storage/${cleanPath}`;
 };
@@ -493,7 +486,6 @@ const formatDate = (dateStr) => {
 };
 
 const bookMovie = (movie) => {
-  bookingStore.selectMovie(movie);
   router.push(`/movie/${movie.id}`);
 };
 
@@ -513,7 +505,7 @@ const fetchFilteredMovies = async () => {
     const response = await api.get('/movies/search', { params: filters.value });
     const resData = response.data?.data || response.data;
     filteredMovies.value = resData || [];
-    currentPage.value = 1; // Reset to page 1 on new search
+    currentPage.value = 1; 
   } catch (error) {
     console.error('Lỗi tìm kiếm từ DB:', error);
     filteredMovies.value = [];

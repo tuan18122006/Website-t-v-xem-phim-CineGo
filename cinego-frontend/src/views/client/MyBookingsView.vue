@@ -134,7 +134,6 @@ const formatCurrency = (val) => new Intl.NumberFormat('vi-VN', { style: 'currenc
 const fetchBookings = async () => {
   loading.value = true;
   try {
-    // If admin view, call admin orders endpoint with filters
     const params = {};
     if (fromDate.value) params.from_date = fromDate.value;
     if (toDate.value) params.to_date = toDate.value;
@@ -185,7 +184,6 @@ const closeDetail = () => {
 };
 
 const exportCsv = () => {
-  // Build CSV from currently loaded bookings (client-side)
   if (!bookings.value || bookings.value.length === 0) {
     alert('Không có đơn để xuất');
     return;
@@ -222,12 +220,12 @@ const statusLabel = (status) => {
     pending: 'Chờ thanh toán',
     paid: 'Đã thanh toán',
     cancelled: 'Đã hủy',
+    payment_cancelled: 'Hủy thanh toán',
     refunded: 'Đã hoàn tiền',
   }[status] || status;
 };
 
 const reprint = async (id) => {
-  // Simply open printable ticket modal by fetching details and showing TicketPrintable
   await viewDetail(id);
 };
 const showRefundModal = ref(false);
