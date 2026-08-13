@@ -291,7 +291,6 @@ import { useBookingStore } from "../../stores/booking";
 import { useAuthStore } from "../../stores/auth";
 import api from "../../api/axios";
 
-// Khai báo cấu hình Backend & Ảnh mặc định
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
 const fallbackComboImage = "/images/default-combo.png";
 
@@ -339,7 +338,6 @@ const fetchWalletCombos = async () => {
         item.combo?.end_date ||
         null;
 
-      // Ưu tiên lấy đúng ID của bản ghi bảng user_combos
       const realUserComboId = item.id || item.user_combo_id;
 
       return {
@@ -358,7 +356,6 @@ const fetchWalletVouchers = async () => {
   try {
     const res = await api.get("/client/my-vouchers");
     const allItems = res.data?.data || [];
-    // Lọc ra các voucher chưa sử dụng (loại bỏ combo vì API trả về cả combo)
     walletVouchers.value = allItems.filter(v => v.code && !v.is_used);
   } catch (err) {
     console.error("Lỗi tải ví voucher:", err);
@@ -492,26 +489,21 @@ const handlePaymentAction = () => {
 };
 
 const formatDate = (dateString) => {
-  // Kiểm tra nếu không có dữ liệu
   if (!dateString || dateString === 'null' || dateString === 'undefined') {
     return "Không thời hạn";
   }
 
-  // Chuẩn hóa định dạng chuỗi ISO cho chuẩn Javascript Date
   let safeDateString = dateString;
   if (typeof dateString === 'string') {
-    // Thay khoảng trắng giữa Ngày và Giờ thành chữ 'T' nếu có (VD: "2026-08-21 17:22:00" -> "2026-08-21T17:22:00")
     safeDateString = dateString.replace(' ', 'T');
   }
 
   const date = new Date(safeDateString);
 
-  // Nếu vẫn không parse được thì fallback kiểm tra trực tiếp
   if (isNaN(date.getTime())) {
     return "Không thời hạn";
   }
 
-  // Định dạng hiển thị: DD/MM/YYYY HH:mm
   const day = String(date.getDate()).padStart(2, '0');
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
@@ -521,6 +513,7 @@ const formatDate = (dateString) => {
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 };
 const confirmPayment = async () => {
+  if (submitting.value) return;
   submitting.value = true;
 
   try {
@@ -540,6 +533,7 @@ const confirmPayment = async () => {
     const response = await api.post("/payments/create", payload);
 
     if (response.data?.payment_url) {
+      bookingStore.clearBooking();
       window.location.href = response.data.payment_url;
       return;
     }
@@ -547,6 +541,7 @@ const confirmPayment = async () => {
     bookingSuccess.value = true;
     bookingCode.value =
       response.data?.booking_code || response.data?.data?.booking_code || "";
+    bookingStore.clearBooking();
   } catch (err) {
     console.error("Lỗi thanh toán:", err.response?.data || err);
     alert(err.response?.data?.message || "Giao dịch thất bại. Vui lòng thử lại!");

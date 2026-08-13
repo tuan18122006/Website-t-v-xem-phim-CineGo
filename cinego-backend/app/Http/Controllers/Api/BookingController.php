@@ -28,12 +28,6 @@ class BookingController extends Controller
         $this->loyaltyService = $loyaltyService;
     }
 
-    
-
-
-
-
-
     public function store(Request $request)
     {
         $request->validate([
@@ -51,6 +45,13 @@ class BookingController extends Controller
         ]);
 
         try {
+            if (in_array($request->payment_method, ['vnpay', 'bank_transfer'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Đơn hàng thanh toán online sẽ được tạo khi xác nhận thanh toán, vui lòng dùng "Thanh toán" trên trang giỏ hàng.',
+                ], 422);
+            }
+
             $booking = $this->bookingService->createBooking(
                 $request->showtime_id,
                 $request->seat_ids,
@@ -196,9 +197,11 @@ public function history(Request $request)
                 'status_label'   => match($booking->payment_status) {
                     'paid'                 => 'Đã thanh toán',
                     'waiting_confirmation' => 'Đang chờ xác nhận',
+                    'payment_cancelled'    => 'Hủy thanh toán',
                     'cancelled'            => 'Đã hủy',
                     default                => 'Chưa hoàn tất',
-                }
+                },
+                'retry_count'    => (int) ($booking->retry_count ?? 0),
             ];
         });
 
@@ -292,6 +295,103 @@ public function history(Request $request)
             'data'    => $booking
         ]);
     }
+
+
+public function holdSeats(Request $request)
+{
+    $request->validate([
+        'showtime_id' => 'required|integer|exists:showtimes,id',
+        'seat_ids'    => 'required|array|min:1',
+        'seat_ids.*'  => 'required|integer|exists:seats,id',
+    ]);
+
+    $userId = auth()->id();
+
+    return DB::transaction(function () use ($request, $userId) {
+        $isBooked = DB::table('booking_seats')
+            ->join('bookings', 'booking_seats.booking_id', '=', 'bookings.id')
+            ->where('bookings.showtime_id', $request->showtime_id)
+            ->whereIn('booking_seats.seat_id', $request->seat_ids)
+            ->where('bookings.booking_status', 'confirmed')
+            ->exists();
+
+        if ($isBooked) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Một số ghế bạn chọn đã được người khác đặt mua!'
+            ], 422);
+        }
+
+        $isHeldByOthers = DB::table('seat_holds')
+            ->where('showtime_id', $request->showtime_id)
+            ->whereIn('seat_id', $request->seat_ids)
+            ->where('user_id', '!=', $userId)
+            ->where('expires_at', '>', now())
+            ->exists();
+
+        if ($isHeldByOthers) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ghế này vừa có người khác nhanh tay chọn giữ trước!'
+            ], 422);
+        }
+
+        DB::table('seat_holds')
+            ->where('user_id', $userId)
+            ->where('showtime_id', $request->showtime_id)
+            ->delete();
+
+        $expiresAt = now()->addMinutes(3);
+        $holdsData = [];
+
+        foreach ($request->seat_ids as $seatId) {
+            $holdsData[] = [
+                'user_id'     => $userId,
+                'showtime_id' => $request->showtime_id,
+                'seat_id'     => $seatId,
+                'expires_at'  => $expiresAt,
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ];
+        }
+
+        DB::table('seat_holds')->insert($holdsData);
+
+        return response()->json([
+            'success'           => true,
+            'message'           => 'Giữ ghế thành công!',
+            'expires_at'        => $expiresAt->toIso8601String(),
+            'seconds_remaining' => 180 
+        ]);
+    });
+}
+
+
+
+    public function getActiveHold(Request $request)
+{
+    $userId = auth()->id();
+
+    $holds = DB::table('seat_holds')
+        ->where('user_id', $userId)
+        ->where('expires_at', '>', now())
+        ->get();
+
+    if ($holds->isEmpty()) {
+        return response()->json(['has_hold' => false]);
+    }
+
+    $minExpiresAt = $holds->min('expires_at');
+    $secondsRemaining = max(0, now()->diffInSeconds(Carbon::parse($minExpiresAt), false));
+
+    return response()->json([
+        'has_hold'          => true,
+        'showtime_id'       => $holds->first()->showtime_id,
+        'seat_ids'          => $holds->pluck('seat_id'),
+        'seconds_remaining' => $secondsRemaining
+    ]);
+}
+
 
     /**
      * User: Lấy chi tiết 1 đơn hàng (để hiển thị mã QR)

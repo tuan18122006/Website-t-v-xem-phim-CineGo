@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { useBookingStore } from '../stores/booking';
+import api from '../api/axios';
 import AuthCallback from '../views/client/AuthCallback.vue';
 import ReviewMovies from '../views/client/ReviewMovies.vue';
 import TicketDetailView from "../views/client/TicketDetailView.vue";
@@ -69,7 +71,11 @@ const routes = [
     component: () => import("../views/client/ProfileView.vue"),
     meta: { requiresAuth: true }
   },
-
+  {
+  path: '/phim',
+  name: 'Movies',
+  component: () => import('../views/client/MoviesView.vue')
+},
   {
     path: "/booking/seats",
     name: "seat-selection",
@@ -160,7 +166,6 @@ const routes = [
     component: () => import("../views/admin/ArticleManagementView.vue"),
     meta: { requiresAuth: true, role: "admin" }
   },
-  // 🔴 THÊM MỚI: PHÂN HỆ QUẢN LÝ BLOG WORDPRESS (CINEGO)
   {
     path: "/admin/blogs",
     name: "admin-BlogList",
@@ -246,19 +251,6 @@ const routes = [
     meta: { requiresAuth: true, role: "staff" },
   },
   {
-    path: "/staff/pos",
-    name: "staff-pos",
-    component: () => import("../views/staff/POSMovieSelectionView.vue"),
-    meta: { requiresAuth: true, role: "staff" },
-  },
-  {
-    path: "/staff/pos/checkout",
-    name: "staff-pos-checkout",
-    component: () => import("../views/staff/POSPaymentView.vue"),
-    meta: { requiresAuth: true, role: "staff" },
-  },
-  // Wildcard redirect
-  {
     path: "/:pathMatch(.*)*",
     redirect: "/",
   },
@@ -272,7 +264,6 @@ const router = createRouter({
   },
 });
 
-// Navigation Guards: Bảo vệ các trang cần Đăng nhập & Quyền Admin
 router.beforeEach((to, from) => {
   const authStore = useAuthStore();
 

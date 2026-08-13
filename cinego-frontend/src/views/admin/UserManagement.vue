@@ -91,7 +91,7 @@
               <tr>
                 <th>{{ activeSection === 'staff' ? 'Nhân viên' : 'Khách hàng' }}</th>
                 <th>Liên hệ</th>
-                <th>{{ activeSection === 'staff' ? 'Ca trực POS' : 'Hạng thành viên & Điểm' }}</th>
+                <th>{{ activeSection === 'staff' ? 'Trạng thái ca' : 'Hạng thành viên & Điểm' }}</th>
                 <th>Vai trò</th>
                 <th>Trạng thái hoạt động</th>
                 <th class="ta-right">Hành động</th>
@@ -126,7 +126,7 @@
                   </template>
                   <template v-else>
                     <span class="premium-badge" :class="u.work_status === 'on_shift' ? 'status-active' : 'role-customer'">
-                      💼 {{ u.work_status === 'on_shift' ? 'Đang trực POS' : 'Chưa vào ca' }}
+                      💼 {{ u.work_status === 'on_shift' ? 'Đang làm việc' : 'Chưa vào ca' }}
                     </span>
                   </template>
                 </td>
@@ -797,7 +797,7 @@ const dashboardCards = computed(() => {
     const locked = allUsers.value.filter(u => u.role === 'staff' && u.status === 'locked').length;
     return [
       { label: 'Tổng nhân viên', value: total + ' nhân sự', icon: IconBriefcase, colorClass: 'card-violet' },
-      { label: 'Nhân viên đang làm ca', value: onShift + ' quầy POS', icon: IconCheck, colorClass: 'card-mint' },
+      { label: 'Nhân viên đang làm ca', value: onShift + ' người', icon: IconCheck, colorClass: 'card-mint' },
       { label: 'Tài khoản nhân sự bị khóa', value: locked + ' acc', icon: IconLock, colorClass: 'card-red' },
     ];
   } else if (activeSection.value === 'admin') {

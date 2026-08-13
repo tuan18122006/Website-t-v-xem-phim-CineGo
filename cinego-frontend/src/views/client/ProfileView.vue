@@ -536,12 +536,11 @@
                     </td>
                     <td class="bold-text">
                       {{ formatPrice(ticket.total_price) }}đ<br/>
-                      <small style="color: #10b981; font-weight: 500;" title="Điểm CineGo tích lũy được">(+{{ Math.floor(ticket.total_price / 1000) }} P)</small>
+                      <small v-if="ticket.status === 'paid'" style="color: #10b981; font-weight: 500;" title="Điểm CineGo tích lũy được từ đơn hàng đã thanh toán">(+{{ Math.floor(ticket.total_price / 10000) }} P)</small>
                     </td>
                     <td>
                       <div class="table-actions">
                         <template v-if="subTab === 'upcoming'">
-                          <!-- Nút QR chỉ hiển thị nếu đã thanh toán -->
                           <button
                             v-if="ticket.status === 'paid'"
                             @click="viewQrCode(ticket)"
@@ -549,11 +548,13 @@
                           >
                             Mã QR
                           </button>
-                          <!-- Badge chờ xác nhận -->
                           <span v-else-if="ticket.status === 'waiting_confirmation'" class="badge badge-warning" title="Admin đang xác nhận chuyển khoản của bạn">
-                            ⏳ Chờ xác nhận
+                             Chờ xác nhận
                           </span>
-                          <!-- Badge chưa thanh toán -->
+                          <!-- Badge hủy thanh toán -->
+                          <span v-else-if="ticket.status === 'payment_cancelled'" class="badge badge-danger">
+                            Hủy thanh toán
+                          </span>
                           <span v-else class="badge badge-pending">
                             Chờ thanh toán
                           </span>
@@ -1029,7 +1030,41 @@
               {{ selectedTicket?.status_label }}
             </div>
           </div>
-          
+
+          <div v-if="selectedTicket?.status && !['paid', 'waiting_confirmation', 'cancelled', 'payment_cancelled'].includes(selectedTicket.status)" style="padding: 0 25px 25px 25px; background: white; text-align: center; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
+            <div v-if="isShowtimePassed" style="padding: 14px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; color: #475569; font-size: 13.5px; font-weight: 600;">
+              Suất chiếu đã bắt đầu hoặc kết thúc. Không thể thanh toán lại, vui lòng liên hệ quầy vé.
+            </div>
+            <div v-else-if="selectedTicket?.status === 'payment_cancelled'" style="padding: 14px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; color: #475569; font-size: 13.5px; font-weight: 600;">
+              Bạn đã hủy thanh toán đơn hàng này. Ghế đã được trả lại, vui lòng đặt vé mới nếu vẫn muốn xem phim.
+            </div>
+            <template v-else>
+            <div v-if="retryTimeLeft > 0" style="margin-bottom: 12px; font-size: 13px; color: #b45309; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              ⏳ Thời gian thanh toán còn lại:
+              <strong style="font-size: 18px; color: #dc2626; letter-spacing: 1px;">{{ retryTimeLeftText }}</strong>
+            </div>
+            <div v-else-if="retryExpired" style="margin-bottom: 12px; font-size: 13px; color: #b45309;">
+              ⏳ Đã hết thời gian giữ ghế. Bấm "Thanh toán lại" để giữ ghế thêm 10 phút.
+            </div>
+            <template v-if="retriesLeft > 0">
+              <div style="margin-bottom: 10px; font-size: 12.5px; color: #64748b;">
+                Còn <strong>{{ retriesLeft }}</strong> lượt thanh toán lại cho đơn hàng này.
+              </div>
+              <button
+                @click="retryPayment"
+                :disabled="isRetrying"
+                class="btn-cinego-submit"
+                style="width: 100%; background: linear-gradient(135deg, #e50914, #b91c1c); color: white; border: none;"
+              >
+                {{ isRetrying ? 'ĐANG XỬ LÝ...' : 'THANH TOÁN LẠI' }}
+              </button>
+            </template>
+            <div v-else style="padding: 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #b91c1c; font-size: 13.5px; font-weight: 600;">
+              Đơn hàng đã hết lượt thanh toán lại. Vui lòng đặt vé mới.
+            </div>
+            </template>
+          </div>
+
           <div v-if="selectedTicket?.payment_status === 'paid' && selectedTicket?.booking_status === 'completed'" style="padding: 0 25px 25px 25px; background: white; text-align: center; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
             <button @click="isRefundModalOpen = true" class="btn-cinego-submit" style="background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; width: 100%;">
               YÊU CẦU HOÀN VÉ
@@ -1171,7 +1206,7 @@
 </style>
 
 <script setup>
-import { ref, onMounted, computed, watch } from "vue";
+import { ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { useAuthStore } from "../../stores/auth";
 import api from "../../api/axios";
 import Swal from "sweetalert2";
@@ -1303,7 +1338,6 @@ const paginatedTickets = computed(() => {
   return filteredTickets.value.slice(start, start + historyPerPage);
 });
 
-// Reset page when sub tab changes
 watch(subTab, () => {
   historyPage.value = 1;
 });
@@ -1322,6 +1356,10 @@ const getQrUrl = (code) => {
   const url = `${window.location.origin}/staff/dashboard?scan=${encodeURIComponent(code)}`;
   return `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}`;
 };
+
+
+
+
 
 const fetchUserData = async () => {
   try {
@@ -1344,12 +1382,10 @@ const fetchUserData = async () => {
 };
 
 const updateProfile = async () => {
-    // Validate Tên
     if (!profileForm.value.name || profileForm.value.name.trim().length < 2) {
       return alert("Tên khách hàng phải có ít nhất 2 ký tự!");
     }
 
-    // Validate Số điện thoại (Chỉ kiểm tra nếu có nhập)
     if (profileForm.value.phone) {
       const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/g;
       if (!phoneRegex.test(profileForm.value.phone)) {
@@ -1357,7 +1393,6 @@ const updateProfile = async () => {
       }
     }
 
-    // Validate Ngày sinh
     if (profileForm.value.birthday) {
       const selectedDate = new Date(profileForm.value.birthday);
       const today = new Date();
@@ -1423,6 +1458,8 @@ const handleAvatarUpload = async (event) => {
 
 
 
+
+
 const viewQrCode = (ticket) => {
   selectedTicket.value = ticket;
   isQrModalOpen.value = true;
@@ -1432,6 +1469,105 @@ const viewDetails = (ticket) => {
   selectedTicket.value = ticket;
   isDetailModalOpen.value = true;
 };
+
+const MAX_PAYMENT_RETRIES = 1;
+const isRetrying = ref(false);
+const retryExpiresAt = ref(null);
+const retryExpired = ref(false);
+const retryNow = ref(Date.now());
+let retryTimerInterval = null;
+
+const retriesLeft = computed(() => {
+  const used = selectedTicket?.value?.retry_count || 0;
+  return Math.max(0, MAX_PAYMENT_RETRIES - used);
+});
+
+const isShowtimePassed = computed(() => {
+  const ticket = selectedTicket?.value;
+  if (!ticket?.date || !ticket?.start_time) return false;
+  const start = new Date(`${ticket.date}T${ticket.start_time}:00`);
+  return !isNaN(start.getTime()) && start.getTime() <= Date.now();
+});
+
+const retryTimeLeft = computed(() => {
+  if (!retryExpiresAt.value) return 0;
+  return Math.max(0, retryExpiresAt.value - retryNow.value);
+});
+
+const retryTimeLeftText = computed(() => {
+  const seconds = Math.floor(retryTimeLeft.value / 1000);
+  return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(
+    seconds % 60
+  ).padStart(2, "0")}`;
+});
+
+const startRetryTimer = () => {
+  stopRetryTimer();
+  retryExpired.value = false;
+  retryNow.value = Date.now();
+  retryTimerInterval = setInterval(() => {
+    retryNow.value = Date.now();
+    if (retryTimeLeft.value <= 0) {
+      retryExpired.value = true;
+      stopRetryTimer();
+      fetchBookingHistory();
+    }
+  }, 1000);
+};
+
+const stopRetryTimer = () => {
+  if (retryTimerInterval) {
+    clearInterval(retryTimerInterval);
+    retryTimerInterval = null;
+  }
+};
+
+const retryPayment = async () => {
+  if (isRetrying.value || !selectedTicket.value) return;
+  isRetrying.value = true;
+
+  try {
+    const response = await api.post(
+      `/payments/retry/${selectedTicket.value.id}`
+    );
+    const data = response.data;
+
+    if (data?.expires_at) {
+      retryExpiresAt.value = Date.parse(data.expires_at);
+      startRetryTimer();
+    }
+
+    if (data?.retries_left !== undefined && selectedTicket.value) {
+      selectedTicket.value.retry_count =
+        MAX_PAYMENT_RETRIES - data.retries_left;
+    }
+
+    if (data?.payment_url) {
+      window.location.href = data.payment_url;
+      return;
+    }
+  } catch (err) {
+    Swal.fire({
+      title: "Không thể thanh toán lại",
+      text:
+        err.response?.data?.message ||
+        "Đã có lỗi xảy ra. Vui lòng thử lại sau!",
+      icon: "error",
+      confirmButtonColor: "#e50914",
+    });
+    fetchBookingHistory();
+  } finally {
+    isRetrying.value = false;
+  }
+};
+
+watch(isDetailModalOpen, (open) => {
+  if (!open) {
+    stopRetryTimer();
+    retryExpiresAt.value = null;
+    retryExpired.value = false;
+  }
+});
 
 const formatLogType = (type) => {
   const types = {
@@ -1464,7 +1600,6 @@ const categorizedSeats = computed(() => {
   if (ticket && Array.isArray(ticket.seats)) {
     ticket.seats.forEach((seat) => {
       if (seat && typeof seat === "object" && seat.row !== undefined) {
-        // Tạo nhãn hiển thị như "A1", "F5"
         const seatLabel = `${seat.row}${seat.number}`;
         const type = String(seat.type).toLowerCase().trim();
 
@@ -1497,13 +1632,11 @@ const handleMouseMove = (e) => {
   const centerX = rect.width / 2;
   const centerY = rect.height / 2;
   
-  // Calculate rotation (-10 to 10 degrees)
   const rotateX = ((y - centerY) / centerY) * -10;
   const rotateY = ((x - centerX) / centerX) * 10;
   
   card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
   
-  // Move glow
   const glow = card.querySelector('.gmc-glow');
   if (glow) {
     glow.style.top = `${y - rect.height}px`;
@@ -1722,6 +1855,10 @@ onMounted(() => {
   fetchLoyaltyItems();
   fetchMyVouchers();
   fetchNotifications();
+});
+
+onUnmounted(() => {
+  stopRetryTimer();
 });
 </script>
 

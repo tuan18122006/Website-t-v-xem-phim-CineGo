@@ -86,12 +86,15 @@
       <!-- Footer điều hướng -->
       <div class="schedule-footer" v-if="selectedShowtime">
         <div class="selected-summary">
+          <p v-if="isHoldingSeats" class="hold-note">
+            {{ bookingStore.selectedSeats.length }} ghế đang được giữ tại suất này
+          </p>
           <p>Suất chiếu đã chọn: <strong>{{ selectedShowtime.start_time }}</strong> - Phòng: <strong>{{
             selectedShowtime.room_name }}</strong></p>
           <p>Ngày chiếu: <strong>{{ availableDays[selectedDayIndex].fullLabel }}</strong></p>
         </div>
         <button @click="proceedToSeatSelection" class="btn-proceed">
-          Tiếp Tục Chọn Ghế
+          {{ isHoldingSeats ? 'Tiếp Tục Chọn Ghế' : 'Chọn Ghế' }}
         </button>
       </div>
     </section>
@@ -256,7 +259,6 @@ const calculateReviewSummary = (includeSample = false) => {
 
 const availableDays = ref([]);
 
-// Khởi tạo ngày hôm nay nếu DB chưa có lịch
 const defaultDays = () => {
   const days = [];
   const weekdays = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
@@ -274,7 +276,6 @@ const defaultDays = () => {
   return days;
 };
 
-// State phục vụ việc gửi bình luận / review lên DB
 const myReview = ref({
   rating: 5,
   comment: ''
@@ -282,22 +283,23 @@ const myReview = ref({
 const isEditingReview = ref(false);
 const editingReviewId = ref(null);
 
-// Dữ liệu mồi cục bộ cho thành phần phụ không ảnh hưởng luồng mua vé (Casts/Reviews) nếu DB trống
 const mockCasts = ref([
   { id: 1, name: 'Diễn viên chính', character: 'Vai diễn xuất sắc', avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80' }
 ]);
 
-// 🔥 HÀM LẤY CHI TIẾT PHIM THUẦN TỪ DATABASE
 const fetchMovieDetail = async () => {
   const movieId = route.params.id;
   try {
     const response = await api.get(`/movies/${movieId}`);
-    // Chấp nhận cấu trúc bọc dữ liệu chuẩn của API
     const resData = response.data?.data || response.data;
     
     if (resData) {
       movie.value = resData;
-      bookingStore.selectMovie(movie.value);
+      const isSameMovie = bookingStore.selectedMovie && bookingStore.selectedMovie.id == resData.id;
+     
+      if (isSameMovie || !bookingStore.selectedShowtime) {
+        bookingStore.selectMovie(movie.value);
+      }
       await fetchMovieReviews();
       console.log('=== ĐÃ TẢI CHI TIẾT PHIM TỪ DB ===', movie.value);
     } else {
@@ -305,14 +307,12 @@ const fetchMovieDetail = async () => {
     }
   } catch (err) {
     console.error('Lỗi API lấy chi tiết phim từ cơ sở dữ liệu:', err);
-    // Nếu trong Pinia store trang chủ đã nạp sẵn phim này thì lôi ra hiển thị tiếp
     if (bookingStore.selectedMovie && bookingStore.selectedMovie.id == movieId) {
       movie.value = bookingStore.selectedMovie;
     }
   }
 };
 
-// 🔥 HÀM LẤY CÁC NGÀY CÓ SUẤT CHIẾU TRONG TƯƠNG LAI
 const fetchAvailableDates = async () => {
   if (!movie.value) return;
   try {
@@ -333,7 +333,7 @@ const fetchAvailableDates = async () => {
         };
       });
     } else {
-      availableDays.value = defaultDays(); // Fallback nếu phim chưa có lịch chiếu
+      availableDays.value = defaultDays(); 
     }
   } catch (err) {
     console.error('Lỗi lấy ngày chiếu:', err);
@@ -341,15 +341,12 @@ const fetchAvailableDates = async () => {
   }
 };
 
-// 🔥 HÀM LẤY SUẤT CHIẾU THEO PHÒNG THUẦN TỪ DATABASE
 const fetchShowtimes = async () => {
   if (!movie.value || availableDays.value.length === 0) return;
   loadingShowtimes.value = true;
-  selectedShowtime.value = null;
 
   const dateStr = availableDays.value[selectedDayIndex.value].dateStr;
   try {
-    // Gọi route public: /api/movies/{id}/showtimes?date=YYYY-MM-DD
     const response = await api.get(`/movies/${movie.value.id}/showtimes`, {
       params: { date: dateStr }
     });
@@ -357,9 +354,26 @@ const fetchShowtimes = async () => {
     const resData = response.data?.data || response.data;
     showtimesByRoom.value = Array.isArray(resData) ? resData : [];
     console.log('=== ĐÃ TẢI LỊCH CHIẾU TỪ DB ===', showtimesByRoom.value);
+
+    const storedShowtime = bookingStore.selectedShowtime;
+    const hasHeldSeats = bookingStore.selectedSeats && bookingStore.selectedSeats.length > 0;
+    const holdActive = bookingStore.holdExpiresAt && bookingStore.holdExpiresAt > Date.now();
+    const sameMovie = bookingStore.selectedMovie && bookingStore.selectedMovie.id == movie.value?.id;
+    const isHeldOnThisDay =
+      storedShowtime &&
+      hasHeldSeats &&
+      holdActive &&
+      sameMovie &&
+      storedShowtime.date === dateStr &&
+      showtimesByRoom.value
+        .flatMap(r => r.showtimes || [])
+        .some(s => s.id === storedShowtime.id);
+
+    selectedShowtime.value = isHeldOnThisDay ? storedShowtime : null;
   } catch (err) {
     console.error('Lỗi khi lấy danh sách suất chiếu từ DB:', err);
-    showtimesByRoom.value = []; // Trả về mảng rỗng nếu DB chưa được thiết lập suất chiếu
+    showtimesByRoom.value = []; 
+    selectedShowtime.value = null;
   } finally {
     loadingShowtimes.value = false;
   }
@@ -391,7 +405,6 @@ const fetchMovieReviews = async () => {
   } finally {
     reviewsLoading.value = false;
     
-    // Scroll to specific review if reviewId is in query
     if (route.query.reviewId) {
       setTimeout(() => {
         const reviewEl = document.getElementById('review-' + route.query.reviewId);
@@ -402,7 +415,7 @@ const fetchMovieReviews = async () => {
             reviewEl.classList.remove('highlight-blink');
           }, 2000);
         }
-      }, 500); // Give DOM a little time to render reviews
+      }, 500); 
     }
   }
 };
@@ -550,7 +563,18 @@ const selectShowtime = (showtime) => {
   selectedShowtime.value = showtime;
 };
 
-// Theo dõi thay đổi thanh ngày chiếu để gọi lại suất chiếu tương ứng của DB
+const isHoldingSeats = computed(() => {
+  const storedShowtime = bookingStore.selectedShowtime;
+  return (
+    bookingStore.selectedSeats?.length > 0 &&
+    bookingStore.holdExpiresAt &&
+    bookingStore.holdExpiresAt > Date.now() &&
+    storedShowtime &&
+    selectedShowtime.value &&
+    storedShowtime.id === selectedShowtime.value.id
+  );
+});
+
 watch(selectedDayIndex, () => {
   fetchShowtimes();
 });
@@ -559,6 +583,7 @@ onMounted(async () => {
   await fetchMovieDetail();
   await fetchAvailableDates();
   await fetchShowtimes();
+  restoreHeldBooking();
   sampleReviews.value = getSampleReviews(movie.value?.title);
   calculateReviewSummary(true);
   handleAutoScrollToReview();
@@ -568,7 +593,6 @@ watch(() => route.query.review, () => {
   handleAutoScrollToReview();
 });
 
-// Chuyển tiếp sang màn hình chọn ghế ngồi thực tế
 const proceedToSeatSelection = () => {
   if (selectedShowtime.value) {
     const formattedShowtime = {
@@ -576,12 +600,33 @@ const proceedToSeatSelection = () => {
       date: availableDays.value[selectedDayIndex.value].dateStr,
       dateLabel: availableDays.value[selectedDayIndex.value].fullLabel
     };
-    bookingStore.selectShowtime(formattedShowtime);
+    const storedShowtime = bookingStore.selectedShowtime;
+    const isSameShowtime = storedShowtime && storedShowtime.id === formattedShowtime.id && storedShowtime.date === formattedShowtime.date;
+    if (!isSameShowtime) {
+    
+      if (!bookingStore.selectedMovie || bookingStore.selectedMovie.id != movie.value?.id) {
+        bookingStore.selectMovie(movie.value);
+      }
+      bookingStore.selectShowtime(formattedShowtime);
+    }
     if (route.query.mode === 'pos') {
       router.push({ path: '/booking/seats', query: { mode: 'pos' } });
     } else {
       router.push('/booking/seats');
     }
+  }
+};
+
+
+const restoreHeldBooking = () => {
+  const storedShowtime = bookingStore.selectedShowtime;
+  const holdActive = bookingStore.holdExpiresAt && bookingStore.holdExpiresAt > Date.now();
+  const sameMovie = bookingStore.selectedMovie && bookingStore.selectedMovie.id == movie.value?.id;
+  if (!storedShowtime || !holdActive || !sameMovie) return;
+
+  const idx = availableDays.value.findIndex(d => d.dateStr === storedShowtime.date);
+  if (idx > -1 && idx !== selectedDayIndex.value) {
+    selectedDayIndex.value = idx; 
   }
 };
 </script>

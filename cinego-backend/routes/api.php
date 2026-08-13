@@ -72,6 +72,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/avatar', [UserController::class, 'uploadAvatar']);
     
     Route::post('/seat-holds', [SeatHoldController::class, 'hold']);
+    Route::post('/seat-holds/confirm', [SeatHoldController::class, 'confirmHold']);
     Route::post('/seat-holds/release', [SeatHoldController::class, 'release']);
 
     Route::post('/bookings', [BookingController::class, 'store']);
@@ -83,6 +84,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/available-combos', [LoyaltyController::class, 'getAvailableCombos']);
     Route::post('/vouchers/claim', [VoucherController::class, 'claimVoucher']);
     Route::post('/payments/create', [PaymentController::class, 'createPayment']);
+    Route::post('/payments/retry/{id}', [PaymentController::class, 'retryPayment']);
+    // giữ ghế
+    Route::post('/seats/hold', [BookingController::class, 'holdSeats']);
     
     // Các route của User
         Route::post('/bookings/refund', [\App\Http\Controllers\Api\RefundController::class, 'requestRefund']);
@@ -222,6 +226,8 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
 Route::middleware(['auth:sanctum', 'can:staff-or-admin'])->prefix('staff')->group(function () {
     // POS (Bán vé tại quầy)
     Route::get('/customers/search', [\App\Http\Controllers\Api\POSController::class, 'searchCustomer']);
+    Route::post('/customers', [\App\Http\Controllers\Api\POSController::class, 'quickCreateCustomer']);
+    Route::get('/combos', [\App\Http\Controllers\Api\POSController::class, 'listCombos']);
     Route::post('/bookings/pos', [\App\Http\Controllers\Api\POSController::class, 'storePOSBooking']);
 
     // Tra cứu đơn hàng / Hỗ trợ khách hàng

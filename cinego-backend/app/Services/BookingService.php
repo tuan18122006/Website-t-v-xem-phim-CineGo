@@ -186,7 +186,6 @@ class BookingService
                 ]);
             }
 
-            // 🔥 2. BỔ SUNG: Lưu các Mã Quà Tặng (Mã đổi Combo miễn phí) vào bảng booking_combos
             if (!empty($usedUserComboIds)) {
                 foreach ($usedUserComboIds as $userComboId) {
                     $userCombo = DB::table('user_combos')
@@ -250,6 +249,14 @@ class BookingService
         ]);
     }
 
+    public function markAsCancelled(Booking $booking): void
+    {
+        $booking->update([
+            'payment_status' => 'payment_cancelled',
+            'booking_status' => 'cancelled',
+        ]);
+    }
+
    private function deductComboStock(Booking $booking): void
 {
     foreach ($booking->bookingCombos as $item) {
@@ -259,16 +266,10 @@ class BookingService
             continue;
         }
 
-      
-        if (isset($item->price) && (float)$item->price == 0) {
-            continue;
-        }
-        if (isset($item->subtotal) && (float)$item->subtotal == 0) {
-            continue;
-        }
+
 
         if ($combo->stock < $item->quantity) {
-            throw new \Exception("{$combo->name} không đủ số lượng.");
+            throw new \Exception("Sản phẩm {$combo->name} không đủ số lượng tồn kho.");
         }
 
         $combo->decrement('stock', $item->quantity);
@@ -287,7 +288,7 @@ class BookingService
 
                 if ($subItem->stock < $totalDeductQuantity) {
                     throw new \Exception(
-                        "Thành phần '{$subItem->name}' trong '{$combo->name}' đã hết hoặc không đủ số lượng tồn kho."
+                        "Thành phần '{$subItem->name}' trong '{$combo->name}' không đủ tồn kho."
                     );
                 }
 

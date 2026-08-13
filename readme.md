@@ -26,6 +26,6 @@ npm run devn
 # 8. Tài khoản test thanh toán
  Ngân hàng :NCB
  STK: 9704198526191432198
- Tên chủ thẻ: NGUYEN VAN A
+ Tên chủ thẻ:  
  Ngày phát hành: 07/15
  Mật khẩu OTP: 123456

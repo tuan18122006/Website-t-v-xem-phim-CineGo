@@ -4,7 +4,7 @@
     <div class="lookup-search glass-panel">
       <div class="lookup-search__head">
         <h3>🔎 Tra Cứu Đơn Hàng — Hỗ Trợ Khách</h3>
-        <p>Khách quên mã vé hoặc mất điện thoại? Tìm nhanh theo <b>số điện thoại</b>, <b>email</b> hoặc <b>mã đơn</b>.</p>
+        <p>Khách quên mã vé hoặc mất điện thoại? Tìm nhanh theo <b>tên khách</b>, <b>số điện thoại</b>, <b>email</b> hoặc <b>mã đơn</b>.</p>
       </div>
 
       <form class="lookup-search__bar" @submit.prevent="doSearch">
@@ -96,6 +96,7 @@
             <td class="cell-total">{{ formatCurrency(b.total_amount) }}</td>
             <td>
               <span class="pay-pill" :class="payClass(b.payment_status)">{{ payLabel(b.payment_status) }}</span>
+              <span v-if="b.booking_status === 'completed'" class="scan-pill">✅ Đã soát</span>
             </td>
           </tr>
         </tbody>
@@ -117,6 +118,11 @@
           </div>
 
           <div v-else-if="detail" class="lk-body">
+            <!-- Trạng thái soát vé -->
+            <div class="lk-checkin" :class="detail.booking_status === 'completed' ? 'is-done' : 'is-pending'">
+              {{ detail.booking_status === 'completed' ? '✅ Đã soát vé — đã sử dụng' : '🎫 Chưa soát vé' }}
+            </div>
+
             <!-- Khách hàng -->
             <section class="lk-section">
               <h4 class="lk-section__title">👤 Khách hàng</h4>
@@ -166,6 +172,14 @@
 
           <div class="lk-modal__foot" v-if="detail">
             <button class="btn-ghost" @click="closeDetail">Đóng</button>
+            <button
+              v-if="detail.payment_status === 'paid'"
+              class="btn-verify"
+              :disabled="verifying || detail.booking_status === 'completed'"
+              @click="verifyTicket"
+            >
+              {{ detail.booking_status === 'completed' ? '✅ Đã soát' : (verifying ? 'Đang soát…' : '🎫 Soát vé') }}
+            </button>
           </div>
         </div>
       </div>
@@ -177,6 +191,7 @@
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import api from '../../api/axios';
+import { toast, confirmDialog } from '../../utils/alert';
 import TicketPrintable from '../../components/TicketPrintable.vue';
 import { QrcodeStream, QrcodeCapture } from 'vue-qrcode-reader';
 
@@ -286,6 +301,28 @@ const openDetail = async (id) => {
 const closeDetail = () => {
   showDetail.value = false;
   detail.value = null;
+};
+
+// Soát vé ngay trong modal — backend tự chặn ca chưa thanh toán / đã soát rồi
+const verifying = ref(false);
+
+const verifyTicket = async () => {
+  const d = detail.value;
+  if (!d) return;
+
+  const ok = await confirmDialog('Soát vé này?', `Đánh dấu đơn ${d.booking_code} là đã sử dụng?`);
+  if (!ok) return;
+
+  verifying.value = true;
+  try {
+    const { data } = await api.post('/staff/bookings/verify', { code: d.booking_code });
+    d.booking_status = 'completed';
+    toast(data.message || 'Soát vé hợp lệ!');
+  } catch (err) {
+    toast(err.response?.data?.message || 'Không soát được vé.', 'error');
+  } finally {
+    verifying.value = false;
+  }
 };
 </script>
 
@@ -489,12 +526,30 @@ const closeDetail = () => {
   font-size: 11px; font-weight: 700; text-transform: uppercase;
 }
 
-.lk-modal__foot { padding: 14px 22px 20px; display: flex; justify-content: flex-end; }
+.lk-modal__foot { padding: 14px 22px 20px; display: flex; justify-content: space-between; gap: 12px; }
 .btn-ghost {
   border: 1.5px solid #e2e8f0; background: #fff; color: #475569;
   padding: 10px 22px; border-radius: 10px; font-weight: 700; font-size: 13.5px; cursor: pointer;
 }
 .btn-ghost:hover { background: #f8fafc; border-color: #cbd5e1; }
+
+.btn-verify {
+  border: none; cursor: pointer;
+  padding: 10px 22px; border-radius: 10px; font-weight: 800; font-size: 13.5px;
+  background: linear-gradient(135deg, #10b981, #059669); color: #fff;
+}
+.btn-verify:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* Nhãn trạng thái soát vé trong modal */
+.lk-checkin { padding: 11px 14px; border-radius: 10px; text-align: center; font-weight: 800; font-size: 13.5px; }
+.lk-checkin.is-pending { background: #fffaf0; color: #dd6b20; border: 1px solid #fed7aa; }
+.lk-checkin.is-done { background: #edfcf5; color: #059669; border: 1px solid #a7f3d0; }
+
+/* Badge "đã soát" trên bảng kết quả */
+.scan-pill {
+  display: inline-block; margin-top: 4px; padding: 3px 10px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; background: #edfcf5; color: #059669; white-space: nowrap;
+}
 
 /* transitions */
 .lk-fade-enter-active { transition: opacity 0.2s; }
