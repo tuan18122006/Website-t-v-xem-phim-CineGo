@@ -1,474 +1,525 @@
 <template>
   <div class="top-movies-container">
-    <!-- HERO HEADER -->
-    <div class="top-movies-hero">
-      <div class="hero-glow"></div>
-      <div class="hero-content">
+    <!-- PAGE HEADER -->
+    <div class="page-header" v-if="article">
+      <div class="header-content">
         <span class="hero-tag">TRENDING & TOP RATED</span>
-        <h1 class="hero-title gradient-text-accent">Bảng Xếp Hạng Phim CineGo</h1>
-        <p class="hero-desc">
-          Cập nhật liên tục xu hướng xem phim và xếp hạng các bộ phim ăn khách nhất, được chấm điểm cao nhất bởi người xem tại hệ thống rạp CineGo.
+        <h1 class="page-title gradient-text-accent">{{ article.title }}</h1>
+        <p class="page-desc">
+          {{ article.excerpt }}
         </p>
-
-        <!-- Category selector -->
-        <div class="category-tabs">
-          <button 
-            class="tab-btn" 
-            :class="{ active: activeFilter === 'trending' }"
-            @click="activeFilter = 'trending'"
-          >
-            🔥 Đang càn quét phòng vé
-          </button>
-          <button 
-            class="tab-btn" 
-            :class="{ active: activeFilter === 'alltime' }"
-            @click="activeFilter = 'alltime'"
-          >
-            🏆 Phim hay nhất mọi thời đại
-          </button>
-        </div>
       </div>
     </div>
 
     <!-- MAIN LISTING -->
-    <div class="top-movies-list-wrapper">
-      <div class="movies-rank-list">
-        <div v-for="(movie, index) in filteredMovies" :key="movie.id" class="rank-card glass-panel">
-          <!-- Rank Number Tag -->
-          <div class="rank-number-box" :class="'rank-' + (index + 1)">
-            <span class="rank-num-val">#{{ index + 1 }}</span>
-            <span v-if="index === 0" class="rank-crown">👑 Top 1</span>
-          </div>
-
-          <!-- Movie Poster -->
-          <div class="movie-poster-box">
-            <img :src="movie.poster" :alt="movie.title" class="poster-img" />
-          </div>
-
-          <!-- Movie Details -->
-          <div class="movie-meta-details">
-            <div class="title-row">
-              <h2 class="movie-title">{{ movie.title }}</h2>
-              <span class="movie-age-badge" :class="movie.ratingClass">{{ movie.rating }}</span>
+    <div class="top-movies-content" v-if="filteredMovies.length > 0">
+      <div class="momo-movie-list">
+        <div v-for="(movie, index) in filteredMovies" :key="movie.id" class="momo-movie-item">
+          
+          <div class="momo-poster-col" @click="openTrailer(movie)">
+            <img :src="movie.poster" :alt="movie.title" class="momo-poster" />
+            <div class="play-btn-overlay" v-if="movie.trailer_url">
+              <svg viewBox="0 0 24 24" fill="white" width="40" height="40"><path d="M8 5v14l11-7z"/></svg>
             </div>
+          </div>
+
+          <div class="momo-info-col">
+            <h2 class="momo-title">{{ movie.title }}</h2>
             
-            <p class="movie-genres">{{ movie.genres.join(' • ') }}</p>
-            <p class="movie-description">{{ movie.description }}</p>
-
-            <div class="metrics-row">
-              <div class="metric-item">
-                <span class="metric-lbl">Điểm IMDb:</span>
-                <strong class="metric-val text-gold">⭐ {{ movie.imdb }}</strong>
-              </div>
-              <div class="metric-item">
-                <span class="metric-lbl">Thời lượng:</span>
-                <strong class="metric-val">{{ movie.duration }} phút</strong>
-              </div>
-              <div class="metric-item">
-                <span class="metric-lbl">Khởi chiếu:</span>
-                <strong class="metric-val">{{ formatDate(movie.release_date) }}</strong>
-              </div>
+            <div class="momo-meta-row">
+              <span class="momo-label">Thể loại :</span>
+              <span class="momo-value">{{ movie.genres.join(', ') }}</span>
+            </div>
+            <div class="momo-meta-row">
+              <span class="momo-label">Năm :</span>
+              <span class="momo-value">{{ getYear(movie.release_date) }}</span>
+            </div>
+            <div class="momo-meta-row">
+              <span class="momo-label">Thời gian :</span>
+              <span class="momo-value">{{ movie.duration }} phút</span>
+            </div>
+            <div class="momo-meta-row momo-desc-row">
+              <span class="momo-label">Nội dung phim :</span>
+              <span class="momo-value">
+                {{ movie.isExpanded ? movie.description : truncateText(movie.description, 150) }}
+                <a href="#" class="momo-readmore" @click.prevent="movie.isExpanded = !movie.isExpanded" v-if="movie.description && movie.description.length > 150">
+                  {{ movie.isExpanded ? ' Ẩn bớt' : '...Xem thêm' }}
+                </a>
+              </span>
+            </div>
+            <div class="momo-meta-row">
+              <span class="momo-label">Quốc Gia :</span>
+              <span class="momo-value">Đang cập nhật</span>
             </div>
           </div>
 
-          <!-- CTA Booking Button -->
-          <div class="rank-card-cta">
-            <router-link to="/mua-ve" class="btn-book-now">
-              <span>Mua vé ngay</span>
-              <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 5"></polyline>
-              </svg>
-            </router-link>
+          <div class="momo-rank-col">
+            <div class="momo-rank-square">{{ index + 1 }}</div>
           </div>
+
         </div>
       </div>
     </div>
+
+    <!-- TRAILER MODAL -->
+    <Teleport to="body">
+      <div v-if="trailerModal.show" class="trailer-overlay" @click.self="closeTrailer">
+        <div class="trailer-modal">
+          <button class="trailer-close" @click="closeTrailer">×</button>
+          
+          <!-- YouTube embed -->
+          <div class="trailer-video-wrap">
+            <iframe
+              v-if="trailerModal.embedUrl"
+              :src="trailerModal.embedUrl"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+              class="trailer-iframe"
+            ></iframe>
+            <div v-else class="no-trailer">
+              <p>🎥 Phim này chưa có trailer.</p>
+            </div>
+          </div>
+
+          <!-- Movie info below -->
+          <div class="trailer-info">
+            <img :src="trailerModal.movie?.poster" class="trailer-thumb" />
+            <div class="trailer-meta">
+              <div class="trailer-movie-title">
+                {{ trailerModal.movie?.title }}
+                <span class="trailer-genres" v-if="trailerModal.movie?.genres"> - {{ trailerModal.movie.genres.join(', ') }}</span>
+              </div>
+              <p class="trailer-desc">{{ truncateText(trailerModal.movie?.description, 200) }}</p>
+              <button class="trailer-close-btn" @click="closeTrailer">Đóng</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import axios from '../../api/axios';
 
-const activeFilter = ref('trending');
+const route = useRoute();
+const router = useRouter();
 
-const trendingMovies = ref([
-  {
-    id: 101,
-    title: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
-    genres: ['Hành Động', 'Viễn Tưởng', 'Kỳ Ảo'],
-    rating: 'T13',
-    ratingClass: 'age-t13',
-    description: 'Doctor Strange du hành vào không gian đa vũ trụ phức tạp để bảo vệ thế giới khỏi những hiểm nguy khôn lường mang tính hủy diệt vũ trụ.',
-    imdb: '8.5',
-    duration: '126',
-    release_date: '2026-05-15',
-    poster: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=400&q=80'
-  },
-  {
-    id: 102,
-    title: 'Avatar: Dòng Chảy Của Nước',
-    genres: ['Kỳ Ảo', 'Viễn Tưởng', 'Hành Động'],
-    rating: 'PG-13',
-    ratingClass: 'age-pg13',
-    description: 'Jake Sully và Neytiri phải rời bỏ tổ ấm và khám phá các vùng đất mới của đại dương Pandora khi mối đe dọa vũ trang quay trở lại tàn phá.',
-    imdb: '8.3',
-    duration: '192',
-    release_date: '2026-06-01',
-    poster: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80'
-  },
-  {
-    id: 103,
-    title: 'Kẻ Kiến Tạo (The Creator)',
-    genres: ['Hành Động', 'Drama', 'Viễn Tưởng'],
-    rating: 'T16',
-    ratingClass: 'age-t16',
-    description: 'Giữa cuộc chiến khốc liệt của nhân loại và trí tuệ nhân tạo, một cựu đặc vụ được giao nhiệm vụ ám sát một kiến trúc sư công nghệ bí ẩn.',
-    imdb: '7.9',
-    duration: '133',
-    release_date: '2026-05-20',
-    poster: 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&w=400&q=80'
+const article = ref(null);
+const filteredMovies = ref([]);
+const loading = ref(true);
+
+const fetchArticle = async () => {
+  loading.value = true;
+  try {
+    const slug = route.params.slug;
+    const res = await axios.get(`/articles/${slug}`);
+    article.value = res.data;
+    
+    // Sort movies by rank and map them
+    const movies = res.data.movies.sort((a, b) => a.pivot.rank - b.pivot.rank);
+    filteredMovies.value = movies.map(m => {
+      // map backend model to frontend structure
+      return {
+        id: m.id,
+        title: m.title,
+        genres: m.genres ? m.genres.split(',').map(g => g.trim()) : ['Đang cập nhật'],
+        rating: m.age_rating,
+        ratingClass: getRatingClass(m.age_rating),
+        description: m.pivot.review_text || m.description || 'Chưa có mô tả',
+        imdb: '8.0',
+        duration: m.duration,
+        release_date: m.release_date,
+        trailer_url: m.trailer_url || null,
+        poster: getPosterUrl(m.poster_url),
+        backdrop: getPosterUrl(m.poster_url),
+        isExpanded: false
+      };
+    });
+  } catch (error) {
+    console.error('Lỗi khi tải bài viết:', error);
+    // Redirect back to listing if article not found
+    router.push('/top-phim');
+  } finally {
+    loading.value = false;
   }
-]);
+};
 
-const allTimeMovies = ref([
-  {
-    id: 201,
-    title: 'Avatar: Dòng Chảy Của Nước',
-    genres: ['Kỳ Ảo', 'Viễn Tưởng', 'Hành Động'],
-    rating: 'PG-13',
-    ratingClass: 'age-pg13',
-    description: 'Jake Sully và Neytiri phải rời bỏ tổ ấm và khám phá các vùng đất mới của đại dương Pandora khi mối đe dọa vũ trang quay trở lại tàn phá.',
-    imdb: '9.2',
-    duration: '192',
-    release_date: '2026-06-01',
-    poster: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80'
-  },
-  {
-    id: 202,
-    title: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
-    genres: ['Hành Động', 'Viễn Tưởng', 'Kỳ Ảo'],
-    rating: 'T13',
-    ratingClass: 'age-t13',
-    description: 'Doctor Strange du hành vào không gian đa vũ trụ phức tạp để bảo vệ thế giới khỏi những hiểm nguy khôn lường mang tính hủy diệt vũ trụ.',
-    imdb: '8.8',
-    duration: '126',
-    release_date: '2026-05-15',
-    poster: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=400&q=80'
-  },
-  {
-    id: 203,
-    title: 'Kẻ Kiến Tạo (The Creator)',
-    genres: ['Hành Động', 'Drama', 'Viễn Tưởng'],
-    rating: 'T16',
-    ratingClass: 'age-t16',
-    description: 'Giữa cuộc chiến khốc liệt của nhân loại và trí tuệ nhân tạo, một cựu đặc vụ được giao nhiệm vụ ám sát một kiến trúc sư công nghệ bí ẩn.',
-    imdb: '8.1',
-    duration: '133',
-    release_date: '2026-05-20',
-    poster: 'https://images.unsplash.com/photo-1594909122845-11baa439b7bf?auto=format&fit=crop&w=400&q=80'
+const getPosterUrl = (url) => {
+  if (!url) return 'https://via.placeholder.com/400x600?text=No+Image';
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('blob:')) return url;
+  const cleanPath = url.replace(/^(.*\/storage\/)/, '');
+  return `http://127.0.0.1:8000/storage/${cleanPath}`;
+};
+
+const getRatingClass = (rating) => {
+  switch (rating) {
+    case 'T13': return 'age-t13';
+    case 'T16': return 'age-t16';
+    case 'T18': return 'age-t18';
+    case 'PG-13': return 'age-pg13';
+    default: return 'age-t13';
   }
-]);
+};
 
-const filteredMovies = computed(() => {
-  return activeFilter.value === 'trending' ? trendingMovies.value : allTimeMovies.value;
+onMounted(() => {
+  fetchArticle();
 });
+
+const top1Movie = computed(() => filteredMovies.value[0]);
+const top23Movies = computed(() => filteredMovies.value.slice(1, 3));
+const top4PlusMovies = computed(() => filteredMovies.value.slice(3));
+
+const getYear = (dateString) => {
+  if (!dateString) return 'Đang cập nhật';
+  const d = new Date(dateString);
+  return isNaN(d) ? 'Đang cập nhật' : d.getFullYear();
+};
 
 const formatDate = (val) => {
   if (!val) return '—';
   const d = new Date(val);
   return isNaN(d) ? '—' : d.toLocaleDateString('vi-VN');
 };
+
+const truncateText = (text, length) => {
+  if (!text) return '';
+  if (text.length <= length) return text;
+  return text.substring(0, length);
+};
+
+// ===== TRAILER MODAL =====
+const trailerModal = ref({ show: false, embedUrl: null, movie: null });
+
+const getYouTubeEmbedUrl = (url) => {
+  if (!url) return null;
+  // Support: youtube.com/watch?v=ID or youtu.be/ID
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+  if (!match) return null;
+  return `https://www.youtube.com/embed/${match[1]}?autoplay=1&rel=0`;
+};
+
+const openTrailer = (movie) => {
+  trailerModal.value = {
+    show: true,
+    embedUrl: getYouTubeEmbedUrl(movie.trailer_url),
+    movie
+  };
+  document.body.style.overflow = 'hidden';
+};
+
+const closeTrailer = () => {
+  trailerModal.value = { show: false, embedUrl: null, movie: null };
+  document.body.style.overflow = '';
+};
 </script>
 
 <style scoped>
-.top-movies-container {
-  width: 100%;
-  min-height: 100vh;
-  background-color: #ffffff;
-  padding-bottom: 60px;
-}
-
-/* HERO HEADER */
-.top-movies-hero {
-  position: relative;
-  background: linear-gradient(135deg, #1f0105 0%, #000000 100%);
-  padding: 80px 24px;
-  border-radius: 24px;
-  overflow: hidden;
-  margin-bottom: 40px;
+/* ========== PAGE HEADER ========== */
+.page-header {
+  background: linear-gradient(135deg, #f8f0f0 0%, #fff5f5 100%);
+  padding: 50px 24px;
   text-align: center;
-  border: 1px solid rgba(229, 9, 20, 0.1);
+  border-bottom: 2px solid rgba(229, 9, 20, 0.15);
+  margin-bottom: 40px;
 }
+.header-content { max-width: 800px; margin: 0 auto; }
+.hero-tag { font-size: 11px; font-weight: 800; color: #e50914; letter-spacing: 2px; display: block; margin-bottom: 12px; }
+.page-title { font-size: 36px; font-weight: 800; color: #1a1a1a; margin-bottom: 16px; letter-spacing: -1px; }
+.page-desc { font-size: 16px; color: #444; line-height: 1.6; margin-bottom: 20px; font-weight: 500; }
 
-.hero-glow {
-  position: absolute;
-  top: -50%;
-  left: 20%;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(155, 0, 14, 0.3) 0%, transparent 70%);
-  filter: blur(60px);
-  pointer-events: none;
-}
+/* TABS */
+.category-tabs { display: inline-flex; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08); padding: 6px; border-radius: 14px; }
+.tab-btn { background: transparent; border: none; color: #94a3b8; font-weight: 700; font-size: 13.5px; padding: 12px 24px; border-radius: 10px; cursor: pointer; transition: all 0.25s ease; }
+.tab-btn:hover { color: #ffffff; }
+.tab-btn.active { background: #e50914; color: #ffffff; box-shadow: 0 4px 12px rgba(229, 9, 20, 0.3); }
 
-.hero-content {
-  max-width: 800px;
-  margin: 0 auto;
-}
+/* MAIN CONTENT CONTAINER */
+.top-movies-content { max-width: 1200px; margin: 0 auto; padding: 0 20px 80px; }
 
-.hero-tag {
-  font-size: 11px;
-  font-weight: 800;
-  color: #e50914;
-  letter-spacing: 2px;
-  display: block;
-  margin-bottom: 12px;
-}
-
-.hero-title {
-  font-size: 38px;
-  font-weight: 800;
-  color: #ffffff;
-  margin-bottom: 16px;
-  letter-spacing: -1px;
-}
-
-.hero-desc {
-  font-size: 16px;
-  color: #cbd5e1;
-  line-height: 1.6;
-  margin-bottom: 36px;
-}
-
-/* TABS SELECTION */
-.category-tabs {
-  display: inline-flex;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 6px;
-  border-radius: 14px;
-  backdrop-filter: blur(8px);
-}
-
-.tab-btn {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  font-weight: 700;
-  font-size: 13.5px;
-  padding: 12px 24px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.tab-btn:hover {
-  color: #ffffff;
-}
-
-.tab-btn.active {
-  background: #e50914;
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(229, 9, 20, 0.3);
-}
-
-/* RANK CARD LISTING */
-.top-movies-list-wrapper {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 0 16px;
-}
-
-.movies-rank-list {
+/* MOMO MOVIE LIST */
+.momo-movie-list {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-}
-
-.rank-card {
-  background: #ffffff;
-  border: 1px solid rgba(148, 163, 184, 0.12);
-  border-radius: 20px;
-  padding: 24px;
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
-  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.rank-card:hover {
-  transform: translateY(-2px);
-  border-color: rgba(229, 9, 20, 0.15);
-  box-shadow: 0 8px 30px rgba(229, 9, 20, 0.06);
-}
-
-/* Rank Number styling */
-.rank-number-box {
-  width: 80px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  border-right: 1px solid #f1f5f9;
-  padding-right: 20px;
-}
-
-.rank-num-val {
-  font-size: 32px;
-  font-weight: 900;
-  color: #94a3b8;
-  font-style: italic;
-}
-
-.rank-1 .rank-num-val {
-  background: linear-gradient(135deg, #ffd700, #ff8c00);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.rank-2 .rank-num-val {
-  background: linear-gradient(135deg, #c0c0c0, #708090);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.rank-3 .rank-num-val {
-  background: linear-gradient(135deg, #cd7f32, #8b4513);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.rank-crown {
-  font-size: 10px;
-  font-weight: 800;
-  background: rgba(255, 140, 0, 0.1);
-  color: #ff8c00;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-top: 4px;
-  text-transform: uppercase;
-}
-
-/* Poster */
-.movie-poster-box {
-  width: 100px;
-  height: 140px;
+  gap: 30px;
+  background-color: #ffffff;
+  padding: 30px;
   border-radius: 12px;
+}
+
+.momo-movie-item {
+  display: flex;
+  gap: 20px;
+  padding-bottom: 30px;
+  border-bottom: 1px solid #eaeaea;
+  position: relative;
+}
+
+.momo-movie-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.momo-poster-col {
+  position: relative;
+  width: 140px;
+  height: 200px;
+  flex-shrink: 0;
+  border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  flex-shrink: 0;
+  cursor: pointer;
 }
 
-.poster-img {
+.momo-poster {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.3s;
 }
 
-/* Meta info */
-.movie-meta-details {
-  flex: 1;
+.momo-poster-col:hover .momo-poster {
+  transform: scale(1.05);
+}
+
+.play-btn-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  background: rgba(0,0,0,0.5);
+  border: 2px solid white;
+  border-radius: 50%;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   justify-content: center;
 }
 
-.title-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 6px;
-}
-
-.movie-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 0;
-}
-
-.movie-age-badge {
-  font-size: 11px;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: #ffffff;
-}
-
-.age-t13 { background-color: #3b82f6; }
-.age-t16 { background-color: #ef4444; }
-.age-pg13 { background-color: #10b981; }
-
-.movie-genres {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #e50914;
-  margin: 0 0 10px 0;
-}
-
-.movie-description {
-  font-size: 13.5px;
-  color: #64748b;
-  margin: 0 0 14px 0;
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.metrics-row {
-  display: flex;
-  gap: 24px;
-  font-size: 12px;
-}
-
-.metric-item {
+.momo-info-col {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  color: #333;
 }
 
-.metric-lbl {
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-.metric-val {
-  color: #334155;
+.momo-title {
+  font-size: 18px;
   font-weight: 700;
+  margin: 0 0 10px 0;
+  color: #000;
 }
 
-.text-gold {
-  color: #b2902b !important;
+.momo-ratings {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-/* CTA BOOKING */
-.rank-card-cta {
+.imdb-badge {
+  background: #f5c518;
+  color: black;
+  font-weight: 900;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.imdb-score {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.momo-meta-row {
+  display: flex;
+  margin-bottom: 6px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.momo-label {
+  font-weight: 700;
+  color: #555;
+  width: 110px;
   flex-shrink: 0;
 }
 
-.btn-book-now {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: #e50914;
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 13px;
-  padding: 14px 22px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(229, 9, 20, 0.15);
-  transition: all 0.2s;
-  cursor: pointer;
+.momo-value {
+  color: #666;
 }
 
-.btn-book-now:hover {
-  background: #ff121f;
-  transform: translateX(2px);
-  box-shadow: 0 6px 18px rgba(229, 9, 20, 0.25);
+.momo-desc-row {
+  /* Inherits display: flex from momo-meta-row */
 }
+
+.momo-readmore {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.momo-rank-col {
+  width: 60px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.momo-rank-square {
+  width: 36px;
+  height: 36px;
+  background: #e61972;
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+@media (max-width: 768px) {
+  .momo-movie-item {
+    flex-direction: column;
+  }
+  .momo-poster-col {
+    width: 100%;
+    height: 300px;
+  }
+  .momo-rank-col {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+  }
+}
+
+/* ===== TRAILER MODAL ===== */
+.trailer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.80);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.trailer-modal {
+  background: #1a1a1a;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 820px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.8);
+  animation: fadeInScale 0.25s ease;
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.93); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.trailer-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: white;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.trailer-close:hover { background: rgba(255,255,255,0.3); }
+
+.trailer-video-wrap {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+}
+
+.trailer-iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: none;
+}
+
+.no-trailer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #aaa;
+  font-size: 16px;
+  height: 100%;
+}
+
+.trailer-info {
+  display: flex;
+  gap: 16px;
+  padding: 18px 20px;
+  background: #ffffff;
+  align-items: flex-start;
+}
+
+.trailer-thumb {
+  width: 80px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.trailer-meta {
+  flex: 1;
+}
+
+.trailer-movie-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #111;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.trailer-genres {
+  font-weight: 400;
+  color: #555;
+  font-size: 13px;
+}
+
+.trailer-desc {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.trailer-close-btn {
+  background: #333;
+  color: white;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.trailer-close-btn:hover { background: #555; }
 </style>

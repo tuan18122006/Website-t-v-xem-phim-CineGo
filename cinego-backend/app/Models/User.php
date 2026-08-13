@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-
+use App\Models\PointHistory;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -16,6 +16,8 @@ class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable;
+
+    protected $appends = ['status'];
 
     /**
      * The attributes that are mass assignable.
@@ -30,13 +32,44 @@ class User extends Authenticatable
         'phone',
         'status',
         'membership_tier',
-        'loyalty_points',
         'total_spent',
         'lock_reason',
         'is_anonymized',
         'work_status',
+        'cine_points',
         'age',
+        'google_id',
+        'avatar_url',
+        'birthday',
     ];
+
+    public function getStatusAttribute()
+    {
+        return $this->lock_reason === null ? 'active' : 'locked';
+    }
+
+    public function pointHistories(): HasMany
+    {
+        return $this->hasMany(PointHistory::class);
+    }
+
+    public function getPointMultiplierAttribute()
+    {
+        switch ($this->membership_tier) {
+            case 'VVIP':
+                return 1.5;
+            case 'VIP':
+                return 1.2;
+            case 'Standard':
+            default:
+                return 1.0;
+        }
+    }
+
+    public function monthlyFreeTickets(): HasMany
+    {
+        return $this->hasMany(MonthlyFreeTicket::class);
+    }
 
     /**
      * The attributes that should be hidden for serialization.
@@ -99,6 +132,15 @@ class User extends Authenticatable
 
     public function vouchers(): BelongsToMany
     {
-        return $this->belongsToMany(Voucher::class, 'user_vouchers');
+        return $this->belongsToMany(Voucher::class, 'user_vouchers')
+            ->withPivot('id', 'is_used', 'used_at')
+            ->withTimestamps();
+    }
+    public function combos(): BelongsToMany
+    {
+        return $this->belongsToMany(Combo::class, 'user_combos')
+            ->withPivot('id', 'code', 'end_date', 'is_used', 'used_at')
+            ->withTimestamps();
     }
 }
+

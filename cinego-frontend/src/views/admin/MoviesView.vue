@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="admin-movies-view-container">
     <div class="glass-panel list-card">
       <div class="header-row">
@@ -18,36 +18,26 @@
             <tr>
               <th class="col-id">ID</th>
               <th class="col-poster">Poster</th>
-              <th class="col-title">Tên Phim</th>
-              <th class="col-slug">Slug</th>
-              <th class="col-duration">Thời Lượng</th>
-              <th class="col-rating">Phân Loại</th>
-              <th class="col-genres">Thể Loại</th>
+              <th class="col-title">Tên Phim / Thông tin</th>
               <th class="col-status">Trạng Thái</th>
-              <th class="col-url">URL Link</th>
-              <th class="col-actions">Hành Động</th>
+              <th class="col-actions">Thao tác</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="movie in paginatedMovies" :key="movie.id" class="table-row">
+            <tr v-for="movie in paginatedMovies" :key="movie.id" class="table-row clickable-row" @click="openEditModal(movie)">
               <td class="cell-id">#{{ movie.id }}</td>
               <td class="cell-poster">
                 <img :src="getPosterUrl(movie.poster_url)" class="poster-thumbnail" @error="handleImageError" />
               </td>
-              <td class="cell-title"><div class="cell-scrollable">{{ movie.title }}</div></td>
-              <td class="cell-slug"><div class="cell-scrollable">{{ movie.slug }}</div></td>
-
-              <td class="cell-duration">{{ movie.duration }} phút</td>
-              <td class="cell-rating">
-                <span class="rating-pill-cine" :class="getRatingClass(movie.rating)">
-                  {{ movie.rating || 'G' }}
-                </span>
-              </td>
-              <td class="cell-genres">
-                <div class="genres-list">
-                  <span v-for="g in movie.genres" :key="g.id" class="genre-tag">
-                    {{ g.name }}
+              <td class="cell-info">
+                <div class="movie-title-wrap">
+                  <strong>{{ movie.title }}</strong>
+                  <span class="rating-pill-cine" :class="getRatingClass(movie.rating)">
+                    {{ movie.rating || 'G' }}
                   </span>
+                </div>
+                <div class="muted small" style="margin-top: 4px;">
+                  {{ movie.duration }} phút • {{ movie.genres ? movie.genres.map(g => g.name).join(', ') : 'Chưa có' }}
                 </div>
               </td>
               <td class="cell-status">
@@ -59,11 +49,10 @@
                   {{ formatStatus(movie.status) }}
                 </span>
               </td>
-              <td class="cell-url"><div class="cell-scrollable">{{ movie.trailer_url }}</div></td>
               <td class="cell-actions">
                 <div class="action-buttons-group">
-                  <button @click="openEditModal(movie)" class="btn-action edit">✏️ Sửa</button>
-                  <button @click="deleteMovie(movie.id)" class="btn-action delete">🗑️ Xóa</button>
+                  <button @click.stop="openEditModal(movie)" class="btn-ghost">Sửa</button>
+                  <button @click.stop="deleteMovie(movie.id)" class="btn-ghost delete">Xóa</button>
                 </div>
               </td>
             </tr>
@@ -85,7 +74,7 @@
       </div>
     </div>
 
-    <!-- MODAL THÊM / SỬA PHIM (TÔNG MÀU TRẮNG ĐỎ CHỦ ĐẠO) -->
+<!-- MODAL THÊM / SỬA PHIM (TÔNG MÀU TRẮNG ĐỎ CHỦ ĐẠO) -->
     <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
       <div class="modal-content-cine">
         <div class="modal-header">
@@ -197,8 +186,8 @@
         </form>
       </div>
     </div>
-  </div>
-</template>
+
+  </div>`n</template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
@@ -207,6 +196,7 @@ import api from '../../api/axios';
 
 const movies = ref([]);
 const genres = ref([]);
+
 const loading = ref(false);
 const showModal = ref(false);
 const isEdit = ref(false);
@@ -452,7 +442,7 @@ const deleteMovie = async (id) => {
 onMounted(async () => {
   await fetchMovies();
   await fetchGenres();
-});
+  });
 </script>
 
 <style scoped>
@@ -628,47 +618,55 @@ onMounted(async () => {
   background-color: #fffafb;
 }
 
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
 .col-id {
   width: 80px;
-  text-align: center;
+  text-align: left;
 }
 
 .col-poster {
-  width: 90px;
-  text-align: center;
+  width: 80px;
+  text-align: left;
 }
 
 .col-title {
-  width: 200px;
-}
-
-.col-duration {
-  width: 130px;
-}
-
-.col-rating {
-  width: 120px;
-  text-align: center;
-}
-
-.col-genres {
-  min-width: 150px;
+  width: auto;
 }
 
 .col-status {
-  width: 170px;
+  width: 150px;
   text-align: center;
 }
 
 .col-actions {
   width: 160px;
-  text-align: center;
+  text-align: right;
 }
 
 .cell-id {
   font-weight: 800;
   color: #e50914;
-  text-align: center;
+}
+
+.cell-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.movie-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.movie-title-wrap strong {
+  font-size: 15px;
+  color: #1e293b;
 }
 
 .poster-thumbnail {
@@ -678,19 +676,6 @@ onMounted(async () => {
   border-radius: 8px;
   border: 1px solid #cbd5e1;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-.cell-title {
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.cell-duration {
-  color: #475569;
-}
-
-.cell-rating {
-  text-align: center;
 }
 
 /* Rating Badge Classes */
@@ -738,10 +723,10 @@ onMounted(async () => {
 }
 
 .status-pill-cine {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 800;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
   display: inline-block;
   white-space: nowrap;
 }
@@ -790,47 +775,41 @@ onMounted(async () => {
 }
 
 .cell-actions {
-  text-align: center;
+  text-align: right;
 }
 
 .action-buttons-group {
   display: flex;
-  justify-content: center;
-  flex-wrap: nowrap; /* Cấm rớt dòng */
+  justify-content: flex-end;
+  flex-wrap: nowrap;
   gap: 8px;
 }
 
-.btn-action {
+.btn-ghost {
+  background: transparent;
   border: 1px solid #cbd5e1;
-  background-color: #ffffff;
-  padding: 6px 14px;
-  font-size: 14px;
-  font-weight: 700;
-  border-radius: 8px;
+  padding: 6px 12px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap; /* Chống bóp chữ Sửa, Xóa */
+  color: #475569;
+  font-weight: 600;
+  transition: all 0.2s;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
-.btn-action.edit {
-  color: #d97706;
-  border-color: #fde68a;
+.btn-ghost:hover {
+  border-color: var(--accent-pink);
+  color: var(--accent-pink);
 }
 
-.btn-action.edit:hover {
-  background-color: #fef3c7;
-  border-color: #d97706;
+.btn-ghost.delete:hover {
+  border-color: #ef4444;
+  color: #ef4444;
 }
 
-.btn-action.delete {
-  color: #dc2626;
-  border-color: #fecaca;
-}
-
-.btn-action.delete:hover {
-  background-color: #fee2e2;
-  border-color: #dc2626;
-}
+.muted { color: #94a3b8; }
+.small { font-size: 13px; }
 
 .empty-state {
   text-align: center;
@@ -1051,3 +1030,4 @@ onMounted(async () => {
   font-weight: 600;
 }
 </style>
+

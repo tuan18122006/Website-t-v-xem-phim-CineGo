@@ -10,18 +10,18 @@
       </div>
 
       <nav class="sidebar-nav">
-        <!-- <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'pos' }" 
+        <button
+          class="nav-link"
+          :class="{ active: activeTab === 'pos' }"
           @click="activeTab = 'pos'"
         >
-          <span class="nav-icon">🎟️</span>
-          <span>Bán Vé Tại Quầy (POS)</span>
-        </button> -->
+          <span class="nav-icon">🛒</span>
+          <span>Bán Vé Tại Quầy</span>
+        </button>
 
-        <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'lookup' }" 
+        <button
+          class="nav-link"
+          :class="{ active: activeTab === 'lookup' }"
           @click="activeTab = 'lookup'"
         >
           <span class="nav-icon">🔎</span>
@@ -57,10 +57,10 @@
         <router-link to="/" class="btn-back-client">👁️ Xem Client Website</router-link>
       </header>
 
-      <!-- TAB: BÁN VÉ TẠI QUẦY (POS) - Tạm ẩn -->
-      <!-- <div v-if="activeTab === 'pos'">
+      <!-- TAB: BÁN VÉ TẠI QUẦY (POS) -->
+      <div v-show="activeTab === 'pos'">
         <StaffPOSView />
-      </div> -->
+      </div>
 
       <!-- TAB: TRA CỨU ĐƠN HÀNG -->
       <div v-show="activeTab === 'lookup'">
@@ -101,6 +101,8 @@
             <qrcode-stream @detect="onDetect"></qrcode-stream>
           </div>
 
+
+
           <!-- Kết quả quét -->
           <div v-if="scanResult" class="scan-result" :class="scanResult.status">
             <h4 v-if="scanResult.status === 'success'">✅ Vé Hợp Lệ!</h4>
@@ -125,7 +127,7 @@ import { QrcodeStream, QrcodeCapture } from 'vue-qrcode-reader';
 const authStore = useAuthStore();
 const router = useRouter();
 
-const activeTab = ref('lookup');
+const activeTab = ref('pos');
 const scanCode = ref('');
 const scanInput = ref(null);
 const scanResult = ref(null);
@@ -156,17 +158,14 @@ watch(activeTab, (newVal) => {
   }
 });
 
-const getTabTitle = computed(() => {
-  if (activeTab.value === 'pos') return 'Bán Vé Tại Quầy (POS)';
-  return activeTab.value === 'lookup' ? 'Tra Cứu Đơn Hàng & Hỗ Trợ Khách' : 'Soát Vé & Quét Mã QR';
-});
+const TAB_META = {
+  pos:    { title: 'Bán Vé Tại Quầy', desc: 'Chọn phim → suất → ghế → bắp nước → khách, thu tiền và tạo vé ngay tại quầy.' },
+  lookup: { title: 'Tra Cứu Đơn Hàng & Hỗ Trợ Khách', desc: 'Tìm đơn theo tên/SĐT/email/mã đơn khi khách quên mã vé, xem ghế & bắp nước đã mua để hỗ trợ.' },
+  scan:   { title: 'Soát Vé & Quét Mã QR', desc: 'Kiểm tra tính hợp lệ của vé. Đảm bảo vé chưa được sử dụng và đúng suất chiếu.' },
+};
 
-const getTabDesc = computed(() => {
-  if (activeTab.value === 'pos') return 'Bán vé trực tiếp cho khách vãng lai, thao tác nhanh chọn phim, ghế, bắp nước và thu tiền mặt.';
-  return activeTab.value === 'lookup' 
-    ? 'Tìm đơn theo SĐT/email/mã đơn khi khách quên mã vé, xem ghế & bắp nước đã mua để hỗ trợ.' 
-    : 'Kiểm tra tính hợp lệ của vé. Đảm bảo vé chưa được sử dụng và đúng suất chiếu.';
-});
+const getTabTitle = computed(() => (TAB_META[activeTab.value] || TAB_META.lookup).title);
+const getTabDesc = computed(() => (TAB_META[activeTab.value] || TAB_META.lookup).desc);
 
 const handleLogout = async () => {
   await authStore.logout();
@@ -453,7 +452,6 @@ const handleScan = async () => {
 }
 
 .btn-scan {
-  flex: 1;
   background: linear-gradient(135deg, var(--accent-pink), var(--accent-violet));
   color: white;
   border: none;

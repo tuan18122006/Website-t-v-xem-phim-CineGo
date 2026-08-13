@@ -98,10 +98,11 @@
 
       <button
         @click="proceedToPayment"
-        :disabled="bookingStore.selectedSeats.length === 0"
+        :disabled="bookingStore.selectedSeats.length === 0 || processingSeatCount > 0"
         class="btn-checkout"
       >
-        Tiếp Tục
+        <span v-if="processingSeatCount > 0">Đang xử lý...</span>
+        <span v-else>Tiếp Tục</span>
       </button>
       <button 
     type="button" 
@@ -125,29 +126,58 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from "vue";
-import { useRouter } from "vue-router";
+import { ref, onMounted, onUnmounted, computed, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import Swal from 'sweetalert2';
 import { useBookingStore } from "../../stores/booking";
 import api from "../../api/axios";
 import echo from "../../api/echo";
 
-// IMPORT THÀNH PHẦN THEO ĐÚNG YÊU CẦU CỦA TECH LEAD
 import SeatMap from "../../components/SeatMap.vue";
 
 const router = useRouter();
+const route = useRoute();
 const bookingStore = useBookingStore();
 
-const rawSeatsFromAPI = ref([]); // Nơi lưu mảng gốc tải về từ database
-const seatPrices = ref({ standard: 75000, vip: 95000, couple: 140000 }); // Giá thật lấy từ cấu hình của suất chiếu
-const countdownText = ref("10:00");
+const rawSeatsFromAPI = ref([]); 
+const seatPrices = ref({ standard: 75000, vip: 95000, couple: 140000 }); 
+const countdownText = ref("03:00");
+const featuredComments = ref([]);
+const processingSeatCount = ref(0);
 let timerInterval = null;
 
 const cancelBooking = () => {
-    if (confirm("Bạn có muốn hủy quá trình chọn ghế không ?")) {
-        const movieId = bookingStore.currentMovieId; 
-        router.push(`/movies/${movieId}`); 
-    }
+    Swal.fire({
+        title: 'Xác nhận hủy',
+        text: "Bạn có chắc chắn muốn hủy quá trình đặt vé này không?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e30613',
+        cancelButtonColor: '#6f6a63',
+        confirmButtonText: 'Đồng ý hủy',
+        cancelButtonText: 'Tiếp tục đặt'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            const movieId = bookingStore.selectedMovie?.id;
+            const showtimeId = bookingStore.selectedShowtime?.id;
+
+            if (showtimeId && bookingStore.selectedSeats.length > 0) {
+                await Promise.allSettled(
+                    bookingStore.selectedSeats.map((seat) =>
+                        api.post("/seat-holds/release", {
+                            showtime_id: showtimeId,
+                            seat_id: seat.id,
+                        })
+                    )
+                );
+            }
+
+            stopTimer();
+            bookingStore.clearBooking();
+
+            router.push(movieId ? `/movies/${movieId}` : "/");
+        }
+    });
 };
 
 const formatCurrency = (val) => {
@@ -157,33 +187,38 @@ const formatCurrency = (val) => {
   }).format(val);
 };
 
-// Lấy giá theo loại ghế từ bảng giá THẬT của suất chiếu (admin cấu hình)
 const getSeatPrice = (type) => {
   return seatPrices.value[type] ?? seatPrices.value.standard ?? 0;
 };
 
-// Định dạng gọn cho chú thích: 75000 -> "75k"
 const priceK = (val) => `${Math.round((val || 0) / 1000)}k`;
 
-// ÁNH XẠ DỮ LIỆU ĐẦU RA (COMPUTED): Chuyển đổi dữ liệu thô sang 5 trường Tech Lead yêu cầu
+const shuffleArray = (arr) => {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+};
+
 const mappedSeats = computed(() => {
+  const myHeldSeatIds = bookingStore.selectedSeats.map(s => s.id);
   return rawSeatsFromAPI.value.map((seat) => {
     return {
-      id: seat.id, // 1. ID duy nhất của ghế
-      row: seat.row_name, // 2. Tên hàng ghế ('A','B'...)
-      number: seat.seat_number, // 3. Số thứ tự cột (1,2,3...)
-      type: seat.type || "standard", // 4. Khớp enum 4 loại từ DB trả về
-      is_booked: seat.status === "sold" || seat.status === "holding", // 5. Cấm click nếu đã bán/giữ
+      id: seat.id, 
+      row: seat.row_name, 
+      number: seat.seat_number, 
+      type: seat.type || "standard", 
+      is_booked: seat.status === "sold" || (seat.status === "holding" && !myHeldSeatIds.includes(seat.id)), 
     };
   });
 });
 
-// Trích xuất mảng ID các ghế đang chọn từ Store để đồng bộ hiệu ứng sáng của Ma Trận Ghế 3D
 const selectedSeatIds = computed(() => {
   return bookingStore.selectedSeats.map((s) => s.id);
 });
 
-// HỨNG SỰ KIỆN TỪ SEATMAP: Xử lý kích hoạt khi bấm chọn ghế trên giao diện 3D
 const handleSeatMapClick = async (seat) => {
   if (!localStorage.getItem('cinego_token')) {
     Swal.fire({
@@ -211,40 +246,35 @@ const handleSeatMapClick = async (seat) => {
     (s) => s.id === seat.id,
   );
 
+  processingSeatCount.value++;
+
   try {
     if (!isAlreadySelected) {
-      // OPTIMISTIC UPDATE: Đẩy ghế vào Store quản lý đơn hàng NGAY LẬP TỨC để UI phản hồi ngay (0 độ trễ)
       bookingStore.toggleSeat(seatObj);
 
-      // Nếu là ghế đầu tiên khởi tạo bộ đếm 10 phút
       if (bookingStore.selectedSeats.length === 1) {
-        bookingStore.setHoldExpiry(10);
+        bookingStore.setHoldExpiry(3);
         startTimer();
       }
 
-      // Gọi API giữ ghế tạm thời ở background
       await api.post("/seat-holds", {
         showtime_id: bookingStore.selectedShowtime.id,
         seat_id: seat.id,
       });
     } else {
-      // OPTIMISTIC UPDATE: Bỏ chọn ghế ngay lập tức trên UI
       bookingStore.toggleSeat(seatObj);
 
-      // Nếu hủy toàn bộ mảng ghế đang chọn -> Ngắt bộ đếm
       if (bookingStore.selectedSeats.length === 0) {
         bookingStore.holdExpiresAt = null;
         stopTimer();
       }
 
-      // Gọi API hủy giữ ghế ở background
       await api.post("/seat-holds/release", {
         showtime_id: bookingStore.selectedShowtime.id,
         seat_id: seat.id,
       });
     }
   } catch (error) {
-    // ROLBACK OPTIMISTIC UPDATE: Khôi phục lại trạng thái ban đầu do gọi API thất bại
     bookingStore.toggleSeat(seatObj);
     if (bookingStore.selectedSeats.length === 0) {
       bookingStore.holdExpiresAt = null;
@@ -258,9 +288,154 @@ const handleSeatMapClick = async (seat) => {
       icon: 'error',
       confirmButtonColor: '#e50914'
     });
-    // Tải lại sơ đồ ghế để cập nhật trạng thái mới nhất từ server
     fetchSeatStatus();
+  } finally {
+    processingSeatCount.value--;
   }
+};
+
+const updateFeaturedComments = () => {
+  const movieTitle = bookingStore.selectedMovie?.title || '';
+  const commentsByMovie = {
+    'Doctor Strange: Đa Vũ Trụ Hỗn Loạn': [
+      {
+        id: 'ds-1',
+        movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
+        userName: 'Nguyễn Thùy Linh',
+        timeAgo: '1 giờ trước',
+        rating: 5,
+        comment: 'Cảnh đa vũ trụ cực kỳ mãn nhãn. Rất thích cách kể chuyện và kỹ xảo trong phim này.'
+      },
+      {
+        id: 'ds-2',
+        movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
+        userName: 'Lê Hoàng',
+        timeAgo: '3 giờ trước',
+        rating: 4,
+        comment: 'Âm nhạc và diễn xuất quá tuyệt. Phiên bản này xem rạp là đúng bài.'
+      },
+      {
+        id: 'ds-3',
+        movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
+        userName: 'Trần Thị Mai',
+        timeAgo: '6 giờ trước',
+        rating: 5,
+        comment: 'Đa vũ trụ phức tạp nhưng hấp dẫn. Cảnh hành động quá ngầu.'
+      },
+      {
+        id: 'ds-4',
+        movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
+        userName: 'Phạm Văn Quân',
+        timeAgo: '1 ngày trước',
+        rating: 4,
+        comment: 'Phim rất đáng xem. Mình hơi choáng với nhiều twist nhưng vẫn ấn tượng.'
+      },
+      {
+        id: 'ds-5',
+        movieTitle: 'Doctor Strange: Đa Vũ Trụ Hỗn Loạn',
+        userName: 'Đỗ Minh Hằng',
+        timeAgo: '1 ngày trước',
+        rating: 5,
+        comment: 'Nội dung đa chiều, diễn viên hóa thân xuất sắc. Mình sẽ xem lại lần nữa.'
+      }
+    ],
+    'Avatar: Dòng Chảy Của Nước': [
+      {
+        id: 'av-1',
+        movieTitle: 'Avatar: Dòng Chảy Của Nước',
+        userName: 'Nguyễn Thùy Linh',
+        timeAgo: '2 giờ trước',
+        rating: 5,
+        comment: 'Cảnh dưới nước đẹp tới mức không thể rời mắt. Xem rạp thì càng mãn nhãn.'
+      },
+      {
+        id: 'av-2',
+        movieTitle: 'Avatar: Dòng Chảy Của Nước',
+        userName: 'Lê Hoàng',
+        timeAgo: '4 giờ trước',
+        rating: 5,
+        comment: 'Cách xử lý kỹ xảo và màu sắc quá đỉnh. Tối đi xem lại ngay!'
+      },
+      {
+        id: 'av-3',
+        movieTitle: 'Avatar: Dòng Chảy Của Nước',
+        userName: 'Trần Thị Mai',
+        timeAgo: '8 giờ trước',
+        rating: 4,
+        comment: 'Cốt truyện sâu sắc, cảm giác như được chìm vào thế giới Pandora.'
+      },
+      {
+        id: 'av-4',
+        movieTitle: 'Avatar: Dòng Chảy Của Nước',
+        userName: 'Phạm Văn Quân',
+        timeAgo: '1 ngày trước',
+        rating: 5,
+        comment: 'Âm thanh và hiệu ứng hoành tráng, rất xứng đáng với thời lượng dài.'
+      },
+      {
+        id: 'av-5',
+        movieTitle: 'Avatar: Dòng Chảy Của Nước',
+        userName: 'Đỗ Minh Hằng',
+        timeAgo: '1 ngày trước',
+        rating: 5,
+        comment: 'Một trải nghiệm giải trí mạnh mẽ, thích hợp đi xem cả gia đình.'
+      }
+    ],
+    'Kẻ Kiến Tạo (The Creator)': [
+      {
+        id: 'tc-1',
+        movieTitle: 'Kẻ Kiến Tạo (The Creator)',
+        userName: 'Nguyễn Thùy Linh',
+        timeAgo: '30 phút trước',
+        rating: 5,
+        comment: 'Tác phẩm rất ấn tượng với chủ đề AI nhân văn. Mình thấy xúc động và suy ngẫm lâu.'
+      },
+      {
+        id: 'tc-2',
+        movieTitle: 'Kẻ Kiến Tạo (The Creator)',
+        userName: 'Lê Hoàng',
+        timeAgo: '2 giờ trước',
+        rating: 4,
+        comment: 'Nhịp phim căng, nhiều pha hành động đỉnh. Cốt truyện khiến mình suy nghĩ rất nhiều.'
+      },
+      {
+        id: 'tc-3',
+        movieTitle: 'Kẻ Kiến Tạo (The Creator)',
+        userName: 'Trần Thị Mai',
+        timeAgo: '5 giờ trước',
+        rating: 5,
+        comment: 'Diễn viên nhí thể hiện rất tốt, cảm xúc truyền tới người xem rất tự nhiên.'
+      },
+      {
+        id: 'tc-4',
+        movieTitle: 'Kẻ Kiến Tạo (The Creator)',
+        userName: 'Phạm Văn Quân',
+        timeAgo: '1 ngày trước',
+        rating: 4,
+        comment: 'Phim nặng đề tài nhưng vẫn dễ theo dõi. Mình đánh giá cao phần kỹ xảo.'
+      },
+      {
+        id: 'tc-5',
+        movieTitle: 'Kẻ Kiến Tạo (The Creator)',
+        userName: 'Đỗ Minh Hằng',
+        timeAgo: '1 ngày trước',
+        rating: 5,
+        comment: 'Rất đáng xem cho những ai muốn xem phim vừa hành động vừa triết lý.'
+      }
+    ],
+  };
+
+  const pickedComments = shuffleArray(commentsByMovie[movieTitle] || []).slice(0, 5);
+  featuredComments.value = pickedComments.length > 0 ? pickedComments : [
+    {
+      id: 'default-1',
+      movieTitle: movieTitle || 'Bộ phim CineGo',
+      userName: 'CineGo User',
+      timeAgo: 'vừa xong',
+      rating: 5,
+      comment: 'Cảm ơn bạn đã chọn CineGo. Các bình luận nổi bật sẽ xuất hiện ở đây khi bạn chọn phim.'
+    }
+  ];
 };
 
 const updateTimer = () => {
@@ -300,8 +475,6 @@ const stopTimer = () => {
     timerInterval = null;
   }
 };
-
-// Gọi dữ liệu thô của cấu hình phòng chiếu và trạng thái từ backend
 const fetchSeatStatus = async () => {
   try {
     const response = await api.get(
@@ -309,10 +482,8 @@ const fetchSeatStatus = async () => {
     );
     const data = response.data;
     if (Array.isArray(data)) {
-      // Dạng cũ: chỉ là mảng ghế
       rawSeatsFromAPI.value = data;
     } else {
-      // Dạng mới: { seats, prices }
       rawSeatsFromAPI.value = data.seats || [];
       if (data.prices) {
         seatPrices.value = { ...seatPrices.value, ...data.prices };
@@ -321,14 +492,12 @@ const fetchSeatStatus = async () => {
   } catch (err) {
     console.warn("Fetch seats API error, using fallback mock data structures:");
 
-    // Tạo mảng dữ liệu thô giả lập cấu trúc DB (9 hàng x 12 cột) để map mượt mà nếu API chưa chạy
     const mockData = [];
     const rowsList = ["A", "B", "C", "D", "E", "F", "G", "H", "J"];
     let currentId = 1;
 
     rowsList.forEach((row) => {
       for (let col = 1; col <= 12; col++) {
-        // Giả lập trạng thái đã bán hoặc giữ ngẫu nhiên cho một vài ghế
         let initialStatus = "available";
         if (["A-5", "F-7", "J-4", "C-2", "G-10"].includes(`${row}-${col}`)) {
           initialStatus = "sold";
@@ -339,7 +508,7 @@ const fetchSeatStatus = async () => {
           row_name: row,
           seat_number: col,
           status: initialStatus,
-          is_aisle: col === 3 || col === 10, // Đánh dấu thử nghiệm lối đi để kích hoạt 'hidden'
+          is_aisle: col === 3 || col === 10, 
         });
       }
     });
@@ -349,11 +518,11 @@ const fetchSeatStatus = async () => {
 
 onMounted(() => {
   fetchSeatStatus();
+  updateFeaturedComments();
   if (bookingStore.holdExpiresAt) {
     startTimer();
   }
 
-  // Subscribe to real-time seat updates
   if (bookingStore.selectedShowtime?.id) {
     echo.channel(`showtime.${bookingStore.selectedShowtime.id}`)
       .listen('SeatLocked', (e) => {
@@ -366,6 +535,14 @@ onMounted(() => {
       });
   }
 });
+
+watch(
+  () => bookingStore.selectedMovie,
+  () => {
+    updateFeaturedComments();
+  },
+  { immediate: true }
+);
 
 onUnmounted(() => {
   stopTimer();
@@ -385,8 +562,14 @@ const validateSeatSelection = () => {
     return false;
   }
 
+  if (bookingStore.selectedSeats.length < 2) {
+    return true;
+  }
+
   const rows = {};
   mappedSeats.value.forEach(seat => {
+    if (!['standard', 'vip', 'couple'].includes(seat.type)) return;
+
     if (!rows[seat.row]) rows[seat.row] = [];
     rows[seat.row].push(seat);
   });
@@ -431,11 +614,37 @@ const validateSeatSelection = () => {
   return true;
 };
 
-const proceedToPayment = () => {
-  if (bookingStore.selectedSeats.length > 0) {
-    if (validateSeatSelection()) {
+const proceedToPayment = async () => {
+  if (bookingStore.selectedSeats.length === 0) return;
+  if (!validateSeatSelection()) return;
+
+  try {
+    const response = await api.post("/seat-holds/confirm", {
+      showtime_id: bookingStore.selectedShowtime.id,
+      seat_ids: bookingStore.selectedSeats.map((s) => s.id),
+    });
+
+    bookingStore.setHoldExpiry(10);
+    bookingStore.holdExpiresAt = Date.parse(response.data.expires_at);
+    startTimer();
+
+    if (route.query.mode === 'pos') {
+      router.push({ path: '/staff/pos/checkout' });
+    } else {
       router.push("/booking/payment");
     }
+  } catch (error) {
+    const errorMsg =
+      error.response?.data?.message ||
+      "Thời gian giữ ghế đã hết. Vui lòng chọn lại ghế!";
+    Swal.fire({
+      title: "Hết thời gian giữ ghế",
+      text: errorMsg,
+      icon: "warning",
+      confirmButtonColor: "#e50914",
+    }).then(() => {
+      fetchSeatStatus();
+    });
   }
 };
 </script>
@@ -596,6 +805,76 @@ const proceedToPayment = () => {
   font-size: 22px;
   font-weight: 800;
   color: var(--text-primary);
+}
+
+.featured-comments-box {
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.08);
+}
+
+.featured-comments-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 16px;
+}
+
+.featured-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.featured-comment-card {
+  padding: 16px;
+  border-radius: 20px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.featured-comment-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  align-items: flex-start;
+}
+
+.featured-comment-movie {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.featured-comment-user {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.featured-comment-rating {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #fd5a6c 0%, #ff947f 100%);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.featured-comment-text {
+  margin: 0;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.7;
 }
 
 .btn-checkout {

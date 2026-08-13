@@ -38,10 +38,7 @@
           @click="handleSeatClick(seat, $event)"
           class="seat-item"
         >
-          <span
-            v-if="seat.type !== 'hidden' && seat.type !== 'couple_hidden'"
-            class="seat-label"
-          >
+          <span v-if="seat.type !== 'hidden' && seat.type !== 'deleted' && seat.type !== 'couple_hidden'" class="seat-label">
             {{ seat.row }}{{ displayNumbers.get(seat.id) }}
           </span>
         </div>
@@ -52,47 +49,16 @@
         <div class="aisle-text">LỐI RA</div>
       </div>
     </div>
-
-    <div class="legend">
-      <div class="legend-item">
-        <div class="seat-box standard"></div>
-        Thường
-      </div>
-      <div class="legend-item">
-        <div class="seat-box vip"></div>
-        VIP
-      </div>
-      <div class="legend-item">
-        <div class="seat-box couple"></div>
-        Đôi
-      </div>
-      <div class="legend-item" v-if="mode === 'client'">
-        <div class="seat-box booked"></div>
-        Đã bán
-      </div>
-      <div class="legend-item" v-if="mode === 'client'">
-        <div class="seat-box selected"></div>
-        Đang chọn
-      </div>
-      <div class="legend-item" v-if="mode === 'admin'">
-        <div class="seat-box admin-booked"></div>
-        Đã đặt
-      </div>
-
-      <div class="legend-item" v-if="mode === 'admin'">
-        <div class="seat-box admin-holding"></div>
-        Đang giữ
-      </div>
-
-      <div class="legend-item" v-if="mode === 'admin'">
-        <div class="seat-box hidden-demo"></div>
-        Khoảng trống
-      </div>
-
-      <div class="legend-item" v-if="mode === 'admin'">
-        <div class="seat-box admin-selected"></div>
-        Đang quét chọn
-      </div>
+    
+    <div class="legend" v-if="seats.length > 0">
+      <div class="legend-item"><div class="seat-box standard"></div> Thường</div>
+      <div class="legend-item"><div class="seat-box vip"></div> VIP</div>
+      <div class="legend-item"><div class="seat-box couple"></div> Đôi</div>
+      <div class="legend-item" v-if="mode === 'client'"><div class="seat-box booked"></div> Đã bán</div>
+      <div class="legend-item" v-if="mode === 'client'"><div class="seat-box selected"></div> Đang chọn</div>
+      <div class="legend-item" v-if="mode === 'admin'"><div class="seat-box hidden-demo"></div> Khoảng trống</div>
+      <div class="legend-item" v-if="mode === 'admin'"><div class="seat-box deleted-demo"></div> Đã xóa</div>
+      <div class="legend-item" v-if="mode === 'admin'"><div class="seat-box admin-selected"></div> Đang quét chọn</div>
     </div>
   </div>
 </template>
@@ -132,54 +98,87 @@ const displayNumbers = computed(() => {
     seatsByRow[seat.row].push(seat);
   });
 
-  for (const row in seatsByRow) {
+  Object.keys(seatsByRow).forEach(row => {
     let currentDisplayNum = 1;
     const sorted = seatsByRow[row].sort((a, b) => a.number - b.number);
-    sorted.forEach((seat) => {
-      if (seat.type !== "hidden" && seat.type !== "couple_hidden") {
+    sorted.forEach(seat => {
+      if (seat.type !== 'hidden' && seat.type !== 'deleted' && seat.type !== 'couple_hidden') {
         map.set(seat.id, currentDisplayNum);
         currentDisplayNum++;
       }
     });
-  }
+  });
   return map;
 });
 
 const getPhysicalGridPos = (seat) => {
-  const layout = props.layout || { gap_cols: [], gap_rows: [] };
-  const gapCols = layout.gap_cols || [];
-  const gapRows = layout.gap_rows || [];
+    const layout = props.layout || { gap_cols: [], gap_rows: [] };
+    const gapCols = layout.gap_cols || [];
+    const gapRows = layout.gap_rows || [];
+  
+    // Determine the base logical max cols
+    let maxStandardCols = 10;
+    if (props.seats && props.seats.length > 0) {
+      maxStandardCols = Math.max(...props.seats.map(s => s.number)) + gapCols.length;
+    }
 
-  let physicalCol = seat.number;
-  gapCols.forEach((gapCol) => {
-    if (seat.number > gapCol) physicalCol++;
-  });
+    let baseRowIndex = rowLetters.value.indexOf(seat.row) + 1;
+    let physicalRow = 1;
 
-  let rowIndex = rowLetters.value.indexOf(seat.row) + 1;
-  let physicalRow = rowIndex;
+    // Calculate total physical rows used by ALL rows before this one
+    for (let i = 0; i < baseRowIndex - 1; i++) {
+        let prevRowLetter = rowLetters.value[i];
+        let prevRowSeats = props.seats.filter(s => s.row === prevRowLetter);
+        let maxPhysicalColInPrevRow = 0;
+        prevRowSeats.forEach(s => {
+           let col = s.number;
+           gapCols.forEach(gapCol => { if (s.number > gapCol) col++; });
+           if (s.type === 'couple') col++; // spans extra col, so max col is at least col + 1
+           if (col > maxPhysicalColInPrevRow) maxPhysicalColInPrevRow = col;
+        });
+        
+        let wraps = 1;
+        if (maxPhysicalColInPrevRow > 0) {
+            wraps = Math.ceil(maxPhysicalColInPrevRow / maxStandardCols);
+        }
+        physicalRow += wraps;
+    }
+    
+    // Add gap rows
+    gapRows.forEach(gapRow => {
+      let gapRowIndex = rowLetters.value.indexOf(gapRow) + 1;
+      if (baseRowIndex > gapRowIndex) physicalRow++;
+    });
 
-  gapRows.forEach((gapRow) => {
-    let gapRowIndex = rowLetters.value.indexOf(gapRow) + 1;
-    if (rowIndex > gapRowIndex) physicalRow++;
-  });
+    // Calculate for THIS seat
+    let col = seat.number;
+    gapCols.forEach(gapCol => {
+      if (seat.number > gapCol) col++;
+    });
 
-  return `${physicalRow} / ${physicalCol}`;
-};
+    let seatWrapCount = Math.floor((col - 1) / maxStandardCols);
+    let physicalCol = col - (seatWrapCount * maxStandardCols);
+    physicalRow += seatWrapCount;
 
-const gridStyle = computed(() => {
-  const layout = props.layout || { gap_cols: [], gap_rows: [] };
-  const gapCols = layout.gap_cols || [];
-
-  let maxCol = 10;
-  if (props.seats && props.seats.length > 0) {
-    maxCol = Math.max(...props.seats.map((s) => s.number));
-  }
-  const maxPhysicalCol = maxCol + gapCols.length;
-
-  return {
-    gridTemplateColumns: `repeat(${maxPhysicalCol}, minmax(40px, 1fr))`,
+    if (seat.type === 'couple') {
+      return `${physicalRow} / ${physicalCol} / span 1 / span 2`;
+    }
+    return `${physicalRow} / ${physicalCol}`;
   };
-});
+
+  const gridStyle = computed(() => {
+    const layout = props.layout || { gap_cols: [], gap_rows: [] };
+    const gapCols = layout.gap_cols || [];
+    
+    let maxStandardCols = 10;
+    if (props.seats && props.seats.length > 0) {
+      maxStandardCols = Math.max(...props.seats.map(s => s.number)) + gapCols.length;
+    }
+    
+    return {
+      gridTemplateColumns: `repeat(${maxStandardCols}, minmax(40px, 1fr))`
+    };
+  });
 
 // --- ADMIN STATE ---
 const adminSelectedIds = ref(new Set());
@@ -346,29 +345,14 @@ onBeforeUnmount(() => {
 });
 
 const handleSeatClick = (seat, event) => {
-  if (props.mode === "admin") {
-    // Ghế đã đặt
-    if (seat.status === "sold") {
-      alert("Ghế này đã được khách hàng đặt, không thể chỉnh sửa.");
-      return;
-    }
+  if (props.mode === 'client') {
+    if (seat.is_booked || seat.type === 'hidden' || seat.type === 'deleted' || seat.type === 'couple_hidden') return;
+    emit('seat-clicked', seat);
+  } else if (props.mode === 'admin') {
+    // Tránh việc Click đơn lẻ bị ảnh hưởng nếu người dùng vừa vuốt quét (Dựa vào diện tích hộp)
+    if (box.width > 5 || box.height > 5) return;
 
-    // Ghế đang giữ
-    if (seat.status === "holding") {
-      alert("Ghế này đang được khách hàng giữ.");
-      return;
-    }
-
-    // Ghế ẩn
-    if (seat.type === "hidden" || seat.type === "couple_hidden") {
-      return;
-    }
-
-    // Nếu vừa thao tác kéo box thì không xử lý click
-    if (box.width > 5 || box.height > 5) {
-      return;
-    }
-
+    // Click đơn lẻ
     if (adminSelectedIds.value.has(seat.id)) {
       adminSelectedIds.value.delete(seat.id);
     } else {
@@ -408,51 +392,31 @@ const clearSelection = () => {
 defineExpose({ clearSelection });
 
 const getSeatClass = (seat) => {
-  const classes = [];
-
-  // Ghế ẩn
-  if (seat.type === "hidden") {
-    classes.push("seat-hidden");
-    return classes;
-  }
-
-  if (seat.type === "couple_hidden") {
-    classes.push("seat-couple-hidden");
-    return classes;
-  }
-
-  if (props.mode === "admin") {
-    // Ghế đã thanh toán / đã đặt
-    if (seat.status === "sold") {
-      classes.push("seat-admin-booked");
-      return classes;
-    }
-
-    // Ghế đang được người dùng giữ
-    if (seat.status === "holding") {
-      classes.push("seat-admin-holding");
-      return classes;
-    }
-
-    // Ghế bình thường
-    classes.push(`seat-${seat.type}`);
-
-    // Ghế đang được Admin chọn
+  let classes = ['seat-base'];
+    if (seat.type === 'standard') classes.push('seat-standard');
+    if (seat.type === 'vip') classes.push('seat-vip');
+    if (seat.type === 'couple') classes.push('seat-couple');
+    if (seat.type === 'couple_hidden') classes.push('seat-couple-hidden');
+  
+  if (props.mode === 'admin') {
+    if (seat.type === 'hidden') classes.push('seat-hidden-admin');
+    if (seat.type === 'deleted') classes.push('seat-deleted-admin');
+    classes.push('cursor-pointer');
     if (adminSelectedIds.value.has(seat.id)) {
       classes.push("seat-admin-selected");
     }
-
-    return classes;
-  }
-
-  if (seat.status === "sold") {
-    classes.push("seat-booked");
-  } else if (seat.status === "holding") {
-    classes.push("seat-holding");
-  } else if (props.selectedSeatIds.includes(seat.id)) {
-    classes.push("seat-selected");
-  } else {
-    classes.push(`seat-${seat.type}`);
+  } 
+  else if (props.mode === 'client') {
+    if (seat.type === 'hidden' || seat.type === 'deleted' || seat.type === 'couple_hidden') {
+      classes.push('seat-hidden-client');
+    } else if (seat.is_booked) {
+      classes.push('seat-booked');
+    } else {
+      classes.push('cursor-pointer');
+      if (props.selectedSeatIds.includes(seat.id)) {
+        classes.push('seat-selected');
+      }
+    }
   }
 
   return classes;
@@ -601,24 +565,10 @@ const getSeatClass = (seat) => {
   z-index: 10;
 }
 
-.seat-standard {
-  background: linear-gradient(145deg, #4b5563, #374151);
-  border-color: #6b7280;
-}
-.seat-vip {
-  background: linear-gradient(145deg, #ef4444, #b91c1c);
-  border-color: #f87171;
-  color: #fff;
-}
-.seat-couple {
-  background: linear-gradient(145deg, #ec4899, #be185d);
-  grid-column: span 2;
-  width: 100%;
-  border-color: #f472b6;
-}
-.seat-couple-hidden {
-  display: none !important;
-}
+.seat-standard { background: linear-gradient(145deg, #4b5563, #374151); border-color: #6b7280; }
+.seat-vip { background: linear-gradient(145deg, #ef4444, #b91c1c); border-color: #f87171; color: #fff; }
+.seat-couple { background: linear-gradient(145deg, #ec4899, #be185d); width: 100%; border-color: #f472b6; }
+.seat-couple-hidden { display: none !important; }
 
 .seat-booked {
   background: linear-gradient(145deg, #1f2937, #111827) !important;
@@ -631,25 +581,14 @@ const getSeatClass = (seat) => {
   display: none;
 }
 
-.seat-selected {
-  background: linear-gradient(145deg, #10b981, #059669) !important;
-  border: 2px solid #fff !important;
-  transform: translateY(-5px);
-  color: white;
-}
-.seat-hidden-client {
-  opacity: 0;
-  pointer-events: none;
-}
-.seat-hidden-admin {
-  background: transparent !important;
-  border: 2px dashed #4b5563 !important;
-  color: #4b5563;
-  box-shadow: none;
-}
-.seat-hidden-admin::after {
-  display: none;
-}
+.seat-selected { background: linear-gradient(145deg, #10b981, #059669) !important; border: 2px solid #fff !important; transform: translateY(-5px); color: white; }
+.seat-hidden-client { opacity: 0; pointer-events: none; }
+.seat-hidden-admin { background: transparent !important; border: 2px dashed #4b5563 !important; color: #4b5563; box-shadow: none; }
+.seat-hidden-admin::after { display: none; }
+
+.seat-deleted-admin { background: transparent !important; border: 2px solid transparent !important; color: transparent !important; box-shadow: none !important; opacity: 0.2; }
+.seat-deleted-admin:hover { opacity: 0.8; border-color: #fca5a5 !important; background: rgba(239,68,68,0.1) !important;}
+.seat-deleted-admin::after { display: none; }
 
 .seat-admin-selected {
   border: 3px solid #fbbf24 !important;
@@ -658,64 +597,15 @@ const getSeatClass = (seat) => {
   z-index: 5;
 }
 
-.legend {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-  justify-content: center;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  color: #e5e7eb;
-}
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  font-weight: 500;
-}
-.seat-box {
-  width: 20px;
-  height: 20px;
-  border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-.seat-box.standard {
-  background: linear-gradient(145deg, #4b5563, #374151);
-}
-.seat-box.vip {
-  background: linear-gradient(145deg, #ef4444, #b91c1c);
-}
-.seat-box.couple {
-  background: linear-gradient(145deg, #ec4899, #be185d);
-}
-.seat-box.booked {
-  background: #1f2937;
-}
-.seat-box.selected {
-  background: linear-gradient(145deg, #10b981, #059669);
-}
-.seat-box.admin-selected {
-  border: 2px solid #fbbf24;
-  background: transparent;
-}
-.seat-box.hidden-demo {
-  border: 2px dashed #4b5563;
-  background: transparent;
-}
-
-.seat-admin-booked {
-  background: #dc3545 !important;
-  border-color: #dc3545 !important;
-  color: #fff !important;
-  cursor: not-allowed !important;
-  opacity: 0.9;
-}
-
-.seat-admin-holding {
-  background: #ffc107 !important;
-  border-color: #ffc107 !important;
-  color: #222 !important;
-  cursor: not-allowed !important;
-}
+.legend { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); color: #e5e7eb; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; }
+.seat-box { width: 20px; height: 20px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); }
+.seat-box.standard { background: linear-gradient(145deg, #4b5563, #374151); }
+.seat-box.vip { background: linear-gradient(145deg, #ef4444, #b91c1c); }
+.seat-box.couple { background: linear-gradient(145deg, #ec4899, #be185d); }
+.seat-box.booked { background: #1f2937; }
+.seat-box.selected { background: linear-gradient(145deg, #10b981, #059669); }
+.seat-box.admin-selected { border: 2px solid #fbbf24; background: transparent; }
+.seat-box.hidden-demo { border: 2px dashed #4b5563; background: transparent; }
+.seat-box.deleted-demo { border: 2px dotted transparent; background: transparent; opacity: 0.3; }
 </style>

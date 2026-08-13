@@ -49,7 +49,7 @@
       </div>
 
       <!-- THANH CÔNG CỤ TÌM KIẾM & LỌC -->
-      <div v-if="['customer', 'staff', 'admin'].includes(activeSection)" class="toolbar-card">
+      <div v-if="['customer', 'staff', 'admin', 'leaderboard'].includes(activeSection)" class="toolbar-card">
         <div class="search-box-premium">
           <IconSearch class="search-ic" />
           <input
@@ -61,8 +61,8 @@
         </div>
 
         <div class="filters-wrap">
-          <!-- Lọc hạng thành viên (Tab Khách hàng) -->
-          <div v-if="activeSection === 'customer'" class="filter-select-wrap">
+          <!-- Lọc hạng thành viên (Tab Khách hàng & BXH) -->
+          <div v-if="['customer', 'leaderboard'].includes(activeSection)" class="filter-select-wrap">
             <IconFilter class="filter-ic" />
             <select v-model="tierFilter" class="filter-select">
               <option value="">Tất cả hạng thành viên</option>
@@ -82,8 +82,8 @@
         </div>
       </div>
 
-      <!-- BẢNG DỮ LIỆU: KHÁCH HÀNG & NHÂN VIÊN -->
-      <template v-if="['customer', 'staff'].includes(activeSection)">
+      <!-- BẢNG DỮ LIỆU: KHÁCH HÀNG & NHÂN VIÊN & BXH -->
+      <template v-if="['customer', 'staff', 'leaderboard'].includes(activeSection)">
         <div class="panel-premium">
           <div class="table-responsive-wrapper">
             <table class="data-table-premium">
@@ -91,7 +91,7 @@
               <tr>
                 <th>{{ activeSection === 'staff' ? 'Nhân viên' : 'Khách hàng' }}</th>
                 <th>Liên hệ</th>
-                <th>{{ activeSection === 'staff' ? 'Ca trực POS' : 'Hạng thành viên' }}</th>
+                <th>{{ activeSection === 'staff' ? 'Trạng thái ca' : 'Hạng thành viên & Điểm' }}</th>
                 <th>Vai trò</th>
                 <th>Trạng thái hoạt động</th>
                 <th class="ta-right">Hành động</th>
@@ -110,6 +110,7 @@
                     <div class="identity-meta">
                       <strong class="click-name" @click="openDetail(u)">{{ u.name }}</strong>
                       <small>{{ u.email }}</small>
+                      <span v-if="activeSection === 'leaderboard' && u.loyalty_points > 0" class="top-badge" style="display:inline-block; margin-top:2px; font-size:10px; color:#fff; background:#ef4444; padding:2px 6px; border-radius:4px; font-weight:600;">TOP CHI TIÊU</span>
                     </div>
                   </div>
                 </td>
@@ -121,10 +122,11 @@
                     <span class="premium-badge tier" :class="'tier-' + (u.membership_tier || 'Bronze').toLowerCase()">
                       🏆 Hạng {{ u.membership_tier || 'Bronze' }}
                     </span>
+                    <div style="font-size: 12px; color: #f59e0b; margin-top: 4px; font-weight: 600;">{{ (u.loyalty_points || 0).toLocaleString('vi-VN') }} PTS</div>
                   </template>
                   <template v-else>
                     <span class="premium-badge" :class="u.work_status === 'on_shift' ? 'status-active' : 'role-customer'">
-                      💼 {{ u.work_status === 'on_shift' ? 'Đang trực POS' : 'Chưa vào ca' }}
+                      💼 {{ u.work_status === 'on_shift' ? 'Đang làm việc' : 'Chưa vào ca' }}
                     </span>
                   </template>
                 </td>
@@ -476,18 +478,21 @@
               <div class="quick-stat-row"><span>Số điện thoại:</span><strong>{{ detail.user.phone || 'Chưa cập nhật' }}</strong></div>
               <div class="quick-stat-row"><span>Tuổi:</span><strong>{{ detail.user.age || 'Chưa cập nhật' }}</strong></div>
               <div class="quick-stat-row"><span>Tổng chi tiêu:</span><strong>{{ formatCurrency(detail.stats.total_spent) }}</strong></div>
+              <div class="quick-stat-row"><span>Điểm tích lũy:</span><strong style="color: #f59e0b;">{{ detail.user.loyalty_points?.toLocaleString('vi-VN') || 0 }} điểm</strong></div>
               <div class="quick-stat-row"><span>Vé đã mua:</span><strong>{{ detail.stats.total_tickets }} vé</strong></div>
               <div class="quick-stat-row"><span>Hóa đơn đặt:</span><strong>{{ detail.stats.total_bookings }} đơn</strong></div>
             </div>
 
-            <!-- DANGER ZONE (ẨN DANH GDPR) -->
-            <div v-if="detail.user.role !== 'admin' && !detail.user.is_anonymized" class="crm-danger-zone">
-              <span class="danger-title">🗑️ Bảo mật dữ liệu (GDPR)</span>
-              <p>Ẩn hoàn toàn thông tin cá nhân của khách hàng vĩnh viễn (giữ lại hóa đơn phục vụ tài chính).</p>
-              <button type="button" class="btn-anonymize-premium" @click="anonymizeUser(detail.user.id)">
-                Kích hoạt ẩn danh tính
-              </button>
+            <!-- CỘNG / TRỪ ĐIỂM THỦ CÔNG -->
+            <div v-if="detail.user.role === 'customer'" class="crm-quick-control" style="margin-top: 12px;">
+              <label class="control-label">⭐ Cộng / Trừ điểm thủ công</label>
+              <div style="display: flex; gap: 8px; margin-top: 6px;">
+                <input v-model.number="adjustPointsAmount" type="number" class="form-control" placeholder="Nhập số điểm (âm = trừ)" style="flex: 1; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px;" />
+                <button class="btn-action edit" @click="handleAdjustPoints(detail.user.id)" style="white-space: nowrap; padding: 8px 16px;">Áp dụng</button>
+              </div>
+              <input v-model="adjustPointsReason" type="text" class="form-control" placeholder="Lý do (tùy chọn)..." style="margin-top: 6px; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px; width: 100%;" />
             </div>
+
           </div>
 
           <!-- CỘT PHẢI: TABS LỊCH SỬ HOẠT ĐỘNG -->
@@ -623,6 +628,7 @@
 import { ref, computed, onMounted, h, watch } from 'vue';
 import api from '../../api/axios';
 import { useAuthStore } from '../../stores/auth';
+import { toast, confirmDialog } from '../../utils/alert';
 
 /* ---------- Icon SVG (Lucide custom render) ---------- */
 const mk = (children) => ({
@@ -653,6 +659,7 @@ const IconArrowDown=mk([['path',{d:'M12 5v14'}],['path',{d:'m19 12-7 7-7-7'}]]);
 const IconClock    = mk([['circle',{cx:12,cy:12,r:10}],['polyline',{points:'12 6 12 12 16 14'}]]);
 const IconTicket   = mk([['path',{d:'M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z'}],['path',{d:'M13 5v14'}],['path',{d:'M9 9h0'}],['path',{d:'M9 13h0'}],['path',{d:'M9 17h0'}]]);
 const IconFilter   = mk([['polygon',{points:'22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3'}]]);
+const IconStar     = mk([['polygon',{points:'12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'}]]);
 
 const authStore = useAuthStore();
 
@@ -677,8 +684,6 @@ const sections = [
   { key: 'customer', label: 'Khách hàng', icon: IconUser,      role: 'customer', addLabel: 'Khách Hàng', title: 'Danh mục Khách hàng', desc: 'Quản lý thông tin, phân hạng thành viên, khóa/mở khóa tài khoản khách hàng.' },
   { key: 'staff',    label: 'Nhân viên',  icon: IconBriefcase, role: 'staff',    addLabel: 'Nhân Viên', title: 'Nhân sự vận hành', desc: 'Danh sách nhân sự trực tuyến đầu, theo dõi ca làm việc và quầy trực.' },
   { key: 'admin',    label: 'Quản trị',   icon: IconCrown,     role: 'admin',    addLabel: 'Quản Trị Viên', title: 'Quản trị viên hệ thống', desc: 'Tài khoản quản lý cấp cao có toàn quyền quản trị và thiết lập cấu hình rạp.' },
-  { key: 'shift',    label: 'Đối soát ca', icon: IconClock,     role: null,       addLabel: null, title: 'Đối soát ca trực POS', desc: 'Kiểm soát doanh thu chốt ca của nhân viên quầy, đối sánh giữa tiền thực tế khai báo và hệ thống.' },
-  { key: 'refund',   label: 'Duyệt hoàn vé', icon: IconTicket,   role: null,       addLabel: null, title: 'Duyệt yêu cầu hoàn vé', desc: 'Danh sách các yêu cầu hoàn tiền vé và hủy ghế ngồi từ nhân viên gửi lên.' },
 ];
 
 const activeSection = ref('customer');
@@ -792,7 +797,7 @@ const dashboardCards = computed(() => {
     const locked = allUsers.value.filter(u => u.role === 'staff' && u.status === 'locked').length;
     return [
       { label: 'Tổng nhân viên', value: total + ' nhân sự', icon: IconBriefcase, colorClass: 'card-violet' },
-      { label: 'Nhân viên đang làm ca', value: onShift + ' quầy POS', icon: IconCheck, colorClass: 'card-mint' },
+      { label: 'Nhân viên đang làm ca', value: onShift + ' người', icon: IconCheck, colorClass: 'card-mint' },
       { label: 'Tài khoản nhân sự bị khóa', value: locked + ' acc', icon: IconLock, colorClass: 'card-red' },
     ];
   } else if (activeSection.value === 'admin') {
@@ -855,16 +860,22 @@ const roleCount = (role) => allUsers.value.filter(u => u.role === role).length;
 
 const filteredUsers = computed(() => {
   const kw = search.value.trim().toLowerCase();
-  return allUsers.value.filter(u => {
+  let result = allUsers.value.filter(u => {
     if (u.role !== currentSection.value.role) return false;
     if (statusFilter.value && u.status !== statusFilter.value) return false;
-    if (activeSection.value === 'customer' && tierFilter.value && u.membership_tier !== tierFilter.value) return false;
+    if (['customer', 'leaderboard'].includes(activeSection.value) && tierFilter.value && u.membership_tier !== tierFilter.value) return false;
     if (kw) {
       const hay = `${u.name} ${u.email} ${u.phone || ''}`.toLowerCase();
       if (!hay.includes(kw)) return false;
     }
     return true;
   });
+
+  if (activeSection.value === 'leaderboard') {
+    result = result.sort((a, b) => (b.loyalty_points || 0) - (a.loyalty_points || 0));
+  }
+
+  return result;
 });
 
 // Pagination
@@ -933,6 +944,9 @@ const validateForm = () => {
   if (!form.value.name || form.value.name.trim() === '') {
     errors.value.name = ['Vui lòng nhập họ và tên.'];
     isValid = false;
+  } else if (form.value.name.length > 20) {
+    errors.value.name = ['Tên không được vượt quá 20 ký tự.'];
+    isValid = false;
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -963,20 +977,33 @@ const submitForm = async () => {
   if (!validateForm()) return;
 
   loading.value = true; error.value = null;
+  
+  // Chuẩn hóa dữ liệu trước khi gửi (tránh lỗi validate chuỗi rỗng)
+  const payload = { ...form.value };
+  if (payload.password === '') delete payload.password;
+  if (payload.age === '') payload.age = null;
+
   try {
     if (isEdit.value) {
       // Cập nhật lướt qua (Optimistic cho Edit)
       const u = allUsers.value.find(user => user.id === editingId.value);
       if (u) {
-        u.name = form.value.name;
-        u.phone = form.value.phone;
+        u.name = payload.name;
+        u.phone = payload.phone;
+        u.status = payload.status;
+        u.role = payload.role;
+        u.email = payload.email;
       }
-      await api.put(`/admin/users/${editingId.value}`, form.value);
+      await api.put(`/admin/users/${editingId.value}`, payload);
+      toast('Cập nhật tài khoản thành công!');
     }
-    else await api.post('/admin/users', form.value);
+    else {
+        await api.post('/admin/users', payload);
+        toast('Tạo tài khoản thành công!');
+    }
     
+    await fetchUsers(); // Đợi fetch xong mới đóng modal
     closeModal();
-    fetchUsers(); // Sync ngầm
 
   } catch (err) {
     error.value = err.response?.data?.message
@@ -1108,9 +1135,35 @@ const approveRefund = async (id, status) => {
 const updateUserTier = async (userId, tier) => {
   try {
     await api.patch(`/admin/users/${userId}/tier`, { membership_tier: tier });
+    toast('Cập nhật hạng thành viên thành công!');
     await fetchUsers();
   } catch (err) {
     error.value = 'Không cập nhật được hạng thành viên.';
+  }
+};
+
+const adjustPointsAmount = ref(0);
+const adjustPointsReason = ref('');
+
+const handleAdjustPoints = async (userId) => {
+  if (!adjustPointsAmount.value || adjustPointsAmount.value === 0) {
+    error.value = 'Vui lòng nhập số điểm cần cộng hoặc trừ (khác 0).';
+    return;
+  }
+  try {
+    const res = await api.post(`/admin/users/${userId}/adjust-points`, {
+      amount: adjustPointsAmount.value,
+      reason: adjustPointsReason.value,
+    });
+    toast(res.data.message);
+    adjustPointsAmount.value = 0;
+    adjustPointsReason.value = '';
+    // Refresh lại chi tiết user
+    const detailRes = await api.get(`/admin/users/${userId}`);
+    detail.value = detailRes.data.data;
+    await fetchUsers();
+  } catch (err) {
+    error.value = err.response?.data?.message || 'Có lỗi xảy ra khi cộng/trừ điểm.';
   }
 };
 

@@ -12,20 +12,33 @@
     </main>
 
     <Footer v-if="!isBackofficeRoute" />
+
+    <!-- Trợ lý AI CineGo (chỉ hiện ở trang khách) -->
+    <ChatWidget v-if="!isBackofficeRoute" />
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import Navbar from './components/Navbar.vue';
 import Footer from './components/Footer.vue';
+import ChatWidget from './components/ChatWidget.vue';
+import { useAuthStore } from './stores/auth';
 
 const route = useRoute();
+const authStore = useAuthStore();
+
 // Khu vực quản trị dùng layout riêng (sidebar riêng), không dùng Navbar/Footer của khách
 const isBackofficeRoute = computed(
   () => route.path.startsWith('/admin') || route.path.startsWith('/staff')
 );
+
+onMounted(() => {
+  if (authStore.token) {
+    authStore.fetchUser();
+  }
+});
 </script>
 
 <style>

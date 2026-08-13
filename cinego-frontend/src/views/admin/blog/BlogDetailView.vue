@@ -1,7 +1,7 @@
 <template>
   <div class="blog-preview-container">
     <div class="preview-navigation-bar">
-      <button @click="$router.push('/admin/blogs')" class="btn-back-list">⬅️ Quay lại danh sách quản lý</button>
+      <button @click="goBack" class="btn-back-list">⬅️ Quay lại danh sách quản lý</button>
       <button @click="$router.push(`/admin/blogs/edit/${post.id}`)" class="btn-edit-direct">✏️ Chỉnh sửa bài viết này</button>
     </div>
 
@@ -58,10 +58,15 @@ const fetchPostDetail = async () => {
     post.value = response.data.data || response.data;
   } catch (error) {
     toast('Không thể tải trang xem trước!', 'error');
-    router.push('/admin/blogs');
+    goBack();
   } finally {
     loading.value = false;
   }
+};
+
+const goBack = () => {
+  localStorage.setItem('admin_active_tab', 'blogs');
+  router.push('/admin');
 };
 
 const goToBooking = (movieId) => {
