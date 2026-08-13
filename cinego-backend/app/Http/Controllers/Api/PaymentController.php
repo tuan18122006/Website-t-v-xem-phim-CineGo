@@ -211,6 +211,7 @@ class PaymentController extends Controller
         return redirect(
             $frontendUrl . '/payment/result?status=' . $resultStatus
             . '&code=' . urlencode($code)
+            . '&booking_code=' . urlencode($booking->booking_code)
             . '&reason=' . urlencode($reason)
             . '&booking_id=' . $booking->id
         );
@@ -245,6 +246,13 @@ class PaymentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Đơn hàng đã hết lượt thanh toán lại (tối đa ' . self::MAX_PAYMENT_RETRIES . ' lần). Vui lòng đặt vé mới.',
+            ], 400);
+        }
+
+        if (Carbon::parse($booking->created_at)->lt(Carbon::now()->subHours(24))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Đơn hàng đã quá 24 giờ kể từ khi đặt, không thể thanh toán lại. Vui lòng đặt vé mới.',
             ], 400);
         }
 

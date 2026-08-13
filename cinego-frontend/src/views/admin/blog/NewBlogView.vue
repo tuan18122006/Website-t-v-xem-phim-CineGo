@@ -3,7 +3,10 @@
     <div class="editor-header">
       <div class="header-title-zone">
         <h2 class="page-title">
-          <span class="title-icon">{{ isEditing ? "📝" : "✍️" }}</span>
+          <span class="title-icon">
+            <SquarePen v-if="isEditing" :size="20" />
+            <PenLine v-else :size="20" />
+          </span>
           {{ isEditing ? "Chỉnh sửa bài viết" : "Viết bài mới" }}
         </h2>
         <p class="page-subtitle">
@@ -48,7 +51,7 @@
           </div>
 
           <div class="slug-permalink-zone">
-            <span class="permalink-label">🔗 Liên kết tĩnh (Slug):</span>
+            <span class="permalink-label"><Link2 :size="15" style="vertical-align:-2px" /> Liên kết tĩnh (Slug):</span>
             <span class="permalink-url"
               >cinego.com/blog/<strong class="slug-text">{{
                 generateSlug(form.title)
@@ -82,11 +85,12 @@
                 <button type="button" class="toolbar-btn"><b>B</b></button>
                 <button type="button" class="toolbar-btn"><i>I</i></button>
                 <button type="button" class="toolbar-btn"><u>U</u></button>
-                <button type="button" class="toolbar-btn">🔗 Thêm Link</button>
+                <button type="button" class="toolbar-btn"><Link2 :size="15" style="vertical-align:-2px" /> Thêm Link</button>
                 <button type="button" class="toolbar-btn">
-                  🎬 Nhúng Video Youtube
+                  <Clapperboard :size="15" style="vertical-align:-2px" /> Nhúng
+                  Video Youtube
                 </button>
-                <button type="button" class="toolbar-btn">🖼️ Thêm Ảnh</button>
+                <button type="button" class="toolbar-btn"><Image :size="15" style="vertical-align:-2px" /> Thêm Ảnh</button>
               </div>
               <textarea
                 v-model="form.content"
@@ -103,7 +107,8 @@
 
         <div class="glass-panel content-box marketing-card">
           <h4 class="box-sub-title">
-            🎯 Gắn kết phim bán vé nhanh (Call to Action)
+            <Target :size="15" style="vertical-align:-2px" /> Gắn kết phim bán vé
+            nhanh (Call to Action)
           </h4>
           <p class="box-desc">
             Hệ thống tự động hiển thị Poster và nút "ĐẶT VÉ XEM PHIM NÀY NGAY" ở
@@ -119,7 +124,7 @@
                 :key="movie.id"
                 :value="movie.id"
               >
-                🎬 Phim: {{ movie.title }}
+                Phim: {{ movie.title }}
               </option>
             </select>
           </div>
@@ -128,7 +133,7 @@
 
       <div class="sidebar-column">
         <div class="glass-panel sidebar-box">
-          <h4 class="sidebar-box-title">⚙️ Trạng thái & Lên lịch</h4>
+          <h4 class="sidebar-box-title"><Settings :size="15" style="vertical-align:-2px" /> Trạng thái & Lên lịch</h4>
           <div class="sidebar-box-content">
             <div class="radio-group-vertical">
               <label class="radio-label">
@@ -158,7 +163,7 @@
         </div>
 
         <div class="glass-panel sidebar-box">
-          <h4 class="sidebar-box-title">📁 Chuyên mục</h4>
+          <h4 class="sidebar-box-title"><Folder :size="15" style="vertical-align:-2px" /> Chuyên mục</h4>
           <div class="sidebar-box-content">
             <div class="input-group">
               <select v-model="form.category_id" class="form-select">
@@ -175,11 +180,11 @@
         </div>
 
         <div class="glass-panel sidebar-box">
-          <h4 class="sidebar-box-title">🖼️ Ảnh bìa bài viết (16:9)</h4>
+          <h4 class="sidebar-box-title"><Image :size="15" style="vertical-align:-2px" /> Ảnh bìa bài viết (16:9)</h4>
           <div class="sidebar-box-content">
             <div class="thumbnail-uploader-box" @click="triggerUpload">
               <div v-if="!form.thumbnail_url" class="uploader-placeholder">
-                <span class="upload-icon">📸</span>
+                <span class="upload-icon"><Camera :size="28" /></span>
                 <p class="upload-text">Tải ảnh bìa lên</p>
                 <span class="upload-hint">Tỷ lệ khuyên dùng 1920x1080</span>
               </div>
@@ -199,7 +204,7 @@
         </div>
 
         <div class="glass-panel sidebar-box">
-          <h4 class="sidebar-box-title">🔍 Cấu hình SEO Google</h4>
+          <h4 class="sidebar-box-title"><Search :size="15" style="vertical-align:-2px" /> Cấu hình SEO Google</h4>
           <div class="sidebar-box-content seo-fields">
             <div class="input-group">
               <label class="form-label-small">SEO Title</label>
@@ -228,6 +233,18 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
+import {
+  SquarePen,
+  PenLine,
+  Link2,
+  Clapperboard,
+  Image,
+  Target,
+  Settings,
+  Folder,
+  Camera,
+  Search,
+} from "lucide-vue-next";
 import { useRoute, useRouter } from "vue-router";
 import api from "../../../api/axios";
 import { toast } from "../../../utils/alert";
@@ -242,7 +259,7 @@ const submitting = ref(false);
 const categories = ref([]);
 const activeMovies = ref([]);
 
-// 💡 ĐÃ ĐỔI: category_id -> blog_category_id cho đồng bộ với Laravel
+// ĐÃ ĐỔI: category_id -> blog_category_id cho đồng bộ với Laravel
 const form = ref({
   title: "",
   excerpt: "",
@@ -276,7 +293,7 @@ const generateSlug = (title) => {
   return slug;
 };
 
-// 💡 ĐÃ GOM: Gom việc gọi API danh mục và phim vào đúng hàm fetchInitialData
+// ĐÃ GOM: Gom việc gọi API danh mục và phim vào đúng hàm fetchInitialData
 const fetchInitialData = async () => {
   try {
     const catResponse = await api.get("/admin/blog-categories");

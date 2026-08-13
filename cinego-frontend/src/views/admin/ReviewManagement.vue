@@ -3,7 +3,7 @@
     <!-- Bộ lọc -->
     <div class="rvm-toolbar glass-panel">
       <label class="rvm-search">
-        <span>🔍</span>
+        <Search :size="15" />
         <input
           v-model="filters.q"
           type="text"
@@ -13,7 +13,7 @@
         <button v-if="filters.q" class="rvm-search__clear" @click="filters.q = ''; applyFilters()">✕</button>
       </label>
 
-      <button class="rvm-search-btn" @click="applyFilters">🔍 Tìm kiếm</button>
+      <button class="rvm-search-btn" @click="applyFilters"><Search :size="15" style="vertical-align:-2px" /> Tìm kiếm</button>
 
       <select v-model="filters.rating" class="rvm-select" @change="applyFilters">
         <option value="">Tất cả sao</option>
@@ -29,7 +29,7 @@
     <!-- Loading / Empty -->
     <div v-if="loading" class="rvm-state"><div class="rvm-spinner"></div><p>Đang tải đánh giá…</p></div>
     <div v-else-if="reviews.length === 0" class="rvm-state">
-      <span style="font-size:42px">🗳️</span>
+      <Vote :size="20" />
       <p>Không có đánh giá nào khớp bộ lọc.</p>
     </div>
 
@@ -64,8 +64,8 @@
               </span>
             </td>
             <td class="rvm-comment">
-              <span v-if="r.is_featured" class="tag-featured">📌 Ghim</span>
-              <span v-if="r.is_hidden" class="tag-hidden">🚫 Đã ẩn</span>
+              <span v-if="r.is_featured" class="tag-featured"><Pin :size="15" style="vertical-align:-2px" /> Ghim</span>
+              <span v-if="r.is_hidden" class="tag-hidden"><Ban :size="15" style="vertical-align:-2px" /> Đã ẩn</span>
               <p>{{ r.comment || '(không có nội dung)' }}</p>
               <p v-if="r.admin_reply" class="rvm-reply">
                 <b>CineGo Official:</b> {{ r.admin_reply }}
@@ -74,12 +74,13 @@
             <td class="muted rvm-time">{{ formatTime(r.created_at) }}</td>
             <td>
               <div class="rvm-actions">
-                <button class="ic" :class="{ active: r.is_featured }" title="Ghim nổi bật" @click="toggleFeature(r)">📌</button>
+                <button class="ic" :class="{ active: r.is_featured }" title="Ghim nổi bật" @click="toggleFeature(r)"><Pin :size="16" /></button>
                 <button class="ic" :class="{ active: r.is_hidden }" :title="r.is_hidden ? 'Hiện lại' : 'Ẩn'" @click="toggleHide(r)">
-                  {{ r.is_hidden ? '👁️' : '🙈' }}
+                  <Eye v-if="r.is_hidden" :size="16" />
+                  <EyeOff v-else :size="16" />
                 </button>
-                <button class="ic" title="Phản hồi" @click="openReply(r)">💬</button>
-                <button class="ic ic-del" title="Xóa vĩnh viễn" @click="removeReview(r)">🗑️</button>
+                <button class="ic" title="Phản hồi" @click="openReply(r)"><MessageSquare :size="16" /></button>
+                <button class="ic ic-del" title="Xóa vĩnh viễn" @click="removeReview(r)"><Trash2 :size="16" /></button>
               </div>
             </td>
           </tr>
@@ -98,7 +99,7 @@
     <transition name="rvm-fade">
       <div v-if="replyTarget" class="rvm-backdrop" @click.self="replyTarget = null">
         <div class="rvm-modal">
-          <h3>💬 Phản hồi với tư cách <span class="rvm-official">CineGo Official</span></h3>
+          <h3><MessageSquare :size="15" style="vertical-align:-2px" /> Phản hồi với tư cách <span class="rvm-official">CineGo Official</span></h3>
           <p class="muted">Trả lời bình luận của <b>{{ replyTarget.user?.name }}</b> · phim {{ replyTarget.movie?.title }}</p>
           <blockquote>"{{ replyTarget.comment }}"</blockquote>
           <textarea v-model="replyText" rows="4" placeholder="VD: Cảm ơn bạn đã ủng hộ CineGo! / Rạp xin lỗi vì sự cố…"></textarea>
@@ -116,6 +117,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import api from '../../api/axios';
+import { Search, Vote, Pin, Ban, Eye, EyeOff, MessageSquare, Trash2 } from 'lucide-vue-next';
 
 const loading = ref(false);
 const reviews = ref([]);
@@ -130,7 +132,7 @@ const replyTarget = ref(null);
 const replyText = ref('');
 
 const initials = (name) => {
-  if (!name) return '👤';
+  if (!name) return '';
   const p = name.trim().split(/\s+/);
   return (p[0][0] + (p[p.length - 1][0] || '')).toUpperCase();
 };

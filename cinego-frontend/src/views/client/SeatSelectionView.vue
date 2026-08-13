@@ -261,6 +261,9 @@ const handleSeatMapClick = async (seat) => {
         showtime_id: bookingStore.selectedShowtime.id,
         seat_id: seat.id,
       });
+
+      const heldSeat = rawSeatsFromAPI.value.find((s) => s.id === seat.id);
+      if (heldSeat) heldSeat.status = "holding";
     } else {
       bookingStore.toggleSeat(seatObj);
 
@@ -273,6 +276,9 @@ const handleSeatMapClick = async (seat) => {
         showtime_id: bookingStore.selectedShowtime.id,
         seat_id: seat.id,
       });
+
+      const releasedSeat = rawSeatsFromAPI.value.find((s) => s.id === seat.id);
+      if (releasedSeat) releasedSeat.status = "available";
     }
   } catch (error) {
     bookingStore.toggleSeat(seatObj);
@@ -698,23 +704,23 @@ const proceedToPayment = async () => {
 }
 
 .seat-standard {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: linear-gradient(145deg, #4b5563, #374151);
+  border: 1px solid #6b7280;
 }
 .seat-vip {
-  background: rgba(112, 0, 255, 0.2);
-  border: 1px solid rgba(112, 0, 255, 0.5);
+  background: linear-gradient(145deg, #ef4444, #b91c1c);
+  border: 1px solid #f87171;
 }
 .seat-couple {
-  background: rgba(255, 0, 127, 0.2);
-  border: 1px solid rgba(255, 0, 127, 0.5);
+  background: linear-gradient(145deg, #ec4899, #be185d);
+  border: 1px solid #f472b6;
 }
 .seat-selected {
-  background: var(--accent-mint);
+  background: linear-gradient(145deg, #10b981, #059669);
 }
 .seat-sold {
-  background: rgba(255, 255, 255, 0.03);
-  opacity: 0.3;
+  background: #1f2937;
+  opacity: 0.6;
 }
 
 .booking-sidebar {

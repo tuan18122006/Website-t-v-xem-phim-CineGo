@@ -4,7 +4,7 @@
     <!-- CARD 1: FORM THÊM / CẬP NHẬT THỂ LOẠI -->
     <div class="glass-panel form-card">
       <h3 class="card-title">
-        <span class="title-icon">{{ isEditing ? '📝' : '✨' }}</span>
+        <span class="title-icon"><SquarePen v-if="isEditing" :size="20" /><Sparkles v-else :size="20" /></span>
         {{ isEditing ? 'Cập Nhật Thể Loại Phim' : 'Thêm Thể Loại Mới' }}
       </h3>
 
@@ -40,7 +40,7 @@
     <!-- CARD 2: DANH SÁCH THỂ LOẠI -->
     <div class="glass-panel list-card">
       <div class="list-header">
-        <h3 class="list-title">📁 Danh Sách Thể Loại Hiện Có</h3>
+        <h3 class="list-title"><Folder :size="15" style="vertical-align:-2px" /> Danh Sách Thể Loại Hiện Có</h3>
         <span class="count-badge">Tổng cộng: {{ genres.length }} thể loại</span>
       </div>
 
@@ -72,10 +72,10 @@
               <td class="cell-actions">
                 <div class="action-buttons-group">
                   <button @click="editGenre(genre)" class="btn-action edit">
-                    ✏️ Sửa
+                    <Pencil :size="15" style="vertical-align:-2px" /> Sửa
                   </button>
                   <button @click="deleteGenre(genre.id)" class="btn-action delete">
-                    🗑️ Xóa
+                    <Trash2 :size="15" style="vertical-align:-2px" /> Xóa
                   </button>
                 </div>
               </td>
@@ -83,7 +83,7 @@
 
             <tr v-if="genres.length === 0">
               <td colspan="5" class="empty-state">
-                📭 Hệ thống chưa có dữ liệu thể loại phim.
+                <Inbox :size="15" style="vertical-align:-2px" /> Hệ thống chưa có dữ liệu thể loại phim.
               </td>
             </tr>
           </tbody>
@@ -98,6 +98,7 @@
 import { ref, onMounted } from 'vue';
 import api from '../../api/axios';
 import { toast, confirmDialog } from '../../utils/alert';
+import { Folder, Inbox, Pencil, SquarePen, Sparkles, Trash2 } from 'lucide-vue-next';
 
 const genres = ref([]);
 const isEditing = ref(false);

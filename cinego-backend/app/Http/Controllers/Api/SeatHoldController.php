@@ -51,6 +51,13 @@ class SeatHoldController extends Controller
                 }
 
                 $now = Carbon::now();
+
+                // Dọn các hàng giữ ghế đã hết hạn của suất chiếu này
+                DB::table('seat_holds')
+                    ->where('showtime_id', $showtimeId)
+                    ->where('expires_at', '<=', $now)
+                    ->delete();
+
                 $activeHold = DB::table('seat_holds')
                     ->where('showtime_id', $showtimeId)
                     ->where('seat_id', $seatId)

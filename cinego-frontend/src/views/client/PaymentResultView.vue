@@ -20,6 +20,8 @@
           <img :src="qrUrl" alt="QR Code" class="qr-image" />
           <p class="qr-hint">Đưa mã QR này cho nhân viên để nhận vé</p>
         </div>
+
+        <button @click="goHome" class="btn-back">Quay Về Trang Chủ</button>
       </template>
 
       <template v-else-if="status === 'failed'">
@@ -100,7 +102,7 @@ const retryError = ref("");
 
 onMounted(() => {
   status.value = route.query.status || "invalid";
-  bookingCode.value = route.query.code || "";
+  bookingCode.value = route.query.booking_code || route.query.code || "";
   bookingId.value = route.query.booking_id || null;
   reason.value = route.query.reason || "";
 

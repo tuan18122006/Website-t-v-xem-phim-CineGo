@@ -2,7 +2,7 @@
     <div class="admin-movies-view-container">
         <div class="glass-panel list-card">
             <div class="header-row">
-                <h2 class="title-cine">🍿 Quản Lý Combo và Đồ Ăn</h2>
+                <h2 class="title-cine"><Popcorn :size="15" style="vertical-align:-2px" /> Quản Lý Combo và Đồ Ăn</h2>
                 <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Combo Mới</button>
             </div>
 
@@ -34,13 +34,9 @@
                                     'type-badge',
                                     combo.type
                                 ]">
-                                    {{
-                                        combo.type === 'combo'
-                                            ? '🎁 Combo'
-                                            : combo.type === 'drink'
-                                                ? '🥤 Nước'
-                                                : '🍿 Đồ ăn'
-                                    }}
+                                    <template v-if="combo.type === 'combo'"><Gift :size="15" style="vertical-align:-2px" /> Combo</template>
+                                    <template v-else-if="combo.type === 'drink'"><CupSoda :size="15" style="vertical-align:-2px" /> Nước</template>
+                                    <template v-else><Popcorn :size="15" style="vertical-align:-2px" /> Đồ ăn</template>
                                 </span>
                             </td>
                             <td>{{ formatPrice(combo.price) }}</td>
@@ -51,8 +47,8 @@
                             </td>
                             <td>
                                 <div class="action-buttons-group">
-                                    <button class="btn-action edit" @click="openEditModal(combo)">✏️ Sửa</button>
-                                    <button class="btn-action delete" @click="deleteCombo(combo.id)">🗑️ Xóa</button>
+                                    <button class="btn-action edit" @click="openEditModal(combo)"><Pencil :size="15" style="vertical-align:-2px" /> Sửa</button>
+                                    <button class="btn-action delete" @click="deleteCombo(combo.id)"><Trash2 :size="15" style="vertical-align:-2px" /> Xóa</button>
 
 
                                     <div v-if="isItemsModalOpen" class="modal-overlay-cine">
@@ -153,7 +149,7 @@
 
                                     </div>
                                     <button v-if="combo.type === 'combo'" class="btn-action setting"
-                                        @click="openItemsModal(combo)">⚙️ Thành phần
+                                        @click="openItemsModal(combo)"><Settings :size="15" style="vertical-align:-2px" /> Thành phần
                                     </button>
                                 </div>
                             </td>
@@ -195,9 +191,9 @@
 
                         <select v-model="comboForm.type" class="form-control">
                             <option value="">-- Chọn loại sản phẩm --</option>
-                            <option value="combo">🎁 Combo</option>
-                            <option value="drink">🥤 Nước uống</option>
-                            <option value="food">🍿 Đồ ăn</option>
+                            <option value="combo">Combo</option>
+                            <option value="drink">Nước uống</option>
+                            <option value="food">Đồ ăn</option>
                         </select>
 
                         <span v-if="errors.type" class="error-text">
@@ -288,6 +284,7 @@
 import { ref, onMounted } from 'vue';
 import api from '../../api/axios';
 import { toast, confirmDialog } from '../../utils/alert';
+import { Popcorn, Gift, CupSoda, Pencil, Trash2, Settings } from 'lucide-vue-next';
 
 const combos = ref([]);
 const isCreateModalOpen = ref(false);

@@ -161,6 +161,12 @@ const routes = [
     component: () => import("../views/admin/GenreManagement.vue"),
   },
   {
+    path: "/admin/actors",
+    name: "admin-ActorManagement",
+    component: () => import("../views/admin/ActorManagement.vue"),
+    meta: { requiresAuth: true, role: "admin" }
+  },
+  {
     path: "/admin/articles",
     name: "AdminArticles",
     component: () => import("../views/admin/ArticleManagementView.vue"),

@@ -1,0 +1,667 @@
+<template>
+  <div class="actor-management-container">
+
+    <!-- CARD 1: FORM THÊM / CẬP NHẬT DIỄN VIÊN -->
+    <div class="glass-panel form-card">
+      <h3 class="card-title">
+        <span class="title-icon"><SquarePen v-if="isEditing" :size="20" /><Sparkles v-else :size="20" /></span>
+        {{ isEditing ? 'Cập Nhật Diễn Viên' : 'Thêm Diễn Viên Mới' }}
+      </h3>
+
+      <form @submit.prevent="saveActor" class="actor-form">
+        <div class="form-row">
+          <div class="input-group">
+            <label class="form-label">Tên diễn viên *</label>
+            <input v-model="form.name" type="text" class="form-input-large" placeholder="Nhập tên diễn viên..." />
+            <span v-if="errors?.name" class="error-msg">{{ errors.name[0] }}</span>
+          </div>
+
+          <div class="input-group">
+            <label class="form-label">Quốc tịch *</label>
+            <input v-model="form.nationality" type="text" class="form-input-large" placeholder="VD: Mỹ, Hàn Quốc, Việt Nam..." />
+            <span v-if="errors?.nationality" class="error-msg">{{ errors.nationality[0] }}</span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="input-group">
+            <label class="form-label">Ngày sinh *</label>
+            <input v-model="form.birth_date" type="date" class="form-input-large" />
+            <span v-if="errors?.birth_date" class="error-msg">{{ errors.birth_date[0] }}</span>
+          </div>
+
+          <div class="input-group">
+            <label class="form-label">Ảnh đại diện *</label>
+            <input type="file" accept=".jpg,.jpeg,.png,.webp" @change="handleFileChange" class="form-input-large file-input" />
+            <span class="file-hint">Ảnh chỉ chấp nhận định dạng: jpeg, png, jpg, webp (tối đa 2MB).</span>
+            <span v-if="errors?.avatar" class="error-msg">{{ errors.avatar[0] }}</span>
+            <div v-if="avatarPreview" class="avatar-preview-box">
+              <img :src="getAvatarUrl(avatarPreview)" class="avatar-preview-img" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn-primary-cine">
+            {{ isEditing ? 'Cập nhật diễn viên' : 'Lưu diễn viên' }}
+          </button>
+
+          <button v-if="isEditing" type="button" @click="resetForm" class="btn-secondary-cine">
+            Hủy bỏ
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- CARD 2: DANH SÁCH DIỄN VIÊN -->
+    <div class="glass-panel list-card">
+      <div class="list-header">
+        <h3 class="list-title"><Drama :size="15" style="vertical-align:-2px" /> Danh Sách Diễn Viên Hiện Có</h3>
+        <span class="count-badge">Tổng cộng: {{ actors.length }} diễn viên</span>
+      </div>
+
+      <div v-if="loading" class="loading-state">
+        <div class="spinner-cine"></div>
+        <p>Đang tải dữ liệu diễn viên...</p>
+      </div>
+
+      <div v-else class="table-responsive">
+        <table class="actor-table">
+          <thead>
+            <tr>
+              <th class="col-id">ID</th>
+              <th class="col-avatar">Ảnh</th>
+              <th class="col-name">Tên diễn viên</th>
+              <th class="col-nationality">Quốc tịch</th>
+              <th class="col-birth">Ngày sinh</th>
+              <th class="col-count">Số phim</th>
+              <th class="col-actions">Hành Động</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="actor in actors" :key="actor.id" class="table-row">
+              <td class="cell-id">#{{ actor.id }}</td>
+              <td class="cell-avatar">
+                <img :src="getAvatarUrl(actor.avatar_url)" class="avatar-thumbnail" @error="handleImageError" />
+              </td>
+              <td class="cell-name">{{ actor.name }}</td>
+              <td class="cell-nationality">{{ actor.nationality || '—' }}</td>
+              <td class="cell-birth">{{ actor.birth_date ? formatDate(actor.birth_date) : '—' }}</td>
+              <td class="cell-count">
+                <span class="movie-count-badge">{{ actor.movies_count || 0 }}</span>
+              </td>
+              <td class="cell-actions">
+                <div class="action-buttons-group">
+                  <button @click="editActor(actor)" class="btn-action edit"><Pencil :size="15" style="vertical-align:-2px" /> Sửa</button>
+                  <button @click="deleteActor(actor.id)" class="btn-action delete"><Trash2 :size="15" style="vertical-align:-2px" /> Xóa</button>
+                </div>
+              </td>
+            </tr>
+
+            <tr v-if="actors.length === 0">
+              <td colspan="7" class="empty-state">
+                <Inbox :size="15" style="vertical-align:-2px" /> Hệ thống chưa có dữ liệu diễn viên. Hãy thêm diễn viên đầu tiên!
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue';
+import api from '../../api/axios';
+import { toast, confirmDialog } from '../../utils/alert';
+import { Drama, Inbox, Pencil, SquarePen, Sparkles, Trash2 } from 'lucide-vue-next';
+
+const actors = ref([]);
+const isEditing = ref(false);
+const editingId = ref(null);
+const loading = ref(false);
+const selectedFile = ref(null);
+const avatarPreview = ref('');
+const errors = ref({});
+
+const todayStr = new Date().toISOString().split('T')[0];
+
+const form = ref({
+  name: '',
+  birth_date: '',
+  nationality: ''
+});
+
+const getAvatarUrl = (url) => {
+  if (!url) return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80';
+  if (url.startsWith('http') || url.startsWith('blob:')) return url;
+  const cleanPath = url.replace(/^(.*\/storage\/)/, '');
+  return `http://127.0.0.1:8000/storage/${cleanPath}`;
+};
+
+const handleImageError = (event) => {
+  event.target.src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80';
+};
+
+const truncateText = (text, length = 60) => {
+  if (!text) return '—';
+  return text.length > length ? text.substring(0, length) + '...' : text;
+};
+
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  return date.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+};
+
+const handleFileChange = (event) => {
+  const file = event.target.files[0];
+  delete errors.value.avatar;
+  if (!file) return;
+
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+  if (!allowedTypes.includes(file.type) || !/\.(jpe?g|png|webp)$/i.test(file.name)) {
+    errors.value.avatar = ['Ảnh chỉ chấp nhận định dạng: jpeg, png, jpg, webp.'];
+    event.target.value = '';
+    selectedFile.value = null;
+    avatarPreview.value = '';
+    return;
+  }
+
+  if (file.size > 2 * 1024 * 1024) {
+    errors.value.avatar = ['Ảnh không được vượt quá 2MB.'];
+    event.target.value = '';
+    selectedFile.value = null;
+    avatarPreview.value = '';
+    return;
+  }
+
+  selectedFile.value = file;
+  avatarPreview.value = URL.createObjectURL(file);
+};
+
+const fetchActors = async (showLoading = true) => {
+  if (showLoading) loading.value = true;
+  try {
+    const response = await api.get('/admin/actors');
+    actors.value = response.data.data || response.data;
+  } catch (error) {
+    console.error('Lỗi tải danh sách diễn viên:', error);
+  } finally {
+    if (showLoading) loading.value = false;
+  }
+};
+
+const validateForm = () => {
+  errors.value = {};
+  let isValid = true;
+
+  if (!form.value.name || form.value.name.trim() === '') {
+    errors.value.name = ['Vui lòng nhập tên diễn viên.'];
+    isValid = false;
+  }
+
+  if (!form.value.nationality || form.value.nationality.trim() === '') {
+    errors.value.nationality = ['Vui lòng nhập quốc tịch.'];
+    isValid = false;
+  }
+
+  if (!form.value.birth_date) {
+    errors.value.birth_date = ['Vui lòng chọn ngày sinh.'];
+    isValid = false;
+  } else if (form.value.birth_date > todayStr) {
+    errors.value.birth_date = ['Ngày sinh không được ở trong tương lai.'];
+    isValid = false;
+  }
+
+  if (!isEditing.value && !selectedFile.value) {
+    errors.value.avatar = ['Vui lòng chọn ảnh đại diện.'];
+    isValid = false;
+  }
+
+  return isValid;
+};
+
+const saveActor = async () => {
+  if (!validateForm()) return;
+
+  try {
+    const formData = new FormData();
+    formData.append('name', form.value.name.trim());
+    formData.append('birth_date', form.value.birth_date || '');
+    formData.append('nationality', form.value.nationality || '');
+
+    if (selectedFile.value) {
+      formData.append('avatar', selectedFile.value);
+    }
+
+    if (isEditing.value) formData.append('_method', 'PUT');
+
+    const url = isEditing.value ? `/admin/actors/${editingId.value}` : '/admin/actors';
+
+    await api.post(url, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+
+    toast(isEditing.value ? 'Cập nhật thành công!' : 'Thêm thành công!');
+    resetForm();
+    await fetchActors(false);
+  } catch (error) {
+    if (error.response?.status === 422) {
+      errors.value = error.response.data.errors;
+    } else {
+      toast('Có lỗi xảy ra!', 'error');
+    }
+  }
+};
+
+const editActor = (actor) => {
+  isEditing.value = true;
+  editingId.value = actor.id;
+  errors.value = {};
+  selectedFile.value = null;
+  avatarPreview.value = actor.avatar_url || '';
+  form.value = {
+    name: actor.name,
+    birth_date: actor.birth_date ? actor.birth_date.slice(0, 10) : '',
+    nationality: actor.nationality || ''
+  };
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+const deleteActor = async (id) => {
+  if (await confirmDialog('Bạn có chắc chắn muốn xóa diễn viên này không?', 'Liên kết với các phim sẽ bị xóa theo.')) {
+
+    const originalActors = [...actors.value];
+    actors.value = actors.value.filter(a => a.id !== id);
+
+    try {
+      await api.delete(`/admin/actors/${id}`);
+      toast('Đã xóa diễn viên thành công!');
+    } catch (error) {
+      actors.value = originalActors;
+      console.error('Lỗi xóa diễn viên:', error);
+      toast(error.response?.data?.message || 'Không thể xóa diễn viên này!', 'error');
+    }
+  }
+};
+
+const resetForm = () => {
+  form.value = { name: '', birth_date: '', nationality: '' };
+  selectedFile.value = null;
+  avatarPreview.value = '';
+  errors.value = {};
+  isEditing.value = false;
+  editingId.value = null;
+};
+
+onMounted(fetchActors);
+</script>
+
+<style scoped>
+.actor-management-container {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  background-color: #ffffff;
+  color: #1e293b;
+}
+
+.glass-panel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+  padding: 30px;
+  transition: all 0.3s ease;
+}
+
+.glass-panel:hover {
+  box-shadow: 0 6px 25px rgba(229, 9, 20, 0.04);
+  border-color: rgba(229, 9, 20, 0.15);
+}
+
+.form-card {
+  border-left: 5px solid #e50914;
+}
+
+.card-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 800;
+  color: #9b000e;
+  margin-bottom: 25px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.title-icon {
+  font-size: 24px;
+}
+
+.actor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 576px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #334155;
+}
+
+.form-input-large {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  padding: 14px 20px;
+  border-radius: 10px;
+  outline: none;
+  font-size: 16px;
+  background-color: #f8fafc;
+  color: #1e293b;
+  transition: all 0.2s ease-in-out;
+}
+
+.form-input-large:focus {
+  border-color: #e50914;
+  box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
+  background-color: #ffffff;
+}
+
+.file-input {
+  padding: 10px;
+  cursor: pointer;
+}
+
+.file-hint {
+  display: block;
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.textarea-cine {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.avatar-preview-box {
+  display: flex;
+  gap: 8px;
+  background: #f8fafc;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  width: fit-content;
+}
+
+.avatar-preview-img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid #e50914;
+}
+
+.form-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 5px;
+}
+
+.btn-primary-cine {
+  background: linear-gradient(135deg, #e50914 0%, #9b000e 100%);
+  color: #ffffff;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(229, 9, 20, 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-primary-cine:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(229, 9, 20, 0.35);
+}
+
+.btn-primary-cine:active {
+  transform: translateY(0);
+}
+
+.btn-secondary-cine {
+  background-color: #ffffff;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  padding: 14px 24px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary-cine:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
+  border-color: #94a3b8;
+}
+
+.list-card {
+  border-top: 4px solid #cbd5e1;
+}
+
+.list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 25px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 15px;
+}
+
+.list-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.count-badge {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 0;
+  gap: 15px;
+}
+
+.spinner-cine {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #e50914;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-state p {
+  font-size: 15px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.actor-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.actor-table th {
+  padding: 16px;
+  background-color: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+  color: #475569;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.actor-table td {
+  padding: 18px 16px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 15px;
+}
+
+.table-row:hover {
+  background-color: #fffafb;
+}
+
+.col-id { width: 70px; text-align: center; }
+.col-avatar { width: 90px; }
+.col-name { min-width: 180px; }
+.col-nationality { min-width: 120px; }
+.col-birth { min-width: 130px; }
+.col-count { width: 90px; text-align: center; }
+.col-actions { width: 180px; text-align: center; }
+
+.cell-id {
+  font-weight: 800;
+  color: #e50914;
+  text-align: center;
+}
+
+.cell-avatar {
+  text-align: center;
+}
+
+.avatar-thumbnail {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 2px solid #e2e8f0;
+}
+
+.cell-name {
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.cell-nationality,
+.cell-birth {
+  color: #475569;
+}
+
+.movie-count-badge {
+  display: inline-block;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  padding: 4px 12px;
+  border-radius: 30px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.action-buttons-group {
+  display: flex;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 10px;
+}
+
+.btn-action {
+  border: 1px solid #cbd5e1;
+  background-color: #ffffff;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-action.edit {
+  color: #d97706;
+  border-color: #fde68a;
+}
+
+.btn-action.edit:hover {
+  background-color: #fef3c7;
+  border-color: #d97706;
+}
+
+.btn-action.delete {
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.btn-action.delete:hover {
+  background-color: #fee2e2;
+  border-color: #dc2626;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #94a3b8;
+  font-size: 15px;
+}
+
+.error-msg {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin-top: 5px;
+  display: block;
+  font-weight: 600;
+}
+</style>

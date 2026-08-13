@@ -2,7 +2,7 @@
   <div class="admin-movies-view-container">
     <div class="glass-panel list-card">
       <div class="header-row">
-        <h2 class="title-cine">🎬 Quản Lý Danh Sách Phim</h2>
+        <h2 class="title-cine"><Clapperboard :size="15" style="vertical-align:-2px" /> Quản Lý Danh Sách Phim</h2>
         <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Phim Mới</button>
       </div>
 
@@ -39,6 +39,9 @@
                 <div class="muted small" style="margin-top: 4px;">
                   {{ movie.duration }} phút • {{ movie.genres ? movie.genres.map(g => g.name).join(', ') : 'Chưa có' }}
                 </div>
+                <div v-if="movie.actors && movie.actors.length" class="muted small" style="margin-top: 4px;">
+                  <Drama :size="15" style="vertical-align:-2px" /> {{ movie.actors.map(a => a.pivot?.character ? `${a.name} (${a.pivot.character})` : a.name).join(', ') }}
+                </div>
               </td>
               <td class="cell-status">
                 <span class="status-pill-cine" :class="{
@@ -59,7 +62,7 @@
 
             <tr v-if="paginatedMovies.length === 0">
               <td colspan="10" class="empty-state">
-                📭 Chưa có bộ phim nào được lưu. Hãy bấm nút "Thêm Phim Mới" để bắt đầu!
+                <Inbox :size="15" style="vertical-align:-2px" /> Chưa có bộ phim nào được lưu. Hãy bấm nút "Thêm Phim Mới" để bắt đầu!
               </td>
             </tr>
           </tbody>
@@ -79,7 +82,8 @@
       <div class="modal-content-cine">
         <div class="modal-header">
           <h3 class="modal-title-cine">
-            {{ isEdit ? '📝 Cập Nhật Thông Tin Phim' : '✨ Thêm Phim Chiếu Rạp Mới' }}
+            <SquarePen v-if="isEdit" :size="15" style="vertical-align:-2px" /><Sparkles v-else :size="15" style="vertical-align:-2px" />
+            {{ isEdit ? 'Cập Nhật Thông Tin Phim' : 'Thêm Phim Chiếu Rạp Mới' }}
           </h3>
           <button @click="closeModal" class="btn-close-modal">✕</button>
         </div>
@@ -151,6 +155,50 @@
           </div>
 
           <div class="form-group-large">
+            <label class="form-label-large">Diễn Viên Tham Gia * (Chọn ít nhất 1 diễn viên)</label>
+            <div v-if="actors.length === 0" class="no-actors-note">
+              Chưa có diễn viên nào trong hệ thống. Vào mục <strong>Quản lý diễn viên</strong> ở sidebar để thêm trước.
+            </div>
+            <template v-else>
+              <div class="actor-picker">
+                <div class="actor-picker-search">
+                  <Search :size="16" class="actor-picker-search-icon" />
+                  <input v-model="actorSearch" type="text" class="actor-picker-search-input"
+                    placeholder="Tìm kiếm diễn viên theo tên..." @focus="showActorDropdown = true"
+                    @blur="showActorDropdown = false" />
+                </div>
+
+                <div v-if="showActorDropdown" class="actor-picker-dropdown">
+                  <div v-if="filteredActors.length === 0" class="actor-picker-empty">
+                    Không tìm thấy diễn viên nào.
+                  </div>
+                  <div v-for="actor in filteredActors" :key="actor.id" class="actor-picker-item"
+                    @mousedown.prevent="toggleActor(actor)">
+                    <Check :size="15" class="actor-picker-check" />
+                    <span class="actor-picker-item-name">{{ actor.name }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="selectedActors.length > 0" class="actor-picker-selected">
+                <div v-for="actor in selectedActors" :key="actor.id" class="actor-picker-chip">
+                  <span class="actor-picker-chip-name">{{ actor.name }}</span>
+                  <input
+                    v-model="form.actor_characters[actor.id]"
+                    type="text"
+                    class="actor-character-input"
+                    placeholder="Vai diễn (VD: Diễn viên chính)..."
+                  />
+                  <button type="button" class="actor-picker-chip-remove" title="Bỏ chọn" @click="removeActor(actor.id)">
+                    ✕
+                  </button>
+                </div>
+              </div>
+            </template>
+            <span v-if="errors?.actor_ids" class="error-msg">{{ errors.actor_ids[0] }}</span>
+          </div>
+
+          <div class="form-group-large">
             <label class="form-label-large">Chọn Ảnh Poster Phim *</label>
             <div class="file-upload-section">
               <input type="file" accept="image/*" @change="handleFileChange" class="form-input-large file-input" />
@@ -193,9 +241,11 @@
 import { ref, onMounted, computed } from 'vue';
 import { toast, confirmDialog } from '../../utils/alert';
 import api from '../../api/axios';
+import { Check, Clapperboard, Drama, Inbox, Search, SquarePen, Sparkles } from 'lucide-vue-next';
 
 const movies = ref([]);
 const genres = ref([]);
+const actors = ref([]);
 
 const loading = ref(false);
 const showModal = ref(false);
@@ -226,7 +276,9 @@ const form = ref({
   trailer_url: '',
   rating: 'G',
   status: 'Đang chiếu',
-  genre_ids: []
+  genre_ids: [],
+  actor_ids: [],
+  actor_characters: {}
 });
 
 // BỘ LỌC TỰ ĐỘNG DỊCH URL CHUẨN XÁC: Đảm bảo ảnh poster được lấy đúng Host API port 8000
@@ -290,7 +342,9 @@ const openCreateModal = () => {
     trailer_url: '',
     rating: 'G',
     status: 'Đang chiếu',
-    genre_ids: []
+    genre_ids: [],
+    actor_ids: [],
+    actor_characters: {}
   };
   showModal.value = true;
 };
@@ -317,8 +371,15 @@ const openEditModal = (movie) => {
     trailer_url: movie.trailer_url || '',
     rating: movie.rating || 'G',
     status: movie.status || 'Đang chiếu',
-    genre_ids: movie.genres ? movie.genres.map(g => g.id) : []
+    genre_ids: movie.genres ? movie.genres.map(g => g.id) : [],
+    actor_ids: movie.actors ? movie.actors.map(a => a.id) : [],
+    actor_characters: {}
   };
+  if (movie.actors) {
+    movie.actors.forEach(a => {
+      form.value.actor_characters[a.id] = a.pivot?.character || '';
+    });
+  }
   showModal.value = true;
 };
 
@@ -365,6 +426,47 @@ const fetchGenres = async () => {
   }
 };
 
+const fetchActors = async () => {
+  try {
+    const response = await api.get('/admin/actors');
+    actors.value = response.data.data || response.data;
+  } catch (err) {
+    console.error('Lỗi tải danh sách diễn viên:', err);
+  }
+};
+
+const actorSearch = ref('');
+const showActorDropdown = ref(false);
+
+const filteredActors = computed(() => {
+  const q = actorSearch.value.trim().toLowerCase();
+  let list = actors.value;
+  if (q) list = list.filter((a) => (a.name || '').toLowerCase().includes(q));
+  return list.filter((a) => !form.value.actor_ids.includes(a.id));
+});
+
+const selectedActors = computed(() =>
+  actors.value.filter((a) => form.value.actor_ids.includes(a.id))
+);
+
+const toggleActor = (actor) => {
+  const idx = form.value.actor_ids.indexOf(actor.id);
+  if (idx >= 0) {
+    form.value.actor_ids.splice(idx, 1);
+    delete form.value.actor_characters[actor.id];
+  } else {
+    form.value.actor_ids.push(actor.id);
+    if (!form.value.actor_characters[actor.id]) form.value.actor_characters[actor.id] = '';
+    actorSearch.value = '';
+  }
+};
+
+const removeActor = (id) => {
+  const idx = form.value.actor_ids.indexOf(id);
+  if (idx >= 0) form.value.actor_ids.splice(idx, 1);
+  delete form.value.actor_characters[id];
+};
+
 const errors = ref({});
 
 
@@ -386,6 +488,15 @@ const saveMovie = async () => {
 
     if (form.value.genre_ids) {
       form.value.genre_ids.forEach(id => formData.append('genre_ids[]', id));
+    }
+
+    if (form.value.actor_ids) {
+      form.value.actor_ids.forEach(id => formData.append('actor_ids[]', id));
+    }
+    if (form.value.actor_characters) {
+      Object.entries(form.value.actor_characters).forEach(([id, character]) => {
+        if (character) formData.append(`actor_characters[${id}]`, character);
+      });
     }
 
     if (selectedFile.value) {
@@ -442,6 +553,7 @@ const deleteMovie = async (id) => {
 onMounted(async () => {
   await fetchMovies();
   await fetchGenres();
+  await fetchActors();
   });
 </script>
 
@@ -970,6 +1082,165 @@ onMounted(async () => {
 
 .checkbox-text {
   font-weight: 600;
+}
+
+.actor-character-input {
+  flex: 1;
+  min-width: 120px;
+  border: 1px solid #cbd5e1;
+  padding: 8px 12px;
+  border-radius: 8px;
+  outline: none;
+  font-size: 14px;
+  background-color: #f8fafc;
+  color: #1e293b;
+  transition: all 0.2s ease-in-out;
+}
+
+.actor-character-input:focus {
+  border-color: #e50914;
+  box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
+  background-color: #ffffff;
+}
+
+.no-actors-note {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  padding: 14px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.actor-picker {
+  position: relative;
+}
+
+.actor-picker-search {
+  position: relative;
+}
+
+.actor-picker-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.actor-picker-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px 10px 38px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  outline: none;
+  font-size: 14px;
+  background: #ffffff;
+  color: #1e293b;
+  transition: all 0.2s ease;
+}
+
+.actor-picker-search-input:focus {
+  border-color: #e50914;
+  box-shadow: 0 0 0 4px rgba(229, 9, 20, 0.1);
+}
+
+.actor-picker-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.actor-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.actor-picker-item:hover {
+  background: #f1f5f9;
+}
+
+.actor-picker-check {
+  color: #e50914;
+  flex-shrink: 0;
+  visibility: hidden;
+}
+
+.actor-picker-item:hover .actor-picker-check {
+  visibility: visible;
+  opacity: 0.5;
+}
+
+.actor-picker-item-name {
+  font-weight: 500;
+}
+
+.actor-picker-empty {
+  padding: 12px;
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+}
+
+.actor-picker-selected {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.actor-picker-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 10px;
+}
+
+.actor-picker-chip-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #1e293b;
+  min-width: 90px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actor-picker-chip-remove {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.actor-picker-chip-remove:hover {
+  color: #e50914;
+  background: #fff1f2;
 }
 
 .file-upload-section {
