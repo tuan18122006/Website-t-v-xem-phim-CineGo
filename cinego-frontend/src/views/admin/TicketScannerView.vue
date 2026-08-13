@@ -2,7 +2,7 @@
   <div class="scan-tab glass-panel" style="margin-top: 20px;">
     <div class="scan-container">
       <div class="scan-icon-wrapper">
-        <span class="scan-icon">📷</span>
+        <span class="scan-icon"><Camera :size="20" /></span>
       </div>
       <h3>Soát vé qua Mã QR</h3>
       <p>Nhập mã đặt vé bên dưới hoặc dùng thiết bị quét mã QR để quét trực tiếp vé của khách hàng.</p>
@@ -33,8 +33,8 @@
 
       <!-- Kết quả quét -->
       <div v-if="scanResult" class="scan-result" :class="scanResult.status">
-        <h4 v-if="scanResult.status === 'success'">✅ Vé Hợp Lệ!</h4>
-        <h4 v-else>❌ Lỗi Xác Nhận!</h4>
+        <h4 v-if="scanResult.status === 'success'"><CheckCircle2 :size="15" style="vertical-align:-2px" /> Vé Hợp Lệ!</h4>
+        <h4 v-else><XCircle :size="15" style="vertical-align:-2px" /> Lỗi Xác Nhận!</h4>
         <p>{{ scanResult.message }}</p>
       </div>
     </div>
@@ -44,6 +44,7 @@
 <script setup>
 import { ref, nextTick, onMounted } from 'vue';
 import api from '../../api/axios';
+import { Camera, CheckCircle2, XCircle } from 'lucide-vue-next';
 import { QrcodeStream, QrcodeCapture } from 'vue-qrcode-reader';
 
 const scanCode = ref('');

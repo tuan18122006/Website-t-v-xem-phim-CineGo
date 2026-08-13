@@ -14,7 +14,7 @@ class MovieController extends Controller
     public function index()
     {
         try {
-            $movies = Movie::with('genres')->orderBy('id', 'desc')->get();
+            $movies = Movie::with(['genres', 'actors'])->orderBy('id', 'desc')->get();
             return response()->json([
                 'success' => true,
                 'status' => 'success',
@@ -33,7 +33,7 @@ class MovieController extends Controller
     public function show($id)
     {
         try {
-            $movie = Movie::with('genres')->findOrFail($id);
+            $movie = Movie::with(['genres', 'actors'])->findOrFail($id);
             return response()->json([
                 'success' => true,
                 'status' => 'success',
@@ -61,6 +61,8 @@ class MovieController extends Controller
             'trailer_url'  => 'required|url',
             'poster'       => 'required|image|mimes:jpeg,png,jpg,webp|max:2048',
             'genre_ids'    => 'required|array|min:1',
+            'actor_ids'    => 'required|array|min:1',
+            'actor_ids.*'  => 'exists:actors,id',
         ], [
             'title.required'        => 'Vui lòng nhập tên phim.',
             'title.unique'          => 'Tên phim này đã tồn tại.',
@@ -78,6 +80,8 @@ class MovieController extends Controller
             'poster.mimes'          => 'Ảnh chỉ chấp nhận định dạng: jpeg, png, jpg, webp.',
             'genre_ids.required'    => 'Vui lòng chọn ít nhất 1 thể loại.',
             'genre_ids.min'         => 'Vui lòng chọn ít nhất 1 thể loại.',
+            'actor_ids.required'    => 'Vui lòng chọn ít nhất 1 diễn viên.',
+            'actor_ids.min'         => 'Vui lòng chọn ít nhất 1 diễn viên.',
         ]);
 
         $posterUrl = $request->file('poster')->store('posters', 'public');
@@ -97,7 +101,9 @@ class MovieController extends Controller
 
         $movie->genres()->attach($request->genre_ids);
 
-        return response()->json(['success' => true, 'data' => $movie->load('genres')], 201);
+        $this->syncCast($movie, $request);
+
+        return response()->json(['success' => true, 'data' => $movie->load(['genres', 'actors'])], 201);
     }
 
     public function update(Request $request, $id): JsonResponse
@@ -113,12 +119,16 @@ class MovieController extends Controller
             'trailer_url'  => 'required|url',
             'poster'       => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'genre_ids'    => 'required|array|min:1',
+            'actor_ids'    => 'required|array|min:1',
+            'actor_ids.*'  => 'exists:actors,id',
         ], [
             'title.unique'         => 'Tên phim này đã tồn tại.',
             'duration.min'         => 'Thời lượng phải lớn hơn 0.',
             'trailer_url.url'      => 'Link trailer không đúng định dạng URL.',
             'poster.image'         => 'File phải là hình ảnh.',
             'genre_ids.min'        => 'Vui lòng chọn ít nhất 1 thể loại.',
+            'actor_ids.required'   => 'Vui lòng chọn ít nhất 1 diễn viên.',
+            'actor_ids.min'        => 'Vui lòng chọn ít nhất 1 diễn viên.',
         ]);
 
         $data = $request->except(['poster', 'genre_ids', '_method']);
@@ -138,10 +148,30 @@ class MovieController extends Controller
 
         $movie->genres()->sync($request->genre_ids);
 
+        $this->syncCast($movie, $request);
+
         return response()->json([
             'success' => true,
             'message' => 'Cập nhật thành công!'
         ]);
+    }
+
+    protected function syncCast($movie, Request $request): void
+    {
+        $actorIds = $request->input('actor_ids', []);
+        if (empty($actorIds)) {
+            $movie->actors()->sync([]);
+            return;
+        }
+
+        $characters = $request->input('actor_characters', []);
+        $syncData = [];
+        foreach ($actorIds as $actorId) {
+            $syncData[$actorId] = [
+                'character' => $characters[$actorId] ?? null,
+            ];
+        }
+        $movie->actors()->sync($syncData);
     }
 
     public function destroy($id): JsonResponse

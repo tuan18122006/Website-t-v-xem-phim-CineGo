@@ -2,7 +2,7 @@
   <div class="admin-movies-view-container">
     <div class="glass-panel header-card">
       <div class="header-content">
-        <h2 class="title-cine">✏️ Cấu hình ghế: {{ roomName }}</h2>
+        <h2 class="title-cine"><Pencil :size="15" style="vertical-align:-2px" /> Cấu hình ghế: {{ roomName }}</h2>
         <div class="action-buttons">
           <button @click="goBack" class="btn-secondary-cine">Quay lại</button>
           <button @click="saveSeats" class="btn-primary-cine">Lưu Thay Đổi</button>
@@ -14,10 +14,10 @@
     <div class="toolbar-card glass-panel">
       <div class="toolbar-info">
         <div class="toolbar-stats">
-          <span>🟢 Thường: <strong>{{ seatStats.standard }}</strong></span>
-          <span>🔴 VIP: <strong>{{ seatStats.vip }}</strong></span>
-          <span>💖 Đôi: <strong>{{ seatStats.couple }}</strong></span>
-          <span>⚪ Trống/Xóa: <strong>{{ seatStats.hiddenOrDeleted }}</strong></span>
+          <span><Circle :size="15" fill="currentColor" style="color: #22c55e" /> Thường: <strong>{{ seatStats.standard }}</strong></span>
+          <span><Circle :size="15" fill="currentColor" style="color: #ef4444" /> VIP: <strong>{{ seatStats.vip }}</strong></span>
+          <span><Heart :size="15" fill="currentColor" style="color: #ec4899" /> Đôi: <strong>{{ seatStats.couple }}</strong></span>
+          <span><Circle :size="15" style="color: #e2e8f0" /> Trống/Xóa: <strong>{{ seatStats.hiddenOrDeleted }}</strong></span>
         </div>
         <div style="margin-top: 8px;">Đang chọn: <strong>{{ currentSelectedIds.length }} ghế</strong></div>
       </div>
@@ -55,6 +55,7 @@ import { useRoute, useRouter } from 'vue-router';
 import SeatMap from '../../components/SeatMap.vue';
 import api from '../../api/axios';
 import { toast } from '../../utils/alert';
+import { Pencil, Circle, Heart } from 'lucide-vue-next';
 
 const route = useRoute();
 const router = useRouter();

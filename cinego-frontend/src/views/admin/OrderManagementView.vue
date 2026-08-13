@@ -6,7 +6,7 @@
           <h3>Quản lý đơn hàng</h3>
           <p>Xem đơn đã đặt / đang đặt, phân biệt thành viên và khách vãng lai, lọc theo thời gian hoặc phim.</p>
         </div>
-        <button class="btn-export" @click="loadOrders">🔄 Tải lại</button>
+        <button class="btn-export" @click="loadOrders"><RefreshCw :size="15" style="vertical-align:-2px" /> Tải lại</button>
       </div>
 
       <div class="orders-toolbar">
@@ -39,7 +39,7 @@
       </div>
 
       <div v-else-if="filteredOrders.length === 0" class="lookup-state">
-        <span class="lookup-state__art">🧾</span>
+        <span class="lookup-state__art"><Receipt :size="20" /></span>
         <h4>Không có đơn hàng phù hợp</h4>
       </div>
 
@@ -90,7 +90,7 @@
       <div v-if="showOrderModal" class="lk-backdrop" @click.self="showOrderModal = false">
         <div class="lk-modal">
           <div class="lk-modal__head">
-            <h3>🎟️ Chi tiết đơn {{ selectedOrder?.booking_code }}</h3>
+            <h3><Ticket :size="15" style="vertical-align:-2px" /> Chi tiết đơn {{ selectedOrder?.booking_code }}</h3>
             <button class="lk-modal__close" @click="showOrderModal = false">✕</button>
           </div>
 
@@ -101,30 +101,30 @@
 
           <div v-else-if="selectedOrderDetail">
             <section class="lk-section">
-              <h4 class="lk-section__title">👤 Khách hàng</h4>
+              <h4 class="lk-section__title"><User :size="15" style="vertical-align:-2px" /> Khách hàng</h4>
               <div class="lk-kv"><span>Họ tên</span><b>{{ selectedOrderDetail.customer?.name || '—' }}</b></div>
               <div class="lk-kv"><span>Điện thoại</span><b>{{ selectedOrderDetail.customer?.phone || '—' }}</b></div>
               <div class="lk-kv"><span>Email</span><b>{{ selectedOrderDetail.customer?.email || '—' }}</b></div>
             </section>
 
             <section class="lk-section">
-              <h4 class="lk-section__title">🎬 Suất chiếu</h4>
+              <h4 class="lk-section__title"><Clapperboard :size="15" style="vertical-align:-2px" /> Suất chiếu</h4>
               <div class="lk-movie">
                 <img v-if="selectedOrderDetail.movie?.poster_url" :src="selectedOrderDetail.movie.poster_url" :alt="selectedOrderDetail.movie.title" />
                 <div>
                   <strong>{{ selectedOrderDetail.movie?.title }}</strong>
-                  <p class="muted">🏛️ {{ selectedOrderDetail.room_name }} • 🕒 {{ selectedOrderDetail.showtime_at || '—' }}</p>
+                  <p class="muted"><Building2 :size="15" style="vertical-align:-2px" /> {{ selectedOrderDetail.room_name }} • <Clock :size="15" style="vertical-align:-2px" /> {{ selectedOrderDetail.showtime_at || '—' }}</p>
                 </div>
               </div>
             </section>
 
             <section class="lk-section">
-              <h4 class="lk-section__title">🎟️ Chi tiết vé</h4>
+              <h4 class="lk-section__title"><Ticket :size="15" style="vertical-align:-2px" /> Chi tiết vé</h4>
               <TicketPrintable :booking="selectedOrderDetail" />
             </section>
 
             <section class="lk-section">
-              <h4 class="lk-section__title">⚙️ Trạng thái đơn hàng</h4>
+              <h4 class="lk-section__title"><Settings :size="15" style="vertical-align:-2px" /> Trạng thái đơn hàng</h4>
               <div class="lk-kv">
                 <span>Trạng thái hiện tại</span>
                 <strong>{{ payLabel(selectedOrderDetail.payment_status) }}</strong>
@@ -136,7 +136,7 @@
 
               <div v-if="selectedOrderDetail.payment_method === 'bank_transfer' && (selectedOrderDetail.payment_status === 'waiting_confirmation' || selectedOrderDetail.payment_status === 'pending')" style="margin-top: 15px;">
                 <div v-if="selectedOrderDetail.payment_status === 'waiting_confirmation'" style="background: #fef9c3; border: 1px solid #fde047; padding: 10px 14px; border-radius: 8px; font-size: 13px; color: #854d0e; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
-                  ⏳ Khách hàng đã báo cáo chuyển khoản. Vui lòng kiểm tra và xác nhận!
+                  <Hourglass :size="15" style="vertical-align:-2px" /> Khách hàng đã báo cáo chuyển khoản. Vui lòng kiểm tra và xác nhận!
                 </div>
                 <button class="btn-primary" style="width: 100%; background: #10b981; border: none;" :disabled="orderStatusUpdating" @click="confirmQRPayment">
                   {{ orderStatusUpdating ? 'Đang xử lý…' : 'Xác nhận đơn hàng đã thanh toán' }}
@@ -153,6 +153,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import api from '../../api/axios';
+import { RefreshCw, Receipt, Ticket, User, Clapperboard, Building2, Clock, Settings, Hourglass } from 'lucide-vue-next';
 import Swal from 'sweetalert2';
 import TicketPrintable from '../../components/TicketPrintable.vue';
 

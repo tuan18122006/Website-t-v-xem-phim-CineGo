@@ -2,7 +2,7 @@
   <div class="admin-movies-view-container">
     <div class="glass-panel list-card">
       <div class="header-row">
-        <h2 class="title-cine">🖼️ Quản Lý Banner Trang Chủ</h2>
+        <h2 class="title-cine"><Image :size="15" style="vertical-align:-2px" /> Quản Lý Banner Trang Chủ</h2>
         <button @click="openCreateBannerModal" class="btn-primary-cine">+ Thêm Banner</button>
       </div>
 
@@ -51,7 +51,7 @@
     <div v-if="showBannerModal" class="modal-backdrop" @click.self="closeBannerModal">
       <div class="modal-content-cine" style="max-width: 500px;">
         <div class="modal-header">
-          <h3 class="modal-title-cine">{{ isEdit ? '📝 Sửa Banner' : '🖼️ Thêm Banner Mới' }}</h3>
+          <h3 class="modal-title-cine"><template v-if="isEdit"><SquarePen :size="20" /> Sửa Banner</template><template v-else><Image :size="20" /> Thêm Banner Mới</template></h3>
           <button @click="closeBannerModal" class="btn-close-modal">✕</button>
         </div>
 
@@ -80,6 +80,7 @@
 import { ref, onMounted } from 'vue';
 import { toast, confirmDialog } from '../../utils/alert';
 import api from '../../api/axios';
+import { Image, SquarePen } from 'lucide-vue-next';
 
 const banners = ref([]);
 const movies = ref([]);

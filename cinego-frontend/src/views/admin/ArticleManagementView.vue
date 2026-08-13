@@ -2,7 +2,7 @@
   <div class="admin-movies-view-container">
     <div class="glass-panel list-card">
       <div class="header-row">
-        <h2 class="title-cine">📰 Quản Lý Bài Viết / Top Phim</h2>
+        <h2 class="title-cine"><Newspaper :size="15" style="vertical-align:-2px" /> Quản Lý Bài Viết / Top Phim</h2>
         <button @click="openModal()" class="btn-primary-cine">+ Thêm Bài Viết Mới</button>
       </div>
 
@@ -36,13 +36,13 @@
               <td class="cell-rating">{{ article.views }} view</td>
               <td class="cell-actions">
                 <div class="action-buttons-group">
-                  <button @click="openModal(article)" class="btn-action edit">✏️ Sửa</button>
-                  <button @click="deleteArticle(article.id)" class="btn-action delete">🗑️ Xóa</button>
+                  <button @click="openModal(article)" class="btn-action edit"><Pencil :size="15" style="vertical-align:-2px" /> Sửa</button>
+                  <button @click="deleteArticle(article.id)" class="btn-action delete"><Trash2 :size="15" style="vertical-align:-2px" /> Xóa</button>
                 </div>
               </td>
             </tr>
             <tr v-if="articles.length === 0">
-              <td colspan="6" class="empty-state">📭 Chưa có bài viết nào. Hãy bấm "Thêm Bài Viết Mới" để bắt đầu!</td>
+              <td colspan="6" class="empty-state"><Inbox :size="15" style="vertical-align:-2px" /> Chưa có bài viết nào. Hãy bấm "Thêm Bài Viết Mới" để bắt đầu!</td>
             </tr>
           </tbody>
         </table>
@@ -53,7 +53,7 @@
     <div v-if="showModal" class="modal-backdrop" @click.self="closeModal">
       <div class="modal-content-cine modal-lg">
         <div class="modal-header">
-          <h3 class="modal-title-cine">{{ isEditing ? '📝 Chỉnh Sửa Bài Viết' : '✨ Thêm Bài Viết Mới' }}</h3>
+          <h3 class="modal-title-cine"><template v-if="isEditing"><SquarePen :size="20" /> Chỉnh Sửa Bài Viết</template><template v-else><Sparkles :size="20" /> Thêm Bài Viết Mới</template></h3>
           <button @click="closeModal" class="btn-close-modal">✕</button>
         </div>
 
@@ -129,6 +129,7 @@
 import { ref, onMounted } from 'vue';
 import axios from '../../api/axios';
 import { toast } from '../../utils/alert';
+import { Newspaper, Pencil, Trash2, Inbox, SquarePen, Sparkles } from 'lucide-vue-next';
 
 const articles = ref([]);
 const allMovies = ref([]);

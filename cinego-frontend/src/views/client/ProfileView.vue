@@ -104,32 +104,28 @@
 
             <div class="member-stats-layout" style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 25px;">
               <!-- THẺ THÀNH VIÊN GRADIENT 3D TILT -->
-              <div style="flex-shrink: 0; display: flex; align-items: stretch;">
-                <div @click="openTierModal" @mousemove="handleMouseMove" @mouseleave="handleMouseLeave" style="cursor: pointer; perspective: 1000px;">
+              <div class="tier-card-wrap">
+                <div class="tier-card-3d" @click="openTierModal" @mousemove="handleMouseMove" @mouseleave="handleMouseLeave">
                   <div
                     ref="cardRef"
                     class="gilded-member-card"
                     :class="'tier-bg-' + (loyaltyData.current_tier || 'Bronze').toLowerCase()"
-                    style="height: 100%; display: flex; flex-direction: column;"
                   >
                     <div class="gmc-glow"></div>
-                    <div class="gmc-chip-wrap">
+                    <div class="gmc-top">
+                      <span class="gmc-brand">CineGo <small>Card</small></span>
                       <span class="gmc-chip-icon">💳</span>
                     </div>
-                    <div class="gmc-header">
-                      <span style="font-size: 14px; margin-right: 4px; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.2));">🛡️</span>
-                      <span class="gmc-brand">CineGo Card</span>
-                    </div>
-                    <div class="gmc-body" style="flex: 1;">
+                    <div class="gmc-body">
                       <span class="gmc-title">{{ profileForm.name }}</span>
-                      <span class="gmc-email" style="display: block; margin-bottom: 12px;">{{ profileForm.email }}</span>
-                      <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-start;">
-                        <span class="gmc-points" style="padding: 4px 6px; font-size: 11px;">💰 Chi tiêu: {{ formatPrice(loyaltyData.total_spent) }} đ</span>
-                        <span class="gmc-points" style="padding: 4px 6px; font-size: 11px;">⭐ Điểm: {{ loyaltyData.loyalty_points || 0 }} P</span>
-                      </div>
+                      <span class="gmc-email">{{ profileForm.email }}</span>
                     </div>
                     <div class="gmc-footer">
-                      <span class="gmc-tier">🏆 Thành viên {{ tierLabel(loyaltyData.current_tier || 'Bronze') }}</span>
+                      <div class="gmc-points-group">
+                        <span class="gmc-points"><b>{{ loyaltyData.loyalty_points || 0 }}</b> điểm CineGo</span>
+                        <span class="gmc-points"><b>{{ formatPrice(loyaltyData.total_spent) }}đ</b> tổng chi tiêu</span>
+                      </div>
+                      <span class="gmc-tier">🏆 {{ tierLabel(loyaltyData.current_tier || 'Bronze') }}</span>
                     </div>
                   </div>
                 </div>
@@ -1039,6 +1035,10 @@
               Bạn đã hủy thanh toán đơn hàng này. Ghế đã được trả lại, vui lòng đặt vé mới nếu vẫn muốn xem phim.
             </div>
             <template v-else>
+            <div v-if="isRetryPast24h" style="padding: 14px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; color: #475569; font-size: 13.5px; font-weight: 600;">
+              Đơn hàng đã quá 24 giờ kể từ khi đặt. Không thể thanh toán lại, vui lòng đặt vé mới.
+            </div>
+            <template v-else>
             <div v-if="retryTimeLeft > 0" style="margin-bottom: 12px; font-size: 13px; color: #b45309; display: flex; align-items: center; justify-content: center; gap: 6px;">
               ⏳ Thời gian thanh toán còn lại:
               <strong style="font-size: 18px; color: #dc2626; letter-spacing: 1px;">{{ retryTimeLeftText }}</strong>
@@ -1063,6 +1063,7 @@
               Đơn hàng đã hết lượt thanh toán lại. Vui lòng đặt vé mới.
             </div>
             </template>
+            </template>
           </div>
 
           <div v-if="selectedTicket?.payment_status === 'paid' && selectedTicket?.booking_status === 'completed'" style="padding: 0 25px 25px 25px; background: white; text-align: center; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;">
@@ -1072,9 +1073,10 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Modal Quyền lợi Thành viên -->
-      <div v-show="isTierModalOpen" class="modal-overlay" @click.self="closeTierModal" style="z-index: 9999;">
+    <!-- Modal Quyền lợi Thành viên -->
+    <div v-show="isTierModalOpen" class="modal-overlay" @click.self="closeTierModal" style="z-index: 9999;">
         <div class="modal-content tier-modal-wrapper hide-scrollbar" style="max-width: 700px; padding: 30px;">
           <button class="btn-close" @click="closeTierModal">✕</button>
           
@@ -1164,7 +1166,6 @@
         </div>
       </div>
 
-    </div>
   </div>
 </template>
 
@@ -1472,6 +1473,7 @@ const viewDetails = (ticket) => {
 
 const MAX_PAYMENT_RETRIES = 1;
 const isRetrying = ref(false);
+
 const retryExpiresAt = ref(null);
 const retryExpired = ref(false);
 const retryNow = ref(Date.now());
@@ -1487,6 +1489,13 @@ const isShowtimePassed = computed(() => {
   if (!ticket?.date || !ticket?.start_time) return false;
   const start = new Date(`${ticket.date}T${ticket.start_time}:00`);
   return !isNaN(start.getTime()) && start.getTime() <= Date.now();
+});
+
+const isRetryPast24h = computed(() => {
+  const ticket = selectedTicket?.value;
+  if (!ticket?.created_at) return false;
+  const created = new Date(ticket.created_at);
+  return !isNaN(created.getTime()) && Date.now() - created.getTime() > 24 * 3600 * 1000;
 });
 
 const retryTimeLeft = computed(() => {
@@ -2837,23 +2846,33 @@ onUnmounted(() => {
   }
 }
 
+.tier-card-wrap {
+  width: 310px;
+  flex-shrink: 0;
+}
+
+.tier-card-3d {
+  cursor: pointer;
+  perspective: 1000px;
+}
+
 .gilded-member-card {
   position: relative;
-  height: 110px;
-  border-radius: 12px;
-  padding: 12px;
+  height: 180px;
+  border-radius: 16px;
+  padding: 18px 20px;
   color: #ffffff;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
   transition: transform 0.1s ease, box-shadow 0.25s ease;
   transform-style: preserve-3d;
 }
 
 .gilded-member-card:hover {
-  box-shadow: 0 12px 24px rgba(0,0,0,0.25);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.3);
   z-index: 10;
 }
 
@@ -2863,44 +2882,43 @@ onUnmounted(() => {
   left: -50%;
   width: 200%;
   height: 200%;
-  background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.25) 0%, transparent 60%);
   transform: rotate(30deg);
   pointer-events: none;
   transition: top 0.1s ease, left 0.1s ease;
 }
 
-.gmc-chip-wrap {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 1;
-}
-
-.gmc-chip-icon {
-  font-size: 16px;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
-  opacity: 0.95;
-}
-
-.tier-bg-bronze { background: linear-gradient(135deg, #b06536, #6b3513); }
-.tier-bg-silver { background: linear-gradient(135deg, #a4b2c6, #4f5f76); }
-.tier-bg-gold { background: linear-gradient(135deg, #ecc554, #b8860b); }
-.tier-bg-diamond { background: linear-gradient(135deg, #22d3ee, #0891b2); }
-
-.gmc-header {
+.gmc-top {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 4px;
   z-index: 1;
 }
 
 .gmc-brand {
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 1px;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
   text-transform: uppercase;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
+
+.gmc-brand small {
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.85;
+  letter-spacing: 0.5px;
+}
+
+.gmc-chip-icon {
+  font-size: 26px;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+}
+
+.tier-bg-bronze { background: linear-gradient(135deg, #c98a52 0%, #8c4f22 55%, #5b2f12 100%); }
+.tier-bg-silver { background: linear-gradient(135deg, #cfd8e3 0%, #8795a8 55%, #4a5870 100%); }
+.tier-bg-gold { background: linear-gradient(135deg, #f6d365 0%, #d9a221 55%, #8c6a0d 100%); }
+.tier-bg-diamond { background: linear-gradient(135deg, #67e8f9 0%, #22a7c9 55%, #0e5f7a 100%); }
 
 .gmc-body {
   z-index: 1;
@@ -2909,41 +2927,58 @@ onUnmounted(() => {
 }
 
 .gmc-title {
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 800;
   letter-spacing: 0.5px;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-  margin-bottom: 2px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  margin-bottom: 3px;
+  word-break: break-word;
 }
 
 .gmc-email {
-  font-size: 9px;
+  font-size: 11px;
   opacity: 0.85;
+  letter-spacing: 0.3px;
+  word-break: break-all;
 }
 
 .gmc-footer {
+  z-index: 1;
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  z-index: 1;
-  border-top: 1px solid rgba(255,255,255,0.2);
-  padding-top: 6px;
+  align-items: flex-end;
+  gap: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  padding-top: 10px;
 }
 
-.gmc-tier {
-  font-size: 9px;
-  font-weight: 800;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+.gmc-points-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .gmc-points {
-  font-size: 10px;
-  font-weight: 950;
-  background: rgba(255,255,255,0.25);
-  padding: 2px 4px;
-  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.95;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.gmc-points b {
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.gmc-tier {
+  font-size: 12px;
+  font-weight: 800;
+  background: rgba(255, 255, 255, 0.22);
+  padding: 6px 10px;
+  border-radius: 999px;
   backdrop-filter: blur(4px);
-  box-shadow: inset 0 1px 1px rgba(255,255,255,0.3);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
 }
 </style>
 

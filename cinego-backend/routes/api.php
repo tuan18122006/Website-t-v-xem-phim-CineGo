@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\GenreController;
+use App\Http\Controllers\Api\ActorController;
 use App\Http\Controllers\Api\MovieController;
 use App\Http\Controllers\Api\ShowtimeController;
 use App\Http\Controllers\Api\RoomController;
@@ -35,6 +36,10 @@ Route::get('/movies/search', [MovieController::class, 'search']);
 Route::get('/movies/{id}', [MovieController::class, 'show']);
 Route::get('/movies/{movieId}/reviews', [ReviewController::class, 'index']);
 Route::get('/reviews/featured', [ReviewController::class, 'publicFeatured']);
+
+// Diễn viên (public routes)
+Route::get('/actors', [ActorController::class, 'index']);
+Route::get('/actors/{id}', [ActorController::class, 'show']);
 
 // Blog public routes
 Route::get('/blogs', [BlogController::class, 'index']); 
@@ -174,6 +179,12 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     Route::post('/genres', [GenreController::class, 'store']);
     Route::put('/genres/{genre}', [GenreController::class, 'update']);
     Route::delete('/genres/{genre}', [GenreController::class, 'destroy']);
+
+    // Quản lý diễn viên
+    Route::get('/actors', [ActorController::class, 'index']);
+    Route::post('/actors', [ActorController::class, 'store']);
+    Route::put('/actors/{id}', [ActorController::class, 'update']);
+    Route::delete('/actors/{id}', [ActorController::class, 'destroy']);
 
     Route::get('/movies', [MovieController::class, 'index']);
     Route::post('/movies', [MovieController::class, 'store']);

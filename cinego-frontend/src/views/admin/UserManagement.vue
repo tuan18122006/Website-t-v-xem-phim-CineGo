@@ -66,10 +66,10 @@
             <IconFilter class="filter-ic" />
             <select v-model="tierFilter" class="filter-select">
               <option value="">Tất cả hạng thành viên</option>
-              <option value="Bronze">🏆 Bronze (Đồng)</option>
-              <option value="Silver">🏆 Silver (Bạc)</option>
-              <option value="Gold">🏆 Gold (Vàng)</option>
-              <option value="Diamond">🏆 Diamond (Kim cương)</option>
+              <option value="Bronze">Bronze (Đồng)</option>
+              <option value="Silver">Silver (Bạc)</option>
+              <option value="Gold">Gold (Vàng)</option>
+              <option value="Diamond">Diamond (Kim cương)</option>
             </select>
           </div>
 
@@ -120,13 +120,13 @@
                 <td>
                   <template v-if="u.role === 'customer'">
                     <span class="premium-badge tier" :class="'tier-' + (u.membership_tier || 'Bronze').toLowerCase()">
-                      🏆 Hạng {{ u.membership_tier || 'Bronze' }}
+                      <Trophy :size="15" style="vertical-align:-2px" /> Hạng {{ u.membership_tier || 'Bronze' }}
                     </span>
                     <div style="font-size: 12px; color: #f59e0b; margin-top: 4px; font-weight: 600;">{{ (u.loyalty_points || 0).toLocaleString('vi-VN') }} PTS</div>
                   </template>
                   <template v-else>
                     <span class="premium-badge" :class="u.work_status === 'on_shift' ? 'status-active' : 'role-customer'">
-                      💼 {{ u.work_status === 'on_shift' ? 'Đang làm việc' : 'Chưa vào ca' }}
+                      <Briefcase :size="15" style="vertical-align:-2px" /> {{ u.work_status === 'on_shift' ? 'Đang làm việc' : 'Chưa vào ca' }}
                     </span>
                   </template>
                 </td>
@@ -207,7 +207,7 @@
 
               <div class="apc-details">
                 <div class="apcd-row"><span><IconPhone /> SĐT</span><strong>{{ u.phone || '—' }}</strong></div>
-                <div class="apcd-row"><span>🧑 Tuổi</span><strong>{{ u.age || '—' }}</strong></div>
+                <div class="apcd-row"><span><User :size="15" style="vertical-align:-2px" /> Tuổi</span><strong>{{ u.age || '—' }}</strong></div>
                 <div class="apcd-row"><span><IconCalendar /> Ngày tham gia</span><strong>{{ formatDate(u.created_at) }}</strong></div>
               </div>
 
@@ -256,13 +256,13 @@
                   </div>
                 </td>
                 <td><strong>{{ s.shift_name }}</strong></td>
-                <td><span class="premium-badge role-staff">📍 {{ s.workstation }}</span></td>
+                <td><span class="premium-badge role-staff"><MapPin :size="15" style="vertical-align:-2px" /> {{ s.workstation }}</span></td>
                 <td class="td-muted">{{ formatDateTime(s.checkin_time) }}</td>
                 <td class="td-muted">{{ formatDateTime(s.checkout_time) }}</td>
                 <td>
                   <div class="shift-reported-wrap">
-                    <div>💵 Tiền mặt: <strong>{{ formatCurrency(s.reported_cash) }}</strong></div>
-                    <div>💳 C.Khoản: <strong>{{ formatCurrency(s.reported_transfer) }}</strong></div>
+                    <div><Banknote :size="15" style="vertical-align:-2px" /> Tiền mặt: <strong>{{ formatCurrency(s.reported_cash) }}</strong></div>
+                    <div><CreditCard :size="15" style="vertical-align:-2px" /> C.Khoản: <strong>{{ formatCurrency(s.reported_transfer) }}</strong></div>
                   </div>
                 </td>
                 <td>
@@ -445,7 +445,7 @@
             >
               <div class="gmc-glow"></div>
               <div class="gmc-chip-wrap">
-                <span class="gmc-chip-icon">💳</span>
+                <span class="gmc-chip-icon"><CreditCard :size="20" /></span>
               </div>
               <div class="gmc-header">
                 <IconShield class="gmc-logo" />
@@ -456,7 +456,7 @@
                 <span class="gmc-email">{{ detail.user.email }}</span>
               </div>
               <div class="gmc-footer">
-                <span class="gmc-tier">🏆 {{ detail.user.membership_tier || 'Bronze' }} MEMBER</span>
+                <span class="gmc-tier"><Trophy :size="15" style="vertical-align:-2px" /> {{ detail.user.membership_tier || 'Bronze' }} MEMBER</span>
                 <span class="gmc-points">{{ detail.user.loyalty_points }} PTS</span>
               </div>
             </div>
@@ -485,7 +485,7 @@
 
             <!-- CỘNG / TRỪ ĐIỂM THỦ CÔNG -->
             <div v-if="detail.user.role === 'customer'" class="crm-quick-control" style="margin-top: 12px;">
-              <label class="control-label">⭐ Cộng / Trừ điểm thủ công</label>
+              <label class="control-label"><Star :size="15" style="vertical-align:-2px" /> Cộng / Trừ điểm thủ công</label>
               <div style="display: flex; gap: 8px; margin-top: 6px;">
                 <input v-model.number="adjustPointsAmount" type="number" class="form-control" placeholder="Nhập số điểm (âm = trừ)" style="flex: 1; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 13px;" />
                 <button class="btn-action edit" @click="handleAdjustPoints(detail.user.id)" style="white-space: nowrap; padding: 8px 16px;">Áp dụng</button>
@@ -561,8 +561,8 @@
                 <div v-else class="crm-device-list">
                   <div v-for="log in detail.device_logs" :key="log.id" class="crm-device-item">
                     <div class="cdi-header">
-                      <span>🌐 IP: <strong>{{ log.ip_address }}</strong></span>
-                      <span class="td-muted">🕒 {{ formatDateTime(log.last_login_at) }}</span>
+                      <span><Globe :size="15" style="vertical-align:-2px" /> IP: <strong>{{ log.ip_address }}</strong></span>
+                      <span class="td-muted"><Clock :size="15" style="vertical-align:-2px" /> {{ formatDateTime(log.last_login_at) }}</span>
                     </div>
                     <p class="cdi-ua">{{ log.user_agent }}</p>
                   </div>
@@ -577,7 +577,7 @@
                   <li v-for="r in detail.reviews" :key="r.id">
                     <div class="crl-head">
                       <strong>{{ r.movie?.title || 'Phim #' + r.movie_id }}</strong>
-                      <span class="review-stars">⭐ {{ r.rating }}/5</span>
+                      <span class="review-stars"><Star :size="15" style="vertical-align:-2px" /> {{ r.rating }}/5</span>
                     </div>
                     <p class="crl-comment">{{ r.comment || '(Không có nội dung đánh giá)' }}</p>
                   </li>
@@ -629,6 +629,7 @@ import { ref, computed, onMounted, h, watch } from 'vue';
 import api from '../../api/axios';
 import { useAuthStore } from '../../stores/auth';
 import { toast, confirmDialog } from '../../utils/alert';
+import { Trophy, Briefcase, User, CreditCard, Star, Globe, Clock, MapPin, Banknote } from 'lucide-vue-next';
 
 /* ---------- Icon SVG (Lucide custom render) ---------- */
 const mk = (children) => ({

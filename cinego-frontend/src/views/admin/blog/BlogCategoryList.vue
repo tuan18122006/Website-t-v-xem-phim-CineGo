@@ -4,7 +4,10 @@
       <div class="form-column">
         <div class="glass-panel form-card">
           <div class="card-header-cine">
-            <span class="header-icon">{{ isEditing ? "📝" : "✨" }}</span>
+            <span class="header-icon">
+              <SquarePen v-if="isEditing" :size="20" />
+              <Sparkles v-else :size="20" />
+            </span>
             <div>
               <h3 class="panel-title">
                 {{ isEditing ? "Cập Nhật Thể Loại" : "Thêm Thể Loại Mới" }}
@@ -59,7 +62,7 @@
         <div class="glass-panel table-card">
           <div class="table-toolbar">
             <div class="search-box">
-              <span class="search-icon">🔍</span>
+              <span class="search-icon"><Search :size="20" /></span>
               <input
                 v-model="searchQuery"
                 type="text"
@@ -109,20 +112,20 @@
                       class="action-btn btn-edit-icon"
                       title="Sửa"
                     >
-                      ✏️ Sửa
+                      <Pencil :size="15" style="vertical-align:-2px" /> Sửa
                     </button>
                     <button
                       @click="deleteCategory(cat)"
                       class="action-btn btn-delete-icon"
                       title="Xóa"
                     >
-                      🗑️ Xóa
+                      <Trash2 :size="15" style="vertical-align:-2px" /> Xóa
                     </button>
                   </td>
                 </tr>
                 <tr v-if="filteredCategories.length === 0">
                   <td colspan="4" class="empty-state">
-                    <span class="empty-icon">📂</span>
+                    <span class="empty-icon"><FolderOpen :size="20" /></span>
                     <p>Không tìm thấy thể loại blog nào phù hợp.</p>
                   </td>
                 </tr>
@@ -137,6 +140,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
+import {
+  SquarePen,
+  Sparkles,
+  Search,
+  Pencil,
+  Trash2,
+  FolderOpen,
+} from "lucide-vue-next";
 import api from "../../../api/axios";
 import { toast, confirmDialog } from "../../../utils/alert";
 

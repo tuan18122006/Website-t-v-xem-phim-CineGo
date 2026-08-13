@@ -19,8 +19,8 @@
 
             <div class="slide-meta">
               <span class="rating-badge-slide" :class="getRatingClass(banner.rating)">{{ banner.rating }}</span>
-              <span class="meta-item-slide">⏱️ {{ banner.duration }} phút</span>
-              <span class="meta-item-slide">📁 {{ banner.genres.join(', ') }}</span>
+              <span class="meta-item-slide"><Clock :size="14" style="vertical-align:-2px" /> {{ banner.duration }} phút</span>
+              <span class="meta-item-slide"><FolderOpen :size="14" style="vertical-align:-2px" /> {{ banner.genres.join(', ') }}</span>
             </div>
 
             <p class="banner-description">
@@ -86,11 +86,25 @@
             <div class="movie-meta-info" @click="bookMovie(movie)">
               <h3 class="movie-carousel-title">{{ movie.title }}</h3>
               <p class="movie-carousel-genres">
-                {{movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Hành động, Viễn tưởng'}}
+                <template v-if="movie.genres && movie.genres.length">
+                  <span v-for="(g, gi) in movie.genres.slice(0, 3)" :key="gi" class="genre-chip genre-chip-dark">
+                    {{ g.name || g }}
+                  </span>
+                  <span v-if="movie.genres.length > 3" class="genre-chip genre-chip-dark">
+                    +{{ movie.genres.length - 3 }}
+                  </span>
+                </template>
+                <span v-else>Hành động, Viễn tưởng</span>
               </p>
               <div class="rating-row">
-                <span class="star-rating">★ {{ getStarRating(movie.id) }}</span>
-                <span class="duration">{{ movie.duration }} phút</span>
+                <span class="duration">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"
+                    stroke="currentColor" width="13" height="13">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                  </svg>
+                  Thời Lượng {{ movie.duration }} phút
+                </span>
               </div>
             </div>
           </div>
@@ -128,7 +142,14 @@
               <div class="info-light" @click="goToDetail(movie.id)">
                 <h3 class="title-light">{{ movie.title }}</h3>
                 <p class="genres-light">
-                  {{movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Sắp chiếu'}}
+                  <template v-if="movie.genres && movie.genres.length">
+                    <span v-for="(g, gi) in movie.genres.slice(0, 3)" :key="gi"
+                      class="genre-chip genre-chip-light">{{ g.name || g }}</span>
+                    <span v-if="movie.genres.length > 3" class="genre-chip genre-chip-light">
+                      +{{ movie.genres.length - 3 }}
+                    </span>
+                  </template>
+                  <span v-else>Sắp chiếu</span>
                 </p>
 
                 <p v-if="movie.duration" class="duration-light">
@@ -151,75 +172,7 @@
       </div>
     </section>
 
-    <!-- SECTION: TÌM KIẾM & BỘ LỌC BỘ TRUYỆN -->
-    <section class="cg-search-filter-section">
-      <div class="cg-filter-container">
-        <div class="cg-filter-bar-header">
-          <h2 class="cg-filter-main-title">Tìm phim chiếu rạp trên CineGo</h2>
-
-          <div class="cg-filter-controls">
-            <select v-model="filters.genre_id" @change="handleFilterChange" class="cg-filter-select">
-              <option value="">Thể loại</option>
-              <option v-for="genre in genreList" :key="genre.id" :value="genre.id">{{ genre.name }}</option>
-            </select>
-
-            <select v-model="filters.country" @change="handleFilterChange" class="cg-filter-select">
-              <option value="">Quốc gia</option>
-              <option value="Vietnam">Việt Nam</option>
-              <option value="USA">Âu Mỹ</option>
-              <option value="Korea">Hàn Quốc</option>
-            </select>
-
-            <select v-model="filters.year" @change="handleFilterChange" class="cg-filter-select">
-              <option value="">Năm</option>
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
-            </select>
-
-            <div class="cg-search-input-wrapper">
-              <input type="text" v-model="filters.keyword" @input="debounceSearch" placeholder="Tìm theo tên phim..."
-                class="cg-filter-search-input" />
-              <span class="cg-search-icon">🔍</span>
-            </div>
-          </div>
-        </div>
-
-        <div v-if="filterLoading" class="cg-filter-loading-state">
-          <div class="cg-spinner-accent"></div>
-          <p>Đang tìm phim...</p>
-        </div>
-
-        <div v-else class="cg-filter-movies-grid">
-          <div v-for="movie in paginatedMovies" :key="'filter-' + movie.id" class="cg-filter-movie-card">
-            <div class="cg-filter-poster-box">
-              <img :src="getPosterUrl(movie.poster_url)" :alt="movie.title" class="cg-filter-movie-poster"
-                @click="goToDetail(movie.id)" />
-              <div class="cg-filter-play-overlay" @click="goToDetail(movie.id)">
-                <div class="cg-filter-play-icon-btn" @click.stop="openTrailer(movie.trailer_url)">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="#ffffff">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                  </svg>
-                </div>
-              </div>
-              <span class="cg-filter-age-badge" :class="getRatingClass(movie.rating)">{{ movie.rating || 'G' }}</span>
-            </div>
-            <div class="cg-filter-movie-info">
-              <h3 class="cg-filter-movie-title" @click="goToDetail(movie.id)">{{ movie.title }}</h3>
-              <p class="cg-filter-movie-genres">
-                {{movie.genres ? movie.genres.map(g => g.name || g).join(', ') : 'Hành động'}}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Pagination Controls -->
-        <div class="reviews-pager" v-if="totalPages > 1 && !filterLoading">
-          <button @click="prevPage" :disabled="currentPage === 1">Trang trước</button>
-          <span>Trang {{ currentPage }} / {{ totalPages }}</span>
-          <button @click="nextPage" :disabled="currentPage === totalPages">Trang sau</button>
-        </div>
-      </div>
-    </section>
+    
 
     <section class="home-featured-comments-section">
       <div class="home-featured-comments-container">
@@ -239,7 +192,7 @@
                 </svg>
               </button>
 
-              <span class="movie-rating-pill">⭐ {{ review.rating }}/5</span>
+              <span class="movie-rating-pill"><Star :size="12" fill="#fbbf24" stroke="#fbbf24" style="vertical-align:-2px" /> {{ review.rating }}/5</span>
               <span v-if="review.duration" class="movie-duration-pill">{{ review.duration }} phút</span>
             </div>
 
@@ -290,6 +243,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useBookingStore } from '../../stores/booking';
 import api from '../../api/axios';
+import { Clock, FolderOpen, Star } from 'lucide-vue-next';
 
 const router = useRouter();
 const bookingStore = useBookingStore();

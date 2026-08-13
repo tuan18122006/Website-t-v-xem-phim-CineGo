@@ -15,17 +15,8 @@
           :class="{ active: activeTab === 'stats' }" 
           @click="activeTab = 'stats'"
         >
-          <span class="nav-icon">📊</span>
+          <span class="nav-icon"><BarChart3 :size="20" /></span>
           <span>Dashboard</span>
-        </button>
-
-        <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'genres' }" 
-          @click="activeTab = 'genres'"
-        >
-          <span class="nav-icon">🏷️</span>
-          <span>Quản Lý Thể Loại</span>
         </button>
 
         <!-- MOVIES DROPDOWN -->
@@ -33,12 +24,12 @@
           <button
             class="nav-link dropdown-toggle"
             :class="{
-              active: activeTab === 'movies' || activeTab === 'banners',
+              active: activeTab === 'movies' || activeTab === 'genres' || activeTab === 'banners' || activeTab === 'actors',
             }"
             @click="movieMenuOpen = !movieMenuOpen"
           >
             <div class="dropdown-left">
-              <span class="nav-icon">🎬</span>
+              <span class="nav-icon"><Clapperboard :size="20" /></span>
               <span>Quản Lý Phim</span>
             </div>
 
@@ -54,7 +45,23 @@
                 :class="{ active: activeTab === 'movies' }"
                 @click="activeTab = 'movies'"
               >
-                🎬 Danh sách phim
+                <Clapperboard :size="15" style="vertical-align:-2px" /> Danh sách phim
+              </button>
+
+              <button
+                class="sub-nav-link"
+                :class="{ active: activeTab === 'genres' }"
+                @click="activeTab = 'genres'"
+              >
+                <Tag :size="15" style="vertical-align:-2px" /> Quản lý thể loại
+              </button>
+
+              <button
+                class="sub-nav-link"
+                :class="{ active: activeTab === 'actors' }"
+                @click="activeTab = 'actors'"
+              >
+                <Drama :size="15" style="vertical-align:-2px" /> Quản lý diễn viên
               </button>
 
               <button
@@ -62,7 +69,7 @@
                 :class="{ active: activeTab === 'banners' }"
                 @click="activeTab = 'banners'"
               >
-                🖼️ Quản lý Banner
+                <Image :size="15" style="vertical-align:-2px" /> Quản lý Banner
               </button>
             </div>
           </transition>
@@ -73,7 +80,7 @@
           :class="{ active: activeTab === 'showtimes' }" 
           @click="activeTab = 'showtimes'"
         >
-          <span class="nav-icon">🕒</span>
+          <span class="nav-icon"><Clock :size="20" /></span>
           <span>Quản Lý Lịch Chiếu</span>
         </button>
 
@@ -87,7 +94,7 @@
             @click="orderMenuOpen = !orderMenuOpen"
           >
             <div class="dropdown-left">
-              <span class="nav-icon">🧾</span>
+              <span class="nav-icon"><Receipt :size="20" /></span>
               <span>Quản Lý Đơn Hàng</span>
             </div>
 
@@ -103,7 +110,7 @@
                 :class="{ active: activeTab === 'orders' }"
                 @click="activeTab = 'orders'"
               >
-                🧾 Danh sách đơn hàng
+                <Receipt :size="15" style="vertical-align:-2px" /> Danh sách đơn hàng
               </button>
 
               <button
@@ -111,7 +118,7 @@
                 :class="{ active: activeTab === 'lookup' }"
                 @click="activeTab = 'lookup'"
               >
-                🔍 Tra cứu & Hỗ trợ
+                <Search :size="15" style="vertical-align:-2px" /> Tra cứu & Hỗ trợ
               </button>
 
               <button
@@ -119,7 +126,7 @@
                 :class="{ active: activeTab === 'scan' }"
                 @click="activeTab = 'scan'"
               >
-                📷 Quét mã QR / Soát vé
+                <Camera :size="15" style="vertical-align:-2px" /> Quét mã QR / Soát vé
               </button>
 
               <button
@@ -127,7 +134,7 @@
                 :class="{ active: activeTab === 'payment_settings' }"
                 @click="activeTab = 'payment_settings'"
               >
-                ⚙️ Cấu hình thanh toán
+                <Settings :size="15" style="vertical-align:-2px" /> Cấu hình thanh toán
               </button>
             </div>
           </transition>
@@ -138,7 +145,7 @@
   :class="{ active: activeTab === 'rooms' }" 
   @click="activeTab = 'rooms'"
 >
-  <span class="nav-icon">🏟️</span>
+  <span class="nav-icon"><Building2 :size="20" /></span>
   <span>Quản Lý Phòng Chiếu & Ghế</span>
 </button>
 
@@ -147,53 +154,42 @@
           :class="{ active: activeTab === 'users' }"
           @click="activeTab = 'users'"
         >
-          <span class="nav-icon">👥</span>
+          <span class="nav-icon"><Users :size="20" /></span>
           <span>Quản Lý Tài Khoản</span>
         </button>
 
 
          <button class="nav-link" :class="{ active: activeTab === 'combos' }" @click="activeTab = 'combos'">
-          <span class="nav-icon">🍿</span>
+          <span class="nav-icon"><Popcorn :size="20" /></span>
           <span>Quản Lý Đồ Ăn Và Combo</span>
         </button>
          
         <button class="nav-link" :class="{ active: activeTab === 'vouchers' }" @click="activeTab = 'vouchers'">
-          <span class="nav-icon">🎟️</span>
+          <span class="nav-icon"><Ticket :size="20" /></span>
           <span>Quản Lý Mã Giảm Giá</span>
         </button>
 
         <button class="nav-link" :class="{ active: activeTab === 'loyalty' }" @click="activeTab = 'loyalty'">
-          <span class="nav-icon">🌟</span>
-          <span>Loyalty</span>
+          <span class="nav-icon"><Star :size="20" /></span>
+          <span>Quản Lý Tích Điểm Khách Hàng</span>
         </button>
 
         <button class="nav-link" :class="{ active: activeTab === 'reviews' }" @click="activeTab = 'reviews'">
-          <span class="nav-icon">⭐</span>
+          <span class="nav-icon"><Star :size="20" /></span>
           <span>Quản Lý Đánh Giá</span>
         </button>
-
-        <button
-          class="nav-link"
-          :class="{ active: activeTab === 'articles' }"
-          @click="activeTab = 'articles'"
-        >
-          <span class="nav-icon">📰</span>
-          <span>Quản Lý Bài Viết</span>
-        </button>
-
-
 
         <!-- BLOG DROPDOWN -->
         <div class="nav-dropdown">
           <button
             class="nav-link dropdown-toggle"
             :class="{
-              active: activeTab === 'blogs' || activeTab === 'blog-categories',
+              active: activeTab === 'blogs' || activeTab === 'blog-categories' || activeTab === 'articles',
             }"
             @click="blogMenuOpen = !blogMenuOpen"
           >
             <div class="dropdown-left">
-              <span class="nav-icon">📰</span>
+              <span class="nav-icon"><Newspaper :size="20" /></span>
               <span>Quản Lý Blog</span>
             </div>
 
@@ -206,10 +202,18 @@
             <div v-show="blogMenuOpen" class="dropdown-content">
               <button
                 class="sub-nav-link"
+                :class="{ active: activeTab === 'articles' }"
+                @click="activeTab = 'articles'"
+              >
+                <Newspaper :size="15" style="vertical-align:-2px" /> Quản lý bài viết
+              </button>
+
+              <button
+                class="sub-nav-link"
                 :class="{ active: activeTab === 'blog-categories' }"
                 @click="activeTab = 'blog-categories'"
               >
-                📁 Thể Loại Blog
+                <Folder :size="15" style="vertical-align:-2px" /> Thể Loại Blog
               </button>
 
               <button
@@ -217,7 +221,7 @@
                 :class="{ active: activeTab === 'blogs' }"
                 @click="activeTab = 'blogs'"
               >
-                ✍️ Danh sách Blog
+                <PenLine :size="15" style="vertical-align:-2px" /> Danh sách Blog
               </button>
             </div>
           </transition>
@@ -230,7 +234,7 @@
           <p class="admin-name">{{ authStore.user?.name || 'Quản trị viên' }}</p>
           <p class="admin-role">Hệ Thống CineGo</p>
         </div>
-        <button @click="handleLogout" class="btn-logout-sidebar">🚪 Đăng xuất</button>
+        <button @click="handleLogout" class="btn-logout-sidebar"><LogOut :size="15" style="vertical-align:-2px" /> Đăng xuất</button>
       </div>
     </aside>
 
@@ -263,7 +267,10 @@
                      class="notif-item" 
                      :class="{'unread': notif.read_at === null}"
                      @click="markNotiAsRead(notif.id)">
-                  <div class="notif-icon">{{ notif.data.type === 'qr_payment_pending' ? '🧾' : '🔔' }}</div>
+                  <div class="notif-icon">
+                    <Receipt v-if="notif.data.type === 'qr_payment_pending'" :size="20" />
+                    <Bell v-else :size="20" />
+                  </div>
                   <div class="notif-content">
                     <p class="notif-message">{{ notif.data.message }}</p>
                     <span class="notif-time">{{ new Date(notif.created_at).toLocaleString('vi-VN') }}</span>
@@ -274,7 +281,7 @@
           </div>
 
 
-          <router-link to="/" class="btn-back-client">👁️ Xem Client Website</router-link>
+          <router-link to="/" class="btn-back-client"><Eye :size="15" style="vertical-align:-2px" /> Xem Client Website</router-link>
         </div>
       </header>
 
@@ -292,18 +299,18 @@
             <input type="date" v-model="endDate" class="date-input" />
           </div>
           <button @click="applyDateFilter" class="btn-filter" :disabled="statsLoading">
-            <span v-if="statsLoading">⏳</span>
-            <span v-else>🔍 Lọc Dữ Liệu</span>
+            <span v-if="statsLoading"><Hourglass :size="15" style="vertical-align:-2px" /></span>
+            <span v-else><Search :size="15" style="vertical-align:-2px" /> Lọc Dữ Liệu</span>
           </button>
         </div>
 
         <!-- Widgets thông số THẬT -->
         <div class="stats-widgets" style="margin-bottom: 30px;">
           <div class="widget-card grad-pink" :class="{ 'flash-live': isLiveUpdated }">
-            <div class="widget-icon">💰</div>
+            <div class="widget-icon"><CircleDollarSign :size="20" /></div>
             <div class="widget-info">
               <span class="widget-label">Tổng Doanh Thu 
-                <span v-if="isLiveUpdated" class="live-badge">🔴 Live</span>
+                <span v-if="isLiveUpdated" class="live-badge">Live</span>
               </span>
               <span class="widget-value">{{ formatCurrency(totalRevenue) }}</span>
               <span class="widget-trend">Từ các đơn đã thanh toán</span>
@@ -311,7 +318,7 @@
           </div>
 
           <div class="widget-card grad-violet">
-            <div class="widget-icon">🎟️</div>
+            <div class="widget-icon"><Ticket :size="20" /></div>
             <div class="widget-info">
               <span class="widget-label">Vé Đã Bán</span>
               <span class="widget-value">{{ totalTickets.toLocaleString('vi-VN') }}</span>
@@ -320,7 +327,7 @@
           </div>
 
           <div class="widget-card grad-orange">
-            <div class="widget-icon">🍿</div>
+            <div class="widget-icon"><Popcorn :size="20" /></div>
             <div class="widget-info">
               <span class="widget-label">Bắp Nước Đã Bán</span>
               <span class="widget-value">{{ totalCombos.toLocaleString('vi-VN') }}</span>
@@ -329,7 +336,7 @@
           </div>
 
           <div class="widget-card grad-blue">
-            <div class="widget-icon">🕒</div>
+            <div class="widget-icon"><Clock :size="20" /></div>
             <div class="widget-info">
               <span class="widget-label">Suất Chiếu Hôm Nay</span>
               <span class="widget-value">{{ todayShowtimes }}</span>
@@ -438,7 +445,7 @@
 
           <div class="report-card glass-panel" style="padding: 24px; display: flex; flexDirection: column; align-items: stretch; border: 1px solid rgba(0,0,0,0.04); box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; border-bottom: 2px solid #f1f5f9; padding-bottom: 15px; margin-bottom: 15px;">
-              <h3 class="card-title" style="margin: 0; font-size: 16px; color: #1e293b;">🏆 Top 5 Phim Bán Chạy Nhất</h3>
+              <h3 class="card-title" style="margin: 0; font-size: 16px; color: #1e293b;"><Trophy :size="15" style="vertical-align:-2px" /> Top 5 Phim Bán Chạy Nhất</h3>
             </div>
             
             <div>
@@ -456,7 +463,7 @@
                 </div>
               </div>
               <div v-else class="ranks-empty">
-                <span>🎬</span>
+                <span><Clapperboard :size="20" /></span>
                 <p>Chưa có dữ liệu bán vé để xếp hạng.</p>
               </div>
             </div>
@@ -475,6 +482,11 @@
       <!-- TAB: BANNERS -->
       <div v-if="activeTab === 'banners'" class="view-content">
         <BannerManagement />
+      </div>
+
+      <!-- TAB: QUẢN LÝ DIỄN VIÊN -->
+      <div v-if="activeTab === 'actors'">
+        <ActorManagement />
       </div>
 
         <!-- TAB 3: DYNAMIC SHOWTIMES CRUD -->
@@ -558,10 +570,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { BarChart3, Tag, Clapperboard, Drama, Image, Clock, Receipt, Search, Camera, Settings, Building2, Users, Popcorn, Ticket, Star, Newspaper, Folder, PenLine, LogOut, Bell, Eye, CircleDollarSign, Trophy, Hourglass } from 'lucide-vue-next';
 import { useAuthStore } from '../../stores/auth';
 import api from '../../api/axios';
 import MoviesView from './MoviesView.vue';
 import BannerManagement from './BannerManagement.vue';
+import ActorManagement from './ActorManagement.vue';
 import ShowtimesView from './ShowtimesView.vue';
 import GenreManagement from './GenreManagement.vue';
 import UserManagement from './UserManagement.vue';
@@ -668,7 +682,7 @@ const blogMenuOpen = ref(
 );
 
 const movieMenuOpen = ref(
-  activeTab.value === 'movies' || activeTab.value === 'banners'
+  activeTab.value === 'movies' || activeTab.value === 'banners' || activeTab.value === 'actors'
 );
 
 const orderMenuOpen = ref(
@@ -680,7 +694,7 @@ watch(activeTab, (newVal) => {
   if (newVal !== 'blogs' && newVal !== 'blog-categories') {
     blogMenuOpen.value = false;
   }
-  if (newVal !== 'movies' && newVal !== 'banners') {
+  if (newVal !== 'movies' && newVal !== 'banners' && newVal !== 'actors') {
     movieMenuOpen.value = false;
   }
   if (newVal !== 'orders' && newVal !== 'lookup' && newVal !== 'scan') {
@@ -750,6 +764,7 @@ const getTabTitle = computed(() => {
   const titles = {
     stats: 'Dashboard Tổng Quan',
     movies: 'Danh Sách Phim',
+    actors: 'Quản Lý Diễn Viên',
     banners: 'Quản Lý Banner Trang Chủ',
     showtimes: 'Quản Lý Lịch Chiếu & Lịch Trình',
     rooms: 'Quản Lý Phòng Chiếu & Ghế',
@@ -776,6 +791,7 @@ const getTabDesc = computed(() => {
   const descs = {
     stats: 'Xem tổng quan báo cáo doanh thu kinh doanh và biểu đồ tăng trưởng hệ thống CineGo.',
     movies: 'Quản lý phim đang chiếu, sắp chiếu, cấu hình các thể loại phim và hình ảnh poster.',
+    actors: 'Thêm, sửa, xóa diễn viên và gán vai diễn vào từng bộ phim.',
     banners: 'Quản lý cấu hình banner trang chủ',
     showtimes: 'Quản lý lịch chiếu các phòng chiếu, kiểm tra phòng và dịch thuật, định dạng 2D/3D.',
     rooms: 'Thiết kế trực quan sơ đồ không gian rạp, quản lý các loại ghế (Thường, VIP, Đôi) và lối đi.',

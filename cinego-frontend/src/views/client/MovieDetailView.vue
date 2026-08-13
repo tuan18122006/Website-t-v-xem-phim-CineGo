@@ -100,24 +100,24 @@
     </section>
 
     <section class="casts-section glass-panel">
-      <h2 class="section-title gradient-text-accent">Diễn Viên Chính</h2>
+      <h2 class="section-title gradient-text-accent">Danh sách các diễn viên</h2>
       <div class="casts-grid">
-        <div v-for="cast in (movie.casts || mockCasts)" :key="cast.id || cast.name" class="cast-card">
+        <div v-for="cast in (movie.actors || movie.casts || mockCasts)" :key="cast.id || cast.name" class="cast-card">
           <div class="cast-avatar-box">
             <img
-              :src="cast.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'"
-              :alt="cast.name" class="cast-avatar" />
+              :src="getAvatarUrl(cast.avatar_url)"
+              :alt="cast.name" class="cast-avatar" @error="handleAvatarError" />
           </div>
           <div class="cast-info">
             <h4 class="cast-name">{{ cast.name }}</h4>
-            <p class="cast-character">trong vai {{ cast.character || 'Character' }}</p>
+            <p class="cast-character">trong vai {{ cast.pivot?.character || cast.character || 'Character' }}</p>
           </div>
         </div>
       </div>
     </section>
 
     <section class="reviews-section glass-panel">
-      <h2 class="section-title gradient-text-accent">Đánh Giá Từ Mọt Phim</h2>
+      <h2 class="section-title gradient-text-accent">Đánh Giá</h2>
 
       <div class="reviews-summary">
         <div class="summary-card">
@@ -490,6 +490,17 @@ const getPosterUrl = (url) => {
   if (url.startsWith('blob:')) return url;
   const cleanPath = url.replace(/^(.*\/storage\/)/, '');
   return `http://127.0.0.1:8000/storage/${cleanPath}`;
+};
+
+const getAvatarUrl = (url) => {
+  if (!url) return 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80';
+  if (url.startsWith('http') || url.startsWith('blob:')) return url;
+  const cleanPath = url.replace(/^(.*\/storage\/)/, '');
+  return `http://127.0.0.1:8000/storage/${cleanPath}`;
+};
+
+const handleAvatarError = (event) => {
+  event.target.src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80';
 };
 
 const getRatingClass = (rating) => {

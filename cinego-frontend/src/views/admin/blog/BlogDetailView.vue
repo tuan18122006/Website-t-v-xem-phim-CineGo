@@ -1,8 +1,8 @@
 <template>
   <div class="blog-preview-container">
     <div class="preview-navigation-bar">
-      <button @click="goBack" class="btn-back-list">⬅️ Quay lại danh sách quản lý</button>
-      <button @click="$router.push(`/admin/blogs/edit/${post.id}`)" class="btn-edit-direct">✏️ Chỉnh sửa bài viết này</button>
+      <button @click="goBack" class="btn-back-list"><ArrowLeft :size="15" style="vertical-align:-2px" /> Quay lại danh sách quản lý</button>
+      <button @click="$router.push(`/admin/blogs/edit/${post.id}`)" class="btn-edit-direct"><Pencil :size="15" style="vertical-align:-2px" /> Chỉnh sửa bài viết này</button>
     </div>
 
     <div v-if="loading" class="loading-center">Đang dựng giao diện bài viết...</div>
@@ -10,7 +10,7 @@
     <article v-else class="main-blog-article">
       <div class="article-meta">
         <span class="cat-badge">{{ post.category?.name }}</span>
-        <span class="meta-date">⏱️ Xuất bản ngày: {{ new Date(post.updated_at).toLocaleDateString('vi-VN') }}</span>
+        <span class="meta-date"><Timer :size="15" style="vertical-align:-2px" /> Xuất bản ngày: {{ new Date(post.updated_at).toLocaleDateString('vi-VN') }}</span>
       </div>
 
       <h1 class="article-title">{{ post.title }}</h1>
@@ -28,12 +28,12 @@
           <img :src="post.movie.poster_url || 'https://placehold.co/300x450?text=Poster'" alt="Poster Phim" />
         </div>
         <div class="cta-info-zone">
-          <span class="cta-sub-tag">🔥 Độc quyền tại CineGo</span>
+          <span class="cta-sub-tag"><Flame :size="11" style="vertical-align:-2px" /> Độc quyền tại CineGo</span>
           <h3 class="cta-movie-title">{{ post.movie.title }}</h3>
           <p class="cta-message">Đọc review xong, bạn đã sẵn sàng thưởng thức siêu phẩm này trên màn ảnh rộng IMAX chưa?</p>
           
           <button @click="goToBooking(post.movie.id)" class="btn-cta-booking-now">
-            🎟️ ĐẶT VÉ XEM PHIM NÀY NGAY 
+            <Ticket :size="15" style="vertical-align:-2px" /> ĐẶT VÉ XEM PHIM NÀY NGAY 
           </button>
         </div>
       </div>
@@ -43,6 +43,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { Pencil, Timer, Flame, Ticket, ArrowLeft } from 'lucide-vue-next';
 import { useRoute, useRouter } from 'vue-router';
 import api from '../../../api/axios';
 import { toast } from '../../../utils/alert';

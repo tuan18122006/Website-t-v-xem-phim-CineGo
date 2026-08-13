@@ -263,6 +263,11 @@ class ShowtimeController extends Controller
         // 3. Lấy toàn bộ ghế của phòng chiếu
         $seats = Seat::where('room_id', $showtime->room_id)->get();
 
+        // 3.1. Dọn các hàng giữ ghế đã hết hạn của suất chiếu này
+        SeatHold::where('showtime_id', $showtime->id)
+            ->where('expires_at', '<=', $now)
+            ->delete();
+
         // 4. Lấy danh sách ghế đã được đặt mua thành công (payment_status = paid)
         $bookedSeatIds = BookingDetail::join('bookings', 'booking_details.booking_id', '=', 'bookings.id')
             ->where('bookings.showtime_id', $showtime->id)

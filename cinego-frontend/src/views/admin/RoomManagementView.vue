@@ -2,7 +2,7 @@
   <div class="admin-movies-view-container">
     <div class="glass-panel list-card">
       <div class="header-row">
-        <h2 class="title-cine">🏟️ Quản Lý Phòng Chiếu & Ghế</h2>
+        <h2 class="title-cine"><Building2 :size="15" style="vertical-align:-2px" /> Quản Lý Phòng Chiếu & Ghế</h2>
         <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Phòng Chiếu Mới</button>
       </div>
 
@@ -25,8 +25,8 @@
             <td><span class="status-pill-cine active">Đang hoạt động</span></td>
             <td>
               <div class="action-buttons-group">
-                <button @click="goToEdit(room.id)" class="btn-action edit">✏️ Chỉnh sửa sơ đồ ghế</button>
-                <button @click="deleteRoom(room.id)" class="btn-action delete">🗑️ Xóa</button>
+                <button @click="goToEdit(room.id)" class="btn-action edit"><Pencil :size="15" style="vertical-align:-2px" /> Chỉnh sửa sơ đồ ghế</button>
+                <button @click="deleteRoom(room.id)" class="btn-action delete"><Trash2 :size="15" style="vertical-align:-2px" /> Xóa</button>
               </div>
             </td>
           </tr>
@@ -38,7 +38,7 @@
     <div v-if="isCreateModalOpen" class="modal-overlay-cine">
       <div class="glass-panel modal-content-cine">
         <div class="modal-header">
-          <h3 style="margin: 0;">➕ Thêm Phòng Chiếu Mới</h3>
+          <h3 style="margin: 0;"><Plus :size="15" style="vertical-align:-2px" /> Thêm Phòng Chiếu Mới</h3>
           <button class="close-btn" @click="isCreateModalOpen = false">×</button>
         </div>
         <div class="modal-body">
@@ -75,6 +75,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '../../api/axios';
 import { toast, confirmDialog } from '../../utils/alert';
+import { Building2, Pencil, Trash2, Plus } from 'lucide-vue-next';
 
 const router = useRouter();
 const rooms = ref([]);

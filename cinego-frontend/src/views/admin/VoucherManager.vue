@@ -2,7 +2,7 @@
     <div class="admin-vouchers-view-container">
         <div class="glass-panel list-card">
             <div class="header-row">
-                <h2 class="title-cine">🎟️ Quản Lý Mã Giảm Giá</h2>
+                <h2 class="title-cine"><Ticket :size="15" style="vertical-align:-2px" /> Quản Lý Mã Giảm Giá</h2>
                 <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Mã Mới</button>
             </div>
 
@@ -27,7 +27,7 @@
                     <tbody>
                         <tr v-for="voucher in vouchers" :key="voucher.id">
                             <td><strong>{{ voucher.code }}</strong></td>
-                            <!-- ⚡ FIX 1: Gộp cột Loại giảm & Giá trị -->
+                            <!-- FIX 1: Gộp cột Loại giảm & Giá trị -->
                             <td>
                                 <span class="badge-discount">
                                     {{ voucher.discount_type === 'percentage'
@@ -41,7 +41,7 @@
                             <!-- HIỂN THỊ ĐIỂM ĐỔI & LƯỢT ĐỔI -->
                             <td>
                                 <span v-if="voucher.points_required > 0" class="badge-points">
-                                    ⭐ {{ voucher.points_required }} pt
+                                    <Star :size="15" style="vertical-align:-2px" /> {{ voucher.points_required }} pt
                                 </span>
                                 <span v-else style="color: #888;">Miễn phí</span>
                             </td>
@@ -56,10 +56,10 @@
                             <td>
                                 <div v-if="voucher.usage_condition">
                                     <small v-if="voucher.usage_condition?.day_of_week" style="display: block; margin-bottom: 4px;">
-                                        📅 Thứ {{ voucher.usage_condition.day_of_week == 7 ? 'Chủ Nhật' : voucher.usage_condition.day_of_week + 1 }}
+                                        <Calendar :size="15" style="vertical-align:-2px" /> Thứ {{ voucher.usage_condition.day_of_week == 7 ? 'Chủ Nhật' : voucher.usage_condition.day_of_week + 1 }}
                                     </small>
                                     <small v-if="voucher.usage_condition?.movie_id" style="display: block; color: #e11d48; font-weight: 500;">
-                                        🎬 {{ getMovieTitle(voucher.usage_condition.movie_id) }}
+                                        <Film :size="15" style="vertical-align:-2px" /> {{ getMovieTitle(voucher.usage_condition.movie_id) }}
                                     </small>
                                 </div>
                                 <span v-else>-</span>
@@ -69,7 +69,7 @@
                             <td>{{ voucher.max_discount ? formatCurrency(voucher.max_discount) : 'Không GH' }}</td>
                             <td>{{ voucher.user_limit ? voucher.user_limit : '1' }}</td>
                             
-                            <!-- ⚡ FIX STATUS: Kết hợp cả is_active và Hạn sử dụng -->
+                            <!-- FIX STATUS: Kết hợp cả is_active và Hạn sử dụng -->
                             <td>
                                 <span :class="['status-pill', voucher.is_active && !isVoucherExpired(voucher.expires_at) ? 'active' : 'inactive']">
                                     {{ !voucher.is_active ? 'Đã khóa' : (isVoucherExpired(voucher.expires_at) ? 'Hết hạn' : 'Hoạt động') }}
@@ -97,7 +97,7 @@
                     <button class="close-btn" @click="isModalOpen = false">×</button>
                 </div>
 
-                <!-- ⚡ FIX 2: Thêm ô Kích hoạt TRẠNG THÁI (is_active) -->
+                <!-- FIX 2: Thêm ô Kích hoạt TRẠNG THÁI (is_active) -->
                 <div class="form-group" style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
                         <input type="checkbox" v-model="voucherForm.is_active" style="width: 18px; height: 18px;">
@@ -137,7 +137,7 @@
 
                 <!-- CẤU HÌNH ĐỔI VOUCHER (ĐIỂM & LƯỢT ĐỔI) -->
                 <div class="form-group border-box-limit" style="border: 1px dashed #f59e0b; background: #fffbeeb0; padding: 12px; border-radius: 8px;">
-                    <label style="font-size: 0.95rem; margin-bottom: 10px; color: #b45309;">🎁 Cấu hình Quy đổi Voucher bằng điểm tích lũy</label>
+                    <label style="font-size: 0.95rem; margin-bottom: 10px; color: #b45309;"><Gift :size="15" style="vertical-align:-2px" /> Cấu hình Quy đổi Voucher bằng điểm tích lũy</label>
 
                     <div class="grid-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                         <div>
@@ -174,7 +174,7 @@
 
                 <!-- GIỚI HẠN KHUNG GIỜ / PHIM -->
                 <div class="form-group border-box-limit" style="border: 1px dashed #ccc; padding: 12px; border-radius: 8px;">
-                    <label style="font-size: 0.95rem; margin-bottom: 10px;">🛡️ Điều kiện thời gian hoặc phim</label>
+                    <label style="font-size: 0.95rem; margin-bottom: 10px;"><ShieldCheck :size="15" style="vertical-align:-2px" /> Điều kiện thời gian hoặc phim</label>
 
                     <div class="grid-inputs" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                         <div>
@@ -246,6 +246,7 @@
 import { ref, computed, onMounted } from 'vue';
 import api from '../../api/axios';
 import { toast, confirmDialog } from '../../utils/alert';
+import { Ticket, Star, Calendar, Film, Gift, ShieldCheck } from 'lucide-vue-next';
 
 const vouchers = ref([]);
 const isModalOpen = ref(false);
@@ -353,7 +354,7 @@ const editVoucher = (voucher) => {
         points_required: voucher.points_required ?? 0,
         max_exchanges: voucher.max_exchanges ?? '',
         
-        // ⚡ Fallback: Nếu starts_at trong DB bị NULL, tự lấy created_at hoặc thời gian hiện tại
+        // Fallback: Nếu starts_at trong DB bị NULL, tự lấy created_at hoặc thời gian hiện tại
         starts_at: formatForDatetimeLocal(voucher.starts_at || voucher.created_at || new Date()),
         expires_at: formatForDatetimeLocal(voucher.expires_at),
         

@@ -21,20 +21,14 @@
           <li><a href="#">🚌 Phòng chiếu IMAX</a></li>
           <li><a href="#">🔊 Đặt bắp nước Online</a></li>
           <li><a href="#">❤️ Sự kiện thành viên</a></li>
-          <li><a href="#">📱 Đặt vé theo đoàn</a></li>
           <li><a href="#">💳 Ví CineGo Voucher</a></li>
           <li><a href="#">💰 Ưu đãi học sinh</a></li>
-          <li><a href="#">📡 Tin tức điện ảnh</a></li>
         </ul>
       </div>
 
       <div class="footer-col address-col">
         <h4>CHĂM SÓC KHÁCH HÀNG ⓘ</h4>
-        <p><strong>Hồ Chí Minh:</strong> Tầng 6, Tòa nhà Phú Mỹ Hưng, Số 08 đường Hoàng Văn Thái, P. Tân Phú</p>
         <p><strong>Hà Nội:</strong> Tầng 20, Tòa nhà Peakview Tower, Số 36 Phố Hoàng Cầu, P. Ô Chợ Dừa</p>
-        <p><strong>Đà Nẵng:</strong> Tầng 3, Tòa nhà DMT, Số 484-486 đường 2/9, P. Hòa Cường</p>
-        <p class="mt-15"><strong>Thời gian làm việc:</strong> Thứ 2 - Thứ 6 (trừ lễ, Tết) | Sáng: 9h00 - 11h30 | Chiều: 13h00 - 16h30</p>
-        <p><strong>Hotline:</strong> 1900 5454 41 <em>(Phí 1.000đ/phút)</em></p>
         <p><strong>Email:</strong> hotro@cinego.vn</p>
       </div>
 
@@ -54,8 +48,6 @@
         </div>
         
         <div class="app-badges">
-          <div class="badge-sim">App Store</div>
-          <div class="badge-sim">Google Play</div>
         </div>
       </div>
     </div>
@@ -66,7 +58,7 @@
           <div class="cinego-corp-logo">CineGo</div>
           <div class="cinego-corp-text">
             <h5>CÔNG TY CỔ PHẦN TRUYỀN THÔNG ĐIỆN ẢNH CINEGO</h5>
-            <p>Trụ sở chính: Tầng 6, Tòa nhà Phú Mỹ Hưng, Số 8, đường Hoàng Văn Thái, Phường Tân Phú, Thành phố Hồ Chí Minh</p>
+            <p>Trụ sở chính: Tầng 20, Tòa nhà Peakview Tower, Số 36 Phố Hoàng Cầu, P. Ô Chợ Dừa</p>
             <p>Tên thương hiệu: <strong>CineGo Cinema</strong></p>
             <p>&copy; Copyright CineGo Cinema 2026</p>
           </div>
@@ -74,7 +66,6 @@
         <div class="cinego-mediator">
           <p>Hệ thống đặt vé và dịch vụ rạp chiếu phim trực thuộc <strong>CineGo Cinema System - Hệ thống đặt vé chuẩn rạp chiếu phim hiện đại:</strong></p>
           <p>- Dịch vụ Đặt vé Online</p>
-          <p>- Dịch vụ hỗ trợ sự kiện, hội nghị</p>
           <p>- Dịch vụ ưu đãi bắp nước combo tiện lợi</p>
         </div>
       </div>

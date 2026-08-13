@@ -7,7 +7,7 @@
 
       <div class="stv-hero__row">
         <div class="stv-hero__intro">
-          <span class="stv-hero__kicker">🎬 PHÒNG ĐIỀU PHỐI</span>
+          <span class="stv-hero__kicker"><Clapperboard :size="15" style="vertical-align:-2px" /> PHÒNG ĐIỀU PHỐI</span>
           <h2 class="stv-hero__title">Lịch Chiếu &amp; Suất Phim</h2>
           <p class="stv-hero__desc">
             Xếp phim vào phòng đúng giờ — hệ thống <b>tự động chống trùng lịch</b> trong cùng một phòng.
@@ -31,11 +31,11 @@
 
         <div style="display: flex; gap: 10px; flex-shrink: 0;">
           <button class="stv-hero__cta" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white;" @click="openPricingModal">
-            <span class="stv-hero__cta-plus">⚙️</span>
+            <span class="stv-hero__cta-plus"><Settings :size="20" /></span>
             <span>Cấu Hình Giá</span>
           </button>
           <button class="stv-hero__cta" @click="openCreateModal">
-            <span class="stv-hero__cta-plus">＋</span>
+            <span class="stv-hero__cta-plus"><Plus :size="20" /></span>
             <span>Thêm Suất Chiếu</span>
           </button>
         </div>
@@ -70,7 +70,7 @@
     <!-- ===== TOOLBAR: tìm kiếm + lọc định dạng ===== -->
     <div class="stv-toolbar">
       <label class="stv-search">
-        <span class="stv-search__icon">🔍</span>
+        <span class="stv-search__icon"><Search :size="20" /></span>
         <input v-model="searchQuery" type="text" placeholder="Tìm theo tên phim hoặc phòng chiếu…" />
         <button v-if="searchQuery" class="stv-search__clear" @click="searchQuery = ''" aria-label="Xóa">✕</button>
       </label>
@@ -94,10 +94,10 @@
 
     <!-- ===== EMPTY ===== -->
     <div v-else-if="filteredShowtimes.length === 0" class="stv-empty">
-      <div class="stv-empty__art">🎞️</div>
+      <div class="stv-empty__art"><Film :size="44" /></div>
       <h3>{{ showtimes.length === 0 ? 'Chưa có suất chiếu nào' : 'Không tìm thấy suất chiếu phù hợp' }}</h3>
       <p>{{ showtimes.length === 0 ? 'Hãy tạo suất chiếu đầu tiên để khởi động phòng vé.' : 'Thử đổi từ khóa hoặc bộ lọc định dạng.' }}</p>
-      <button v-if="showtimes.length === 0" class="stv-empty__btn" @click="openCreateModal">＋ Tạo suất chiếu</button>
+      <button v-if="showtimes.length === 0" class="stv-empty__btn" @click="openCreateModal"><Plus :size="15" style="vertical-align:-2px" /> Tạo suất chiếu</button>
     </div>
 
     <!-- ===== TICKET GRID ===== -->
@@ -142,17 +142,17 @@
 
           <!-- Nhãn thông tin -->
           <div class="ticket__tags">
-            <span class="tg tg--room">🏛️ {{ st.room_name }}</span>
+            <span class="tg tg--room"><Building2 :size="15" style="vertical-align:-2px" /> {{ st.room_name }}</span>
             <span class="tg tg--format">{{ st.format }}</span>
-            <span class="tg tg--trans">💬 {{ st.translation }}</span>
+            <span class="tg tg--trans"><MessageSquare :size="15" style="vertical-align:-2px" /> {{ st.translation }}</span>
           </div>
 
 
         </div>
 
         <div class="ticket__actions">
-          <button class="ticket__btn ticket__btn--edit" @click.stop="openEditModal(st)" title="Sửa suất chiếu">✏️</button>
-          <button class="ticket__btn ticket__btn--del" @click.stop="deleteShowtime(st.id)" title="Xóa suất chiếu">🗑️</button>
+          <button class="ticket__btn ticket__btn--edit" @click.stop="openEditModal(st)" title="Sửa suất chiếu"><Pencil :size="20" /></button>
+          <button class="ticket__btn ticket__btn--del" @click.stop="deleteShowtime(st.id)" title="Xóa suất chiếu"><Trash2 :size="20" /></button>
         </div>
       </article>
     </div>
@@ -170,7 +170,7 @@
         <div class="stv-modal">
           <div class="stv-modal__marquee">
             <div class="stv-modal__marquee-dots"></div>
-            <h3>🔍 Chi Tiết Suất Chiếu #{{ selectedDetail?.id }}</h3>
+            <h3><Search :size="15" style="vertical-align:-2px" /> Chi Tiết Suất Chiếu #{{ selectedDetail?.id }}</h3>
             <button class="stv-modal__close" @click="closeDetailModal" aria-label="Đóng">✕</button>
           </div>
           
@@ -241,7 +241,7 @@
         <div class="stv-modal stv-modal--pricing">
           <div class="stv-modal__marquee">
             <div class="stv-modal__marquee-dots"></div>
-            <h3>⚙️ Cấu Hình Giá Hệ Thống</h3>
+            <h3><Settings :size="15" style="vertical-align:-2px" /> Cấu Hình Giá Hệ Thống</h3>
             <button class="stv-modal__close" @click="closePricingModal" aria-label="Đóng">✕</button>
           </div>
 
@@ -310,7 +310,7 @@
           <!-- Marquee header -->
           <div class="stv-modal__marquee">
             <div class="stv-modal__marquee-dots"></div>
-            <h3>{{ editingId ? '✨ Cập Nhật Suất Chiếu' : '✨ Lên Lịch Suất Chiếu Mới' }}</h3>
+            <h3><Sparkles :size="15" style="vertical-align:-2px" /> {{ editingId ? 'Cập Nhật Suất Chiếu' : 'Lên Lịch Suất Chiếu Mới' }}</h3>
             <button class="stv-modal__close" @click="closeModal" aria-label="Đóng">✕</button>
           </div>
 
@@ -318,7 +318,7 @@
             <!-- Banner lỗi chống trùng lịch -->
             <transition name="error-pop">
               <div v-if="formError" class="error-banner" role="alert">
-                <span class="error-banner__icon">⚠️</span>
+                <span class="error-banner__icon"><AlertTriangle :size="20" /></span>
                 <div class="error-banner__body">
                   <strong class="error-banner__title">Không thể xếp lịch</strong>
                   <p class="error-banner__msg">{{ formError }}</p>
@@ -453,7 +453,7 @@
                   <span class="stv-preview__fmt">{{ form.format }}</span>
                 </div>
                 <div class="stv-preview__time" v-if="form.start_time">
-                  🕒 {{ timeOnly(form.start_time) }} → {{ form.end_time ? timeOnly(form.end_time) : '—' }}
+                  <Clock :size="15" style="vertical-align:-2px" /> {{ timeOnly(form.start_time) }} → {{ form.end_time ? timeOnly(form.end_time) : '—' }}
                   <span class="stv-preview__dur">({{ previewMovie.duration }} phút)</span>
                 </div>
                 <div class="stv-preview__time" v-else>Chọn giờ bắt đầu để xem khung giờ chiếu.</div>
@@ -478,6 +478,7 @@
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
 import api from '../../api/axios';
 import { toast, confirmDialog } from '../../utils/alert';
+import { AlertTriangle, Building2, Clapperboard, Clock, Film, MessageSquare, Pencil, Plus, Search, Settings, Sparkles, Trash2 } from 'lucide-vue-next';
 
 const showtimes = ref([]);
 const movies = ref([]);

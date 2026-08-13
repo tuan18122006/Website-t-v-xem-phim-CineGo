@@ -3,7 +3,7 @@
     <div class="list-page-header">
       <div class="header-title-zone">
         <h2 class="page-title">
-          <span class="title-icon">📰</span>
+          <span class="title-icon"><Newspaper :size="20" /></span>
           Quản Lý Bài Viết Blog
         </h2>
         <p class="page-subtitle">
@@ -12,7 +12,7 @@
         </p>
       </div>
       <router-link to="/admin/blogs/create" class="btn-primary-cine-link">
-        ✨ Viết Bài Mới
+        <Sparkles :size="15" style="vertical-align:-2px" /> Viết Bài Mới
       </router-link>
     </div>
 
@@ -51,9 +51,9 @@
             @change="handleFilter"
           >
             <option value="">-- Tất cả trạng thái --</option>
-            <option value="published">🟢 Đã xuất bản</option>
-            <option value="draft">🟡 Bản nháp</option>
-            <option value="scheduled">🔵 Hẹn giờ đăng</option>
+            <option value="published">Đã xuất bản</option>
+            <option value="draft">Bản nháp</option>
+            <option value="scheduled">Hẹn giờ đăng</option>
           </select>
         </div>
       </div>
@@ -104,7 +104,7 @@
                 <span>{{ post.slug }}</span>
               </div>
 
-              <div class="post-date">📅 {{ formatDate(post.updated_at) }}</div>
+              <div class="post-date"><Calendar :size="15" style="vertical-align:-2px" /> {{ formatDate(post.updated_at) }}</div>
             </td>
 
             <td class="cell-category">
@@ -125,7 +125,7 @@
                 class="action-btn btn-view-icon"
                 title="Chi tiết"
               >
-                👁️ Chi tiết
+                <Eye :size="15" style="vertical-align:-2px" /> Chi tiết
               </button>
 
               <button
@@ -133,7 +133,7 @@
                 class="action-btn btn-edit-icon"
                 title="Sửa"
               >
-                ✏️ Sửa
+                <Pencil :size="15" style="vertical-align:-2px" /> Sửa
               </button>
 
               <button
@@ -141,7 +141,7 @@
                 class="action-btn btn-delete-icon"
                 title="Xóa"
               >
-                🗑️ Xóa
+                <Trash2 :size="15" style="vertical-align:-2px" /> Xóa
               </button>
             </td>
             
@@ -154,6 +154,14 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
+import {
+  Newspaper,
+  Sparkles,
+  Calendar,
+  Eye,
+  Pencil,
+  Trash2,
+} from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import api from "../../../api/axios";
 import { toast, confirmDialog } from "../../../utils/alert"; // Import bộ Alert tùy biến của bạn
@@ -185,10 +193,10 @@ const formatDate = (dateString) => {
 
 // Lấy nhãn hiển thị trực quan cho trạng thái
 const getStatusText = (status, publishedAt) => {
-  if (status === "draft") return "📝 Bản nháp";
+  if (status === "draft") return "Bản nháp";
   if (status === "scheduled")
-    return `⏳ Hẹn giờ (${formatDate(publishedAt).split(" ")[0]})`;
-  return "🟢 Đã đăng";
+    return `Hẹn giờ (${formatDate(publishedAt).split(" ")[0]})`;
+  return "Đã đăng";
 };
 
 // Gọi danh sách Chuyên mục ban đầu phục vụ thẻ select lọc dữ liệu

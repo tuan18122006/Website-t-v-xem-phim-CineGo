@@ -3,12 +3,12 @@
     <!-- Thanh tìm kiếm -->
     <div class="lookup-search glass-panel">
       <div class="lookup-search__head">
-        <h3>🔎 Tra Cứu Đơn Hàng — Hỗ Trợ Khách</h3>
+        <h3><Search :size="15" style="vertical-align:-2px" /> Tra Cứu Đơn Hàng — Hỗ Trợ Khách</h3>
         <p>Khách quên mã vé hoặc mất điện thoại? Tìm nhanh theo <b>tên khách</b>, <b>số điện thoại</b>, <b>email</b> hoặc <b>mã đơn</b>.</p>
       </div>
 
       <form class="lookup-search__bar" @submit.prevent="doSearch">
-        <span class="lookup-search__icon">🔍</span>
+        <span class="lookup-search__icon"><Search :size="15" /></span>
         <input
           v-model="query"
           type="text"
@@ -20,10 +20,10 @@
           {{ loading ? 'Đang tìm…' : 'Tìm kiếm' }}
         </button>
         <button type="button" class="lookup-camera__btn" @click="showCamera = !showCamera" title="Quét mã QR bằng Camera">
-          📷 Bật Camera
+          <Camera :size="15" style="vertical-align:-2px" /> Bật Camera
         </button>
         <label class="lookup-camera__btn" title="Tải ảnh QR lên" style="display: flex; align-items: center; justify-content: center; cursor: pointer; margin: 0;">
-          🖼️ Tải Ảnh
+          <Image :size="15" style="vertical-align:-2px" /> Tải Ảnh
           <qrcode-capture @detect="onDetect" style="display: none;"></qrcode-capture>
         </label>
       </form>
@@ -43,13 +43,13 @@
 
     <!-- Chưa tìm -->
     <div v-else-if="!searched" class="lookup-state">
-      <span class="lookup-state__art">🎫</span>
+      <span class="lookup-state__art"><Ticket :size="20" /></span>
       <p>Nhập thông tin khách để bắt đầu tra cứu.</p>
     </div>
 
     <!-- Không có kết quả -->
     <div v-else-if="results.length === 0" class="lookup-state">
-      <span class="lookup-state__art">🕵️</span>
+      <span class="lookup-state__art"><ScanSearch :size="20" /></span>
       <h4>Không tìm thấy đơn hàng nào</h4>
       <p>Thử lại với số điện thoại/email khác, hoặc kiểm tra lại chính tả.</p>
     </div>
@@ -83,20 +83,20 @@
             </td>
             <td>
               <div class="cell-contact">
-                <span>📞 {{ b.customer_phone || '—' }}</span>
-                <span class="muted">✉️ {{ b.customer_email || '—' }}</span>
+                <span><Phone :size="15" style="vertical-align:-2px" /> {{ b.customer_phone || '—' }}</span>
+                <span class="muted"><Mail :size="15" style="vertical-align:-2px" /> {{ b.customer_email || '—' }}</span>
               </div>
             </td>
             <td>
               <div class="cell-movie">
                 <span class="cell-movie__title">{{ b.movie_title }}</span>
-                <span class="muted">🏛️ {{ b.room_name }} • {{ b.showtime_at || '—' }}</span>
+                <span class="muted"><Building2 :size="15" style="vertical-align:-2px" /> {{ b.room_name }} • {{ b.showtime_at || '—' }}</span>
               </div>
             </td>
             <td class="cell-total">{{ formatCurrency(b.total_amount) }}</td>
             <td>
               <span class="pay-pill" :class="payClass(b.payment_status)">{{ payLabel(b.payment_status) }}</span>
-              <span v-if="b.booking_status === 'completed'" class="scan-pill">✅ Đã soát</span>
+              <span v-if="b.booking_status === 'completed'" class="scan-pill"><CheckCircle2 :size="15" style="vertical-align:-2px" /> Đã soát</span>
             </td>
           </tr>
         </tbody>
@@ -108,7 +108,7 @@
       <div v-if="showDetail" class="lk-backdrop" @click.self="closeDetail">
         <div class="lk-modal">
           <div class="lk-modal__head">
-            <h3>🎟️ Đơn {{ detail?.booking_code }}</h3>
+            <h3><Ticket :size="15" style="vertical-align:-2px" /> Đơn {{ detail?.booking_code }}</h3>
             <button class="lk-modal__close" @click="closeDetail" aria-label="Đóng">✕</button>
           </div>
 
@@ -120,12 +120,14 @@
           <div v-else-if="detail" class="lk-body">
             <!-- Trạng thái soát vé -->
             <div class="lk-checkin" :class="detail.booking_status === 'completed' ? 'is-done' : 'is-pending'">
-              {{ detail.booking_status === 'completed' ? '✅ Đã soát vé — đã sử dụng' : '🎫 Chưa soát vé' }}
+              <CheckCircle2 v-if="detail.booking_status === 'completed'" :size="15" style="vertical-align:-2px" />
+              <Ticket v-else :size="15" style="vertical-align:-2px" />
+              {{ detail.booking_status === 'completed' ? 'Đã soát vé — đã sử dụng' : 'Chưa soát vé' }}
             </div>
 
             <!-- Khách hàng -->
             <section class="lk-section">
-              <h4 class="lk-section__title">👤 Khách hàng</h4>
+              <h4 class="lk-section__title"><User :size="15" style="vertical-align:-2px" /> Khách hàng</h4>
               <div class="lk-kv"><span>Họ tên</span><b>{{ detail.customer.name || '—' }}</b></div>
               <div class="lk-kv"><span>Điện thoại</span><b>{{ detail.customer.phone || '—' }}</b></div>
               <div class="lk-kv"><span>Email</span><b>{{ detail.customer.email || '—' }}</b></div>
@@ -133,13 +135,13 @@
 
             <!-- Suất chiếu -->
             <section class="lk-section">
-              <h4 class="lk-section__title">🎬 Suất chiếu</h4>
+              <h4 class="lk-section__title"><Clapperboard :size="15" style="vertical-align:-2px" /> Suất chiếu</h4>
               <div class="lk-movie">
                 <img v-if="detail.movie.poster_url" :src="getPosterUrl(detail.movie.poster_url)" :alt="detail.movie.title" />
                 <div>
                   <strong>{{ detail.movie.title }}</strong>
                   <p class="muted">
-                    🏛️ {{ detail.room_name }} • 🕒 {{ detail.showtime_at || '—' }}
+                    <Building2 :size="15" style="vertical-align:-2px" /> {{ detail.room_name }} • <Clock :size="15" style="vertical-align:-2px" /> {{ detail.showtime_at || '—' }}
                   </p>
                   <p class="muted">{{ detail.format }} • {{ detail.translation }}</p>
                 </div>
@@ -149,7 +151,7 @@
             <!-- Vé của khách: vé xem phim (mỗi ghế 1 vé) + vé bắp nước (mỗi combo 1 phiếu) -->
             <section class="lk-section">
               <h4 class="lk-section__title">
-                🎟️ Vé của khách — {{ detail.seat_count }} vé phim · {{ detail.combo_count }} phiếu bắp nước
+                <Ticket :size="15" style="vertical-align:-2px" /> Vé của khách — {{ detail.seat_count }} vé phim · {{ detail.combo_count }} phiếu bắp nước
               </h4>
               <TicketPrintable :booking="detail" />
             </section>
@@ -178,7 +180,9 @@
               :disabled="verifying || detail.booking_status === 'completed'"
               @click="verifyTicket"
             >
-              {{ detail.booking_status === 'completed' ? '✅ Đã soát' : (verifying ? 'Đang soát…' : '🎫 Soát vé') }}
+              <CheckCircle2 v-if="detail.booking_status === 'completed'" :size="15" style="vertical-align:-2px" />
+              <Ticket v-else-if="!verifying" :size="15" style="vertical-align:-2px" />
+              {{ detail.booking_status === 'completed' ? 'Đã soát' : (verifying ? 'Đang soát…' : 'Soát vé') }}
             </button>
           </div>
         </div>
@@ -190,6 +194,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { Search, Camera, Image, Ticket, ScanSearch, Phone, Mail, Building2, CheckCircle2, Clapperboard, Clock, User } from 'lucide-vue-next';
 import api from '../../api/axios';
 import { toast, confirmDialog } from '../../utils/alert';
 import TicketPrintable from '../../components/TicketPrintable.vue';
@@ -235,7 +240,7 @@ const formatCurrency = (val) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
 
 const initials = (name) => {
-  if (!name) return '👤';
+  if (!name) return '';
   const parts = name.trim().split(/\s+/);
   return (parts[0][0] + (parts[parts.length - 1][0] || '')).toUpperCase();
 };
