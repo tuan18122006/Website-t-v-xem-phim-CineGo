@@ -144,7 +144,10 @@
               <h4 class="lk-section__title">
                 <Ticket :size="15" style="vertical-align:-2px" /> Vé của khách — {{ detail.seat_count }} vé phim · {{ detail.combo_count }} phiếu bắp nước
               </h4>
-              <TicketPrintable :booking="detail" />
+              <TicketPrintable v-if="detail.booking_status === 'completed'" :booking="detail" />
+              <div v-else class="lk-noprint">
+                🎫 Vé chưa được soát — <b>không thể in lại</b>. Hãy soát vé (nút bên dưới) khi khách vào cửa; sau khi soát mới in lại được.
+              </div>
             </section>
 
             <section class="lk-section lk-section--pay">
@@ -533,6 +536,7 @@ const verifyTicket = async () => {
 .lk-checkin.is-pending { background: #fffaf0; color: #dd6b20; border: 1px solid #fed7aa; }
 .lk-checkin.is-done { background: #edfcf5; color: #059669; border: 1px solid #a7f3d0; }
 
+.lk-noprint { padding: 16px; border-radius: 10px; text-align: center; font-size: 13px; line-height: 1.6; color: #92400e; background: #fffaf0; border: 1px dashed #fed7aa; }
 .scan-pill {
   display: inline-block; margin-top: 4px; padding: 3px 10px; border-radius: 999px;
   font-size: 11px; font-weight: 700; background: #edfcf5; color: #059669; white-space: nowrap;
