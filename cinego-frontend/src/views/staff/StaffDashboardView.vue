@@ -102,8 +102,23 @@
             <h4 v-else>❌ Lỗi Xác Nhận!</h4>
             <p>{{ scanResult.message }}</p>
           </div>
+
+          <p v-if="loadingTicket" class="scan-loading">Đang tải thông tin vé…</p>
         </div>
       </div>
+
+      <!-- Vé sau khi soát: hiện thông tin + in -->
+      <transition name="st-fade">
+        <div v-if="scanTicket" class="st-backdrop" @click.self="scanTicket = null">
+          <div class="st-modal">
+            <div class="st-head">
+              <h3>✅ Vé hợp lệ — {{ scanTicket.booking_code }}</h3>
+              <button class="st-close" @click="scanTicket = null">Đóng</button>
+            </div>
+            <TicketPrintable :booking="scanTicket" />
+          </div>
+        </div>
+      </transition>
     </main>
   </div>
 </template>
@@ -114,6 +129,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import BookingLookupView from '../admin/BookingLookupView.vue';
 import StaffPOSView from './StaffPOSView.vue';
+import TicketPrintable from '../../components/TicketPrintable.vue';
 import api from '../../api/axios';
 import { QrcodeStream, QrcodeCapture } from 'vue-qrcode-reader';
 
@@ -130,6 +146,8 @@ const scanCode = ref('');
 const scanInput = ref(null);
 const scanResult = ref(null);
 const showCamera = ref(false);
+const scanTicket = ref(null);
+const loadingTicket = ref(false);
 
 const onDetect = (detectedCodes) => {
   if (detectedCodes && detectedCodes.length > 0) {
@@ -171,16 +189,18 @@ const handleLogout = async () => {
 };
 
 const handleScan = async () => {
-  if (!scanCode.value) return;
+  const code = scanCode.value.trim();
+  if (!code) return;
   scanResult.value = null;
+  scanTicket.value = null;
 
   try {
-
-    const res = await api.post('/staff/bookings/verify', { code: scanCode.value });
+    const res = await api.post('/staff/bookings/verify', { code });
     scanResult.value = {
       status: 'success',
-      message: `Soát vé thành công cho mã đơn ${scanCode.value}. Chúc quý khách xem phim vui vẻ!`
+      message: `Soát vé thành công cho mã đơn ${code}. Chúc quý khách xem phim vui vẻ!`
     };
+    await loadScanTicket(res.data?.data?.booking_code || code);
   } catch (err) {
     scanResult.value = {
       status: 'error',
@@ -188,7 +208,22 @@ const handleScan = async () => {
     };
   } finally {
     scanCode.value = '';
-    scanInput.value.focus();
+    if (scanInput.value) scanInput.value.focus();
+  }
+};
+
+const loadScanTicket = async (code) => {
+  loadingTicket.value = true;
+  try {
+    const look = await api.get('/staff/bookings/lookup', { params: { q: code } });
+    const found = (look.data.data || [])[0];
+    if (!found) return;
+    const detail = await api.get(`/staff/bookings/${found.id}`);
+    scanTicket.value = detail.data;
+  } catch (e) {
+    // không chặn kết quả soát nếu tải chi tiết vé lỗi
+  } finally {
+    loadingTicket.value = false;
   }
 };
 </script>
@@ -510,4 +545,14 @@ const handleScan = async () => {
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: #dc2626;
 }
+
+.scan-loading { text-align: center; color: var(--text-muted); font-size: 13px; margin-top: 12px; }
+.st-backdrop { position: fixed; inset: 0; z-index: 2000; background: rgba(15, 6, 8, 0.5); backdrop-filter: blur(6px); display: flex; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow-y: auto; }
+.st-modal { background: #fff; border-radius: 18px; padding: 22px; max-width: 820px; width: 100%; }
+.st-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.st-head h3 { font-size: 17px; font-weight: 800; color: #059669; }
+.st-close { border: 1px solid #e2e8f0; background: #fff; color: #475569; padding: 8px 16px; border-radius: 9px; font-weight: 700; font-size: 13px; cursor: pointer; }
+.st-close:hover { background: #f8fafc; }
+.st-fade-enter-active, .st-fade-leave-active { transition: opacity 0.2s; }
+.st-fade-enter-from, .st-fade-leave-to { opacity: 0; }
 </style>
