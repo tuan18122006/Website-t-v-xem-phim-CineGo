@@ -1,11 +1,10 @@
 <template>
   <div class="tp">
-    <!-- Thanh công cụ: in (không in ra giấy) -->
+
     <div class="tp-toolbar tp-noprint" style="justify-content: flex-end;">
       <button type="button" class="tp-print" @click="doPrint">🖨️ In vé</button>
     </div>
 
-    <!-- Khu vực vé (được in ra giấy) -->
     <div class="tp-region">
       <div class="tp-stack">
         <article v-for="(s, i) in booking.seats" :key="'m3' + i" class="t3-movie tp-ticket">
@@ -64,14 +63,11 @@ const formatCurrency = (val) =>
 
 const typeLabel = (t) => ({ standard: 'Thường', vip: 'VIP', couple: 'Đôi' }[t] || t);
 
-// Tách "19:30 - 08/07/2026" thành giờ và ngày để hiển thị trên vé
 const stTime = computed(() => (props.booking.showtime_at || '').split(' - ')[0] || '—');
 const stDate = computed(() => (props.booking.showtime_at || '').split(' - ')[1] || '—');
 
-// Mã cho phiếu bắp nước (combo không có sẵn mã riêng trong dữ liệu)
 const comboCode = (i) => `${props.booking.booking_code}-C${i + 1}`;
 
-// Sinh mã vạch giả (barcode) từ chuỗi mã: các thanh đen/trắng xen kẽ, độ rộng thay đổi ổn định.
 const makeBars = (code) => {
   const s = String(code || 'CINEGO');
   let h = 2166136261;
@@ -88,7 +84,7 @@ const barStyleV = (bar) => ({ height: (bar.w * 1.4).toFixed(1) + 'px', width: '1
 const doPrint = (e) => {
   const tpRegion = e.target.closest('.tp').querySelector('.tp-region');
   const clone = tpRegion.cloneNode(true);
-  
+
   const printContainer = document.createElement('div');
   printContainer.id = 'tp-print-container';
   printContainer.appendChild(clone);
@@ -99,7 +95,7 @@ const doPrint = (e) => {
   document.head.appendChild(pageStyle);
 
   document.body.classList.add('tp-printing');
-  
+
   const cleanup = () => {
     document.body.classList.remove('tp-printing');
     if (document.body.contains(printContainer)) {
@@ -110,14 +106,13 @@ const doPrint = (e) => {
     }
     window.removeEventListener('afterprint', cleanup);
   };
-  
+
   window.addEventListener('afterprint', cleanup);
   window.print();
   setTimeout(cleanup, 1200);
 };
 </script>
 
-<!-- ===== Style TOÀN CỤC chỉ để in ===== -->
 <style>
 @media print {
   body.tp-printing #app { display: none !important; }
@@ -143,7 +138,6 @@ const doPrint = (e) => {
   gap: 16px;
 }
 
-/* Toolbar */
 .tp-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .tp-print {
   border: none; cursor: pointer; padding: 9px 18px; border-radius: 9px;
@@ -156,11 +150,9 @@ const doPrint = (e) => {
 .tp-stack { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: flex-start; gap: 20px; padding: 4px; }
 .tp-note { text-align: center; color: var(--tp-muted); font-size: 13px; }
 
-/* Barcode dùng chung */
 .tp-bc { display: flex; align-items: stretch; height: 42px; background: #fff; }
 .tp-bc span { display: block; }
 
-/* ===================== MẪU 3 — HÓA ĐƠN NHIỆT ===================== */
 .t3-movie, .t3-combo {
   width: 300px; max-width: 100%;
   background: #fff; color: #111; font-family: var(--font-mono);

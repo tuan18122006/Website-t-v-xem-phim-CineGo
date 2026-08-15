@@ -6,21 +6,40 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Combo;
+use App\Models\Booking;
+use App\Mail\BookingSuccessMail;
 use App\Services\BookingService;
 use App\Services\LoyaltyService;
+use App\Services\VNPayService;
 
 class POSController extends Controller
 {
     protected $bookingService;
     protected $loyaltyService;
+    protected $vnpayService;
 
-    public function __construct(BookingService $bookingService, LoyaltyService $loyaltyService)
+    public function __construct(BookingService $bookingService, LoyaltyService $loyaltyService, VNPayService $vnpayService)
     {
         $this->bookingService = $bookingService;
         $this->loyaltyService = $loyaltyService;
+        $this->vnpayService = $vnpayService;
+    }
+
+    private function sendBookingEmail($booking): void
+    {
+        try {
+            $email = $booking->user?->email;
+            if ($email && !str_ends_with($email, '@cinego.local')) {
+                Mail::to($email)->send(new BookingSuccessMail($booking));
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     public function searchCustomer(Request $request)
@@ -42,9 +61,6 @@ class POSController extends Controller
         return response()->json(['success' => true, 'data' => $users]);
     }
 
-    /**
-     * Danh sách combo đang bán cho màn hình POS (kèm tồn kho để chặn chọn khi hết hàng).
-     */
     public function listCombos()
     {
         $combos = Combo::where('status', 'active')
@@ -64,10 +80,6 @@ class POSController extends Controller
         return response()->json(['success' => true, 'data' => $combos]);
     }
 
-    /**
-     * Tạo nhanh 1 khách hàng tại quầy (khách vãng lai) để gắn vào đơn + tích điểm.
-     * Nếu đã có khách trùng SĐT thì trả về khách đó, tránh tạo trùng.
-     */
     public function quickCreateCustomer(Request $request)
     {
         $data = $request->validate([
@@ -85,7 +97,6 @@ class POSController extends Controller
             ]);
         }
 
-        // Email tự sinh nếu không nhập (khách vãng lai) — đảm bảo không trùng
         $email = $data['email'] ?: ('walkin_' . preg_replace('/\D/', '', $data['phone']) . '@cinego.local');
         if (User::where('email', $email)->exists()) {
             $email = 'walkin_' . preg_replace('/\D/', '', $data['phone']) . '_' . Str::lower(Str::random(4)) . '@cinego.local';
@@ -126,18 +137,16 @@ class POSController extends Controller
                 $request->seat_ids,
                 $request->combos ?? [],
                 $request->payment_method,
-                $request->customer_id, // can be null for guest
+                $request->customer_id,
                 $request->voucher_id,
-                'paid', // Immediate payment for POS
+                'paid',
                 null,
                 []
             );
 
-            // Cập nhật booking_status thành confirmed vì đã thu tiền tại quầy
             $booking->booking_status = 'confirmed';
             $booking->save();
 
-            // Trừ voucher nếu có (chỉ trừ nếu có customer_id)
             if ($request->voucher_id && $request->customer_id) {
                 DB::table('user_vouchers')
                     ->where('voucher_id', $request->voucher_id)
@@ -152,8 +161,6 @@ class POSController extends Controller
                     ]);
             }
 
-            // Xử lý điểm loyalty — KHÔNG để lỗi tích điểm làm hỏng việc tạo vé.
-            // (LoyaltyService thuộc phần khác; nếu nó lỗi thì vẫn phải bán được vé.)
             if ($booking->user) {
                 try {
                     $this->loyaltyService->processBookingPoints(
@@ -162,9 +169,11 @@ class POSController extends Controller
                         $booking
                     );
                 } catch (\Throwable $e) {
-                    report($e); // ghi log, bỏ qua để không chặn việc bán vé
+                    report($e);
                 }
             }
+
+            $this->sendBookingEmail($booking);
 
             return response()->json([
                 'success'      => true,
@@ -178,5 +187,132 @@ class POSController extends Controller
                 'message' => $e->getMessage()
             ], 422);
         }
+    }
+
+    public function createPOSPayment(Request $request)
+    {
+        $request->validate([
+            'showtime_id'         => 'required|integer|exists:showtimes,id',
+            'seat_ids'            => 'required|array|min:1',
+            'seat_ids.*'          => 'required|integer|exists:seats,id',
+            'combos'              => 'nullable|array',
+            'combos.*.id'         => 'required|integer|exists:combos,id',
+            'combos.*.quantity'   => 'required|integer|min:1',
+            'customer_id'         => 'required|integer|exists:users,id',
+            'total_amount'        => 'required|numeric',
+        ]);
+
+        $txnRef = 'CG' . time() . rand(100, 999);
+
+        try {
+            $booking = $this->bookingService->createBooking(
+                $request->showtime_id,
+                $request->seat_ids,
+                $request->combos ?? [],
+                'vnpay',
+                $request->customer_id,
+                null,
+                'pending',
+                $txnRef,
+                []
+            );
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        }
+
+        $paymentUrl = $this->buildVNPayUrl([
+            'txn_ref'     => $txnRef,
+
+            'order_info'  => 'Thanh toán vé phim - ' . $booking->booking_code,
+            'amount'      => $booking->total_amount,
+            'ip_address'  => $request->ip(),
+            'expire_date' => Carbon::now()->addMinutes(15)->format('YmdHis'),
+        ]);
+
+        return response()->json([
+            'success'      => true,
+            'booking_id'   => $booking->id,
+            'booking_code' => $booking->booking_code,
+            'payment_url'  => $paymentUrl,
+        ]);
+    }
+
+    private function buildVNPayUrl(array $data): string
+    {
+        $input = [
+            'vnp_Version'    => '2.1.0',
+            'vnp_TmnCode'    => config('vnpay.tmn_code'),
+            'vnp_Amount'     => $data['amount'] * 100,
+            'vnp_Command'    => 'pay',
+            'vnp_CreateDate' => now()->format('YmdHis'),
+            'vnp_ExpireDate' => $data['expire_date'],
+            'vnp_CurrCode'   => 'VND',
+            'vnp_IpAddr'     => $data['ip_address'],
+            'vnp_Locale'     => 'vn',
+            'vnp_OrderInfo'  => $data['order_info'],
+            'vnp_OrderType'  => 'other',
+            'vnp_ReturnUrl'  => url('/api/staff/pos/vnpay-return'),
+            'vnp_TxnRef'     => $data['txn_ref'],
+        ];
+        ksort($input);
+
+        $hashData = '';
+        $query = '';
+        $i = 0;
+        foreach ($input as $key => $value) {
+            if ($i == 1) {
+                $hashData .= '&' . urlencode($key) . '=' . urlencode($value);
+            } else {
+                $hashData .= urlencode($key) . '=' . urlencode($value);
+                $i = 1;
+            }
+            $query .= urlencode($key) . '=' . urlencode($value) . '&';
+        }
+
+        $query = rtrim($query, '&');
+        $secureHash = hash_hmac('sha512', $hashData, config('vnpay.hash_secret'));
+        return config('vnpay.url') . '?' . $query . '&vnp_SecureHash=' . $secureHash;
+    }
+
+    public function posVnpayReturn(Request $request)
+    {
+        $params   = $request->all();
+        $valid    = $this->vnpayService->verifyReturnUrl($params);
+        $frontend = env('FRONTEND_URL', 'http://localhost:5173');
+        $booking  = Booking::where('vnp_txn_ref', $params['vnp_TxnRef'] ?? null)->first();
+
+        if (!$valid || !$booking) {
+            if ($booking) {
+                $this->bookingService->markAsFailed($booking);
+            }
+            return redirect($frontend . '/staff/dashboard?pos_pay=invalid');
+        }
+
+        if (($params['vnp_ResponseCode'] ?? null) === '00') {
+            try {
+                if ($booking->payment_status !== 'paid') {
+                    $this->bookingService->markAsPaid($booking);
+
+                    if ($booking->user) {
+                        try {
+                            $this->loyaltyService->processBookingPoints($booking->user, $booking->total_amount, $booking);
+                        } catch (\Throwable $e) {
+                            report($e);
+                        }
+                    }
+
+                    $this->sendBookingEmail($booking);
+                }
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
+            return redirect($frontend . '/staff/dashboard?pos_pay=success&code=' . $booking->booking_code);
+        }
+
+        $isCancelled = ($params['vnp_ResponseCode'] ?? null) === '24';
+        $isCancelled ? $this->bookingService->markAsCancelled($booking) : $this->bookingService->markAsFailed($booking);
+
+        return redirect($frontend . '/staff/dashboard?pos_pay=' . ($isCancelled ? 'cancelled' : 'failed') . '&code=' . $booking->booking_code);
     }
 }
