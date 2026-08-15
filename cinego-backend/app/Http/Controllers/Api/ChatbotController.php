@@ -16,10 +16,7 @@ use Illuminate\Support\Str;
 
 class ChatbotController extends Controller
 {
-    /**
-     * Trợ lý AI CineGo — trả lời khách bằng cách TRA DỮ LIỆU THẬT qua các "công cụ"
-     * (Gemini function calling). Miễn phí qua Google Gemini free tier.
-     */
+
     public function chat(Request $request)
     {
         $request->validate([
@@ -30,7 +27,6 @@ class ChatbotController extends Controller
         $key = config('services.gemini.key');
         $model = config('services.gemini.model', 'gemini-flash-latest');
 
-        // Chưa cấu hình key -> trả lời mock để test giao diện
         if (empty($key)) {
             return response()->json([
                 'reply' => 'Xin chào! Mình là trợ lý CineGo 🎬. (Hiện chưa cấu hình GEMINI_API_KEY nên đang chạy chế độ demo.) '
@@ -39,7 +35,6 @@ class ChatbotController extends Controller
             ], 200);
         }
 
-        // Dựng lịch sử hội thoại theo định dạng Gemini
         $contents = [];
         foreach ((array) $request->input('history', []) as $turn) {
             $role = ($turn['role'] ?? 'user') === 'bot' ? 'model' : ($turn['role'] ?? 'user');
@@ -55,7 +50,6 @@ class ChatbotController extends Controller
             'tools' => [['function_declarations' => $this->toolDeclarations()]],
         ];
 
-        // Vòng lặp: gọi model -> nếu model gọi công cụ thì chạy DB rồi gửi kết quả lại
         for ($i = 0; $i < 5; $i++) {
             try {
                 $res = Http::timeout(30)->post($url . '?key=' . $key, array_merge($payload, ['contents' => $contents]));
@@ -73,7 +67,6 @@ class ChatbotController extends Controller
             $parts = $res->json('candidates.0.content.parts') ?? [];
             $calls = array_values(array_filter($parts, fn ($p) => isset($p['functionCall'])));
 
-            // Không gọi công cụ nữa -> lấy câu trả lời cuối
             if (empty($calls)) {
                 $text = collect($parts)->pluck('text')->filter()->implode("\n");
                 if ($text === '') {
@@ -82,8 +75,6 @@ class ChatbotController extends Controller
                 return response()->json(['reply' => $text], 200);
             }
 
-            // Lưu lượt của model (chứa functionCall) rồi chạy từng công cụ.
-            // Ép args rỗng về object để Gemini không hiểu nhầm thành list ([] -> {}).
             foreach ($parts as &$mp) {
                 if (isset($mp['functionCall']) && empty($mp['functionCall']['args'])) {
                     $mp['functionCall']['args'] = (object) [];
@@ -98,7 +89,7 @@ class ChatbotController extends Controller
                 $result = $this->runTool($name, (array) $args);
                 $fr = ['name' => $name, 'response' => ['result' => $result]];
                 if (!empty($p['functionCall']['id'])) {
-                    $fr['id'] = $p['functionCall']['id']; // model mới (Gemini 3) yêu cầu khớp id
+                    $fr['id'] = $p['functionCall']['id'];
                 }
                 $responseParts[] = ['functionResponse' => $fr];
             }
@@ -108,7 +99,6 @@ class ChatbotController extends Controller
         return response()->json(['reply' => 'Mình đã tra cứu nhưng chưa tổng hợp kịp. Bạn hỏi lại cụ thể hơn giúp mình nhé!'], 200);
     }
 
-    /* ==================== SYSTEM PROMPT ==================== */
     private function systemPrompt(): string
     {
         return implode("\n", [
@@ -120,7 +110,6 @@ class ChatbotController extends Controller
         ]);
     }
 
-    /* ==================== KHAI BÁO CÔNG CỤ (function declarations) ==================== */
     private function toolDeclarations(): array
     {
         return [
@@ -176,7 +165,6 @@ class ChatbotController extends Controller
         ];
     }
 
-    /* ==================== CHẠY CÔNG CỤ (truy vấn DB) ==================== */
     private function runTool(string $name, array $args)
     {
         switch ($name) {

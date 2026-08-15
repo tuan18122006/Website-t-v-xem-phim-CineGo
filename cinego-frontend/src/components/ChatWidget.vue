@@ -1,6 +1,6 @@
 <template>
   <div class="cg-chat">
-    <!-- Nút bong bóng -->
+
     <transition name="cg-pop">
       <button v-if="!open" class="cg-fab" @click="toggle" aria-label="Mở trợ lý CineGo">
         <span class="cg-fab__icon">💬</span>
@@ -8,10 +8,9 @@
       </button>
     </transition>
 
-    <!-- Khung chat -->
     <transition name="cg-slide">
       <div v-if="open" class="cg-panel">
-        <!-- Header -->
+
         <div class="cg-header">
           <div class="cg-header__brand">
             <span class="cg-header__bot">🎬</span>
@@ -23,7 +22,6 @@
           <button class="cg-header__close" @click="toggle" aria-label="Đóng">✕</button>
         </div>
 
-        <!-- Danh sách tin nhắn -->
         <div ref="listEl" class="cg-body">
           <div v-for="(m, i) in messages" :key="i" class="cg-msg" :class="m.role === 'user' ? 'is-user' : 'is-bot'">
             <div v-if="m.role === 'bot'" class="cg-msg__avatar">🎬</div>
@@ -36,12 +34,10 @@
           </div>
         </div>
 
-        <!-- Gợi ý nhanh -->
         <div v-if="messages.length <= 1" class="cg-suggest">
           <button v-for="s in suggestions" :key="s" @click="quickSend(s)">{{ s }}</button>
         </div>
 
-        <!-- Ô nhập -->
         <form class="cg-input" @submit.prevent="send">
           <input
             v-model="draft"
@@ -101,7 +97,6 @@ const send = async () => {
   loading.value = true;
   scrollDown();
 
-  // Gửi kèm lịch sử gần nhất (bỏ tin chào mở đầu, giới hạn ~10 lượt)
   const history = messages.value
     .slice(1, -1)
     .slice(-10)
@@ -119,7 +114,6 @@ const send = async () => {
   }
 };
 
-// Định dạng nhẹ: escape HTML rồi cho phép **đậm** + xuống dòng + gạch đầu dòng
 const format = (raw) => {
   let s = String(raw)
     .replace(/&/g, '&amp;')
@@ -135,7 +129,6 @@ const format = (raw) => {
 <style scoped>
 .cg-chat { position: fixed; right: 22px; bottom: 22px; z-index: 3000; font-family: inherit; }
 
-/* Nút bong bóng */
 .cg-fab {
   position: relative;
   width: 60px; height: 60px; border-radius: 50%;
@@ -153,7 +146,6 @@ const format = (raw) => {
 }
 @keyframes cg-pulse { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(1.6); opacity: 0; } }
 
-/* Khung chat */
 .cg-panel {
   width: 370px; max-width: calc(100vw - 32px);
   height: 540px; max-height: calc(100vh - 100px);
@@ -163,7 +155,6 @@ const format = (raw) => {
   border: 1px solid rgba(0, 0, 0, 0.06);
 }
 
-/* Header */
 .cg-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 16px; color: #fff;
@@ -182,7 +173,6 @@ const format = (raw) => {
 }
 .cg-header__close:hover { background: rgba(255, 255, 255, 0.32); }
 
-/* Body */
 .cg-body {
   flex: 1; overflow-y: auto; padding: 16px;
   display: flex; flex-direction: column; gap: 12px;
@@ -210,7 +200,6 @@ const format = (raw) => {
 }
 .cg-msg__bubble :deep(strong) { font-weight: 700; }
 
-/* Typing */
 .cg-typing { display: flex; gap: 4px; align-items: center; }
 .cg-typing span {
   width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1;
@@ -220,7 +209,6 @@ const format = (raw) => {
 .cg-typing span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes cg-blink { 0%, 80%, 100% { opacity: 0.3; } 40% { opacity: 1; } }
 
-/* Gợi ý nhanh */
 .cg-suggest { display: flex; flex-wrap: wrap; gap: 6px; padding: 0 14px 6px; background: #faf7f8; }
 .cg-suggest button {
   border: 1px solid #f3c9cd; background: #fff; color: #9b000e;
@@ -228,7 +216,6 @@ const format = (raw) => {
 }
 .cg-suggest button:hover { background: #fde2e5; }
 
-/* Input */
 .cg-input {
   display: flex; align-items: center; gap: 8px; padding: 12px;
   border-top: 1px solid #eee; background: #fff;
@@ -245,7 +232,6 @@ const format = (raw) => {
 }
 .cg-input button:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* Transitions */
 .cg-pop-enter-active, .cg-pop-leave-active { transition: transform 0.2s, opacity 0.2s; }
 .cg-pop-enter-from, .cg-pop-leave-to { transform: scale(0); opacity: 0; }
 .cg-slide-enter-active { transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s; }

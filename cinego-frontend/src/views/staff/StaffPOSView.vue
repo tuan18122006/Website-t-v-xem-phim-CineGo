@@ -2,7 +2,6 @@
   <div class="pos">
     <div class="pos-grain" aria-hidden="true"></div>
 
-    <!-- ====== MARQUEE ====== -->
     <div class="marquee">
       <div class="bulbs"></div>
       <div class="marquee-mid">
@@ -14,9 +13,9 @@
     </div>
 
     <div class="pos-grid">
-      <!-- ============ CANVAS TRÁI ============ -->
+
       <div class="pos-canvas">
-        <!-- Stepper -->
+
         <ol class="steps">
           <li
             v-for="s in steps"
@@ -30,7 +29,6 @@
           </li>
         </ol>
 
-        <!-- BƯỚC 1 — PHIM -->
         <section v-show="step === 1" class="pane">
           <header class="pane-head"><h3>Chọn phim</h3><span class="pane-hint">Đang & sắp chiếu</span></header>
           <div v-if="loading.movies" class="state">Đang tải phim…</div>
@@ -57,7 +55,6 @@
           </div>
         </section>
 
-        <!-- BƯỚC 2 — SUẤT -->
         <section v-show="step === 2" class="pane">
           <header class="pane-head"><h3>Chọn ngày & suất</h3><span class="pane-hint">{{ selected.movie?.title }}</span></header>
           <div v-if="loading.dates" class="state">Đang tải lịch chiếu…</div>
@@ -94,7 +91,6 @@
           </template>
         </section>
 
-        <!-- BƯỚC 3 — GHẾ -->
         <section v-show="step === 3" class="pane">
           <header class="pane-head"><h3>Chọn ghế</h3><span class="pane-hint">{{ selected.roomName }} • {{ selected.showtime?.start_time }}</span></header>
           <div v-if="loading.seats" class="state">Đang tải sơ đồ ghế…</div>
@@ -111,7 +107,6 @@
           </template>
         </section>
 
-        <!-- BƯỚC 4 — COMBO -->
         <section v-show="step === 4" class="pane">
           <header class="pane-head"><h3>Bắp nước</h3><span class="pane-hint">Tuỳ chọn — có thể bỏ qua</span></header>
           <div v-if="loading.combos" class="state">Đang tải combo…</div>
@@ -135,7 +130,6 @@
           </div>
         </section>
 
-        <!-- BƯỚC 5 — KHÁCH + THANH TOÁN -->
         <section v-show="step === 5" class="pane">
           <header class="pane-head"><h3>Khách hàng & thanh toán</h3><span class="pane-hint">Gắn khách để tích điểm</span></header>
 
@@ -177,8 +171,13 @@
             <div class="qc-title">Phương thức thu tiền</div>
             <div class="pay-opts">
               <button class="pay-opt" :class="{ active: payment === 'cash' }" @click="payment = 'cash'"><span class="pay-ic">💵</span> Tiền mặt</button>
-              <button class="pay-opt" :class="{ active: payment === 'bank_transfer' }" @click="payment = 'bank_transfer'"><span class="pay-ic">🏦</span> Chuyển khoản</button>
+              <button class="pay-opt" :class="{ active: payment === 'vnpay' }" @click="payment = 'vnpay'"><span class="pay-ic">🏦</span> VNPay (online)</button>
             </div>
+            <p class="pay-hint">
+              {{ payment === 'cash'
+                ? 'Nhân viên thu tiền mặt và tự xác nhận. Vé + email xác nhận gửi tới email khách.'
+                : 'Chuyển tới cổng VNPay. Thanh toán thành công sẽ tự hoàn tất đơn và gửi email cho khách.' }}
+            </p>
           </div>
         </section>
 
@@ -189,7 +188,6 @@
         </div>
       </div>
 
-      <!-- ============ VÉ ADMIT ONE ============ -->
       <aside class="ticket">
         <div class="ticket-head">
           <div class="ticket-logo">Cine<b>Go</b></div>
@@ -218,10 +216,9 @@
 
           <div class="tk-rule dash"></div>
           <div class="tk-line"><span>Khách</span><b>{{ selected.customer?.name || 'Vãng lai' }}</b></div>
-          <div class="tk-line"><span>Thu tiền</span><b>{{ payment === 'cash' ? 'Tiền mặt' : 'Chuyển khoản' }}</b></div>
+          <div class="tk-line"><span>Thu tiền</span><b>{{ payment === 'cash' ? 'Tiền mặt' : 'VNPay (online)' }}</b></div>
         </div>
 
-        <!-- cuống vé xé rời -->
         <div class="ticket-perf"><span class="notch l"></span><span class="notch r"></span></div>
 
         <div class="ticket-stub">
@@ -231,14 +228,13 @@
           </div>
           <div class="barcode"></div>
           <button class="btn-pay" :disabled="!canSubmit || submitting" @click="submit">
-            {{ submitting ? 'Đang tạo đơn…' : 'THU TIỀN & TẠO VÉ' }}
+            {{ submitting ? 'Đang xử lý…' : (payment === 'cash' ? 'THU TIỀN & TẠO VÉ' : 'THANH TOÁN VNPAY') }}
           </button>
           <p class="stub-note">Đơn tạo ở trạng thái đã thanh toán</p>
         </div>
       </aside>
     </div>
 
-    <!-- ============ THÀNH CÔNG ============ -->
     <transition name="fade">
       <div v-if="success" class="ov-backdrop">
         <div class="done">
@@ -270,7 +266,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import api from '../../api/axios';
 import { toast } from '../../utils/alert';
 import TicketPrintable from '../../components/TicketPrintable.vue';
@@ -291,7 +288,7 @@ const loading = reactive({ movies: false, dates: false, showtimes: false, seats:
 
 const movies = ref([]);
 const moviePage = ref(1);
-const MOVIES_PER_PAGE = 12; // 12 phim mỗi trang
+const MOVIES_PER_PAGE = 12;
 const movieTotalPages = computed(() => Math.max(1, Math.ceil(movies.value.length / MOVIES_PER_PAGE)));
 const pagedMovies = computed(() => {
   const start = (moviePage.value - 1) * MOVIES_PER_PAGE;
@@ -321,7 +318,6 @@ const selected = reactive({
   customer: null,
 });
 
-/* ---------- Helpers ---------- */
 const money = (v) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v || 0);
 const statusLabel = (s) => (s === 'showing' || s === 'Đang chiếu' ? 'Đang chiếu' : s === 'upcoming' || s === 'Sắp chiếu' ? 'Sắp chiếu' : 'Ngừng');
 const initials = (n) => { if (!n) return '👤'; const p = n.trim().split(/\s+/); return (p[0][0] + (p[p.length - 1][0] || '')).toUpperCase(); };
@@ -340,7 +336,6 @@ const dayNum = (d) => d.slice(8, 10);
 const dayMon = (d) => 'Th' + parseInt(d.slice(5, 7), 10);
 const dayFull = (d) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
 
-/* ---------- Bước 1: phim ---------- */
 const fetchMovies = async () => {
   loading.movies = true;
   try {
@@ -372,7 +367,6 @@ const pickMovie = async (m) => {
   }
 };
 
-/* ---------- Bước 2: suất ---------- */
 const pickDate = async (d) => {
   selected.date = d;
   selected.showtime = null;
@@ -392,7 +386,6 @@ const pickShowtime = (t, g) => {
   selected.roomName = g.roomName;
 };
 
-/* ---------- Bước 3: ghế ---------- */
 const fetchSeats = async () => {
   loading.seats = true;
   seats.value = [];
@@ -406,20 +399,18 @@ const fetchSeats = async () => {
   }
 };
 
-// Chuyển dữ liệu ghế sang đúng định dạng component SeatMap (giống web khách)
 const mappedSeats = computed(() =>
   seats.value.map((s) => ({
     id: s.id,
     row: s.row_name,
     number: s.seat_number,
     type: s.type || 'standard',
-    is_booked: s.status !== 'available', // đã bán / đang giữ / hỏng → không chọn được
+    is_booked: s.status !== 'available',
   }))
 );
 
 const selectedSeatIds = computed(() => selected.seats.map((s) => s.id));
 
-// SeatMap emit ghế đã map (không có giá) → tra lại ghế gốc để giữ giá cho tính tiền
 const onSeatClick = (mapped) => {
   const raw = seats.value.find((s) => s.id === mapped.id);
   if (!raw || raw.status !== 'available') return;
@@ -435,7 +426,6 @@ const onSeatClick = (mapped) => {
   }
 };
 
-// Luật rạp: không để trống 1 ghế đơn lẻ ở giữa/rìa (bê nguyên từ web khách)
 const validateSeatSelection = () => {
   const chosen = selected.seats;
   if (chosen.length > 8) { toast('Chỉ được chọn tối đa 8 ghế mỗi lần.', 'error'); return false; }
@@ -475,7 +465,6 @@ const validateSeatSelection = () => {
   return true;
 };
 
-/* ---------- Bước 4: combo ---------- */
 const fetchCombos = async () => {
   loading.combos = true;
   try {
@@ -508,7 +497,6 @@ const comboLines = computed(() =>
     .map((c) => ({ id: c.id, name: c.name, price: c.price, qty: comboQty[c.id] }))
 );
 
-/* ---------- Bước 5: khách ---------- */
 const doSearchCustomer = async () => {
   const q = custQuery.value.trim();
   if (q.length < 2) return;
@@ -544,12 +532,10 @@ const doCreateCustomer = async () => {
   }
 };
 
-/* ---------- Tổng tiền ---------- */
 const seatTotal = computed(() => selected.seats.reduce((s, x) => s + (Number(x.price) || 0), 0));
 const comboTotal = computed(() => comboLines.value.reduce((s, x) => s + x.price * x.qty, 0));
 const grandTotal = computed(() => seatTotal.value + comboTotal.value);
 
-/* ---------- Điều hướng ---------- */
 const canNext = computed(() => {
   if (step.value === 1) return !!selected.movie;
   if (step.value === 2) return !!selected.showtime;
@@ -561,13 +547,12 @@ const goNext = async () => {
   if (!canNext.value) return;
   if (step.value === 2) { step.value = 3; await fetchSeats(); return; }
   if (step.value === 3) {
-    if (!validateSeatSelection()) return; // chặn ghế đơn lẻ trước khi qua bước combo
+    if (!validateSeatSelection()) return;
     step.value = 4; if (!combos.value.length) await fetchCombos(); return;
   }
   step.value++;
 };
 
-/* ---------- Gửi đơn ---------- */
 const canSubmit = computed(() => selected.showtime && selected.seats.length > 0 && selected.customer);
 
 const submit = async () => {
@@ -578,24 +563,35 @@ const submit = async () => {
   if (!validateSeatSelection()) return;
   submitting.value = true;
   try {
-    const payload = {
+    const base = {
       showtime_id: selected.showtime.id,
       seat_ids: selected.seats.map((s) => s.id),
       combos: comboLines.value.map((c) => ({ id: c.id, quantity: c.qty })),
-      payment_method: payment.value,
       customer_id: selected.customer.id,
       total_amount: grandTotal.value,
     };
-    const res = await api.post('/staff/bookings/pos', payload);
-    success.value = { code: res.data.booking_code };
+
+    if (payment.value === 'vnpay') {
+
+      const res = await api.post('/staff/bookings/pos/vnpay', base);
+      if (res.data?.payment_url) {
+        window.location.href = res.data.payment_url;
+        return;
+      }
+      toast('Không tạo được link thanh toán VNPay.', 'error');
+    } else {
+
+      const res = await api.post('/staff/bookings/pos', { ...base, payment_method: 'cash' });
+      success.value = { code: res.data.booking_code };
+      clearPersist();
+    }
   } catch (e) {
-    toast(e.response?.data?.message || 'Tạo đơn thất bại. Vui lòng thử lại.', 'error');
+    toast(e.response?.data?.message || 'Xử lý thất bại. Vui lòng thử lại.', 'error');
   } finally {
     submitting.value = false;
   }
 };
 
-/* ---------- In vé sau khi thành công ---------- */
 const openPrint = async () => {
   if (!success.value) return;
   loading.print = true;
@@ -612,7 +608,6 @@ const openPrint = async () => {
   }
 };
 
-/* ---------- Reset ---------- */
 const resetAll = () => {
   step.value = 1;
   moviePage.value = 1;
@@ -629,9 +624,90 @@ const resetAll = () => {
   payment.value = 'cash';
   success.value = null;
   printBooking.value = null;
+  clearPersist();
 };
 
-fetchMovies();
+const route = useRoute();
+const router = useRouter();
+const STORE_KEY = 'staff_pos_state';
+
+const persist = () => {
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify({
+      step: step.value,
+      movie: selected.movie,
+      date: selected.date,
+      showtime: selected.showtime,
+      roomName: selected.roomName,
+      seats: selected.seats,
+      customer: selected.customer,
+      comboQty: { ...comboQty },
+      payment: payment.value,
+      moviePage: moviePage.value,
+    }));
+  } catch (e) { /* bỏ qua nếu localStorage lỗi */ }
+};
+
+const clearPersist = () => {
+  try { localStorage.removeItem(STORE_KEY); } catch (e) { /* noop */ }
+};
+
+const restore = async () => {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(STORE_KEY) || 'null'); } catch (e) { s = null; }
+  if (!s || !s.movie) return;
+
+  selected.movie = s.movie;
+  selected.date = s.date;
+  selected.showtime = s.showtime;
+  selected.roomName = s.roomName || '';
+  selected.seats = Array.isArray(s.seats) ? s.seats : [];
+  selected.customer = s.customer || null;
+  payment.value = s.payment || 'cash';
+  moviePage.value = s.moviePage || 1;
+  Object.keys(comboQty).forEach((k) => delete comboQty[k]);
+  Object.assign(comboQty, s.comboQty || {});
+  step.value = s.step || 1;
+
+  try {
+    if (selected.movie && step.value >= 2) {
+      const dRes = await api.get(`/movies/${selected.movie.id}/available-dates`);
+      dates.value = dRes.data.data || [];
+      if (selected.date) {
+        const sRes = await api.get(`/movies/${selected.movie.id}/showtimes`, { params: { date: selected.date } });
+        showtimeGroups.value = sRes.data.data || [];
+      }
+    }
+    if (selected.showtime && step.value >= 3) {
+      await fetchSeats();
+      const avail = new Set(seats.value.filter((x) => x.status === 'available').map((x) => x.id));
+      selected.seats = selected.seats.filter((x) => avail.has(x.id));
+    }
+    if (step.value >= 4 && !combos.value.length) {
+      await fetchCombos();
+    }
+  } catch (e) { /* nếu nạp lại lỗi thì vẫn giữ được bước, chỉ thiếu dữ liệu */ }
+};
+
+let ready = false;
+watch([step, selected, comboQty, payment, moviePage], () => { if (ready) persist(); }, { deep: true });
+
+(async () => {
+  await fetchMovies();
+  if (route.query.pos_pay) {
+    clearPersist();
+    if (route.query.pos_pay === 'success' && route.query.code) {
+      success.value = { code: String(route.query.code) };
+    } else {
+      toast('Thanh toán VNPay không thành công hoặc đã huỷ. Vui lòng thử lại.', 'error');
+    }
+    // Bỏ query khỏi URL để reload sau không hiện lại popup cũ / không xoá nhầm việc đang làm
+    router.replace({ path: route.path }).catch(() => {});
+  } else {
+    await restore();
+  }
+  ready = true;
+})();
 </script>
 
 <style scoped>
@@ -656,14 +732,13 @@ fetchMovies();
   overflow: hidden;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
-/* film grain */
+
 .pos-grain {
   position: absolute; inset: 0; pointer-events: none; opacity: 0.05; z-index: 0;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 .pos > * { position: relative; z-index: 1; }
 
-/* ===== MARQUEE ===== */
 .marquee { display: flex; align-items: stretch; gap: 14px; padding: 20px 26px 4px; }
 .bulbs {
   flex: 1; align-self: center; height: 10px; border-radius: 6px;
@@ -681,18 +756,15 @@ fetchMovies();
 .marquee-title b { color: var(--red); }
 .marquee-sub { font-size: 11px; color: var(--muted); letter-spacing: 2px; }
 
-/* ===== GRID ===== */
 .pos-grid { display: grid; grid-template-columns: 1fr 360px; gap: 22px; padding: 12px 24px 0; align-items: start; }
 @media (max-width: 1120px) { .pos-grid { grid-template-columns: 1fr; } }
 
-/* ===== CANVAS ===== */
 .pos-canvas {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.02));
   border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px;
   backdrop-filter: blur(6px);
 }
 
-/* Stepper */
 .steps { display: flex; list-style: none; padding: 0; margin: 0 0 24px; gap: 4px; flex-wrap: wrap; position: relative; }
 .step { display: flex; align-items: center; gap: 9px; padding: 6px 14px 6px 6px; border-radius: 999px; opacity: 0.5; transition: 0.25s; }
 .step.current { opacity: 1; background: rgba(229, 9, 20, 0.14); box-shadow: inset 0 0 0 1px rgba(229, 9, 20, 0.35); }
@@ -708,7 +780,6 @@ fetchMovies();
 .pane-hint { font-size: 12.5px; color: var(--muted); }
 .state { padding: 44px; text-align: center; color: var(--muted); font-weight: 600; }
 
-/* Phim */
 .film-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(126px, 1fr)); gap: 16px; }
 .film { border: none; background: transparent; cursor: pointer; padding: 0; text-align: left; display: flex; flex-direction: column; gap: 9px; }
 .film-poster { position: relative; border-radius: 14px; overflow: hidden; aspect-ratio: 2/3; border: 2px solid transparent; box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45); transition: 0.25s; }
@@ -721,7 +792,6 @@ fetchMovies();
 .film.active .film-pick { opacity: 1; transform: none; }
 .film-title { font-size: 13px; font-weight: 700; line-height: 1.3; color: var(--txt); }
 
-/* Ngày / suất */
 .date-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 22px; }
 .date-chip { border: 1px solid var(--line); background: rgba(255, 255, 255, 0.03); color: var(--txt); border-radius: 13px; padding: 9px 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; min-width: 60px; transition: 0.18s; }
 .date-chip b { font-size: 19px; font-weight: 900; }
@@ -737,7 +807,6 @@ fetchMovies();
 .time-chip:hover { border-color: rgba(245, 194, 73, 0.5); transform: translateY(-1px); }
 .time-chip.active { border-color: var(--gold); color: var(--gold-soft); background: rgba(245, 194, 73, 0.12); box-shadow: 0 0 14px rgba(245, 194, 73, 0.25); }
 
-/* Ghế — khán phòng */
 .stage { position: relative; margin: 4px 0 34px; height: 74px; }
 .beam { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 78%; height: 200px; background: linear-gradient(180deg, rgba(245, 194, 73, 0.22), transparent 68%); clip-path: polygon(28% 0, 72% 0, 100% 100%, 0 100%); pointer-events: none; }
 .screen { position: relative; height: 30px; border-radius: 60% 60% 10px 10px / 100% 100% 10px 10px; background: linear-gradient(180deg, #f4eef0, #b9b1b3 60%, #6f696b); box-shadow: 0 -3px 34px rgba(245, 194, 73, 0.55), 0 6px 16px rgba(0, 0, 0, 0.5); display: grid; place-items: center; }
@@ -766,7 +835,6 @@ fetchMovies();
 .lg-avail { background: #4a4145; } .lg-standard { background: #8fa4e6; } .lg-vip { background: #e9b866; }
 .lg-couple { background: #e884b7; } .lg-sold { background: #362d31; } .lg-picked { background: linear-gradient(135deg, var(--gold), #e0a63a); }
 
-/* Combo */
 .combo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(196px, 1fr)); gap: 16px; }
 .combo { border: 1px solid var(--line); border-radius: 15px; overflow: hidden; display: flex; flex-direction: column; background: rgba(255, 255, 255, 0.03); transition: 0.18s; }
 .combo:hover { border-color: rgba(245, 194, 73, 0.4); transform: translateY(-2px); box-shadow: 0 12px 26px rgba(0, 0, 0, 0.4); }
@@ -783,7 +851,6 @@ fetchMovies();
 .qbtn:disabled { opacity: 0.35; cursor: not-allowed; }
 .qnum { font-weight: 900; min-width: 18px; text-align: center; font-size: 15px; }
 
-/* Khách */
 .cust-chip { display: flex; align-items: center; gap: 12px; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--line); border-radius: 14px; padding: 13px 15px; }
 .cust-ava { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-weight: 900; color: #3a2500; background: linear-gradient(135deg, var(--gold), #e0a63a); flex-shrink: 0; }
 .cust-ava.sm { width: 32px; height: 32px; font-size: 12px; }
@@ -822,25 +889,22 @@ fetchMovies();
 .pay-opt:hover { border-color: rgba(245, 194, 73, 0.4); }
 .pay-opt.active { border-color: var(--gold); background: rgba(245, 194, 73, 0.14); color: var(--gold-soft); box-shadow: 0 0 16px rgba(245, 194, 73, 0.2); }
 .pay-ic { font-size: 18px; }
+.pay-hint { margin-top: 10px; font-size: 12px; color: var(--muted); line-height: 1.5; }
 
-/* Nav */
 .nav { display: flex; align-items: center; margin-top: 26px; padding-top: 18px; border-top: 1px solid var(--line); }
 .spacer { flex: 1; }
 .btn-ghost { border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); color: var(--txt); padding: 12px 22px; border-radius: 11px; font-weight: 800; cursor: pointer; transition: 0.15s; }
 .btn-ghost:hover { border-color: rgba(255, 255, 255, 0.3); }
 .btn-ghost.sm { padding: 8px 16px; font-size: 13px; }
 
-/* Phân trang phim */
 .film-pager { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 20px; }
 .pager-info { font-size: 13px; font-weight: 700; color: var(--muted); }
 
-/* Ghi chú dưới sơ đồ ghế */
 .seat-note { text-align: center; font-size: 12px; color: var(--muted); margin-top: 14px; line-height: 1.5; }
 .btn-next { border: none; background: linear-gradient(135deg, var(--red), var(--red-deep)); color: #fff; padding: 12px 30px; border-radius: 11px; font-weight: 900; cursor: pointer; box-shadow: 0 8px 20px rgba(229, 9, 20, 0.35); transition: 0.15s; }
 .btn-next:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 12px 26px rgba(229, 9, 20, 0.5); }
 .btn-next:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 
-/* ===== VÉ ADMIT ONE ===== */
 .ticket {
   position: sticky; top: 16px;
   background: linear-gradient(180deg, #241a1c, #17100f);
@@ -867,7 +931,6 @@ fetchMovies();
 .tk-line span { color: #b6abad; }
 .tk-line b { text-align: right; font-weight: 700; }
 
-/* cuống xé */
 .ticket-perf { position: relative; height: 20px; background: repeating-linear-gradient(90deg, rgba(245, 194, 73, 0.35) 0 6px, transparent 6px 12px); }
 .notch { position: absolute; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; border-radius: 50%; background: #0d090a; }
 .notch.l { left: -10px; } .notch.r { right: -10px; }
@@ -882,7 +945,6 @@ fetchMovies();
 .btn-pay:disabled { opacity: 0.4; cursor: not-allowed; }
 .stub-note { text-align: center; font-size: 10.5px; color: #8a7d80; margin-top: 10px; }
 
-/* ===== OVERLAYS ===== */
 .ov-backdrop { position: fixed; inset: 0; z-index: 2000; background: rgba(10, 6, 7, 0.66); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 20px; }
 .done { position: relative; background: linear-gradient(180deg, #241a1c, #160f11); border: 1px solid rgba(245, 194, 73, 0.25); border-radius: 22px; padding: 40px 36px; text-align: center; max-width: 390px; width: 100%; overflow: hidden; }
 .done-glow { position: absolute; top: -60px; left: 50%; transform: translateX(-50%); width: 240px; height: 240px; background: radial-gradient(circle, rgba(16, 185, 129, 0.35), transparent 70%); }

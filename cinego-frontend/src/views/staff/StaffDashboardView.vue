@@ -1,6 +1,6 @@
 <template>
   <div class="staff-layout">
-    <!-- LEFT SIDEBAR -->
+
     <aside class="staff-sidebar">
       <div class="sidebar-brand">
         <div class="cinego-logo-box">
@@ -28,9 +28,9 @@
           <span>Tra Cứu Đơn Hàng</span>
         </button>
 
-        <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'scan' }" 
+        <button
+          class="nav-link"
+          :class="{ active: activeTab === 'scan' }"
           @click="activeTab = 'scan'"
         >
           <span class="nav-icon">📷</span>
@@ -47,7 +47,6 @@
       </div>
     </aside>
 
-    <!-- RIGHT MAIN CONTENT AREA -->
     <main class="staff-main-content">
       <header class="content-header">
         <div>
@@ -57,17 +56,14 @@
         <router-link to="/" class="btn-back-client">👁️ Xem Client Website</router-link>
       </header>
 
-      <!-- TAB: BÁN VÉ TẠI QUẦY (POS) -->
       <div v-show="activeTab === 'pos'">
         <StaffPOSView />
       </div>
 
-      <!-- TAB: TRA CỨU ĐƠN HÀNG -->
       <div v-show="activeTab === 'lookup'">
         <BookingLookupView />
       </div>
 
-      <!-- TAB: QUÉT MÃ QR -->
       <div v-show="activeTab === 'scan'" class="scan-tab glass-panel">
         <div class="scan-container">
           <div class="scan-icon-wrapper">
@@ -75,15 +71,15 @@
           </div>
           <h3>Soát vé qua Mã QR</h3>
           <p>Nhập mã đặt vé bên dưới hoặc dùng thiết bị quét mã QR để quét trực tiếp vé của khách hàng.</p>
-          
+
           <form class="scan-form" @submit.prevent="handleScan">
-            <input 
-              ref="scanInput" 
-              v-model="scanCode" 
-              type="text" 
-              class="scan-input" 
-              placeholder="Quét mã QR hoặc nhập mã vé (VD: CG-123456)..." 
-              autofocus 
+            <input
+              ref="scanInput"
+              v-model="scanCode"
+              type="text"
+              class="scan-input"
+              placeholder="Quét mã QR hoặc nhập mã vé (VD: CG-123456)..."
+              autofocus
             />
             <div class="scan-actions">
               <button type="submit" class="btn-scan" :disabled="!scanCode">Xác Nhận</button>
@@ -101,9 +97,6 @@
             <qrcode-stream @detect="onDetect"></qrcode-stream>
           </div>
 
-
-
-          <!-- Kết quả quét -->
           <div v-if="scanResult" class="scan-result" :class="scanResult.status">
             <h4 v-if="scanResult.status === 'success'">✅ Vé Hợp Lệ!</h4>
             <h4 v-else>❌ Lỗi Xác Nhận!</h4>
@@ -117,7 +110,7 @@
 
 <script setup>
 import { ref, computed, nextTick, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import BookingLookupView from '../admin/BookingLookupView.vue';
 import StaffPOSView from './StaffPOSView.vue';
@@ -126,8 +119,13 @@ import { QrcodeStream, QrcodeCapture } from 'vue-qrcode-reader';
 
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 
-const activeTab = ref('pos');
+const VALID_TABS = ['pos', 'lookup', 'scan'];
+const savedTab = localStorage.getItem('staff_active_tab');
+const activeTab = ref(VALID_TABS.includes(savedTab) ? savedTab : 'pos');
+if (route.query.pos_pay) activeTab.value = 'pos';
+watch(activeTab, (v) => localStorage.setItem('staff_active_tab', v));
 const scanCode = ref('');
 const scanInput = ref(null);
 const scanResult = ref(null);
@@ -141,7 +139,7 @@ const onDetect = (detectedCodes) => {
       const scanParam = url.searchParams.get('scan');
       if (scanParam) rawValue = scanParam;
     } catch(e) {}
-    
+
     scanCode.value = rawValue;
     showCamera.value = false;
     handleScan();
@@ -175,9 +173,9 @@ const handleLogout = async () => {
 const handleScan = async () => {
   if (!scanCode.value) return;
   scanResult.value = null;
-  
+
   try {
-    // Giả lập API verify vé
+
     const res = await api.post('/staff/bookings/verify', { code: scanCode.value });
     scanResult.value = {
       status: 'success',

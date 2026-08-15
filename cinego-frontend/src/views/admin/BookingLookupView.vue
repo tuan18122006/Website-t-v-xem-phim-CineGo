@@ -1,6 +1,6 @@
 <template>
   <div class="lookup">
-    <!-- Thanh tìm kiếm -->
+
     <div class="lookup-search glass-panel">
       <div class="lookup-search__head">
         <h3><Search :size="15" style="vertical-align:-2px" /> Tra Cứu Đơn Hàng — Hỗ Trợ Khách</h3>
@@ -28,33 +28,28 @@
         </label>
       </form>
 
-      <!-- Camera wrapper -->
       <div v-if="showCamera" class="camera-wrapper">
         <qrcode-stream @detect="onDetect"></qrcode-stream>
         <button type="button" class="camera-close" @click="showCamera = false">Đóng Camera</button>
       </div>
     </div>
 
-    <!-- Loading -->
     <div v-if="loading" class="lookup-state">
       <div class="lookup-spinner"></div>
       <p>Đang tra cứu đơn hàng…</p>
     </div>
 
-    <!-- Chưa tìm -->
     <div v-else-if="!searched" class="lookup-state">
       <span class="lookup-state__art"><Ticket :size="20" /></span>
       <p>Nhập thông tin khách để bắt đầu tra cứu.</p>
     </div>
 
-    <!-- Không có kết quả -->
     <div v-else-if="results.length === 0" class="lookup-state">
       <span class="lookup-state__art"><ScanSearch :size="20" /></span>
       <h4>Không tìm thấy đơn hàng nào</h4>
       <p>Thử lại với số điện thoại/email khác, hoặc kiểm tra lại chính tả.</p>
     </div>
 
-    <!-- Danh sách kết quả -->
     <div v-else class="lookup-results glass-panel">
       <div class="lookup-results__head">
         <span>Tìm thấy <b>{{ results.length }}</b> đơn</span>
@@ -103,7 +98,6 @@
       </table>
     </div>
 
-    <!-- MODAL CHI TIẾT ĐƠN -->
     <transition name="lk-fade">
       <div v-if="showDetail" class="lk-backdrop" @click.self="closeDetail">
         <div class="lk-modal">
@@ -118,14 +112,13 @@
           </div>
 
           <div v-else-if="detail" class="lk-body">
-            <!-- Trạng thái soát vé -->
+
             <div class="lk-checkin" :class="detail.booking_status === 'completed' ? 'is-done' : 'is-pending'">
               <CheckCircle2 v-if="detail.booking_status === 'completed'" :size="15" style="vertical-align:-2px" />
               <Ticket v-else :size="15" style="vertical-align:-2px" />
               {{ detail.booking_status === 'completed' ? 'Đã soát vé — đã sử dụng' : 'Chưa soát vé' }}
             </div>
 
-            <!-- Khách hàng -->
             <section class="lk-section">
               <h4 class="lk-section__title"><User :size="15" style="vertical-align:-2px" /> Khách hàng</h4>
               <div class="lk-kv"><span>Họ tên</span><b>{{ detail.customer.name || '—' }}</b></div>
@@ -133,7 +126,6 @@
               <div class="lk-kv"><span>Email</span><b>{{ detail.customer.email || '—' }}</b></div>
             </section>
 
-            <!-- Suất chiếu -->
             <section class="lk-section">
               <h4 class="lk-section__title"><Clapperboard :size="15" style="vertical-align:-2px" /> Suất chiếu</h4>
               <div class="lk-movie">
@@ -148,7 +140,6 @@
               </div>
             </section>
 
-            <!-- Vé của khách: vé xem phim (mỗi ghế 1 vé) + vé bắp nước (mỗi combo 1 phiếu) -->
             <section class="lk-section">
               <h4 class="lk-section__title">
                 <Ticket :size="15" style="vertical-align:-2px" /> Vé của khách — {{ detail.seat_count }} vé phim · {{ detail.combo_count }} phiếu bắp nước
@@ -156,7 +147,6 @@
               <TicketPrintable :booking="detail" />
             </section>
 
-            <!-- Thanh toán -->
             <section class="lk-section lk-section--pay">
               <div class="lk-kv"><span>Tạm tính</span><b>{{ formatCurrency(detail.subtotal) }}</b></div>
               <div class="lk-kv" v-if="detail.discount_amount > 0">
@@ -202,7 +192,6 @@ import { QrcodeStream, QrcodeCapture } from 'vue-qrcode-reader';
 
 const route = useRoute();
 
-
 const query = ref('');
 const loading = ref(false);
 const searched = ref(false);
@@ -217,7 +206,7 @@ const onDetect = (detectedCodes) => {
       const scanParam = url.searchParams.get('scan');
       if (scanParam) rawValue = scanParam;
     } catch(e) {}
-    
+
     query.value = rawValue;
     showCamera.value = false;
     doSearch();
@@ -308,7 +297,6 @@ const closeDetail = () => {
   detail.value = null;
 };
 
-// Soát vé ngay trong modal — backend tự chặn ca chưa thanh toán / đã soát rồi
 const verifying = ref(false);
 
 const verifyTicket = async () => {
@@ -336,7 +324,6 @@ const verifyTicket = async () => {
 .muted { color: var(--text-muted); }
 .text-mint { color: var(--accent-mint); }
 
-/* ===== SEARCH ===== */
 .lookup-search {
   padding: 24px;
   background: #fff;
@@ -416,7 +403,6 @@ const verifyTicket = async () => {
 }
 .camera-close:hover { background: rgba(0,0,0,0.8); }
 
-/* ===== STATES ===== */
 .lookup-state {
   display: flex; flex-direction: column; align-items: center; text-align: center;
   gap: 8px; padding: 56px 20px; color: var(--text-muted);
@@ -430,7 +416,6 @@ const verifyTicket = async () => {
 }
 @keyframes lk-spin { to { transform: rotate(360deg); } }
 
-/* ===== RESULTS TABLE ===== */
 .lookup-results { padding: 8px 8px 4px; background: #fff; border: 1px solid rgba(0, 0, 0, 0.05); }
 .lookup-results__head {
   display: flex; justify-content: space-between; align-items: center;
@@ -466,7 +451,6 @@ const verifyTicket = async () => {
 .pay-pill.is-pending { background: #fffaf0; color: #dd6b20; }
 .pay-pill.is-failed { background: #fee2e2; color: #dc2626; }
 
-/* ===== DETAIL MODAL ===== */
 .lk-backdrop {
   position: fixed; inset: 0; z-index: 1000;
   background: rgba(15, 6, 8, 0.5); backdrop-filter: blur(6px);
@@ -545,18 +529,15 @@ const verifyTicket = async () => {
 }
 .btn-verify:disabled { opacity: 0.55; cursor: not-allowed; }
 
-/* Nhãn trạng thái soát vé trong modal */
 .lk-checkin { padding: 11px 14px; border-radius: 10px; text-align: center; font-weight: 800; font-size: 13.5px; }
 .lk-checkin.is-pending { background: #fffaf0; color: #dd6b20; border: 1px solid #fed7aa; }
 .lk-checkin.is-done { background: #edfcf5; color: #059669; border: 1px solid #a7f3d0; }
 
-/* Badge "đã soát" trên bảng kết quả */
 .scan-pill {
   display: inline-block; margin-top: 4px; padding: 3px 10px; border-radius: 999px;
   font-size: 11px; font-weight: 700; background: #edfcf5; color: #059669; white-space: nowrap;
 }
 
-/* transitions */
 .lk-fade-enter-active { transition: opacity 0.2s; }
 .lk-fade-enter-active .lk-modal { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
 .lk-fade-enter-from { opacity: 0; }
