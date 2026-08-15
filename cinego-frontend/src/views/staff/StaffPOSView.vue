@@ -36,7 +36,7 @@
           <div v-if="loading.movies" class="state">Đang tải phim…</div>
           <div v-else class="film-grid">
             <button
-              v-for="m in movies"
+              v-for="m in pagedMovies"
               :key="m.id"
               class="film"
               :class="{ active: selected.movie?.id === m.id }"
@@ -49,6 +49,11 @@
               </div>
               <span class="film-title">{{ m.title }}</span>
             </button>
+          </div>
+          <div v-if="!loading.movies && movieTotalPages > 1" class="film-pager">
+            <button class="btn-ghost sm" :disabled="moviePage === 1" @click="moviePage--">‹ Trước</button>
+            <span class="pager-info">Trang {{ moviePage }} / {{ movieTotalPages }}</span>
+            <button class="btn-ghost sm" :disabled="moviePage === movieTotalPages" @click="moviePage++">Sau ›</button>
           </div>
         </section>
 
@@ -94,37 +99,15 @@
           <header class="pane-head"><h3>Chọn ghế</h3><span class="pane-hint">{{ selected.roomName }} • {{ selected.showtime?.start_time }}</span></header>
           <div v-if="loading.seats" class="state">Đang tải sơ đồ ghế…</div>
           <template v-else>
-            <div class="stage">
-              <div class="beam"></div>
-              <div class="screen"><span>MÀN HÌNH</span></div>
-            </div>
-
-            <div class="seatmap">
-              <div v-for="row in seatRows" :key="row.name" class="seat-row">
-                <span class="row-label">{{ row.name }}</span>
-                <div class="seat-line">
-                  <button
-                    v-for="seat in row.seats"
-                    :key="seat.id"
-                    class="seat"
-                    :class="['seat--' + seat.type, seat.status, { picked: pickedIds.has(seat.id) }]"
-                    :disabled="seat.status !== 'available'"
-                    :title="`${seat.row_name}${seat.seat_number} • ${money(seat.price)}`"
-                    @click="toggleSeat(seat)"
-                  >{{ seat.seat_number }}</button>
-                </div>
-                <span class="row-label">{{ row.name }}</span>
-              </div>
-            </div>
-
-            <div class="legend">
-              <span><i class="dot lg-avail"></i> Trống</span>
-              <span><i class="dot lg-standard"></i> Thường</span>
-              <span><i class="dot lg-vip"></i> VIP</span>
-              <span><i class="dot lg-couple"></i> Đôi</span>
-              <span><i class="dot lg-sold"></i> Đã bán</span>
-              <span><i class="dot lg-picked"></i> Đang chọn</span>
-            </div>
+            <SeatMap
+              :seats="mappedSeats"
+              mode="client"
+              :selectedSeatIds="selectedSeatIds"
+              @seat-clicked="onSeatClick"
+            />
+            <p class="seat-note">
+              Ghế đôi tính là 1 vé (2 chỗ ngồi liền). Quy định: không được để trống 1 ghế đơn lẻ ở giữa các ghế đã chọn hoặc sát rìa hàng ghế.
+            </p>
           </template>
         </section>
 
@@ -291,6 +274,7 @@ import { ref, reactive, computed } from 'vue';
 import api from '../../api/axios';
 import { toast } from '../../utils/alert';
 import TicketPrintable from '../../components/TicketPrintable.vue';
+import SeatMap from '../../components/SeatMap.vue';
 
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=200&q=80';
 
@@ -306,6 +290,13 @@ const step = ref(1);
 const loading = reactive({ movies: false, dates: false, showtimes: false, seats: false, combos: false, cust: false, qc: false, print: false });
 
 const movies = ref([]);
+const moviePage = ref(1);
+const MOVIES_PER_PAGE = 12; // 12 phim mỗi trang
+const movieTotalPages = computed(() => Math.max(1, Math.ceil(movies.value.length / MOVIES_PER_PAGE)));
+const pagedMovies = computed(() => {
+  const start = (moviePage.value - 1) * MOVIES_PER_PAGE;
+  return movies.value.slice(start, start + MOVIES_PER_PAGE);
+});
 const dates = ref([]);
 const showtimeGroups = ref([]);
 const seats = ref([]);
@@ -415,26 +406,73 @@ const fetchSeats = async () => {
   }
 };
 
-const seatRows = computed(() => {
-  const map = {};
-  for (const s of seats.value) {
-    (map[s.row_name] = map[s.row_name] || []).push(s);
+// Chuyển dữ liệu ghế sang đúng định dạng component SeatMap (giống web khách)
+const mappedSeats = computed(() =>
+  seats.value.map((s) => ({
+    id: s.id,
+    row: s.row_name,
+    number: s.seat_number,
+    type: s.type || 'standard',
+    is_booked: s.status !== 'available', // đã bán / đang giữ / hỏng → không chọn được
+  }))
+);
+
+const selectedSeatIds = computed(() => selected.seats.map((s) => s.id));
+
+// SeatMap emit ghế đã map (không có giá) → tra lại ghế gốc để giữ giá cho tính tiền
+const onSeatClick = (mapped) => {
+  const raw = seats.value.find((s) => s.id === mapped.id);
+  if (!raw || raw.status !== 'available') return;
+  const i = selected.seats.findIndex((s) => s.id === raw.id);
+  if (i >= 0) {
+    selected.seats.splice(i, 1);
+  } else {
+    if (selected.seats.length >= 8) {
+      toast('Chỉ được chọn tối đa 8 ghế mỗi lần.', 'error');
+      return;
+    }
+    selected.seats.push(raw);
   }
-  return Object.keys(map)
-    .sort()
-    .map((name) => ({
-      name,
-      seats: map[name].sort((a, b) => Number(a.seat_number) - Number(b.seat_number)),
-    }));
-});
+};
 
-const pickedIds = computed(() => new Set(selected.seats.map((s) => s.id)));
+// Luật rạp: không để trống 1 ghế đơn lẻ ở giữa/rìa (bê nguyên từ web khách)
+const validateSeatSelection = () => {
+  const chosen = selected.seats;
+  if (chosen.length > 8) { toast('Chỉ được chọn tối đa 8 ghế mỗi lần.', 'error'); return false; }
+  if (chosen.length < 2) return true;
 
-const toggleSeat = (seat) => {
-  if (seat.status !== 'available') return;
-  const i = selected.seats.findIndex((s) => s.id === seat.id);
-  if (i >= 0) selected.seats.splice(i, 1);
-  else selected.seats.push(seat);
+  const ids = new Set(chosen.map((s) => s.id));
+  const rows = {};
+  mappedSeats.value.forEach((seat) => {
+    if (!['standard', 'vip', 'couple'].includes(seat.type)) return;
+    (rows[seat.row] = rows[seat.row] || []).push(seat);
+  });
+
+  for (const key in rows) {
+    const rowSeats = rows[key].sort((a, b) => parseInt(a.number) - parseInt(b.number));
+    if (!rowSeats.some((s) => ids.has(s.id))) continue;
+
+    for (let i = 0; i < rowSeats.length; i++) {
+      const cur = rowSeats[i];
+      if (cur.is_booked || ids.has(cur.id)) continue;
+
+      const L = i > 0 ? rowSeats[i - 1] : null;
+      const R = i < rowSeats.length - 1 ? rowSeats[i + 1] : null;
+      const leftEmpty = L && !L.is_booked && !ids.has(L.id);
+      const rightEmpty = R && !R.is_booked && !ids.has(R.id);
+      const isolated = !leftEmpty && !rightEmpty;
+
+      if (isolated) {
+        const leftCaused = L && ids.has(L.id);
+        const rightCaused = R && ids.has(R.id);
+        if (leftCaused || rightCaused) {
+          toast('Không được để trống 1 ghế đơn lẻ ở giữa các ghế đã chọn hoặc sát rìa hàng ghế.', 'error');
+          return false;
+        }
+      }
+    }
+  }
+  return true;
 };
 
 /* ---------- Bước 4: combo ---------- */
@@ -522,7 +560,10 @@ const canNext = computed(() => {
 const goNext = async () => {
   if (!canNext.value) return;
   if (step.value === 2) { step.value = 3; await fetchSeats(); return; }
-  if (step.value === 3) { step.value = 4; if (!combos.value.length) await fetchCombos(); return; }
+  if (step.value === 3) {
+    if (!validateSeatSelection()) return; // chặn ghế đơn lẻ trước khi qua bước combo
+    step.value = 4; if (!combos.value.length) await fetchCombos(); return;
+  }
   step.value++;
 };
 
@@ -534,6 +575,7 @@ const submit = async () => {
     toast('Cần chọn ghế và gán khách hàng trước khi thu tiền.', 'error');
     return;
   }
+  if (!validateSeatSelection()) return;
   submitting.value = true;
   try {
     const payload = {
@@ -573,6 +615,7 @@ const openPrint = async () => {
 /* ---------- Reset ---------- */
 const resetAll = () => {
   step.value = 1;
+  moviePage.value = 1;
   selected.movie = null;
   selected.date = null;
   selected.showtime = null;
@@ -785,6 +828,14 @@ fetchMovies();
 .spacer { flex: 1; }
 .btn-ghost { border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); color: var(--txt); padding: 12px 22px; border-radius: 11px; font-weight: 800; cursor: pointer; transition: 0.15s; }
 .btn-ghost:hover { border-color: rgba(255, 255, 255, 0.3); }
+.btn-ghost.sm { padding: 8px 16px; font-size: 13px; }
+
+/* Phân trang phim */
+.film-pager { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 20px; }
+.pager-info { font-size: 13px; font-weight: 700; color: var(--muted); }
+
+/* Ghi chú dưới sơ đồ ghế */
+.seat-note { text-align: center; font-size: 12px; color: var(--muted); margin-top: 14px; line-height: 1.5; }
 .btn-next { border: none; background: linear-gradient(135deg, var(--red), var(--red-deep)); color: #fff; padding: 12px 30px; border-radius: 11px; font-weight: 900; cursor: pointer; box-shadow: 0 8px 20px rgba(229, 9, 20, 0.35); transition: 0.15s; }
 .btn-next:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 12px 26px rgba(229, 9, 20, 0.5); }
 .btn-next:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
