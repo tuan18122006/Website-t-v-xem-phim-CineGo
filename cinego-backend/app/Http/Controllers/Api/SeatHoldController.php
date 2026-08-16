@@ -158,7 +158,7 @@ class SeatHoldController extends Controller
                         'success'           => true,
                         'message'           => 'Ghế vẫn được giữ cho quá trình thanh toán',
                         'expires_at'        => $currentExpiresAt,
-                        'seconds_remaining' => max(0, Carbon::parse($currentExpiresAt)->diffInSeconds($now, false))
+                        'seconds_remaining' => max(0, Carbon::parse($currentExpiresAt)->diffInSeconds($now, true))
                     ]);
                 }
 
