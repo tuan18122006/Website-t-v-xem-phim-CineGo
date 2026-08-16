@@ -105,10 +105,10 @@
                 <div class="combo-info">
                   <h3 class="combo-name">{{ combo.name }}</h3>
                   <p class="combo-desc">{{ combo.description }}</p>
-                  <span class="combo-price">{{ formatCurrency(combo.price) }}</span>
                 </div>
 
                 <div class="combo-action">
+                  <span class="combo-price combo-price-dark">{{ formatCurrency(combo.price) }}</span>
                   <div class="combo-controls">
                     <button @click="bookingStore.removeCombo(combo)" class="ctrl-btn">-</button>
                     <span class="ctrl-qty">{{ getComboQty(combo.id) }}</span>
@@ -117,13 +117,6 @@
                       +
                     </button>
                   </div>
-                  <small :class="{
-                    'stock-info': getRemainingStock(combo) > 3,
-                    'stock-low': getRemainingStock(combo) <= 3 && !isMaxStock(combo),
-                    'stock-warning': isMaxStock(combo)
-                  }">
-                    {{ isMaxStock(combo) ? 'Đã đạt số lượng tối đa' : `Còn lại ${getRemainingStock(combo)} Combo` }}
-                  </small>
                 </div>
               </div>
             </div>
@@ -290,6 +283,7 @@ import { useRouter } from "vue-router";
 import { useBookingStore } from "../../stores/booking";
 import { useAuthStore } from "../../stores/auth";
 import api from "../../api/axios";
+import Swal from "sweetalert2";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
 const fallbackComboImage = "/images/default-combo.png";
@@ -435,12 +429,6 @@ const getComboQty = (comboId) => {
   return item ? item.quantity : 0;
 };
 
-const getRemainingStock = (combo) => {
-  const item = bookingStore.selectedCombos.find((c) => c.combo.id === combo.id);
-  const selectedQty = item ? item.quantity : 0;
-  return combo.stock - selectedQty;
-};
-
 const isMaxStock = (combo) => {
   const item = bookingStore.selectedCombos.find((c) => c.combo.id === combo.id);
   if (!item) return false;
@@ -517,6 +505,31 @@ const confirmPayment = async () => {
   submitting.value = true;
 
   try {
+    const pendingCheck = await api.get("/payments/check-pending", {
+      params: { showtime_id: bookingStore.selectedShowtime?.id },
+    });
+
+    if (pendingCheck.data?.has_pending) {
+      const old = pendingCheck.data;
+      const seatList = (old.seats || []).join(", ");
+      const showtimeInfo = old.showtime_info ? ` (${old.showtime_info})` : "";
+
+      const { isConfirmed } = await Swal.fire({
+        title: "Bạn có đơn thanh toán lại chưa hoàn tất",
+        html: `Đơn <b>${old.booking_code}</b>${showtimeInfo} (ghế: <b>${seatList}</b>) vẫn đang chờ thanh toán.<br/><br/>Tạo đơn mới sẽ <b>hủy đơn cũ</b>. Bạn có chắc muốn tiếp tục?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Đồng ý, hủy đơn cũ",
+        cancelButtonText: "Quay lại",
+        confirmButtonColor: "#e50914",
+        reverseButtons: true,
+      });
+
+      if (!isConfirmed) {
+        return;
+      }
+    }
+
     const payload = {
       showtime_id: bookingStore.selectedShowtime?.id,
       seat_ids: bookingStore.selectedSeats.map((seat) => seat.id),
@@ -569,12 +582,12 @@ onMounted(() => {
 
 .payment-checkout-grid {
   display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 30px;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
+  gap: 24px;
   align-items: start;
 }
 
-@media (max-width: 992px) {
+@media (max-width: 1100px) {
   .payment-checkout-grid {
     grid-template-columns: 1fr;
   }
@@ -583,7 +596,8 @@ onMounted(() => {
 .checkout-main {
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 20px;
+  min-width: 0;
 }
 
 .section-title {
@@ -594,7 +608,7 @@ onMounted(() => {
 
 .combos-section,
 .payment-methods-section {
-  padding: 30px;
+  padding: 20px 24px;
 }
 
 .combos-list {
@@ -605,8 +619,9 @@ onMounted(() => {
 
 .combo-item {
   display: flex;
-  padding: 16px;
-  gap: 20px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  gap: 16px;
   align-items: center;
 }
 
@@ -635,11 +650,12 @@ onMounted(() => {
 }
 
 .combo-img {
-  width: 70px;
-  height: 70px;
+  width: 56px;
+  height: 56px;
   object-fit: cover;
   border-radius: var(--radius-sm);
   background: var(--bg-tertiary);
+  flex-shrink: 0;
 }
 
 .combo-info {
@@ -704,8 +720,8 @@ onMounted(() => {
 
 .methods-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
 }
 
 .method-card {
@@ -762,10 +778,11 @@ onMounted(() => {
 }
 
 .checkout-sidebar {
-  padding: 30px;
+  padding: 20px 24px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
+  min-width: 0;
 }
 
 .sidebar-title {
@@ -1076,24 +1093,14 @@ onMounted(() => {
 
 .combo-action {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 8px;
-  min-width: 170px;
+  gap: 14px;
+  margin-left: auto;
 }
 
-.stock-info {
-  color: #16a34a;
-}
-
-.stock-low {
-  color: #f59e0b;
-  font-weight: 600;
-}
-
-.stock-warning {
-  color: #ef4444;
-  font-weight: 700;
+.combo-price-dark {
+  color: #000000;
 }
 
 .skeleton-card {

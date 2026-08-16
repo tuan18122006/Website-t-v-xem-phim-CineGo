@@ -144,9 +144,18 @@ class SeatHoldController extends Controller
                     ->where('user_id', $userId)
                     ->where('showtime_id', $request->showtime_id)
                     ->where('confirmed_at', '>', $now->copy()->subMinutes(self::CHECKOUT_HOLD_MINUTES))
-                    ->exists();
+                    ->get();
 
-                if ($recentlyConfirmed) {
+                $sameSeatsConfirmed = $recentlyConfirmed->contains(function ($record) use ($seatIds) {
+                    $recordedSeats = is_array($record->seat_ids) ? $record->seat_ids : json_decode($record->seat_ids ?? '[]', true);
+                    $recordedSeats = array_map('intval', (array) $recordedSeats);
+                    $currentSeats = array_map('intval', $seatIds);
+                    sort($recordedSeats);
+                    sort($currentSeats);
+                    return $recordedSeats === $currentSeats;
+                });
+
+                if ($sameSeatsConfirmed) {
                     $currentExpiresAt = DB::table('seat_holds')
                         ->where('user_id', $userId)
                         ->where('showtime_id', $request->showtime_id)
@@ -165,6 +174,7 @@ class SeatHoldController extends Controller
                 DB::table('seat_hold_confirms')->insert([
                     'user_id'      => $userId,
                     'showtime_id'  => $request->showtime_id,
+                    'seat_ids'     => json_encode(array_map('intval', $seatIds)),
                     'confirmed_at' => $now,
                     'created_at'   => $now,
                     'updated_at'   => $now,
@@ -226,6 +236,13 @@ class SeatHoldController extends Controller
                 ->where('showtime_id', $showtimeId)
                 ->where('user_id', $userId)
                 ->delete();
+
+            $user = auth()->user();
+            if ($user) {
+                $user->notify(new \App\Notifications\SeatHoldReleasedNotification(
+                    "Hủy giữ ghế thành công. Các ghế đã được giải phóng."
+                ));
+            }
         }
 
         broadcast(new SeatUnlocked($showtimeId, $seatId))->toOthers();

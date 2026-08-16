@@ -93,6 +93,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/available-combos', [LoyaltyController::class, 'getAvailableCombos']);
     Route::post('/vouchers/claim', [VoucherController::class, 'claimVoucher']);
     Route::post('/payments/create', [PaymentController::class, 'createPayment']);
+    Route::get('/payments/check-pending', [PaymentController::class, 'checkPendingBooking']);
+    Route::post('/payments/cancel-pending', [PaymentController::class, 'cancelPendingBooking']);
     Route::post('/payments/retry/{id}', [PaymentController::class, 'retryPayment']);
     // giữ ghế
     Route::post('/seats/hold', [BookingController::class, 'holdSeats']);

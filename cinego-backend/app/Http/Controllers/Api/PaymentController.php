@@ -71,6 +71,8 @@ class PaymentController extends Controller
         
         $txnRef = 'CG' . time() . rand(100, 999);
 
+        $this->cancelPendingBookingsOf(auth()->id(), $request->seat_ids);
+
         try {
             $booking = $this->bookingService->createBooking(
                 $request->showtime_id,
@@ -112,6 +114,107 @@ class PaymentController extends Controller
             'booking_id'  => $booking->id,
             'payment_url' => $paymentUrl,
         ]);
+    }
+
+    /**
+     * Kiểm tra user có đơn pending/failed cũ nào không (bất kể suất chiếu —
+     * đơn đang trong trạng thái "thanh toán lại"). Dùng để xác nhận với user
+     * trước khi tạo đơn mới: tạo đơn mới sẽ hủy đơn cũ.
+     */
+    public function checkPendingBooking(Request $request)
+    {
+        $request->validate([
+            'showtime_id' => 'required|integer|exists:showtimes,id',
+        ]);
+
+        $booking = Booking::where('user_id', auth()->id())
+            ->whereIn('payment_status', ['pending', 'failed'])
+            ->latest()
+            ->first();
+
+        if (!$booking) {
+            return response()->json([
+                'success' => false,
+                'has_pending' => false,
+            ]);
+        }
+
+        $seats = $booking->bookingDetails()
+            ->with('seat')
+            ->get()
+            ->map(function ($detail) {
+                return $detail->seat
+                    ? $detail->seat->row . $detail->seat->number
+                    : 'Ghế #' . $detail->seat_id;
+            })
+            ->values();
+
+        $showtime = \App\Models\Showtime::with('movie')->find($booking->showtime_id);
+
+        return response()->json([
+            'success' => true,
+            'has_pending' => true,
+            'booking_id' => $booking->id,
+            'booking_code' => $booking->booking_code,
+            'showtime_info' => $showtime
+                ? ($showtime->movie->title ?? 'Phim') . ' | ' . $showtime->start_time
+                : null,
+            'seats' => $seats,
+            'total_amount' => $booking->total_amount,
+        ]);
+    }
+
+    /**
+     * Hủy mọi đơn pending/failed cũ của user khi user xác nhận tạo đơn mới
+     * (gọi từ hộp thoại xác nhận trước khi "Tiếp tục" giữ ghế).
+     */
+    public function cancelPendingBooking(Request $request)
+    {
+        $request->validate([
+            'showtime_id' => 'required|integer|exists:showtimes,id',
+        ]);
+
+        $this->cancelPendingBookingsOf(auth()->id(), $request->input('keep_seat_ids', []));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Đơn thanh toán lại đã được hủy.',
+        ]);
+    }
+
+    /**
+     * Hủy mọi đơn pending/failed cũ của user khi user tạo đơn mới,
+     * giải phóng ghế của đơn cũ để tránh giữ ghế vô ích và thanh toán trùng 2 đơn.
+     * $keepSeatIds: ghế của đơn mới — không giải phóng (user vẫn đang giữ).
+     */
+    private function cancelPendingBookingsOf(int $userId, array $keepSeatIds = []): void
+    {
+        $oldBookings = Booking::where('user_id', $userId)
+            ->whereIn('payment_status', ['pending', 'failed'])
+            ->get();
+
+        foreach ($oldBookings as $oldBooking) {
+            $oldSeatIds = $oldBooking->bookingDetails()->pluck('seat_id')->toArray();
+            $releaseSeatIds = array_values(array_diff($oldSeatIds, $keepSeatIds));
+
+            if (!empty($releaseSeatIds)) {
+                DB::table('seat_holds')
+                    ->where('showtime_id', $oldBooking->showtime_id)
+                    ->whereIn('seat_id', $releaseSeatIds)
+                    ->where('user_id', $userId)
+                    ->delete();
+            }
+
+            DB::table('seat_hold_confirms')
+                ->where('showtime_id', $oldBooking->showtime_id)
+                ->where('user_id', $userId)
+                ->delete();
+
+            $oldBooking->update([
+                'payment_status' => 'payment_cancelled',
+                'booking_status' => 'cancelled',
+            ]);
+        }
     }
 
     /**
@@ -209,9 +312,22 @@ class PaymentController extends Controller
                 ->where('showtime_id', $booking->showtime_id)
                 ->where('user_id', $booking->user_id)
                 ->delete();
+
+            if ($booking->user) {
+                $booking->user->notify(new \App\Notifications\PaymentFailedNotification(
+                    $booking->booking_code,
+                    "Bạn đã hủy thanh toán đơn hàng " . $booking->booking_code . ". Các ghế đã được trả lại."
+                ));
+            }
         } else {
             $this->bookingService->markAsFailed($booking);
-            
+
+            if ($booking->user) {
+                $booking->user->notify(new \App\Notifications\PaymentFailedNotification(
+                    $booking->booking_code,
+                    "Đơn hàng " . $booking->booking_code . " thanh toán không thành công. Bạn có thể thanh toán lại bất cứ lúc nào."
+                ));
+            }
         }
 
         $code = $vnpParams['vnp_ResponseCode'] ?? '';
