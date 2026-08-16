@@ -119,6 +119,15 @@
               {{ detail.booking_status === 'completed' ? 'Đã soát vé — đã sử dụng' : 'Chưa soát vé' }}
             </div>
 
+            <div v-if="detail.check_in_count" class="lk-checkins">
+              <div class="lk-ci-head"><CheckCircle2 :size="15" style="vertical-align:-2px" /> Số lần check-in: {{ detail.check_in_count }}</div>
+              <ul class="lk-ci-list">
+                <li v-for="(c, i) in detail.check_ins" :key="i">
+                  <b>Lần {{ i + 1 }}:</b> {{ c.checked_in_at }}<span v-if="c.reason"> — lí do: {{ c.reason }}</span>
+                </li>
+              </ul>
+            </div>
+
             <section class="lk-section">
               <h4 class="lk-section__title"><User :size="15" style="vertical-align:-2px" /> Khách hàng</h4>
               <div class="lk-kv"><span>Họ tên</span><b>{{ detail.customer.name || '—' }}</b></div>
@@ -144,10 +153,7 @@
               <h4 class="lk-section__title">
                 <Ticket :size="15" style="vertical-align:-2px" /> Vé của khách — {{ detail.seat_count }} vé phim · {{ detail.combo_count }} phiếu bắp nước
               </h4>
-              <TicketPrintable v-if="detail.booking_status === 'completed'" :booking="detail" />
-              <div v-else class="lk-noprint">
-                🎫 Vé chưa được soát — <b>không thể in lại</b>. Hãy soát vé (nút bên dưới) khi khách vào cửa; sau khi soát mới in lại được.
-              </div>
+              <TicketPrintable :booking="detail" :show-print="false" />
             </section>
 
             <section class="lk-section lk-section--pay">
@@ -537,6 +543,10 @@ const verifyTicket = async () => {
 .lk-checkin.is-done { background: #edfcf5; color: #059669; border: 1px solid #a7f3d0; }
 
 .lk-noprint { padding: 16px; border-radius: 10px; text-align: center; font-size: 13px; line-height: 1.6; color: #92400e; background: #fffaf0; border: 1px dashed #fed7aa; }
+.lk-checkins { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 12px 14px; }
+.lk-ci-head { font-weight: 800; font-size: 13px; color: #b45309; margin-bottom: 6px; }
+.lk-ci-list { margin: 0; padding-left: 18px; }
+.lk-ci-list li { font-size: 12.5px; color: #475569; line-height: 1.6; }
 .scan-pill {
   display: inline-block; margin-top: 4px; padding: 3px 10px; border-radius: 999px;
   font-size: 11px; font-weight: 700; background: #edfcf5; color: #059669; white-space: nowrap;
