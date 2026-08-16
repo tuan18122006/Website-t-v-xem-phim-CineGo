@@ -240,13 +240,11 @@ class ComboController extends Controller
     {
         $combo = Combo::findOrFail($id);
 
-        $this->deleteComboImage($combo->image_url);
-
         $combo->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Đã xóa combo.',
+            'message' => 'Đã chuyển combo vào thùng rác.',
         ]);
     }
 

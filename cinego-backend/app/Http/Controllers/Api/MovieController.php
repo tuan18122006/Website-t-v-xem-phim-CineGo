@@ -52,7 +52,7 @@ class MovieController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'title'        => 'required|string|max:255|unique:movies,title',
+            'title'        => 'required|string|max:255|unique:movies,title,NULL,id,deleted_at,NULL',
             'rating'       => 'required|string',
             'description'  => 'required|string',
             'duration'     => 'required|integer|min:1',
@@ -86,10 +86,16 @@ class MovieController extends Controller
 
         $posterUrl = $request->file('poster')->store('posters', 'public');
 
+        $baseSlug = Str::slug($request->title);
+        $slug = $baseSlug;
+        $i = 1;
+        while (Movie::withTrashed()->where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $i++;
+        }
 
         $movie = Movie::create([
             'title'        => $request->title,
-            'slug'         => Str::slug($request->title),
+            'slug'         => $slug,
             'description'  => $request->description,
             'duration'     => $request->duration,
             'release_date' => $request->release_date,
@@ -111,7 +117,7 @@ class MovieController extends Controller
         $movie = Movie::findOrFail($id);
 
         $request->validate([
-            'title'        => 'required|string|max:255|unique:movies,title,' . $id,
+            'title'        => 'required|string|max:255|unique:movies,title,' . $id . ',id,deleted_at,NULL',
             'rating'       => 'required|string',
             'description'  => 'required|string',
             'duration'     => 'required|integer|min:1',
@@ -134,7 +140,13 @@ class MovieController extends Controller
         $data = $request->except(['poster', 'genre_ids', '_method']);
 
         if ($request->has('title') && $request->title !== $movie->title) {
-            $data['slug'] = Str::slug($request->title);
+            $baseSlug = Str::slug($request->title);
+            $slug = $baseSlug;
+            $i = 1;
+            while (Movie::withTrashed()->where('slug', $slug)->where('id', '!=', $movie->id)->exists()) {
+                $slug = $baseSlug . '-' . $i++;
+            }
+            $data['slug'] = $slug;
         }
 
         if ($request->hasFile('poster')) {
@@ -178,20 +190,11 @@ class MovieController extends Controller
     {
         $movie = Movie::findOrFail($id);
 
-        $posterPath = $movie->poster_url;
-
-        if ($posterPath && !str_starts_with($posterPath, 'http')) {
-
-            if (Storage::disk('public')->exists($posterPath)) {
-                Storage::disk('public')->delete($posterPath);
-            }
-        }
-
         $movie->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'Xóa phim và ảnh poster thành công!'
+            'message' => 'Xóa phim thành công!'
         ], 200);
     }
 

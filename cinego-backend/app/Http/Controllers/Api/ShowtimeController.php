@@ -117,7 +117,6 @@ class ShowtimeController extends Controller
             $currentDate->addDay();
         }
 
-        // Nếu tất cả các ngày đều pass, bắt đầu insert
         $movie = \App\Models\Movie::find($request->movie_id);
         $rule = \App\Models\PricingRule::first();
         $snapshot = $rule ? $rule->toArray() : [
@@ -324,14 +323,35 @@ class ShowtimeController extends Controller
         $grouped = $showtimes->groupBy('room_id')->map(function ($items) {
             $room = $items->first()->room;
 
+            // Tổng số ghế thực tế của phòng (loại bỏ ghế ẩn/xóa — không phải ghế thật)
+            $totalSeats = Seat::where('room_id', $room->id)
+                ->whereNotIn('type', ['hidden', 'deleted', 'couple_hidden'])
+                ->where('status', '!=', 'broken')
+                ->count();
+
             return [
                 'roomId' => $room->id,
                 'roomName' => $room->name,
-                'showtimes' => $items->map(function ($showtime) {
+                'showtimes' => $items->map(function ($showtime) use ($totalSeats) {
+                    $now = Carbon::now();
+
+                    // Ghế đã đặt thành công (payment_status = paid)
+                    $bookedCount = BookingDetail::join('bookings', 'booking_details.booking_id', '=', 'bookings.id')
+                        ->where('bookings.showtime_id', $showtime->id)
+                        ->where('bookings.payment_status', 'paid')
+                        ->count();
+
+                    // Ghế đang bị giữ bởi người khác (chưa hết hạn)
+                    $heldCount = SeatHold::where('showtime_id', $showtime->id)
+                        ->where('expires_at', '>', $now)
+                        ->count();
+
+                    $available = max($totalSeats - $bookedCount - $heldCount, 0);
+
                     return [
                         'id' => $showtime->id,
                         'start_time' => \Carbon\Carbon::parse($showtime->start_time)->format('H:i'),
-                        'available_seats' => 85,
+                        'available_seats' => $available,
                         'room_name' => $showtime->room->name,
                         'is_sneak_show' => $showtime->is_sneak_show,
                     ];

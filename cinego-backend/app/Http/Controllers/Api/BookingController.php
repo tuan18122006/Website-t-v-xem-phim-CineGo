@@ -177,6 +177,16 @@ public function history(Request $request)
                 return ($bc->price_at_purchase ?? 0) * ($bc->quantity ?? 0);
             }) : 0;
 
+            $holdExpiresAt = null;
+            if (!in_array($booking->payment_status, ['paid', 'waiting_confirmation', 'cancelled', 'payment_cancelled'])) {
+                $holdExpiresAt = DB::table('seat_holds')
+                    ->where('user_id', $booking->user_id)
+                    ->where('showtime_id', $booking->showtime_id)
+                    ->whereIn('seat_id', $booking->bookingDetails()->pluck('seat_id'))
+                    ->where('expires_at', '>', Carbon::now())
+                    ->max('expires_at');
+            }
+
             return [
                 'id'             => $booking->id,
                 'booking_code'   => $booking->booking_code,
@@ -201,7 +211,8 @@ public function history(Request $request)
                     'cancelled'            => 'Đã hủy',
                     default                => 'Chưa hoàn tất',
                 },
-                'retry_count'    => (int) ($booking->retry_count ?? 0),
+                'retry_count'       => (int) ($booking->retry_count ?? 0),
+                'hold_expires_at'   => $holdExpiresAt ? Carbon::parse($holdExpiresAt)->toIso8601String() : null,
             ];
         });
 
@@ -264,8 +275,25 @@ public function history(Request $request)
         $booking->payment_status = $newStatus;
         $booking->save();
 
+        if ($newStatus === 'cancelled' && $oldStatus !== 'cancelled') {
+            DB::table('seat_holds')
+                ->where('showtime_id', $booking->showtime_id)
+                ->whereIn('seat_id', $booking->bookingDetails()->pluck('seat_id'))
+                ->where('user_id', $booking->user_id)
+                ->delete();
+
+            DB::table('seat_hold_confirms')
+                ->where('showtime_id', $booking->showtime_id)
+                ->where('user_id', $booking->user_id)
+                ->delete();
+        }
+
         // Nếu trạng thái từ pending -> paid, cộng điểm loyalty và gửi mail
         if (($oldStatus === 'pending' || $oldStatus === 'waiting_confirmation') && $newStatus === 'paid') {
+            DB::table('seat_hold_confirms')
+                ->where('user_id', $booking->user_id)
+                ->where('showtime_id', $booking->showtime_id)
+                ->delete();
             if ($booking->user) {
                 $booking->user->notify(new \App\Notifications\BookingConfirmedNotification(
                     $booking->booking_code,
@@ -336,32 +364,51 @@ public function holdSeats(Request $request)
             ], 422);
         }
 
-        DB::table('seat_holds')
+      
+        $existingHeld = DB::table('seat_holds')
             ->where('user_id', $userId)
             ->where('showtime_id', $request->showtime_id)
-            ->delete();
+            ->whereIn('seat_id', $request->seat_ids)
+            ->where('expires_at', '>', now())
+            ->pluck('seat_id')
+            ->all();
 
-        $expiresAt = now()->addMinutes(3);
+        $newSeatIds = array_values(array_diff($request->seat_ids, $existingHeld));
+
+        $now = now();
         $holdsData = [];
 
-        foreach ($request->seat_ids as $seatId) {
+        foreach ($newSeatIds as $seatId) {
             $holdsData[] = [
                 'user_id'     => $userId,
                 'showtime_id' => $request->showtime_id,
                 'seat_id'     => $seatId,
-                'expires_at'  => $expiresAt,
-                'created_at'  => now(),
-                'updated_at'  => now(),
+                'expires_at'  => $now->copy()->addMinutes(3),
+                'created_at'  => $now,
+                'updated_at'  => $now,
             ];
         }
 
-        DB::table('seat_holds')->insert($holdsData);
+        if (!empty($holdsData)) {
+            DB::table('seat_holds')->insert($holdsData);
+        }
+
+        $minExpiresAt = DB::table('seat_holds')
+            ->where('user_id', $userId)
+            ->where('showtime_id', $request->showtime_id)
+            ->whereIn('seat_id', $request->seat_ids)
+            ->where('expires_at', '>', now())
+            ->min('expires_at');
 
         return response()->json([
             'success'           => true,
             'message'           => 'Giữ ghế thành công!',
-            'expires_at'        => $expiresAt->toIso8601String(),
-            'seconds_remaining' => 180 
+            'expires_at'        => $minExpiresAt
+                ? \Carbon\Carbon::parse($minExpiresAt)->toIso8601String()
+                : $now->copy()->addMinutes(3)->toIso8601String(),
+            'seconds_remaining' => $minExpiresAt
+                ? max(0, now()->diffInSeconds(\Carbon\Carbon::parse($minExpiresAt), false))
+                : 180,
         ]);
     });
 }

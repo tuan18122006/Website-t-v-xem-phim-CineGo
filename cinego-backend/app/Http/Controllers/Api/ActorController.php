@@ -50,7 +50,7 @@ class ActorController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'name'       => 'required|string|max:255|unique:actors,name',
+            'name'       => 'required|string|max:255|unique:actors,name,NULL,id,deleted_at,NULL',
             'birth_date' => 'required|date|before_or_equal:today',
             'nationality'=> 'required|string|max:100',
             'avatar'     => 'required|image|mimes:jpeg,png,jpg,webp|max:2048',
@@ -72,9 +72,16 @@ class ActorController extends Controller
             $avatarUrl = $request->file('avatar')->store('actors', 'public');
         }
 
+        $baseSlug = Str::slug($request->name);
+        $slug = $baseSlug;
+        $i = 1;
+        while (Actor::withTrashed()->where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $i++;
+        }
+
         $actor = Actor::create([
             'name'        => $request->name,
-            'slug'        => Str::slug($request->name),
+            'slug'        => $slug,
             'avatar_url'  => $avatarUrl,
             'birth_date'  => $request->birth_date,
             'nationality' => $request->nationality,
@@ -95,7 +102,7 @@ class ActorController extends Controller
         }
 
         $request->validate([
-            'name'       => 'required|string|max:255|unique:actors,name,' . $id,
+            'name'       => 'required|string|max:255|unique:actors,name,' . $id . ',id,deleted_at,NULL',
             'birth_date' => 'required|date|before_or_equal:today',
             'nationality'=> 'required|string|max:100',
             'avatar'     => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
@@ -112,10 +119,19 @@ class ActorController extends Controller
 
         $data = [
             'name'        => $request->name,
-            'slug'        => Str::slug($request->name),
             'birth_date'  => $request->birth_date,
             'nationality' => $request->nationality,
         ];
+
+        if ($request->has('name') && $request->name !== $actor->name) {
+            $baseSlug = Str::slug($request->name);
+            $slug = $baseSlug;
+            $i = 1;
+            while (Actor::withTrashed()->where('slug', $slug)->where('id', '!=', $id)->exists()) {
+                $slug = $baseSlug . '-' . $i++;
+            }
+            $data['slug'] = $slug;
+        }
 
         if ($request->hasFile('avatar')) {
             if ($actor->avatar_url && !str_starts_with($actor->avatar_url, 'http')) {
@@ -140,12 +156,6 @@ class ActorController extends Controller
         $actor = Actor::find($id);
         if (!$actor) {
             return response()->json(['message' => 'Không tìm thấy diễn viên'], 404);
-        }
-
-        if ($actor->avatar_url && !str_starts_with($actor->avatar_url, 'http')) {
-            if (Storage::disk('public')->exists($actor->avatar_url)) {
-                Storage::disk('public')->delete($actor->avatar_url);
-            }
         }
 
         $actor->delete();

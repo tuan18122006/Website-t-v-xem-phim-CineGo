@@ -227,6 +227,11 @@
           </transition>
         </div>
 
+        <button class="nav-link" :class="{ active: activeTab === 'trash' }" @click="activeTab = 'trash'">
+          <span class="nav-icon"><Trash2 :size="20" /></span>
+          <span>Thùng Rác</span>
+        </button>
+
       </nav>
 
       <div class="sidebar-footer">
@@ -560,6 +565,11 @@
           <UserLoyaltyManager />
         </div>
 
+        <!-- TAB: THÙNG RÁC -->
+        <div v-if="activeTab === 'trash'" class="dashboard-tab-content" style="min-height: 500px;">
+          <TrashView />
+        </div>
+
 
      
 
@@ -570,7 +580,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { BarChart3, Tag, Clapperboard, Drama, Image, Clock, Receipt, Search, Camera, Settings, Building2, Users, Popcorn, Ticket, Star, Newspaper, Folder, PenLine, LogOut, Bell, Eye, CircleDollarSign, Trophy, Hourglass } from 'lucide-vue-next';
+import { BarChart3, Tag, Clapperboard, Drama, Image, Clock, Receipt, Search, Camera, Settings, Building2, Users, Popcorn, Ticket, Star, Newspaper, Folder, PenLine, LogOut, Bell, Eye, CircleDollarSign, Trophy, Hourglass, Trash2 } from 'lucide-vue-next';
 import { useAuthStore } from '../../stores/auth';
 import api from '../../api/axios';
 import MoviesView from './MoviesView.vue';
@@ -593,6 +603,7 @@ import OrderManagementView from "./OrderManagementView.vue";
 import TicketScannerView from "./TicketScannerView.vue";
 import UserLoyaltyManager from './UserLoyaltyManager.vue';
 import PaymentSettingsView from './PaymentSettingsView.vue';
+import TrashView from './TrashView.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();

@@ -21,15 +21,22 @@ class GenreController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255|unique:genres,name',
+            'name' => 'required|string|max:255|unique:genres,name,NULL,id,deleted_at,NULL',
         ],[
             'name.unique' => 'Tên thể loại này đã tồn tại, vui lòng chọn tên khác!',
             'name.required' => 'Tên thể loại không được để trống.',
         ]);
 
+        $baseSlug = Str::slug($request->name);
+        $slug = $baseSlug;
+        $i = 1;
+        while (Genre::withTrashed()->where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $i++;
+        }
+
         $genre = Genre::create([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => $slug,
         ],);
 
         return response()->json([
@@ -48,15 +55,22 @@ class GenreController extends Controller
         }
 
         $request->validate([
-            'name' => 'required|string|max:255|unique:genres,name,' . $id,
+            'name' => 'required|string|max:255|unique:genres,name,' . $id . ',id,deleted_at,NULL',
         ], [
             'name.unique' => 'Tên thể loại này đã tồn tại, vui lòng chọn tên khác!',
             'name.required' => 'Tên thể loại không được để trống.',
         ]);
 
+        $baseSlug = Str::slug($request->name);
+        $slug = $baseSlug;
+        $i = 1;
+        while (Genre::withTrashed()->where('slug', $slug)->where('id', '!=', $id)->exists()) {
+            $slug = $baseSlug . '-' . $i++;
+        }
+
         $genre->update([
             'name' => $request->name,
-            'slug' => Str::slug($request->name),
+            'slug' => $slug,
         ]);
 
         return response()->json([

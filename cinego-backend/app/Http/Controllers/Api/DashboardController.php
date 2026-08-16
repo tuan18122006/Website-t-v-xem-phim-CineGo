@@ -56,6 +56,7 @@ class DashboardController extends Controller
         
         $totalSeatsAvailable = DB::table('showtimes')
             ->join('seats', 'showtimes.room_id', '=', 'seats.room_id')
+            ->whereNull('showtimes.deleted_at')
             ->whereIn('showtimes.id', $todayShowtimeIds)
             ->where('seats.status', '!=', 'maintenance')
             ->count();
@@ -76,7 +77,9 @@ class DashboardController extends Controller
             ->join('bookings', 'booking_details.booking_id', '=', 'bookings.id')
             ->join('showtimes', 'bookings.showtime_id', '=', 'showtimes.id')
             ->join('movies', 'showtimes.movie_id', '=', 'movies.id')
-            ->where('bookings.payment_status', 'paid');
+            ->where('bookings.payment_status', 'paid')
+            ->whereNull('movies.deleted_at')
+            ->whereNull('showtimes.deleted_at');
             
         if ($start) $topRaw->whereDate('bookings.created_at', '>=', Carbon::parse($start));
         if ($end) $topRaw->whereDate('bookings.created_at', '<=', Carbon::parse($end));

@@ -73,7 +73,7 @@
             <button v-for="showtime in room.showtimes" :key="showtime.id" class="showtime-btn"
               :class="{ active: selectedShowtime?.id === showtime.id }" @click="selectShowtime(showtime)">
               <span class="time-label">{{ showtime.start_time }}</span>
-              <span class="seat-available">Trống {{ showtime.available_seats || 85 }} ghế</span>
+              <span class="seat-available">Trống {{ showtime.available_seats ?? '—' }} ghế</span>
             </button>
           </div>
         </div>

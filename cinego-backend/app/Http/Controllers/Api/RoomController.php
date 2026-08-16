@@ -25,7 +25,10 @@ class RoomController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'rows' => 'required|integer|max:10',
-            'cols' => 'required|integer|min:1',
+            'cols' => 'required|integer|min:1|max:14',
+        ], [
+            'rows.max' => 'Số hàng tối đa là 10 (phù hợp rạp thực tế).',
+            'cols.max' => 'Số ghế mỗi hàng tối đa là 14 (phù hợp rạp thực tế).',
         ]);
 
         $room = Room::create([

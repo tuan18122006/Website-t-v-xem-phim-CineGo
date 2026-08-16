@@ -70,7 +70,20 @@ const props = defineProps({
   seats: { type: Array, required: true },
   mode: { type: String, default: 'client' },
   selectedSeatIds: { type: Array, default: () => [] },
-  layout: { type: Object, default: () => ({ gap_cols: [], gap_rows: [] }) }
+  layout: { type: Object, default: () => ({ gap_cols: [], gap_rows: [] }) },
+  maxCols: { type: Number, default: 14 }
+});
+
+const MAX_GRID_COLS = computed(() => {
+  const cap = Math.max(8, props.maxCols || 14);
+  let natural = 1;
+  props.seats.forEach(s => {
+    let col = s.number;
+    (props.layout?.gap_cols || []).forEach(g => { if (s.number > g) col++; });
+    if (s.type === 'couple') col++;
+    if (col > natural) natural = col;
+  });
+  return Math.min(cap, natural);
 });
 
 const emit = defineEmits(['seat-clicked', 'selection-changed']);
@@ -115,12 +128,9 @@ const getPhysicalGridPos = (seat) => {
     const layout = props.layout || { gap_cols: [], gap_rows: [] };
     const gapCols = layout.gap_cols || [];
     const gapRows = layout.gap_rows || [];
-  
-    // Determine the base logical max cols
-    let maxStandardCols = 10;
-    if (props.seats && props.seats.length > 0) {
-      maxStandardCols = Math.max(...props.seats.map(s => s.number)) + gapCols.length;
-    }
+
+    // Cố định số cột tối đa: hàng dài hơn sẽ tự xuống dòng thay vì tràn ngang
+    let maxStandardCols = MAX_GRID_COLS.value;
 
     let baseRowIndex = rowLetters.value.indexOf(seat.row) + 1;
     let physicalRow = 1;
@@ -139,7 +149,7 @@ const getPhysicalGridPos = (seat) => {
         
         let wraps = 1;
         if (maxPhysicalColInPrevRow > 0) {
-            wraps = Math.ceil(maxPhysicalColInPrevRow / maxStandardCols);
+            wraps = Math.max(1, Math.ceil(maxPhysicalColInPrevRow / maxStandardCols));
         }
         physicalRow += wraps;
     }
@@ -160,6 +170,12 @@ const getPhysicalGridPos = (seat) => {
     let physicalCol = col - (seatWrapCount * maxStandardCols);
     physicalRow += seatWrapCount;
 
+    // Ghế đôi chiếm 2 cột: nếu bị đặt sát lề thì dồn xuống dòng kế để không tràn ra ngoài grid
+    if (seat.type === 'couple' && physicalCol > maxStandardCols - 1) {
+      physicalCol = 1;
+      physicalRow += 1;
+    }
+
     if (seat.type === 'couple') {
       return `${physicalRow} / ${physicalCol} / span 1 / span 2`;
     }
@@ -167,16 +183,11 @@ const getPhysicalGridPos = (seat) => {
   };
 
   const gridStyle = computed(() => {
-    const layout = props.layout || { gap_cols: [], gap_rows: [] };
-    const gapCols = layout.gap_cols || [];
-    
-    let maxStandardCols = 10;
-    if (props.seats && props.seats.length > 0) {
-      maxStandardCols = Math.max(...props.seats.map(s => s.number)) + gapCols.length;
-    }
+    let maxStandardCols = MAX_GRID_COLS.value;
     
     return {
-      gridTemplateColumns: `repeat(${maxStandardCols}, minmax(40px, 1fr))`
+      gridTemplateColumns: `repeat(${maxStandardCols}, minmax(36px, 52px))`,
+      justifyContent: 'center'
     };
   });
 
@@ -398,6 +409,7 @@ const getSeatClass = (seat) => {
   border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
   border: 1px solid rgba(255,255,255,0.05);
   user-select: none;
+  width: fit-content; max-width: 100%; margin: 0 auto;
 }
 .disable-scroll { touch-action: none; }
 
@@ -446,11 +458,13 @@ const getSeatClass = (seat) => {
 
 .seats-grid {
   display: grid; gap: 15px;
+  flex: 1 1 auto; min-width: 0;
 }
 
 /* TỐI ƯU HIỆU NĂNG: Bỏ transition nặng, dùng will-change */
 .seat-base {
-  width: 45px; height: 45px; border-radius: 12px 12px 6px 6px;
+  width: 100%; height: 48px;
+  border-radius: 12px 12px 6px 6px;
   display: flex; justify-content: center; align-items: center;
   font-size: 13px; font-weight: 800; color: white;
   will-change: transform, border-color, background-color;

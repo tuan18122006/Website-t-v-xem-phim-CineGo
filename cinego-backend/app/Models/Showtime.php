@@ -3,11 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Showtime extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = ['movie_id', 'room_id', 'start_time', 'end_time', 'format', 'translation', 'status', 'is_sneak_show', 'pricing_snapshot'];
 
     protected $casts = [

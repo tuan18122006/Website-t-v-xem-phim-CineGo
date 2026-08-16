@@ -15,7 +15,7 @@ use Carbon\Carbon;
 
 class PaymentController extends Controller
 {
-    protected const MAX_PAYMENT_RETRIES = 1;
+    private const CHECKOUT_HOLD_MINUTES = 10;
 
     protected $vnpayService;
     protected $bookingService;
@@ -159,6 +159,11 @@ class PaymentController extends Controller
                 if ($booking->payment_status !== 'paid') {
                     $this->bookingService->markAsPaid($booking);
 
+                    DB::table('seat_hold_confirms')
+                        ->where('user_id', $booking->user_id)
+                        ->where('showtime_id', $booking->showtime_id)
+                        ->delete();
+
                     $this->handlePaymentSuccess($booking);
 
                     if ($booking->user) {
@@ -193,15 +198,21 @@ class PaymentController extends Controller
 
         if ($isUserCancelled) {
             $this->bookingService->markAsCancelled($booking);
+           
+            DB::table('seat_holds')
+                ->where('showtime_id', $booking->showtime_id)
+                ->whereIn('seat_id', $booking->bookingDetails()->pluck('seat_id'))
+                ->where('user_id', $booking->user_id)
+                ->delete();
+
+            DB::table('seat_hold_confirms')
+                ->where('showtime_id', $booking->showtime_id)
+                ->where('user_id', $booking->user_id)
+                ->delete();
         } else {
             $this->bookingService->markAsFailed($booking);
+            
         }
-
-        DB::table('seat_holds')
-            ->where('showtime_id', $booking->showtime_id)
-            ->whereIn('seat_id', $booking->bookingDetails()->pluck('seat_id'))
-            ->where('user_id', $booking->user_id)
-            ->delete();
 
         $code = $vnpParams['vnp_ResponseCode'] ?? '';
         $reason = self::VNPAY_ERROR_CODES[$code] ?? 'Giao dịch không thành công, vui lòng thử lại.';
@@ -239,13 +250,6 @@ class PaymentController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Bạn đã hủy thanh toán đơn hàng này. Vui lòng đặt vé mới.',
-            ], 400);
-        }
-
-        if ((int) $booking->retry_count >= self::MAX_PAYMENT_RETRIES) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Đơn hàng đã hết lượt thanh toán lại (tối đa ' . self::MAX_PAYMENT_RETRIES . ' lần). Vui lòng đặt vé mới.',
             ], 400);
         }
 
@@ -292,67 +296,55 @@ class PaymentController extends Controller
                     throw new \Exception('Một số ghế của đơn hàng đang được khách khác giữ. Không thể thanh toán lại.');
                 }
 
-                DB::table('seat_holds')
+             
+                $isFirstRetry = ((int) $booking->retry_count) === 0;
+
+                $activeHoldExpiresAt = DB::table('seat_holds')
                     ->where('user_id', auth()->id())
                     ->where('showtime_id', $booking->showtime_id)
                     ->whereIn('seat_id', $seatIds)
-                    ->delete();
+                    ->where('expires_at', '>', $now)
+                    ->max('expires_at');
 
-                $expiresAt = $now->copy()->addMinutes(10);
-                $holdsData = [];
-
-                foreach ($seatIds as $seatId) {
-                    $holdsData[] = [
-                        'user_id'     => auth()->id(),
-                        'showtime_id' => $booking->showtime_id,
-                        'seat_id'     => $seatId,
-                        'expires_at'  => $expiresAt,
-                        'created_at'  => $now,
-                        'updated_at'  => $now,
-                    ];
+                if (!$activeHoldExpiresAt) {
+                    throw new \Exception('Đã hết thời gian giữ ghế (10 phút). Vui lòng đặt vé mới.');
                 }
 
-                DB::table('seat_holds')->insert($holdsData);
+                if ($isFirstRetry) {
+                    $newExpiresAt = $now->copy()->addMinutes(self::CHECKOUT_HOLD_MINUTES);
+                    DB::table('seat_holds')
+                        ->where('user_id', auth()->id())
+                        ->where('showtime_id', $booking->showtime_id)
+                        ->whereIn('seat_id', $seatIds)
+                        ->where('expires_at', '>', $now)
+                        ->update(['expires_at' => $newExpiresAt]);
 
-                return $expiresAt;
+                    return $newExpiresAt;
+                }
+
+                return Carbon::parse($activeHoldExpiresAt);
             });
-
-            $combos = $booking->bookingCombos()
-                ->where('price_at_purchase', '>', 0)
-                ->get()
-                ->map(fn ($bc) => ['id' => $bc->combo_id, 'quantity' => $bc->quantity])
-                ->values()
-                ->all();
 
             $paymentMethod = $booking->payment_method;
             $txnRef = 'CG' . time() . rand(100, 999);
             $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
 
-            $newBooking = $this->bookingService->createBooking(
-                $booking->showtime_id,
-                $seatIds,
-                $combos,
-                $paymentMethod,
-                auth()->id(),
-                $booking->voucher_id,
-                'pending',
-                $txnRef,
-                []
-            );
-
-            $this->bookingService->markAsFailed($booking);
-            $booking->retry_count = ((int) $booking->retry_count) + 1;
-            $booking->save();
+            $booking->update([
+                'vnp_txn_ref'    => $txnRef,
+                'payment_status' => 'pending',
+                'booking_status' => 'pending',
+                'retry_count'    => ((int) $booking->retry_count) + 1,
+            ]);
 
             $paymentUrl = null;
 
             if ($paymentMethod === 'bank_transfer') {
-                $paymentUrl = $frontendUrl . '/payment/qrcode?booking_id=' . $newBooking->id;
+                $paymentUrl = $frontendUrl . '/payment/qrcode?booking_id=' . $booking->id;
             } else {
                 $paymentUrl = $this->vnpayService->createPaymentUrl([
                     'txn_ref'     => $txnRef,
-                    'order_info'  => 'Thanh toán vé phim - ' . $newBooking->booking_code,
-                    'amount'      => $newBooking->total_amount,
+                    'order_info'  => 'Thanh toán vé phim - ' . $booking->booking_code,
+                    'amount'      => $booking->total_amount,
                     'ip_address'  => $request->ip(),
                     'expire_date' => $holdExpiresAt->format('YmdHis'),
                 ]);
@@ -360,21 +352,12 @@ class PaymentController extends Controller
 
             return response()->json([
                 'success'           => true,
-                'booking_id'        => $newBooking->id,
+                'booking_id'        => $booking->id,
                 'payment_url'       => $paymentUrl,
                 'expires_at'        => $holdExpiresAt->toIso8601String(),
-                'seconds_remaining' => 600,
-                'retries_left'      => max(0, self::MAX_PAYMENT_RETRIES - ((int) $booking->retry_count)),
+                'seconds_remaining' => max(0, $holdExpiresAt->diffInSeconds(Carbon::now(), false)),
             ]);
         } catch (\Exception $e) {
-            if (isset($holdExpiresAt) && !isset($newBooking)) {
-                DB::table('seat_holds')
-                    ->where('user_id', auth()->id())
-                    ->where('showtime_id', $booking->showtime_id)
-                    ->whereIn('seat_id', $booking->bookingDetails()->pluck('seat_id')->all())
-                    ->delete();
-            }
-
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage(),

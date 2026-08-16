@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\BlogCategoryController;
 use App\Http\Controllers\Api\TicketController;
 use App\Http\Controllers\Api\LoyaltyController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\TrashController;
 
 // Đăng ký / Đăng nhập
 Route::post('/register', [AuthController::class, 'register']);
@@ -229,6 +230,12 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
         Route::get('/users/{id}/histories', [LoyaltyController::class, 'adminGetUserHistories']);
         Route::post('/users/{id}/adjust-points', [LoyaltyController::class, 'adminAdjustPoints']);
     });
+
+    // Thùng rác (khôi phục / xóa vĩnh viễn)
+    Route::get('/trash', [TrashController::class, 'index']);
+    Route::post('/trash/{type}/{id}/restore', [TrashController::class, 'restore']);
+    Route::delete('/trash/{type}/{id}', [TrashController::class, 'forceDelete']);
+    Route::delete('/trash/empty', [TrashController::class, 'emptyAll']);
 });
 
 // ==================================================================

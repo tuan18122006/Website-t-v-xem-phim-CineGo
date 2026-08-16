@@ -3,7 +3,7 @@
     <!-- Navbar/Footer chỉ hiện ở trang client; tự động ẩn ở khu vực quản trị (Admin & Staff) -->
     <Navbar v-if="!isBackofficeRoute" />
 
-    <main :class="isBackofficeRoute ? 'admin-main-wrapper' : 'main-content'">
+    <main :class="isBackofficeRoute ? 'admin-main-wrapper' : (route.meta.fullWidth ? 'main-content-wide' : 'main-content')">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
           <component :is="Component" />
@@ -54,6 +54,13 @@ onMounted(() => {
   max-width: 1200px;
   width: 100%;
   margin: 0 auto;
+  padding: 40px 24px;
+}
+
+.main-content-wide {
+  flex: 1;
+  max-width: 100%;
+  width: 100%;
   padding: 40px 24px;
 }
 

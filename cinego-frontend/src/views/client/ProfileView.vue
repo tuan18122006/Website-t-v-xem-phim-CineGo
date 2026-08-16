@@ -1039,28 +1039,25 @@
               Đơn hàng đã quá 24 giờ kể từ khi đặt. Không thể thanh toán lại, vui lòng đặt vé mới.
             </div>
             <template v-else>
-            <div v-if="retryTimeLeft > 0" style="margin-bottom: 12px; font-size: 13px; color: #b45309; display: flex; align-items: center; justify-content: center; gap: 6px;">
-              ⏳ Thời gian thanh toán còn lại:
+            <div v-if="hasRetried && retryTimeLeft > 0" style="margin-bottom: 12px; font-size: 13px; color: #b45309; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              ⏳ Thời gian giữ ghế còn lại:
               <strong style="font-size: 18px; color: #dc2626; letter-spacing: 1px;">{{ retryTimeLeftText }}</strong>
             </div>
-            <div v-else-if="retryExpired" style="margin-bottom: 12px; font-size: 13px; color: #b45309;">
-              ⏳ Đã hết thời gian giữ ghế. Bấm "Thanh toán lại" để giữ ghế thêm 10 phút.
+            <div v-else-if="hasRetried && retryExpired" style="margin-bottom: 12px; font-size: 13px; color: #b45309;">
+             Đã hết thời gian giữ ghế. Vui lòng đặt vé mới.
             </div>
-            <template v-if="retriesLeft > 0">
-              <div style="margin-bottom: 10px; font-size: 12.5px; color: #64748b;">
-                Còn <strong>{{ retriesLeft }}</strong> lượt thanh toán lại cho đơn hàng này.
-              </div>
+            <template v-if="canRetry && !retryExpired">
               <button
                 @click="retryPayment"
                 :disabled="isRetrying"
                 class="btn-cinego-submit"
                 style="width: 100%; background: linear-gradient(135deg, #e50914, #b91c1c); color: white; border: none;"
               >
-                {{ isRetrying ? 'ĐANG XỬ LÝ...' : 'THANH TOÁN LẠI' }}
+                {{ isRetrying ? 'ĐANG XỬ LÝ...' : (hasRetried ? 'TIẾP TỤC THANH TOÁN' : 'THANH TOÁN LẠI') }}
               </button>
             </template>
-            <div v-else style="padding: 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #b91c1c; font-size: 13.5px; font-weight: 600;">
-              Đơn hàng đã hết lượt thanh toán lại. Vui lòng đặt vé mới.
+            <div v-else-if="canRetry && retryExpired" style="padding: 14px; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 8px; color: #475569; font-size: 13.5px; font-weight: 600;">
+              Đã hết thời gian giữ ghế. Vui lòng đặt vé mới để mua lại vé này.
             </div>
             </template>
             </template>
@@ -1469,9 +1466,9 @@ const viewQrCode = (ticket) => {
 const viewDetails = (ticket) => {
   selectedTicket.value = ticket;
   isDetailModalOpen.value = true;
+  startRetryTimerFromTicket(ticket);
 };
 
-const MAX_PAYMENT_RETRIES = 1;
 const isRetrying = ref(false);
 
 const retryExpiresAt = ref(null);
@@ -1479,9 +1476,39 @@ const retryExpired = ref(false);
 const retryNow = ref(Date.now());
 let retryTimerInterval = null;
 
-const retriesLeft = computed(() => {
-  const used = selectedTicket?.value?.retry_count || 0;
-  return Math.max(0, MAX_PAYMENT_RETRIES - used);
+const startRetryTimerFromTicket = (ticket) => {
+  stopRetryTimer();
+  retryExpiresAt.value = null;
+  retryExpired.value = false;
+  const holdExpires = ticket?.hold_expires_at;
+  if (holdExpires) {
+    const ts = Date.parse(holdExpires);
+    if (!isNaN(ts) && ts > Date.now()) {
+      retryExpiresAt.value = ts;
+      startRetryTimer();
+    } else {
+      retryExpired.value = true;
+    }
+  } else if (
+    ticket?.status &&
+    !['paid', 'waiting_confirmation', 'cancelled', 'payment_cancelled'].includes(ticket.status)
+  ) {
+    retryExpired.value = true;
+  }
+};
+
+const canRetry = computed(() => {
+  const ticket = selectedTicket?.value;
+  if (!ticket) return false;
+  if (['paid', 'waiting_confirmation', 'cancelled', 'payment_cancelled'].includes(ticket.status)) return false;
+  if (isShowtimePassed.value) return false;
+  if (isRetryPast24h.value) return false;
+  return true;
+});
+
+const hasRetried = computed(() => {
+  const ticket = selectedTicket?.value;
+  return ticket ? (Number(ticket.retry_count) || 0) > 0 : false;
 });
 
 const isShowtimePassed = computed(() => {
@@ -1544,11 +1571,6 @@ const retryPayment = async () => {
     if (data?.expires_at) {
       retryExpiresAt.value = Date.parse(data.expires_at);
       startRetryTimer();
-    }
-
-    if (data?.retries_left !== undefined && selectedTicket.value) {
-      selectedTicket.value.retry_count =
-        MAX_PAYMENT_RETRIES - data.retries_left;
     }
 
     if (data?.payment_url) {

@@ -52,10 +52,14 @@ class SeatHoldController extends Controller
 
                 $now = Carbon::now();
 
-                // Dọn các hàng giữ ghế đã hết hạn của suất chiếu này
                 DB::table('seat_holds')
                     ->where('showtime_id', $showtimeId)
                     ->where('expires_at', '<=', $now)
+                    ->delete();
+
+                DB::table('seat_hold_confirms')
+                    ->where('showtime_id', $showtimeId)
+                    ->where('confirmed_at', '<=', $now->copy()->subMinutes(self::CHECKOUT_HOLD_MINUTES))
                     ->delete();
 
                 $activeHold = DB::table('seat_holds')
@@ -67,14 +71,6 @@ class SeatHoldController extends Controller
 
                 if ($activeHold) {
                     if ($activeHold->user_id == $userId) {
-                        if (Carbon::parse($activeHold->expires_at)->diffInSeconds($now) <= 60) {
-                            DB::table('seat_holds')
-                                ->where('id', $activeHold->id)
-                                ->update([
-                                    'expires_at' => $now->copy()->addMinutes(self::PICK_HOLD_MINUTES),
-                                    'updated_at' => $now
-                                ]);
-                        }
                         return;
                     } else {
                         throw new \Exception('Ghế này đang được chọn bởi người khác.');
@@ -144,6 +140,36 @@ class SeatHoldController extends Controller
                     throw new \Exception('Thời gian giữ ghế đã hết. Vui lòng chọn lại ghế!');
                 }
 
+                $recentlyConfirmed = DB::table('seat_hold_confirms')
+                    ->where('user_id', $userId)
+                    ->where('showtime_id', $request->showtime_id)
+                    ->where('confirmed_at', '>', $now->copy()->subMinutes(self::CHECKOUT_HOLD_MINUTES))
+                    ->exists();
+
+                if ($recentlyConfirmed) {
+                    $currentExpiresAt = DB::table('seat_holds')
+                        ->where('user_id', $userId)
+                        ->where('showtime_id', $request->showtime_id)
+                        ->whereIn('seat_id', $seatIds)
+                        ->where('expires_at', '>', $now)
+                        ->max('expires_at');
+
+                    return response()->json([
+                        'success'           => true,
+                        'message'           => 'Ghế vẫn được giữ cho quá trình thanh toán',
+                        'expires_at'        => $currentExpiresAt,
+                        'seconds_remaining' => max(0, Carbon::parse($currentExpiresAt)->diffInSeconds($now, false))
+                    ]);
+                }
+
+                DB::table('seat_hold_confirms')->insert([
+                    'user_id'      => $userId,
+                    'showtime_id'  => $request->showtime_id,
+                    'confirmed_at' => $now,
+                    'created_at'   => $now,
+                    'updated_at'   => $now,
+                ]);
+
                 $expiresAt = $now->copy()->addMinutes(self::CHECKOUT_HOLD_MINUTES);
 
                 DB::table('seat_holds')
@@ -153,6 +179,7 @@ class SeatHoldController extends Controller
                     ->where('expires_at', '>', $now)
                     ->update([
                         'expires_at' => $expiresAt,
+                        'is_checkout' => true,
                         'updated_at' => $now
                     ]);
 

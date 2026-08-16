@@ -49,13 +49,13 @@
           </div>
           <div class="grid-inputs">
             <div class="form-group-cine">
-              <label>Số hàng</label>
-              <input v-model="newRows" type="number" class="input-cine" />
+              <label>Số hàng (tối đa 10)</label>
+              <input v-model="newRows" type="number" min="1" max="10" class="input-cine" />
               <span v-if="errors.newRows" class="error-msg">{{ errors.newRows[0] }}</span>
             </div>
             <div class="form-group-cine">
-              <label>Số cột</label>
-              <input v-model="newCols" type="number" class="input-cine" />
+              <label>Số cột (tối đa 14)</label>
+              <input v-model="newCols" type="number" min="1" max="14" class="input-cine" />
               <span v-if="errors.newCols" class="error-msg">{{ errors.newCols[0] }}</span>
             </div>
           </div>
@@ -105,10 +105,16 @@ const validateForm = () => {
   if (!newRows.value || newRows.value <= 0) {
     errors.value.newRows = ['Số hàng phải lớn hơn 0.'];
     isValid = false;
+  } else if (newRows.value > 10) {
+    errors.value.newRows = ['Số hàng tối đa là 10 (phù hợp rạp thực tế).'];
+    isValid = false;
   }
 
   if (!newCols.value || newCols.value <= 0) {
     errors.value.newCols = ['Số cột phải lớn hơn 0.'];
+    isValid = false;
+  } else if (newCols.value > 14) {
+    errors.value.newCols = ['Số ghế mỗi hàng tối đa là 14 (phù hợp rạp thực tế).'];
     isValid = false;
   }
 

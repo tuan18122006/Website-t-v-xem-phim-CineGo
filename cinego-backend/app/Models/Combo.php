@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Combo extends Model
 {
+    use SoftDeletes;
+
     protected $fillable = ['name', 'description', 'type', 'price', 'image_url', 'status','is_sellable','is_redeemable', 'stock','points_required','valid_days','valid_minutes','limit_per_user'];
 
     public function bookingCombos(): HasMany

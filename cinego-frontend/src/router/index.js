@@ -80,7 +80,7 @@ const routes = [
     path: "/booking/seats",
     name: "seat-selection",
     component: SeatSelection,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, fullWidth: true },
   },
   {
     path: "/ticket/:bookingCode",
