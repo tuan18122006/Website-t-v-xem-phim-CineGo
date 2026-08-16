@@ -1,6 +1,6 @@
 <template>
   <div class="staff-layout">
-    <!-- LEFT SIDEBAR -->
+
     <aside class="staff-sidebar">
       <div class="sidebar-brand">
         <div class="cinego-logo-box">
@@ -28,9 +28,9 @@
           <span>Tra Cứu Đơn Hàng</span>
         </button>
 
-        <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'scan' }" 
+        <button
+          class="nav-link"
+          :class="{ active: activeTab === 'scan' }"
           @click="activeTab = 'scan'"
         >
           <span class="nav-icon">📷</span>
@@ -47,7 +47,6 @@
       </div>
     </aside>
 
-    <!-- RIGHT MAIN CONTENT AREA -->
     <main class="staff-main-content">
       <header class="content-header">
         <div>
@@ -57,17 +56,14 @@
         <router-link to="/" class="btn-back-client">👁️ Xem Client Website</router-link>
       </header>
 
-      <!-- TAB: BÁN VÉ TẠI QUẦY (POS) -->
       <div v-show="activeTab === 'pos'">
         <StaffPOSView />
       </div>
 
-      <!-- TAB: TRA CỨU ĐƠN HÀNG -->
       <div v-show="activeTab === 'lookup'">
         <BookingLookupView />
       </div>
 
-      <!-- TAB: QUÉT MÃ QR -->
       <div v-show="activeTab === 'scan'" class="scan-tab glass-panel">
         <div class="scan-container">
           <div class="scan-icon-wrapper">
@@ -75,15 +71,15 @@
           </div>
           <h3>Soát vé qua Mã QR</h3>
           <p>Nhập mã đặt vé bên dưới hoặc dùng thiết bị quét mã QR để quét trực tiếp vé của khách hàng.</p>
-          
+
           <form class="scan-form" @submit.prevent="handleScan">
-            <input 
-              ref="scanInput" 
-              v-model="scanCode" 
-              type="text" 
-              class="scan-input" 
-              placeholder="Quét mã QR hoặc nhập mã vé (VD: CG-123456)..." 
-              autofocus 
+            <input
+              ref="scanInput"
+              v-model="scanCode"
+              type="text"
+              class="scan-input"
+              placeholder="Quét mã QR hoặc nhập mã vé (VD: CG-123456)..."
+              autofocus
             />
             <div class="scan-actions">
               <button type="submit" class="btn-scan" :disabled="!scanCode">Xác Nhận</button>
@@ -101,37 +97,57 @@
             <qrcode-stream @detect="onDetect"></qrcode-stream>
           </div>
 
-
-
-          <!-- Kết quả quét -->
           <div v-if="scanResult" class="scan-result" :class="scanResult.status">
             <h4 v-if="scanResult.status === 'success'">✅ Vé Hợp Lệ!</h4>
             <h4 v-else>❌ Lỗi Xác Nhận!</h4>
             <p>{{ scanResult.message }}</p>
           </div>
+
+          <p v-if="loadingTicket" class="scan-loading">Đang tải thông tin vé…</p>
         </div>
       </div>
+
+      <!-- Vé sau khi soát: hiện thông tin + in -->
+      <transition name="st-fade">
+        <div v-if="scanTicket" class="st-backdrop" @click.self="scanTicket = null">
+          <div class="st-modal">
+            <div class="st-head">
+              <h3>✅ Vé hợp lệ — {{ scanTicket.booking_code }}</h3>
+              <button class="st-close" @click="scanTicket = null">Đóng</button>
+            </div>
+            <TicketPrintable :booking="scanTicket" />
+          </div>
+        </div>
+      </transition>
     </main>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, nextTick, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import BookingLookupView from '../admin/BookingLookupView.vue';
 import StaffPOSView from './StaffPOSView.vue';
+import TicketPrintable from '../../components/TicketPrintable.vue';
 import api from '../../api/axios';
 import { QrcodeStream, QrcodeCapture } from 'vue-qrcode-reader';
 
 const authStore = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 
-const activeTab = ref('pos');
+const VALID_TABS = ['pos', 'lookup', 'scan'];
+const savedTab = localStorage.getItem('staff_active_tab');
+const activeTab = ref(VALID_TABS.includes(savedTab) ? savedTab : 'pos');
+if (route.query.pos_pay) activeTab.value = 'pos';
+watch(activeTab, (v) => localStorage.setItem('staff_active_tab', v));
 const scanCode = ref('');
 const scanInput = ref(null);
 const scanResult = ref(null);
 const showCamera = ref(false);
+const scanTicket = ref(null);
+const loadingTicket = ref(false);
 
 const onDetect = (detectedCodes) => {
   if (detectedCodes && detectedCodes.length > 0) {
@@ -141,7 +157,7 @@ const onDetect = (detectedCodes) => {
       const scanParam = url.searchParams.get('scan');
       if (scanParam) rawValue = scanParam;
     } catch(e) {}
-    
+
     scanCode.value = rawValue;
     showCamera.value = false;
     handleScan();
@@ -173,16 +189,18 @@ const handleLogout = async () => {
 };
 
 const handleScan = async () => {
-  if (!scanCode.value) return;
+  const code = scanCode.value.trim();
+  if (!code) return;
   scanResult.value = null;
-  
+  scanTicket.value = null;
+
   try {
-    // Giả lập API verify vé
-    const res = await api.post('/staff/bookings/verify', { code: scanCode.value });
+    const res = await api.post('/staff/bookings/verify', { code });
     scanResult.value = {
       status: 'success',
-      message: `Soát vé thành công cho mã đơn ${scanCode.value}. Chúc quý khách xem phim vui vẻ!`
+      message: `Soát vé thành công cho mã đơn ${code}. Chúc quý khách xem phim vui vẻ!`
     };
+    await loadScanTicket(res.data?.data?.booking_code || code);
   } catch (err) {
     scanResult.value = {
       status: 'error',
@@ -190,7 +208,22 @@ const handleScan = async () => {
     };
   } finally {
     scanCode.value = '';
-    scanInput.value.focus();
+    if (scanInput.value) scanInput.value.focus();
+  }
+};
+
+const loadScanTicket = async (code) => {
+  loadingTicket.value = true;
+  try {
+    const look = await api.get('/staff/bookings/lookup', { params: { q: code } });
+    const found = (look.data.data || [])[0];
+    if (!found) return;
+    const detail = await api.get(`/staff/bookings/${found.id}`);
+    scanTicket.value = detail.data;
+  } catch (e) {
+    // không chặn kết quả soát nếu tải chi tiết vé lỗi
+  } finally {
+    loadingTicket.value = false;
   }
 };
 </script>
@@ -512,4 +545,14 @@ const handleScan = async () => {
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: #dc2626;
 }
+
+.scan-loading { text-align: center; color: var(--text-muted); font-size: 13px; margin-top: 12px; }
+.st-backdrop { position: fixed; inset: 0; z-index: 2000; background: rgba(15, 6, 8, 0.5); backdrop-filter: blur(6px); display: flex; align-items: flex-start; justify-content: center; padding: 40px 20px; overflow-y: auto; }
+.st-modal { background: #fff; border-radius: 18px; padding: 22px; max-width: 820px; width: 100%; }
+.st-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.st-head h3 { font-size: 17px; font-weight: 800; color: #059669; }
+.st-close { border: 1px solid #e2e8f0; background: #fff; color: #475569; padding: 8px 16px; border-radius: 9px; font-weight: 700; font-size: 13px; cursor: pointer; }
+.st-close:hover { background: #f8fafc; }
+.st-fade-enter-active, .st-fade-leave-active { transition: opacity 0.2s; }
+.st-fade-enter-from, .st-fade-leave-to { opacity: 0; }
 </style>

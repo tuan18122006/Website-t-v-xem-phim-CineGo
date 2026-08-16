@@ -8,10 +8,7 @@ use Illuminate\Http\Request;
 
 class BookingLookupController extends Controller
 {
-    /**
-     * Tra cứu đơn hàng cho nhân viên hỗ trợ khách.
-     * Tìm theo Số điện thoại / Email của khách, hoặc Mã đơn (booking_code).
-     */
+
     public function search(Request $request)
     {
         $request->validate([
@@ -28,7 +25,7 @@ class BookingLookupController extends Controller
             ->where(function ($outer) use ($q) {
                 $outer->where('booking_code', 'like', "%{$q}%")
                     ->orWhereHas('user', function ($query) use ($q) {
-                        // Tìm theo tên / email / SĐT của khách để hỗ trợ khi khách quên mã vé
+
                         $query->where('name', 'like', "%{$q}%")
                             ->orWhere('email', 'like', "%{$q}%")
                             ->orWhere('phone', 'like', "%{$q}%");
@@ -61,9 +58,6 @@ class BookingLookupController extends Controller
         ], 200);
     }
 
-    /**
-     * Chi tiết một đơn: khách mua ghế nào, bắp nước gì — để nhân viên báo lại cho khách.
-     */
     public function show($id)
     {
         $b = Booking::with([
@@ -133,9 +127,6 @@ class BookingLookupController extends Controller
         ], 200);
     }
 
-    /**
-     * Soát vé / Quét mã QR
-     */
     public function verify(Request $request)
     {
         $request->validate([
@@ -152,7 +143,6 @@ class BookingLookupController extends Controller
             return response()->json(['message' => 'Đơn hàng này chưa được thanh toán thành công.'], 400);
         }
 
-        // Chỉ cho soát vé trong vòng 20 phút trước giờ chiếu (tránh soát quá sớm)
         $start = $booking->showtime?->start_time;
         if ($start && now()->lt($start->copy()->subMinutes(20))) {
             $openAt = $start->copy()->subMinutes(20);
@@ -165,11 +155,9 @@ class BookingLookupController extends Controller
             return response()->json(['message' => 'Vé này đã được sử dụng (soát vé rồi).'], 400);
         }
 
-        // Cập nhật trạng thái vé
         $booking->booking_status = 'completed';
         $booking->save();
 
-        // Cập nhật chi tiết ghế đã soát
         $booking->bookingDetails()->update(['is_checked_in' => true]);
 
         return response()->json([

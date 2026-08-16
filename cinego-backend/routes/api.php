@@ -67,6 +67,9 @@ Route::post('/chatbot', [\App\Http\Controllers\Api\ChatbotController::class, 'ch
 // Cấu hình công khai
 Route::get('/settings/payment', [\App\Http\Controllers\Api\SettingController::class, 'getPaymentSettings']);
 
+// VNPay trả về cho đơn POS (công khai — VNPay redirect trình duyệt về, không kèm token)
+Route::get('/staff/pos/vnpay-return', [\App\Http\Controllers\Api\POSController::class, 'posVnpayReturn']);
+
 Route::middleware('auth:sanctum')->group(function () {
 
     // Đăng xuất & hồ sơ cho MỌI user đã đăng nhập (khách hàng, staff, admin)
@@ -247,6 +250,7 @@ Route::middleware(['auth:sanctum', 'can:staff-or-admin'])->prefix('staff')->grou
     Route::post('/customers', [\App\Http\Controllers\Api\POSController::class, 'quickCreateCustomer']);
     Route::get('/combos', [\App\Http\Controllers\Api\POSController::class, 'listCombos']);
     Route::post('/bookings/pos', [\App\Http\Controllers\Api\POSController::class, 'storePOSBooking']);
+    Route::post('/bookings/pos/vnpay', [\App\Http\Controllers\Api\POSController::class, 'createPOSPayment']);
 
     // Tra cứu đơn hàng / Hỗ trợ khách hàng
     Route::get('/bookings/lookup', [BookingLookupController::class, 'search']);
