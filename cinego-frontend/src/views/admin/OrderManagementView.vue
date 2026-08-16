@@ -118,9 +118,18 @@
               </div>
             </section>
 
+            <section v-if="selectedOrderDetail.check_in_count" class="lk-section">
+              <h4 class="lk-section__title"><Ticket :size="15" style="vertical-align:-2px" /> Lịch sử check-in — {{ selectedOrderDetail.check_in_count }} lần</h4>
+              <ul class="om-ci-list">
+                <li v-for="(c, i) in selectedOrderDetail.check_ins" :key="i">
+                  <b>Lần {{ i + 1 }}:</b> {{ c.checked_in_at }}<span v-if="c.reason"> — lí do: {{ c.reason }}</span>
+                </li>
+              </ul>
+            </section>
+
             <section class="lk-section">
               <h4 class="lk-section__title"><Ticket :size="15" style="vertical-align:-2px" /> Chi tiết vé</h4>
-              <TicketPrintable :booking="selectedOrderDetail" />
+              <TicketPrintable :booking="selectedOrderDetail" :show-print="false" />
             </section>
 
             <section class="lk-section">
@@ -406,4 +415,6 @@ onMounted(() => {
 
 .lk-fade-enter-active, .lk-fade-leave-active { transition: opacity 0.3s ease; }
 .lk-fade-enter-from, .lk-fade-leave-to { opacity: 0; }
+.om-ci-list { margin: 0; padding-left: 18px; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 12px 14px 12px 32px; }
+.om-ci-list li { font-size: 12.5px; color: #475569; line-height: 1.7; }
 </style>
