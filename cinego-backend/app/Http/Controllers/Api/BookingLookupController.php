@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\BookingCheckIn;
 use Illuminate\Http\Request;
 
 class BookingLookupController extends Controller
@@ -93,9 +94,21 @@ class BookingLookupController extends Controller
             ];
         });
 
+        $checkIns = BookingCheckIn::where('booking_id', $b->id)
+            ->orderBy('checked_in_at')
+            ->get()
+            ->map(function ($c) {
+                return [
+                    'checked_in_at' => optional($c->checked_in_at)->format('H:i:s d/m/Y'),
+                    'reason'        => $c->reason,
+                ];
+            });
+
         return response()->json([
             'id'             => $b->id,
             'booking_code'   => $b->booking_code,
+            'check_in_count' => $checkIns->count(),
+            'check_ins'      => $checkIns,
             'customer' => [
                 'name'  => $b->user?->name,
                 'email' => $b->user?->email,
@@ -131,6 +144,7 @@ class BookingLookupController extends Controller
     {
         $request->validate([
             'code' => 'required|string',
+            'reason' => 'nullable|string|max:255',
         ]);
 
         $booking = Booking::where('booking_code', $request->code)->first();
@@ -143,21 +157,38 @@ class BookingLookupController extends Controller
             return response()->json(['message' => 'Đơn hàng này chưa được thanh toán thành công.'], 400);
         }
 
-        if ($booking->booking_status === 'completed') {
-            return response()->json(['message' => 'Vé này đã được sử dụng (soát vé rồi).'], 400);
+        $count = BookingCheckIn::where('booking_id', $booking->id)->count();
+        $isReprint = $count >= 1;
+        $reason = trim((string) $request->reason);
+
+        if ($isReprint && $reason === '') {
+            return response()->json([
+                'needs_reason'   => true,
+                'check_in_count' => $count,
+                'message'        => 'Vé đã được soát ' . $count . ' lần trước đó. Nhập lí do để soát / in lại vé.',
+            ], 422);
         }
 
-        $booking->booking_status = 'completed';
-        $booking->save();
+        $now = now();
+        BookingCheckIn::create([
+            'booking_id'    => $booking->id,
+            'checked_in_at' => $now,
+            'reason'        => $isReprint ? $reason : null,
+        ]);
 
-        $booking->bookingDetails()->update(['is_checked_in' => true]);
+        if (!$isReprint) {
+            $booking->booking_status = 'completed';
+            $booking->save();
+            $booking->bookingDetails()->update(['is_checked_in' => true]);
+        }
 
         return response()->json([
-            'success' => true,
-            'message' => 'Soát vé hợp lệ.',
-            'data' => [
-                'booking_code' => $booking->booking_code
-            ]
+            'success'        => true,
+            'is_reprint'     => $isReprint,
+            'check_in_count' => $count + 1,
+            'checked_in_at'  => $now->format('H:i:s d/m/Y'),
+            'message'        => $isReprint ? 'Soát / in lại vé thành công.' : 'Soát vé hợp lệ.',
+            'data'           => ['booking_code' => $booking->booking_code],
         ], 200);
     }
 }
