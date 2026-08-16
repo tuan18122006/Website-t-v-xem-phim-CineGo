@@ -353,6 +353,7 @@ const pickMovie = async (m) => {
   selected.movie = m;
   selected.date = null;
   selected.showtime = null;
+  selected.seats = [];
   showtimeGroups.value = [];
   step.value = 2;
   loading.dates = true;
@@ -370,6 +371,7 @@ const pickMovie = async (m) => {
 const pickDate = async (d) => {
   selected.date = d;
   selected.showtime = null;
+  selected.seats = [];
   loading.showtimes = true;
   try {
     const res = await api.get(`/movies/${selected.movie.id}/showtimes`, { params: { date: d } });
@@ -382,6 +384,7 @@ const pickDate = async (d) => {
 };
 
 const pickShowtime = (t, g) => {
+  if (selected.showtime?.id !== t.id) selected.seats = [];
   selected.showtime = t;
   selected.roomName = g.roomName;
 };
@@ -392,6 +395,9 @@ const fetchSeats = async () => {
   try {
     const res = await api.get(`/showtimes/${selected.showtime.id}/seats`);
     seats.value = res.data.seats || [];
+    // Chỉ giữ ghế đang chọn thuộc đúng phòng của suất này (tránh gửi ghế sai phòng)
+    const ids = new Set(seats.value.map((s) => s.id));
+    selected.seats = selected.seats.filter((s) => ids.has(s.id));
   } catch (e) {
     toast('Không tải được sơ đồ ghế.', 'error');
   } finally {
