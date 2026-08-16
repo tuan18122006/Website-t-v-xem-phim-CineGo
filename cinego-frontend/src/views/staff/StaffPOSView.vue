@@ -839,8 +839,8 @@ watch([step, selected, comboQty, payment, moviePage], () => { if (ready) persist
 .combo { border: 1px solid var(--line); border-radius: 15px; overflow: hidden; display: flex; flex-direction: column; background: rgba(255, 255, 255, 0.03); transition: 0.18s; }
 .combo:hover { border-color: rgba(245, 194, 73, 0.4); transform: translateY(-2px); box-shadow: 0 12px 26px rgba(0, 0, 0, 0.4); }
 .combo.off { opacity: 0.5; }
-.combo-thumb { position: relative; aspect-ratio: 16/10; background: #241d20; }
-.combo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.combo-thumb { position: relative; width: 100%; height: 140px; background: #241d20; overflow: hidden; }
+.combo-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .combo-out { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(10, 6, 7, 0.62); color: var(--gold-soft); font-weight: 800; font-size: 13px; letter-spacing: 1px; }
 .combo-info { padding: 11px 13px 4px; display: flex; flex-direction: column; gap: 3px; }
 .combo-info strong { font-size: 13.5px; }
