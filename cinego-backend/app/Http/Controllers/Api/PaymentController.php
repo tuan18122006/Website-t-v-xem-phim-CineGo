@@ -355,7 +355,7 @@ class PaymentController extends Controller
                 'booking_id'        => $booking->id,
                 'payment_url'       => $paymentUrl,
                 'expires_at'        => $holdExpiresAt->toIso8601String(),
-                'seconds_remaining' => max(0, $holdExpiresAt->diffInSeconds(Carbon::now(), false)),
+                'seconds_remaining' => max(0, $holdExpiresAt->diffInSeconds(Carbon::now(), true)),
             ]);
         } catch (\Exception $e) {
             return response()->json([
