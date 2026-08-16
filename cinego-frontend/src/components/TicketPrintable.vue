@@ -1,8 +1,8 @@
 <template>
   <div class="tp">
 
-    <div class="tp-toolbar tp-noprint" style="justify-content: flex-end;">
-      <button type="button" class="tp-print" @click="doPrint">🖨️ In vé</button>
+    <div v-if="showPrint" class="tp-toolbar tp-noprint" style="justify-content: flex-end;">
+      <button type="button" class="tp-print" @click="doPrint">🖨️ {{ printLabel }}</button>
     </div>
 
     <div class="tp-region">
@@ -56,6 +56,8 @@ import { ref, computed } from 'vue';
 
 const props = defineProps({
   booking: { type: Object, required: true },
+  showPrint: { type: Boolean, default: true },
+  printLabel: { type: String, default: 'In vé' },
 });
 
 const formatCurrency = (val) =>

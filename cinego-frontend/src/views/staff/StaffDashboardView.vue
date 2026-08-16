@@ -115,7 +115,17 @@
               <h3>✅ Vé hợp lệ — {{ scanTicket.booking_code }}</h3>
               <button class="st-close" @click="scanTicket = null">Đóng</button>
             </div>
-            <TicketPrintable :booking="scanTicket" />
+
+            <div v-if="scanTicket.check_in_count" class="st-checkins">
+              <div class="st-ci-head">🎫 Đã check-in {{ scanTicket.check_in_count }} lần</div>
+              <ul class="st-ci-list">
+                <li v-for="(c, i) in scanTicket.check_ins" :key="i">
+                  <b>Lần {{ i + 1 }}:</b> {{ c.checked_in_at }}<span v-if="c.reason"> — lí do: {{ c.reason }}</span>
+                </li>
+              </ul>
+            </div>
+
+            <TicketPrintable :booking="scanTicket" :print-label="scanReprint ? 'In vé lại' : 'In vé'" />
           </div>
         </div>
       </transition>
@@ -131,6 +141,7 @@ import BookingLookupView from '../admin/BookingLookupView.vue';
 import StaffPOSView from './StaffPOSView.vue';
 import TicketPrintable from '../../components/TicketPrintable.vue';
 import api from '../../api/axios';
+import Swal from 'sweetalert2';
 import { QrcodeStream, QrcodeCapture } from 'vue-qrcode-reader';
 
 const authStore = useAuthStore();
@@ -148,6 +159,7 @@ const scanResult = ref(null);
 const showCamera = ref(false);
 const scanTicket = ref(null);
 const loadingTicket = ref(false);
+const scanReprint = ref(false);
 
 const onDetect = (detectedCodes) => {
   if (detectedCodes && detectedCodes.length > 0) {
@@ -193,22 +205,46 @@ const handleScan = async () => {
   if (!code) return;
   scanResult.value = null;
   scanTicket.value = null;
+  scanCode.value = '';
+  await verifyCode(code, null);
+  if (scanInput.value) scanInput.value.focus();
+};
 
+const verifyCode = async (code, reason) => {
   try {
-    const res = await api.post('/staff/bookings/verify', { code });
+    const payload = reason ? { code, reason } : { code };
+    const res = await api.post('/staff/bookings/verify', payload);
+    const d = res.data;
+    scanReprint.value = !!d.is_reprint;
     scanResult.value = {
       status: 'success',
-      message: `Soát vé thành công cho mã đơn ${code}. Chúc quý khách xem phim vui vẻ!`
+      message: (d.is_reprint ? `In lại vé (lần ${d.check_in_count}) thành công.` : 'Soát vé thành công.')
+        + ` Check-in lúc ${d.checked_in_at}.`,
     };
-    await loadScanTicket(res.data?.data?.booking_code || code);
+    await loadScanTicket(d.data?.booking_code || code);
   } catch (err) {
-    scanResult.value = {
-      status: 'error',
-      message: err.response?.data?.message || 'Mã vé không hợp lệ hoặc đã được sử dụng.'
-    };
-  } finally {
-    scanCode.value = '';
-    if (scanInput.value) scanInput.value.focus();
+    // Vé đã soát trước đó → hỏi lí do rồi mới cho check-in / in lại
+    if (err.response?.status === 422 && err.response.data?.needs_reason) {
+      const { value: reason2 } = await Swal.fire({
+        title: 'Vé đã được soát trước đó',
+        text: err.response.data.message || 'Nhập lí do để check-in / in lại vé.',
+        input: 'text',
+        inputPlaceholder: 'Lí do (VD: khách làm mất vé)…',
+        showCancelButton: true,
+        confirmButtonText: 'Check-in lại & in vé',
+        cancelButtonText: 'Huỷ',
+        confirmButtonColor: '#e50914',
+        inputValidator: (v) => (!v || !v.trim()) ? 'Vui lòng nhập lí do' : undefined,
+      });
+      if (reason2 && reason2.trim()) {
+        await verifyCode(code, reason2.trim());
+      }
+    } else {
+      scanResult.value = {
+        status: 'error',
+        message: err.response?.data?.message || 'Mã vé không hợp lệ hoặc chưa thanh toán.',
+      };
+    }
   }
 };
 
@@ -555,4 +591,8 @@ const loadScanTicket = async (code) => {
 .st-close:hover { background: #f8fafc; }
 .st-fade-enter-active, .st-fade-leave-active { transition: opacity 0.2s; }
 .st-fade-enter-from, .st-fade-leave-to { opacity: 0; }
+.st-checkins { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; }
+.st-ci-head { font-weight: 800; font-size: 13.5px; color: #b45309; margin-bottom: 6px; }
+.st-ci-list { margin: 0; padding-left: 18px; }
+.st-ci-list li { font-size: 12.5px; color: #475569; line-height: 1.6; }
 </style>
