@@ -18,6 +18,11 @@ class VoucherController extends Controller
             'user_id'     => 'required|integer',
             'is_new_user' => 'nullable|boolean',
             'movie_id'    => 'nullable|integer'
+        ], [
+            'code.required'     => 'Vui lòng nhập mã giảm giá.',
+            'code.string'       => 'Mã giảm giá phải là chuỗi ký tự.',
+            'subtotal.required' => 'Thiếu thông tin giá trị đơn hàng.',
+            'user_id.required'  => 'Thiếu thông tin người dùng.',
         ]);
 
         $code = strtoupper($request->code);

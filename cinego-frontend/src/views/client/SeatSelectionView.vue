@@ -625,6 +625,36 @@ const proceedToPayment = async () => {
   if (!validateSeatSelection()) return;
 
   try {
+    const pendingCheck = await api.get("/payments/check-pending", {
+      params: { showtime_id: bookingStore.selectedShowtime.id },
+    });
+
+    if (pendingCheck.data?.has_pending) {
+      const old = pendingCheck.data;
+      const seatList = (old.seats || []).join(", ");
+      const showtimeInfo = old.showtime_info ? ` (${old.showtime_info})` : "";
+
+      const { isConfirmed } = await Swal.fire({
+        title: "Bạn có đơn thanh toán lại chưa hoàn tất",
+        html: `Đơn <b>${old.booking_code}</b>${showtimeInfo} (ghế: <b>${seatList}</b>) vẫn đang chờ thanh toán.<br/><br/>Tạo đơn mới sẽ <b>hủy đơn cũ</b>. Bạn có chắc muốn tiếp tục?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "Đồng ý, hủy đơn cũ",
+        cancelButtonText: "Quay lại",
+        confirmButtonColor: "#e50914",
+        reverseButtons: true,
+      });
+
+      if (!isConfirmed) {
+        return;
+      }
+
+      await api.post("/payments/cancel-pending", {
+        showtime_id: bookingStore.selectedShowtime.id,
+        keep_seat_ids: bookingStore.selectedSeats.map((s) => s.id),
+      });
+    }
+
     const response = await api.post("/seat-holds/confirm", {
       showtime_id: bookingStore.selectedShowtime.id,
       seat_ids: bookingStore.selectedSeats.map((s) => s.id),
