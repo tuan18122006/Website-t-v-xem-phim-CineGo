@@ -215,6 +215,19 @@ class SeatHoldController extends Controller
             ->where('user_id', $userId)
             ->delete();
 
+        $remainingHolds = DB::table('seat_holds')
+            ->where('showtime_id', $showtimeId)
+            ->where('user_id', $userId)
+            ->where('expires_at', '>', Carbon::now())
+            ->exists();
+
+        if (!$remainingHolds) {
+            DB::table('seat_hold_confirms')
+                ->where('showtime_id', $showtimeId)
+                ->where('user_id', $userId)
+                ->delete();
+        }
+
         broadcast(new SeatUnlocked($showtimeId, $seatId))->toOthers();
 
         return response()->json([
