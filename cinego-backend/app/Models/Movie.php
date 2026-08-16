@@ -9,15 +9,17 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Movie extends Model
 {
     protected $fillable = [
-       'title', 
-    'slug', 
-    'description', 
-    'duration', 
-    'release_date', 
-    'status', 
-    'rating', 
-    'poster_url', 
-    'trailer_url'
+       'title',
+    'slug',
+    'description',
+    'duration',
+    'release_date',
+    'status',
+    'rating',
+    'poster_url',
+    'trailer_url',
+    'copyright_fee_level',
+    'copyright_notes'
     ];
 
     protected $casts = [
@@ -37,5 +39,13 @@ class Movie extends Model
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class);
+    }
+
+    /**
+     * Quan hệ: Phim có nhiều quy tắc giá riêng (movie-specific pricing rules)
+     */
+    public function pricingRules(): HasMany
+    {
+        return $this->hasMany(TimeBasedPricingRule::class);
     }
 }

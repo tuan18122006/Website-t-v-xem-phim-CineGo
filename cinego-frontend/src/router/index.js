@@ -1,13 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { useBookingStore } from '../stores/booking';
+import api from '../api/axios';
+import AuthCallback from '../views/client/AuthCallback.vue';
 import ReviewMovies from '../views/client/ReviewMovies.vue';
-const MyBookingsView = () => import('../views/client/MyBookingsView.vue');
+import TicketDetailView from "../views/client/TicketDetailView.vue";
+
+
 
 // Lazy loading views
 const Home = () => import("../views/client/HomeView.vue");
 const MovieDetail = () => import("../views/client/MovieDetailView.vue");
 const SeatSelection = () => import("../views/client/SeatSelectionView.vue");
 const Payment = () => import("../views/client/PaymentView.vue");
+const PaymentResult = () => import("../views/client/PaymentResultView.vue");
+const QRCodePayment = () => import("../views/client/QRCodePaymentView.vue");
 const Login = () => import("../views/client/LoginView.vue");
 const Register = () => import("../views/client/RegisterView.vue");
 const QuickBooking = () => import("../views/client/QuickBookingView.vue");
@@ -18,7 +25,8 @@ const AboutCineGo = () => import("../views/client/AboutCineGoView.vue");
 const RoomManagement = () => import("../views/admin/RoomManagementView.vue");
 const RoomEditor = () => import("../views/admin/RoomEditorView.vue");
 
-const AdminDashboard = () => import('../views/admin/DashboardView.vue');
+
+const AdminDashboard = () => import("../views/admin/DashboardView.vue");
 
 const routes = [
   // Client Routes
@@ -38,31 +46,62 @@ const routes = [
     component: MovieDetail,
   },
   {
-    path: '/top-movies',
-    name: 'top-movies',
-    component: TopMovies
+    path: "/top-movies",
+    name: "top-movies",
+    component: TopMovies,
   },
-    {
+  {
     path: '/review-movies',
     name: 'review-movies',
-    component: ReviewMovies
+    component: ReviewMovies,
   },
   {
-    path: '/lich-su-ve',
-    name: 'ticket-history',
-    component: MyBookingsView,
-    meta: { requiresAuth: true },
+    path: '/register',
+    name: 'register',
+    component: () => import("../views/client/RegisterView.vue")
   },
   {
-    path: '/booking/seats',
-    name: 'seat-selection',
+    path: '/auth/callback',
+    name: 'auth-callback',
+    component: AuthCallback
+  },
+  {
+    path: '/profile',
+    name: 'profile',
+    component: () => import("../views/client/ProfileView.vue"),
+    meta: { requiresAuth: true }
+  },
+  {
+  path: '/phim',
+  name: 'Movies',
+  component: () => import('../views/client/MoviesView.vue')
+},
+  {
+    path: "/booking/seats",
+    name: "seat-selection",
     component: SeatSelection,
     meta: { requiresAuth: true },
+  },
+  {
+    path: "/ticket/:bookingCode",
+    name: "ticket-detail",
+    component: TicketDetailView,
   },
   {
     path: "/booking/payment",
     name: "payment",
     component: Payment,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: "/payment/result",
+    name: "payment-result",
+    component: PaymentResult,
+  },
+  {
+    path: "/payment/qrcode",
+    name: "payment-qrcode",
+    component: QRCodePayment,
     meta: { requiresAuth: true },
   },
   {
@@ -82,8 +121,18 @@ const routes = [
   },
   {
     path: "/top-phim",
-    name: "top-phim",
+    name: "top-phim-listing",
+    component: () => import("../views/client/TopMoviesListingView.vue"),
+  },
+  {
+    path: "/top-phim/:slug",
+    name: "top-phim-detail",
     component: TopMovies,
+  },
+  {
+    path: "/blog-phim",
+    name: "blog-phim",
+    component: BlogPhim,
   },
   {
     path: "/blog-phim",
@@ -95,7 +144,6 @@ const routes = [
     name: "ve-cinego",
     component: AboutCineGo,
   },
-
   // Admin Routes
   {
     path: "/admin",
@@ -112,35 +160,108 @@ const routes = [
     name: "admin-GenreManagement",
     component: () => import("../views/admin/GenreManagement.vue"),
   },
+  {
+    path: "/admin/actors",
+    name: "admin-ActorManagement",
+    component: () => import("../views/admin/ActorManagement.vue"),
+    meta: { requiresAuth: true, role: "admin" }
+  },
+  {
+    path: "/admin/articles",
+    name: "AdminArticles",
+    component: () => import("../views/admin/ArticleManagementView.vue"),
+    meta: { requiresAuth: true, role: "admin" }
+  },
+  {
+    path: "/admin/blogs",
+    name: "admin-BlogList",
+    component: () => import("../views/admin/blog/BlogListView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
+    path: "/admin/blogs/create",
+    name: "admin-BlogCreate",
+    component: () => import("../views/admin/blog/NewBlogView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
+    path: "/admin/blogs/edit/:id",
+    name: "admin-BlogEdit",
+    component: () => import("../views/admin/blog/NewBlogView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
+    path: "/admin/blogs/preview/:id",
+    name: "admin-BlogDetail",
+    component: () => import("../views/admin/blog/BlogDetailView.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
+  {
+    path: "/admin/blog-categories",
+    name: "admin-BlogCategoryList",
+    component: () => import("../views/admin/blog/BlogCategoryList.vue"),
+    meta: { requiresAuth: true, role: "admin" },
+  },
 
 
-{
-  path: '/admin/rooms',
-  name: 'admin-rooms', 
-  component: () => import('../views/admin/RoomManagementView.vue'),
-  meta: { requiresAuth: true, role: "admin" }
-},
-{
-  path: '/admin/rooms/:id/edit', 
-  name: 'admin-room-edit',
-  component: () => import('../views/admin/RoomEditorView.vue'),
-  meta: { requiresAuth: true, role: "admin" }
-},
-
+  {
+    path: '/admin/rooms',
+    name: 'admin-rooms',
+    component: () => import('../views/admin/RoomManagementView.vue'),
+    meta: { requiresAuth: true, role: "admin" }
+  },
+  {
+    path: '/admin/rooms/:id/edit',
+    name: 'admin-room-edit',
+    component: () => import('../views/admin/RoomEditorView.vue'),
+    meta: { requiresAuth: true, role: "admin" }
+  },
   {
     path: "/admin/movies",
     name: "admin-MoviesView",
     component: () => import("../views/admin/MoviesView.vue"),
+    meta: { requiresAuth: true, role: "admin" }
   },
   {
     path: "/admin/users",
     name: "admin-UserManagement",
     component: () => import("../views/admin/UserManagement.vue"),
-    meta: { requiresAuth: true, role: "admin" },
+    meta: { requiresAuth: true, role: "admin" }
   },
-  
-
-  // Wildcard redirect
+  {
+    path: "/admin/vouchers",
+    name: "admin-VoucherManagement",
+    component: () => import("../views/admin/VoucherManager.vue"),
+    meta: { requiresAuth: true, role: "admin" }
+  },
+    {
+      path: '/admin/loyalty',
+      name: 'AdminLoyalty',
+      component: () => import('../views/admin/UserLoyaltyManager.vue'),
+      meta: { requiresAuth: true, role: "admin" }
+    },
+    {
+      path: '/admin/settings/payment',
+      name: 'admin-PaymentSettings',
+      component: () => import('../views/admin/PaymentSettingsView.vue'),
+      meta: { requiresAuth: true, role: "admin" }
+    },
+    {
+      path: '/admin/pricing/time-based',
+      name: 'admin-TimeBasedPricing',
+      component: () => import('../views/admin/TimeBasedPricingView.vue'),
+      meta: { requiresAuth: true, role: "admin" }
+    },
+  {
+    path: "/staff",
+    redirect: "/staff/dashboard",
+  },
+  {
+    path: "/staff/dashboard",
+    name: "staff-dashboard",
+    component: () => import("../views/staff/StaffDashboardView.vue"),
+    meta: { requiresAuth: true, role: "staff" },
+  },
   {
     path: "/:pathMatch(.*)*",
     redirect: "/",
@@ -155,29 +276,20 @@ const router = createRouter({
   },
 });
 
-// Navigation Guards: Bảo vệ các trang cần Đăng nhập & Quyền Admin
-router.beforeEach(async (to, from, next) => {
+router.beforeEach((to, from) => {
   const authStore = useAuthStore();
 
-  // Xác định xem trang yêu cầu đăng nhập không
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth);
-  // Xác định xem trang yêu cầu quyền cụ thể không (ví dụ: admin)
   const requiredRole = to.meta.role;
 
   if (requiresAuth && !authStore.isAuthenticated) {
-    // Nếu chưa đăng nhập -> chuyển về Login
-    next({ name: "login", query: { redirect: to.fullPath } });
+    return { name: "login", query: { redirect: to.fullPath } };
   } else if (requiresAuth && requiredRole) {
-    // Nếu đã đăng nhập nhưng cần check quyền
     if (requiredRole === "admin" && !authStore.isAdmin) {
-      // Không có quyền Admin -> chuyển về Trang chủ
-      next({ name: "home" });
-    } else {
-      next();
+      return { name: "home" };
+    } else if (requiredRole === "staff" && (!authStore.isAdmin && !authStore.isStaff)) {
+      return { name: "home" };
     }
-  } else {
-    // Cho đi tiếp nếu không yêu cầu gì đặc biệt
-    next();
   }
 });
 

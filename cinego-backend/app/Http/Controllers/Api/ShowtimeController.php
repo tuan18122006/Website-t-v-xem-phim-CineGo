@@ -7,6 +7,7 @@ use App\Models\Showtime;
 use App\Models\Seat;
 use App\Models\SeatHold;
 use App\Models\BookingDetail;
+use App\Services\PricingService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -50,79 +51,103 @@ class ShowtimeController extends Controller
         $request->validate([
             'movie_id' => 'required|exists:movies,id',
             'room_id' => 'required|exists:rooms,id',
-            'start_time' => 'required|date',
-            'end_time' => 'required|date|after:start_time',
+            'start_date' => 'required|date',
+            'times' => 'required|array',
+            'times.*' => 'required|string',
+            'end_date' => 'nullable|date',
             'format' => 'required|string',
             'translation' => 'required|string',
         ]);
 
-        // Chuẩn hóa thời gian về 'Y-m-d H:i:s' để so sánh chính xác trong DB
-        // (input datetime-local gửi lên dạng "Y-m-dTH:i" có chữ T).
-        $start = Carbon::parse($request->start_time);
-        $end   = Carbon::parse($request->end_time);
+        $movie = \App\Models\Movie::findOrFail($request->movie_id);
+        $duration = $movie->duration + 15;
 
-        // === CHỐNG TRÙNG LỊCH ===
-        // Hai khoảng thời gian [A_start, A_end] và [B_start, B_end] bị chồng (overlap)
-        // khi và chỉ khi:  A_start < B_end  VÀ  A_end > B_start.
-        // Chỉ xét trong cùng một phòng và các suất còn "active".
-        $conflict = Showtime::where('room_id', $request->room_id)
-            ->where('status', 'active')
-            ->where('start_time', '<', $end)
-            ->where('end_time', '>', $start)
-            ->with('movie:id,title')
-            ->first();
+        $startDate = \Carbon\Carbon::parse($request->start_date)->startOfDay();
+        $endDate = $request->has('end_date') && $request->end_date ? \Carbon\Carbon::parse($request->end_date)->startOfDay() : $startDate->copy();
 
-        if ($conflict) {
-            $clashName = $conflict->movie ? $conflict->movie->title : 'một suất chiếu khác';
+        $showtimeDates = [];
+        $currentDate = $startDate->copy();
 
-            return response()->json([
-                'success' => false,
-                'message' => "Phòng đang chiếu \"{$clashName}\" từ "
-                    . $conflict->start_time->format('H:i d/m/Y') . ' đến '
-                    . $conflict->end_time->format('H:i d/m/Y')
-                    . '. Vui lòng chọn khung giờ khác!',
-                'conflict' => [
-                    'id'         => $conflict->id,
-                    'movie'      => $clashName,
-                    'start_time' => $conflict->start_time->toIso8601String(),
-                    'end_time'   => $conflict->end_time->toIso8601String(),
-                ],
-            ], 422);
+        while ($currentDate <= $endDate) {
+            foreach ($request->times as $timeStr) {
+                if (empty($timeStr)) continue;
+                $timeParts = explode(':', $timeStr);
+                $currentStart = $currentDate->copy()->setHour((int)$timeParts[0])->setMinute((int)$timeParts[1]);
+                $currentEnd = $currentStart->copy()->addMinutes($duration);
+
+                $conflict = \App\Models\Showtime::where('room_id', $request->room_id)
+                    ->where('status', 'active')
+                    ->where('start_time', '<', $currentEnd)
+                    ->where('end_time', '>', $currentStart)
+                    ->with('movie:id,title')
+                    ->first();
+
+                // Kiểm tra trùng lịch với các suất vừa được thêm vào mảng tạm (chưa save DB)
+                foreach ($showtimeDates as $temp) {
+                    if ($currentEnd > $temp['start'] && $currentStart < $temp['end']) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => "Phòng bị trùng lịch trong mảng đang tạo! Ngày " . $currentStart->format('d/m/Y') . " lúc " . $currentStart->format('H:i') . " vướng với suất " . $temp['start']->format('H:i') . " - " . $temp['end']->format('H:i') . " vừa chọn.",
+                        ], 422);
+                    }
+                }
+
+                if ($conflict) {
+                    $clashName = $conflict->movie ? $conflict->movie->title : 'một suất chiếu khác';
+
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Phòng kín lịch ngày " . $currentStart->format('d/m/Y') . " lúc " . $currentStart->format('H:i') . "! Đang vướng suất \"{$clashName}\" từ "
+                            . Carbon::parse($conflict->start_time)->format('H:i') . ' đến '
+                            . Carbon::parse($conflict->end_time)->format('H:i')
+                            . '. Vui lòng kiểm tra lại!',
+                        'conflict' => [
+                            'id'         => $conflict->id,
+                            'movie'      => $clashName,
+                            'start_time' => Carbon::parse($conflict->start_time)->toIso8601String(),
+                            'end_time'   => Carbon::parse($conflict->end_time)->toIso8601String(),
+                        ],
+                    ], 422);
+                }
+
+                $showtimeDates[] = [
+                    'start' => $currentStart->copy(),
+                    'end' => $currentEnd->copy()
+                ];
+            }
+            $currentDate->addDay();
         }
 
+        // Nếu tất cả các ngày đều pass, bắt đầu insert
         $movie = \App\Models\Movie::find($request->movie_id);
-        $isSneakShow = false;
-        if ($movie && $movie->release_date && $start->startOfDay()->lt(Carbon::parse($movie->release_date)->startOfDay())) {
-            $isSneakShow = true;
+
+        $insertedShows = [];
+        foreach ($showtimeDates as $dates) {
+            $isSneakShow = false;
+            if ($movie && $movie->release_date && $dates['start']->copy()->startOfDay()->lt(Carbon::parse($movie->release_date)->startOfDay())) {
+                $isSneakShow = true;
+            }
+
+            // Sử dụng PricingService để tạo snapshot với quy tắc giá theo thời gian (bao gồm cả quy tắc riêng phim)
+            $snapshot = PricingService::createPricingSnapshot($dates['start'], $request->movie_id);
+
+            $insertedShows[] = Showtime::create([
+                'movie_id' => $request->movie_id,
+                'room_id' => $request->room_id,
+                'start_time' => $dates['start'],
+                'end_time' => $dates['end'],
+                'format' => $request->format,
+                'translation' => $request->translation,
+                'status' => 'active',
+                'is_sneak_show' => $isSneakShow,
+                'pricing_snapshot' => $snapshot
+            ]);
         }
-
-        $rule = \App\Models\PricingRule::first();
-        $snapshot = $rule ? $rule->toArray() : [
-            'standard_price' => 50000,
-            'vip_price' => 70000,
-            'couple_price' => 120000,
-            'weekend_surcharge' => 10000,
-            'happy_hour_discount' => 10000,
-            'format_3d_surcharge' => 30000,
-            'sneak_show_surcharge' => 20000
-        ];
-
-        $showtime = Showtime::create([
-            'movie_id' => $request->movie_id,
-            'room_id' => $request->room_id,
-            'start_time' => $start,
-            'end_time' => $end,
-            'format' => $request->format,
-            'translation' => $request->translation,
-            'status' => 'active',
-            'is_sneak_show' => $isSneakShow,
-            'pricing_snapshot' => $snapshot
-        ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Thêm suất chiếu thành công',
-            'data' => $showtime
+            'data' => count($insertedShows) === 1 ? $insertedShows[0] : $insertedShows
         ], 201);
     }
 
@@ -182,8 +207,7 @@ class ShowtimeController extends Controller
             'is_sneak_show' => $isSneakShow
         ]);
 
-        // Không thay đổi pricing_snapshot khi update để bảo toàn lịch sử giá
-        // (Hoặc nếu muốn update thì có thể update tùy logic nghiệp vụ sau này)
+
 
         return response()->json([
             'success' => true,
@@ -217,8 +241,7 @@ class ShowtimeController extends Controller
             return response()->json(['message' => 'Không tìm thấy suất chiếu'], 404);
         }
 
-        // Bảng giá theo loại ghế của SUẤT CHIẾU này (admin cấu hình ở Phần 2).
-        // Nếu suất nào chưa có cấu hình thì dùng giá mặc định để không vỡ luồng đặt vé.
+
         $prices = ['standard' => 75000, 'vip' => 95000, 'couple' => 140000];
         foreach ($showtime->priceConfigs as $config) {
             $prices[$config->seat_type] = (float) $config->price;
@@ -229,16 +252,15 @@ class ShowtimeController extends Controller
         // 1. Dọn dẹp tất cả các giữ ghế đã hết hạn trên hệ thống
         SeatHold::where('expires_at', '<=', $now)->delete();
 
-        // 2. Giải phóng các ghế chính tài khoản này đang giữ tại suất chiếu này để bắt đầu phiên mới sạch sẽ
-        $currentUser = auth('sanctum')->user();
-        if ($currentUser) {
-            SeatHold::where('showtime_id', $showtime->id)
-                ->where('user_id', $currentUser->id)
-                ->delete();
-        }
+
 
         // 3. Lấy toàn bộ ghế của phòng chiếu
         $seats = Seat::where('room_id', $showtime->room_id)->get();
+
+        // 3.1. Dọn các hàng giữ ghế đã hết hạn của suất chiếu này
+        SeatHold::where('showtime_id', $showtime->id)
+            ->where('expires_at', '<=', $now)
+            ->delete();
 
         // 4. Lấy danh sách ghế đã được đặt mua thành công (payment_status = paid)
         $bookedSeatIds = BookingDetail::join('bookings', 'booking_details.booking_id', '=', 'bookings.id')
@@ -269,8 +291,8 @@ class ShowtimeController extends Controller
                 'row_name' => $seat->row,
                 'seat_number' => $seat->number,
                 'status' => $status,
-                'type' => $seat->type, // Lấy đúng type từ Admin Map thay vì hardcode
-                'price' => $prices[$seat->type] ?? 0, // Giá thật theo cấu hình của suất
+                'type' => $seat->type,
+                'price' => $prices[$seat->type] ?? 0,
             ];
         });
 
@@ -320,7 +342,7 @@ class ShowtimeController extends Controller
     public function getAvailableDates($id = null)
     {
         $query = Showtime::whereDate('start_time', '>=', now()->toDateString());
-        
+
         if ($id) {
             $query->where('movie_id', $id);
         }
@@ -350,7 +372,6 @@ class ShowtimeController extends Controller
             ->orderBy('start_time', 'asc')
             ->get();
 
-        // Group by movie
         $grouped = $showtimes->groupBy('movie_id')->map(function ($items) {
             $movie = $items->first()->movie;
 
@@ -390,7 +411,7 @@ class ShowtimeController extends Controller
 
         $movie = \App\Models\Movie::find($request->movie_id);
         $start = Carbon::parse($request->start_time);
-        
+
         $rule = \App\Models\PricingRule::first();
         if (!$rule) {
             $rule = new \App\Models\PricingRule([
@@ -446,3 +467,5 @@ class ShowtimeController extends Controller
         ]);
     }
 }
+
+
