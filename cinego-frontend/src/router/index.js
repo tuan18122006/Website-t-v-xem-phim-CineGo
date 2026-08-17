@@ -88,6 +88,11 @@ const routes = [
     component: TicketDetailView,
   },
   {
+    path: "/ticket/:bookingCode",
+    name: "ticket-detail",
+    component: TicketDetailView,
+  },
+  {
     path: "/booking/payment",
     name: "payment",
     component: Payment,
@@ -246,6 +251,15 @@ const routes = [
       component: () => import('../views/admin/PaymentSettingsView.vue'),
       meta: { requiresAuth: true, role: "admin" }
     },
+<<<<<<< HEAD
+=======
+    {
+      path: '/admin/pricing/time-based',
+      name: 'admin-TimeBasedPricing',
+      component: () => import('../views/admin/TimeBasedPricingView.vue'),
+      meta: { requiresAuth: true, role: "admin" }
+    },
+>>>>>>> origin/cuong1
   {
     path: "/staff",
     redirect: "/staff/dashboard",

@@ -118,16 +118,6 @@ class ShowtimeController extends Controller
         }
 
         $movie = \App\Models\Movie::find($request->movie_id);
-        $rule = \App\Models\PricingRule::first();
-        $snapshot = $rule ? $rule->toArray() : [
-            'standard_price' => 50000,
-            'vip_price' => 70000,
-            'couple_price' => 120000,
-            'weekend_surcharge' => 10000,
-            'happy_hour_discount' => 10000,
-            'format_3d_surcharge' => 30000,
-            'sneak_show_surcharge' => 20000
-        ];
 
         $insertedShows = [];
         foreach ($showtimeDates as $dates) {
@@ -135,6 +125,8 @@ class ShowtimeController extends Controller
             if ($movie && $movie->release_date && $dates['start']->copy()->startOfDay()->lt(Carbon::parse($movie->release_date)->startOfDay())) {
                 $isSneakShow = true;
             }
+
+            $snapshot = \App\Services\PricingService::createPricingSnapshot($dates['start'], $request->movie_id);
 
             $insertedShows[] = Showtime::create([
                 'movie_id' => $request->movie_id,

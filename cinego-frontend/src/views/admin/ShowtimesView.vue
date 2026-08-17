@@ -20,7 +20,7 @@
               <span style="background: rgba(100,255,218,0.15); border: 1px solid rgba(100,255,218,0.4); padding: 3px 8px; border-radius: 6px; color: #fff;">Couple <b style="margin-left:4px; color: #64ffda; font-size: 1.05rem;">{{ formatPrice(currentPricing.couple_price) }}</b></span>
             </div>
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-              <strong style="color: white; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Quy tắc phụ thu:</strong>
+              <strong style="color: white; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Giá theo thời điểm:</strong>
               <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; color: #ddd; font-size: 0.9rem;">Cuối tuần <b style="color: var(--accent-pink); margin-left:4px;">+{{ formatPrice(currentPricing.weekend_surcharge) }}</b></span>
               <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; color: #ddd; font-size: 0.9rem;">Giờ vàng <b style="color: #64ffda; margin-left:4px;">-{{ formatPrice(currentPricing.happy_hour_discount) }}</b></span>
               <span style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; color: #ddd; font-size: 0.9rem;">3D <b style="color: var(--accent-pink); margin-left:4px;">+{{ formatPrice(currentPricing.format_3d_surcharge) }}</b></span>
@@ -217,7 +217,7 @@
                 </div>
               </div>
               <div style="font-size: 0.95rem; margin-top: 10px;">
-                <p style="margin: 0; color: #555; text-transform: uppercase; font-size: 0.8rem; margin-bottom: 5px; font-weight: bold;">Phụ thu đã lưu</p>
+                <p style="margin: 0; color: #555; text-transform: uppercase; font-size: 0.8rem; margin-bottom: 5px; font-weight: bold;">Giá theo thời điểm đã lưu</p>
                 <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 0.85rem;">
                   <span style="color: #444; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">Cuối tuần: <b style="color: var(--accent-pink);">+{{ formatPrice(selectedDetail.pricing_snapshot?.weekend_surcharge || 0) }}</b></span>
                   <span style="color: #444; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">Giờ vàng: <b style="color: #00796b;">-{{ formatPrice(selectedDetail.pricing_snapshot?.happy_hour_discount || 0) }}</b></span>
@@ -248,51 +248,158 @@
           <div v-if="loadingPricing" class="pricing-loading" style="padding: 30px; text-align: center; color: white;">
             Đang tải dữ liệu...
           </div>
-          <form v-else @submit.prevent="savePricingConfig" class="stv-form">
-            <h4 style="color: var(--accent-pink); margin-bottom: 10px;">1. Giá Vé Cơ Sở</h4>
-            <div class="stv-grid2">
-              <div class="stv-field">
-                <label>Ghế Thường (VNĐ)</label>
-                <input type="text" :value="formatInput(pricingForm.standard_price)" @input="pricingForm.standard_price = parseInput($event.target.value)" class="stv-input" />
-                <span v-if="pricingErrors.standard_price" class="error-msg">{{ pricingErrors.standard_price[0] }}</span>
-              </div>
-              <div class="stv-field">
-                <label>Ghế VIP (VNĐ)</label>
-                <input type="text" :value="formatInput(pricingForm.vip_price)" @input="pricingForm.vip_price = parseInput($event.target.value)" class="stv-input" />
-                <span v-if="pricingErrors.vip_price" class="error-msg">{{ pricingErrors.vip_price[0] }}</span>
-              </div>
-              <div class="stv-field">
-                <label>Ghế Đôi (VNĐ)</label>
-                <input type="text" :value="formatInput(pricingForm.couple_price)" @input="pricingForm.couple_price = parseInput($event.target.value)" class="stv-input" />
-                <span v-if="pricingErrors.couple_price" class="error-msg">{{ pricingErrors.couple_price[0] }}</span>
-              </div>
-            </div>
-
-            <h4 style="color: var(--accent-pink); margin-top: 15px; margin-bottom: 10px;">2. Quy Tắc Phụ Thu</h4>
-            <div class="stv-grid2">
-              <div class="stv-field">
-                <label>Phụ thu cuối tuần (VNĐ)</label>
-                <input type="text" :value="formatInput(pricingForm.weekend_surcharge)" @input="pricingForm.weekend_surcharge = parseInput($event.target.value)" class="stv-input" />
-                <span v-if="pricingErrors.weekend_surcharge" class="error-msg">{{ pricingErrors.weekend_surcharge[0] }}</span>
-              </div>
-              <div class="stv-field">
-                <label>Giảm giá giờ vàng (VNĐ)</label>
-                <input type="text" :value="formatInput(pricingForm.happy_hour_discount)" @input="pricingForm.happy_hour_discount = parseInput($event.target.value)" class="stv-input" />
-                <span v-if="pricingErrors.happy_hour_discount" class="error-msg">{{ pricingErrors.happy_hour_discount[0] }}</span>
-              </div>
-              <div class="stv-field">
-                <label>Phụ thu Phim 3D (VNĐ)</label>
-                <input type="text" :value="formatInput(pricingForm.format_3d_surcharge)" @input="pricingForm.format_3d_surcharge = parseInput($event.target.value)" class="stv-input" />
-                <span v-if="pricingErrors.format_3d_surcharge" class="error-msg">{{ pricingErrors.format_3d_surcharge[0] }}</span>
-              </div>
-              <div class="stv-field">
-                <label>Phụ thu chiếu sớm (VNĐ)</label>
-                <input type="text" :value="formatInput(pricingForm.sneak_show_surcharge)" @input="pricingForm.sneak_show_surcharge = parseInput($event.target.value)" class="stv-input" />
-                <span v-if="pricingErrors.sneak_show_surcharge" class="error-msg">{{ pricingErrors.sneak_show_surcharge[0] }}</span>
+          <form v-else @submit.prevent="savePricingConfig" class="stv-form stv-form--pricing">
+            <div class="pricing-section">
+              <h4>1. Giá Vé Cơ Sở</h4>
+              <div class="stv-grid2">
+                <div class="stv-field">
+                  <label>Ghế Thường (VNĐ)</label>
+                  <input type="text" :value="formatInput(pricingForm.standard_price)" @input="pricingForm.standard_price = parseInput($event.target.value)" class="stv-input" />
+                  <span v-if="pricingErrors.standard_price" class="error-msg">{{ pricingErrors.standard_price[0] }}</span>
+                </div>
+                <div class="stv-field">
+                  <label>Ghế VIP (VNĐ)</label>
+                  <input type="text" :value="formatInput(pricingForm.vip_price)" @input="pricingForm.vip_price = parseInput($event.target.value)" class="stv-input" />
+                  <span v-if="pricingErrors.vip_price" class="error-msg">{{ pricingErrors.vip_price[0] }}</span>
+                </div>
+                <div class="stv-field stv-field--full">
+                  <label>Ghế Đôi (VNĐ)</label>
+                  <input type="text" :value="formatInput(pricingForm.couple_price)" @input="pricingForm.couple_price = parseInput($event.target.value)" class="stv-input" />
+                  <span v-if="pricingErrors.couple_price" class="error-msg">{{ pricingErrors.couple_price[0] }}</span>
+                </div>
               </div>
             </div>
 
-            <div class="stv-modal__actions" style="margin-top: 20px;">
+            <div class="pricing-section pricing-section--special">
+              <h4>2. Giá Vé Theo Trường Hợp Đặc Biệt</h4>
+
+              <div class="stv-grid2 stv-grid2--pricing-rule">
+                <div class="stv-field">
+                  <label>Tên quy tắc</label>
+                  <input v-model="pricingRuleDraft.name" type="text" class="stv-input" placeholder="VD: Ngày lễ 30/4, Phim bản quyền cao" />
+                </div>
+
+                <div class="stv-field">
+                  <label>Phạm vi</label>
+                  <select v-model="pricingRuleDraft.scope" class="stv-input stv-input--select">
+                    <option value="system">Toàn hệ thống</option>
+                    <option value="movie">Theo phim</option>
+                  </select>
+                </div>
+
+                <div v-if="pricingRuleDraft.scope === 'movie'" class="stv-field">
+                  <label>Chọn phim</label>
+                  <select v-model="pricingRuleDraft.movie_id" class="stv-input stv-input--select">
+                    <option value="">-- Chọn phim --</option>
+                    <option v-for="movie in movies" :key="movie.id" :value="movie.id">
+                      {{ movie.title }}
+                    </option>
+                  </select>
+                </div>
+
+                <div v-else class="stv-field" style="visibility: hidden; pointer-events: none;">
+                  <label>Chọn phim</label>
+                  <select class="stv-input stv-input--select">
+                    <option value="">-- Chọn phim --</option>
+                  </select>
+                </div>
+
+                <div class="stv-field">
+                  <label>Áp dụng cho ghế</label>
+                  <select v-model="pricingRuleDraft.seat_type" class="stv-input stv-input--select">
+                    <option value="all">Tất cả</option>
+                    <option value="standard">Ghế thường</option>
+                    <option value="vip">Ghế VIP</option>
+                    <option value="couple">Ghế đôi</option>
+                  </select>
+                </div>
+
+                <div class="stv-field">
+                  <label>Loại điều chỉnh</label>
+                  <select v-model="pricingRuleDraft.adjustment_type" class="stv-input stv-input--select">
+                    <option value="surcharge">Cộng tiền</option>
+                    <option value="percentage">Tăng %</option>
+                    <option value="free">Miễn phí</option>
+                  </select>
+                </div>
+
+                <div class="stv-field">
+                  <label>Giá trị</label>
+                  <input v-model.number="pricingRuleDraft.value" type="number" class="stv-input" placeholder="0" :disabled="pricingRuleDraft.adjustment_type === 'free'" />
+                </div>
+
+                <div class="stv-field">
+                  <label>Ngày bắt đầu</label>
+                  <input v-model="pricingRuleDraft.start_date" type="date" class="stv-input" />
+                </div>
+
+                <div class="stv-field">
+                  <label>Ngày kết thúc</label>
+                  <input v-model="pricingRuleDraft.end_date" type="date" class="stv-input" />
+                </div>
+              </div>
+
+              <div class="rule-time-block">
+                <div class="rule-time-block__row">
+                  <label class="rule-time-toggle">
+                    <input type="checkbox" v-model="pricingRuleDraft.use_date_filter" />
+                    <span>Theo ngày</span>
+                  </label>
+                </div>
+
+                <div v-if="pricingRuleDraft.use_date_filter" class="stv-grid2 rule-time-inner">
+                  <div class="stv-field">
+                    <label>Từ ngày</label>
+                    <input v-model="pricingRuleDraft.date_from" type="date" class="stv-input" />
+                  </div>
+                  <div class="stv-field">
+                    <label>Đến ngày</label>
+                    <input v-model="pricingRuleDraft.date_to" type="date" class="stv-input" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="rule-time-block">
+                <div class="rule-time-block__row">
+                  <label class="rule-time-toggle">
+                    <input type="checkbox" v-model="pricingRuleDraft.use_time_filter" />
+                    <span>Theo giờ</span>
+                  </label>
+                </div>
+
+                <div v-if="pricingRuleDraft.use_time_filter" class="stv-grid2 rule-time-inner">
+                  <div class="stv-field">
+                    <label>Từ giờ</label>
+                    <input v-model="pricingRuleDraft.time_from" type="time" class="stv-input" />
+                  </div>
+                  <div class="stv-field">
+                    <label>Đến giờ</label>
+                    <input v-model="pricingRuleDraft.time_to" type="time" class="stv-input" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="pricing-actions">
+                <button type="button" class="stv-btn stv-btn--ghost" @click="resetPricingRuleDraft">Làm mới</button>
+                <button type="button" class="stv-btn stv-btn--solid" @click="addPricingRule">Thêm quy tắc</button>
+              </div>
+
+              <div class="pricing-note">
+                Chưa có quy tắc giá đặc biệt nào. Bạn có thể thêm ngay để áp dụng cho ngày lễ, mừng ngày đặc biệt hoặc phim có bản quyền cao.
+              </div>
+
+              <div class="pricing-detailed-note">
+                <p class="pricing-detailed-note__title">Quy tắc áp dụng:</p>
+                <ul>
+                  <li><strong>Có thể chỉ chọn ngày</strong> → áp dụng cho tất cả suất chiếu trong ngày đó.</li>
+                  <li><strong>Có thể chỉ chọn giờ</strong> → áp dụng cho mọi ngày trong khung giờ đó.</li>
+                  <li><strong>Có thể chọn cả ngày và giờ</strong> → chỉ áp dụng khi thỏa cả hai điều kiện.</li>
+                  <li><strong>Không bắt buộc phải chọn suất chiếu cụ thể</strong>; hệ thống tự kiểm tra thời gian của suất chiếu để áp dụng quy tắc.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="stv-modal__actions" style="margin-top: 10px;">
               <button type="button" class="stv-btn stv-btn--outline" @click="closePricingModal">Hủy bỏ</button>
               <button type="submit" class="stv-btn stv-btn--solid" :disabled="savingPricing">
                 {{ savingPricing ? 'Đang lưu...' : 'Lưu Cấu Hình' }}
@@ -497,8 +604,25 @@ const currentPricing = ref({});
 const showPricingModal = ref(false);
 const loadingPricing = ref(false);
 const savingPricing = ref(false);
-const pricingForm = ref({});
+const pricingForm = ref({ pricing_rules: [] });
 const pricingErrors = ref({});
+const pricingRuleDraft = ref({
+  name: '',
+  scope: 'movie',
+  seat_type: 'all',
+  adjustment_type: 'surcharge',
+  value: 0,
+  start_date: '',
+  end_date: '',
+  holiday_date: '',
+  movie_id: '',
+  use_date_filter: false,
+  date_from: '',
+  date_to: '',
+  use_time_filter: false,
+  time_from: '',
+  time_to: ''
+});
 
 const searchQuery = ref('');
 const formatFilter = ref('Tất cả');
@@ -767,8 +891,99 @@ const closeDetailModal = () => {
   selectedDetail.value = null;
 };
 
+const getRuleScopeLabel = (scope = 'system') => {
+  const map = {
+    system: '🌍 Toàn hệ thống',
+    movie: '🎬 Theo phim'
+  };
+  return map[scope] || 'Toàn hệ thống';
+};
+
+const getSeatTypeLabel = (seatType = 'all') => {
+  const map = {
+    all: 'Tất cả ghế',
+    standard: 'Ghế thường',
+    vip: 'Ghế VIP',
+    couple: 'Ghế đôi'
+  };
+  return map[seatType] || 'Tất cả ghế';
+};
+
+const getMovieNameById = (movieId) => {
+  const movie = movies.value.find(item => item.id == movieId);
+  return movie ? movie.title : 'Phim được chỉ định';
+};
+
+const resetPricingRuleDraft = () => {
+  pricingRuleDraft.value = {
+    name: '',
+    scope: 'movie',
+    seat_type: 'all',
+    adjustment_type: 'surcharge',
+    value: 0,
+    start_date: '',
+    end_date: '',
+    holiday_date: '',
+    movie_id: '',
+    use_date_filter: false,
+    date_from: '',
+    date_to: '',
+    use_time_filter: false,
+    time_from: '',
+    time_to: ''
+  };
+};
+
+const addPricingRule = () => {
+  const rule = { ...pricingRuleDraft.value };
+  if (!rule.name && rule.scope !== 'system') {
+    rule.name = `${getRuleScopeLabel(rule.scope)} (${getSeatTypeLabel(rule.seat_type)})`;
+  }
+  if (!rule.name) {
+    toast('Vui lòng nhập tên quy tắc trước khi thêm.', 'error');
+    return;
+  }
+
+  if (rule.scope === 'movie' && !rule.movie_id) {
+    toast('Vui lòng chọn phim.', 'error');
+    return;
+  }
+
+  if (rule.adjustment_type !== 'free' && (rule.value === '' || rule.value === null || Number.isNaN(Number(rule.value)))) {
+    toast('Vui lòng nhập giá trị điều chỉnh.', 'error');
+    return;
+  }
+
+  if (!rule.start_date || !rule.end_date) {
+    toast('Vui lòng nhập ngày bắt đầu và ngày kết thúc.', 'error');
+    return;
+  }
+
+  if (new Date(rule.start_date) > new Date(rule.end_date)) {
+    toast('Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.', 'error');
+    return;
+  }
+
+  const list = Array.isArray(pricingForm.value.pricing_rules) ? [...pricingForm.value.pricing_rules] : [];
+  list.push({
+    ...rule,
+    value: rule.adjustment_type === 'free' ? 0 : Number(rule.value || 0)
+  });
+  pricingForm.value.pricing_rules = list;
+  resetPricingRuleDraft();
+};
+
+const removePricingRule = (index) => {
+  const list = [...(pricingForm.value.pricing_rules || [])];
+  list.splice(index, 1);
+  pricingForm.value.pricing_rules = list;
+};
+
 const openPricingModal = () => {
-  pricingForm.value = { ...currentPricing.value };
+  pricingForm.value = {
+    ...currentPricing.value,
+    pricing_rules: Array.isArray(currentPricing.value.pricing_rules) ? [...currentPricing.value.pricing_rules] : []
+  };
   pricingErrors.value = {};
   showPricingModal.value = true;
 };
@@ -786,11 +1001,35 @@ const validatePricingForm = () => {
     standard_price: 'Giá vé Thường',
     vip_price: 'Giá vé VIP',
     couple_price: 'Giá vé Đôi',
-    weekend_surcharge: 'Phụ thu cuối tuần',
-    happy_hour_discount: 'Giảm giá giờ vàng',
-    format_3d_surcharge: 'Phụ thu 3D',
-    sneak_show_surcharge: 'Phụ thu chiếu sớm'
+    weekend_surcharge: 'Giá vé cuối tuần',
+    happy_hour_discount: 'Giá vé giờ vàng',
+    format_3d_surcharge: 'Giá vé phim 3D',
+    sneak_show_surcharge: 'Giá vé chiếu sớm'
   };
+
+  if (Array.isArray(pricingForm.value.pricing_rules)) {
+    pricingForm.value.pricing_rules.forEach((rule, index) => {
+      if (!rule.name) {
+        pricingErrors.value[`rule_${index}_name`] = ['Vui lòng nhập tên quy tắc.'];
+        isValid = false;
+      }
+      if (rule.scope === 'movie' && !rule.movie_id) {
+        pricingErrors.value[`rule_${index}_movie_id`] = ['Vui lòng chọn phim cho quy tắc theo phim.'];
+        isValid = false;
+      }
+      if (rule.adjustment_type !== 'free' && (rule.value === '' || rule.value === null || Number.isNaN(Number(rule.value)))) {
+        pricingErrors.value[`rule_${index}_value`] = ['Vui lòng nhập giá trị quy tắc.'];
+        isValid = false;
+      }
+      if (!rule.start_date || !rule.end_date) {
+        pricingErrors.value[`rule_${index}_date`] = ['Vui lòng nhập ngày bắt đầu và kết thúc.'];
+        isValid = false;
+      } else if (new Date(rule.start_date) > new Date(rule.end_date)) {
+        pricingErrors.value[`rule_${index}_date`] = ['Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.'];
+        isValid = false;
+      }
+    });
+  }
 
   fields.forEach(field => {
     const val = pricingForm.value[field];
@@ -826,7 +1065,12 @@ const savePricingConfig = async () => {
   pricingErrors.value = {};
   savingPricing.value = true;
   try {
-    const res = await api.put('/admin/pricing-rules', pricingForm.value);
+    const payload = {
+      ...pricingForm.value,
+      pricing_rules: Array.isArray(pricingForm.value.pricing_rules) ? pricingForm.value.pricing_rules : []
+    };
+
+    const res = await api.put('/admin/pricing-rules', payload);
     if (res.data.success) {
       toast('Cập nhật cấu hình giá thành công!');
       currentPricing.value = { ...res.data.data };
@@ -875,7 +1119,10 @@ const preloadPricing = async () => {
   try {
     const res = await api.get('/admin/pricing-rules');
     if (res.data.success && res.data.data) {
-      currentPricing.value = { ...res.data.data };
+      currentPricing.value = {
+        ...res.data.data,
+        pricing_rules: Array.isArray(res.data.data.pricing_rules) ? res.data.data.pricing_rules : []
+      };
     }
   } catch (err) {
     console.error(err);
@@ -1485,8 +1732,9 @@ onUnmounted(() => {
 .stv-modal {
   width: 100%;
   max-width: 750px;
+  max-width: 700px;
   background: #fff;
-  border-radius: 20px;
+  border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 30px 70px rgba(0, 0, 0, 0.4);
 }
@@ -1495,13 +1743,12 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
+  padding: 14px 18px;
   background:
-    radial-gradient(circle at 90% -40%, rgba(229, 9, 20, 0.6) 0%, transparent 50%),
-    linear-gradient(120deg, #1a0205, #7d0411);
+    linear-gradient(90deg, #a80013 0%, #c80018 38%, #d31a27 100%);
   color: #fff;
 }
-.stv-modal__marquee h3 { margin: 0; font-size: 19px; font-weight: 800; }
+.stv-modal__marquee h3 { margin: 0; font-size: 17px; font-weight: 800; }
 .stv-modal__marquee-dots {
   position: absolute;
   top: 0; left: 0; right: 0;
@@ -1520,16 +1767,34 @@ onUnmounted(() => {
 .stv-modal__close:hover { background: rgba(255, 255, 255, 0.3); transform: rotate(90deg); }
 
 .stv-form {
-  padding: 24px;
+  padding: 18px 20px 20px;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  background: #fff;
 }
-.stv-field { display: flex; flex-direction: column; gap: 7px; }
+.stv-form--pricing {
+  padding-top: 16px;
+  gap: 12px;
+}
+.pricing-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pricing-section h4 {
+  margin: 0;
+  color: #d71420;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+.stv-field { display: flex; flex-direction: column; gap: 6px; }
 .stv-field label {
-  font-size: 13.5px; font-weight: 700; color: #334155;
+  font-size: 12px; font-weight: 700; color: #2d2d2d;
   display: flex; align-items: center; gap: 6px;
 }
+.stv-field--full { grid-column: 1 / -1; max-width: 50%; }
 .stv-field label i { color: #e50914; font-style: normal; }
 .stv-auto {
   font-size: 11px; font-weight: 700;
@@ -1537,11 +1802,11 @@ onUnmounted(() => {
   background: #eef6f1; color: #047857;
 }
 .stv-input {
-  padding: 10px;
+  padding: 9px 10px;
   background: #fff;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 14px;
+  border: 1.5px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 13px;
   color: #1e293b;
   outline: none;
   transition: all 0.2s;
@@ -1563,6 +1828,68 @@ onUnmounted(() => {
   box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.12) !important;
 }
 .stv-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.stv-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.stv-grid2--pricing-rule { margin-top: 4px; }
+.pricing-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-top: 2px;
+}
+.pricing-note {
+  display: block;
+  color: #5b6472;
+  font-size: 12px;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+.pricing-detailed-note {
+  margin-top: 4px;
+  padding: 10px 12px;
+  background: #f8f8f8;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.pricing-detailed-note__title {
+  margin: 0 0 6px;
+  color: #1f2937;
+  font-weight: 700;
+}
+.pricing-detailed-note ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.pricing-detailed-note li + li {
+  margin-top: 4px;
+}
+.rule-time-block {
+  border-top: 1px solid #ececec;
+  padding-top: 12px;
+  margin-top: 2px;
+}
+.rule-time-block__row {
+  margin-bottom: 8px;
+}
+.rule-time-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+.rule-time-toggle input {
+  accent-color: #d71420;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+}
+.rule-time-inner {
+  margin-top: 8px;
+}
 /* Combobox Styles */
 .combobox-wrapper {
   position: relative;
@@ -1675,15 +2002,35 @@ onUnmounted(() => {
   margin-top: 2px;
   padding-top: 18px;
 }
+.stv-modal__actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 4px;
+}
 .stv-btn {
-  display: inline-flex; align-items: center; gap: 8px;
+  display: inline-flex; align-items: center; justify-content: center;
   border: none; cursor: pointer;
-  padding: 13px 24px; border-radius: 12px;
-  font-size: 14.5px; font-weight: 800;
+  padding: 10px 18px; border-radius: 8px;
+  font-size: 13px; font-weight: 700;
   transition: all 0.2s;
 }
-.stv-btn--ghost { background: #fff; color: #475569; border: 1.5px solid #e2e8f0; }
-.stv-btn--ghost:hover { background: #f8fafc; border-color: #cbd5e1; }
+.stv-btn--outline {
+  background: #f4f4f4;
+  color: #111827;
+  border: 1px solid #d4d4d4;
+}
+.stv-btn--outline:hover { background: #eaeaea; }
+.stv-btn--ghost { background: #f0f0f0; color: #1f2937; border: 1px solid #d5d5d5; }
+.stv-btn--ghost:hover { background: #e6e6e6; }
+.stv-btn--solid {
+  background: linear-gradient(90deg, #c90718, #e51c2f);
+  color: #fff;
+  border: 1px solid #b70014;
+  box-shadow: 0 8px 18px rgba(213, 18, 41, 0.2);
+}
+.stv-btn--solid:hover { filter: brightness(1.04); }
 .stv-btn--solid {
   background: linear-gradient(135deg, #e50914, #9b000e);
   color: #fff;
