@@ -36,6 +36,15 @@
           <span class="nav-icon">📷</span>
           <span>Quét Mã QR / Soát Vé</span>
         </button>
+
+        <button
+          class="nav-link"
+          :class="{ active: activeTab === 'monitor' }"
+          @click="activeTab = 'monitor'"
+        >
+          <span class="nav-icon">🖥️</span>
+          <span>Giám Sát Vận Hành</span>
+        </button>
       </nav>
 
       <div class="sidebar-footer">
@@ -62,6 +71,10 @@
 
       <div v-show="activeTab === 'lookup'">
         <BookingLookupView />
+      </div>
+
+      <div v-show="activeTab === 'monitor'">
+        <ShowtimeMonitorView />
       </div>
 
       <div v-show="activeTab === 'scan'" class="scan-tab glass-panel">
@@ -139,6 +152,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { useAuthStore } from '../../stores/auth';
 import BookingLookupView from '../admin/BookingLookupView.vue';
 import StaffPOSView from './StaffPOSView.vue';
+import ShowtimeMonitorView from '../admin/ShowtimeMonitorView.vue';
 import TicketPrintable from '../../components/TicketPrintable.vue';
 import api from '../../api/axios';
 import Swal from 'sweetalert2';
@@ -148,7 +162,7 @@ const authStore = useAuthStore();
 const router = useRouter();
 const route = useRoute();
 
-const VALID_TABS = ['pos', 'lookup', 'scan'];
+const VALID_TABS = ['pos', 'lookup', 'scan', 'monitor'];
 const savedTab = localStorage.getItem('staff_active_tab');
 const activeTab = ref(VALID_TABS.includes(savedTab) ? savedTab : 'pos');
 if (route.query.pos_pay) activeTab.value = 'pos';
@@ -190,6 +204,7 @@ const TAB_META = {
   pos:    { title: 'Bán Vé Tại Quầy', desc: 'Chọn phim → suất → ghế → bắp nước → khách, thu tiền và tạo vé ngay tại quầy.' },
   lookup: { title: 'Tra Cứu Đơn Hàng & Hỗ Trợ Khách', desc: 'Tìm đơn theo tên/SĐT/email/mã đơn khi khách quên mã vé, xem ghế & bắp nước đã mua để hỗ trợ.' },
   scan:   { title: 'Soát Vé & Quét Mã QR', desc: 'Kiểm tra tính hợp lệ của vé. Đảm bảo vé chưa được sử dụng và đúng suất chiếu.' },
+  monitor:{ title: 'Giám Sát Vận Hành', desc: 'Theo dõi sơ đồ ghế real-time, khóa ghế tạm thời, báo hỏng và xử lý sự cố (đổi vé, hoàn tiền).' },
 };
 
 const getTabTitle = computed(() => (TAB_META[activeTab.value] || TAB_META.lookup).title);

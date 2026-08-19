@@ -272,10 +272,17 @@ class ShowtimeController extends Controller
             ->pluck('seat_id')
             ->toArray();
 
+        // Lấy danh sách ghế đang bị khóa (bảo trì/sự cố) trong khoảng thời gian diễn ra suất chiếu
+        $lockedSeatIds = \App\Models\SeatLock::where('room_id', $showtime->room_id)
+            ->where('start_time', '<', $showtime->end_time)
+            ->where('end_time', '>', $showtime->start_time)
+            ->pluck('seat_id')
+            ->toArray();
+
         // 6. Định dạng đầu ra khớp chính xác với frontend yêu cầu
-        $formattedSeats = $seats->map(function ($seat) use ($bookedSeatIds, $heldSeatIds, $prices) {
+        $formattedSeats = $seats->map(function ($seat) use ($bookedSeatIds, $heldSeatIds, $lockedSeatIds, $prices) {
             $status = 'available';
-            if ($seat->status === 'broken') {
+            if ($seat->status === 'broken' || in_array($seat->id, $lockedSeatIds)) {
                 $status = 'broken';
             } elseif (in_array($seat->id, $bookedSeatIds)) {
                 $status = 'sold';
@@ -304,7 +311,9 @@ class ShowtimeController extends Controller
         $date = $request->query('date');
 
         $query = Showtime::with('room')
-            ->where('movie_id', $id);
+            ->where('movie_id', $id)
+            ->where('status', 'active')
+            ->where('start_time', '>=', now());
 
         if ($date) {
             $query->whereDate('start_time', $date);
@@ -386,6 +395,7 @@ class ShowtimeController extends Controller
 
         $showtimes = Showtime::with(['movie.genres', 'room'])
             ->whereDate('start_time', $date)
+            ->where('start_time', '>=', now())
             ->where('status', 'active')
             ->orderBy('start_time', 'asc')
             ->get();
@@ -406,6 +416,7 @@ class ShowtimeController extends Controller
                         'end_time' => \Carbon\Carbon::parse($st->end_time)->format('H:i'),
                         'format' => $st->format,
                         'translation' => $st->translation,
+                        'room_id' => $st->room_id,
                         'room_name' => $st->room->name,
                         'is_sneak_show' => $st->is_sneak_show
                     ];

@@ -251,15 +251,6 @@ const routes = [
       component: () => import('../views/admin/PaymentSettingsView.vue'),
       meta: { requiresAuth: true, role: "admin" }
     },
-<<<<<<< HEAD
-=======
-    {
-      path: '/admin/pricing/time-based',
-      name: 'admin-TimeBasedPricing',
-      component: () => import('../views/admin/TimeBasedPricingView.vue'),
-      meta: { requiresAuth: true, role: "admin" }
-    },
->>>>>>> origin/cuong1
   {
     path: "/staff",
     redirect: "/staff/dashboard",
@@ -268,6 +259,12 @@ const routes = [
     path: "/staff/dashboard",
     name: "staff-dashboard",
     component: () => import("../views/staff/StaffDashboardView.vue"),
+    meta: { requiresAuth: true, role: "staff" },
+  },
+  {
+    path: "/staff/monitor",
+    name: "operations-monitor",
+    component: () => import("../views/admin/ShowtimeMonitorView.vue"),
     meta: { requiresAuth: true, role: "staff" },
   },
   {

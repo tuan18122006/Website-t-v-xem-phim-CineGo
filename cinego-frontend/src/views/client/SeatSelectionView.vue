@@ -210,7 +210,7 @@ const mappedSeats = computed(() => {
       row: seat.row_name, 
       number: seat.seat_number, 
       type: seat.type || "standard", 
-      is_booked: seat.status === "sold" || (seat.status === "holding" && !myHeldSeatIds.includes(seat.id)), 
+      is_booked: seat.status === "sold" || seat.status === "broken" || (seat.status === "holding" && !myHeldSeatIds.includes(seat.id)), 
     };
   });
 });
@@ -533,7 +533,7 @@ onMounted(() => {
     echo.channel(`showtime.${bookingStore.selectedShowtime.id}`)
       .listen('SeatLocked', (e) => {
         const seat = rawSeatsFromAPI.value.find(s => s.id === e.seatId);
-        if (seat) seat.status = 'holding';
+        if (seat) seat.status = e.status || 'holding';
       })
       .listen('SeatUnlocked', (e) => {
         const seat = rawSeatsFromAPI.value.find(s => s.id === e.seatId);

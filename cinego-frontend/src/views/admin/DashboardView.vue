@@ -149,6 +149,15 @@
   <span>Quản Lý Phòng Chiếu & Ghế</span>
 </button>
 
+<button 
+  class="nav-link" 
+  :class="{ active: activeTab === 'monitor' }" 
+  @click="activeTab = 'monitor'"
+>
+  <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-monitor"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg></span>
+  <span>Giám Sát Vận Hành</span>
+</button>
+
         <button
           class="nav-link"
           :class="{ active: activeTab === 'users' }"
@@ -525,6 +534,11 @@
         <RoomsView />
       </div>
 
+      <!-- TAB: GIÁM SÁT VẬN HÀNH -->
+      <div v-if="activeTab === 'monitor'">
+        <ShowtimeMonitorView />
+      </div>
+
 
 
       <div v-show="activeTab === 'combos'">
@@ -592,6 +606,7 @@ import UserManagement from './UserManagement.vue';
 import RoomsView from './RoomManagementView.vue';
 import RoomManagementView from './RoomManagementView.vue';
 import RoomEditorView from './RoomEditorView.vue';
+import ShowtimeMonitorView from './ShowtimeMonitorView.vue';
 import ComboSelection from './ComboSelection.vue'; 
 import VoucherManager from './VoucherManager.vue';
 import ReviewManagement from './ReviewManagement.vue';
@@ -791,7 +806,8 @@ const getTabTitle = computed(() => {
     articles: 'Quản Lý Bài Viết & Top Phim',
     blogs: 'Quản Lý Blog',
     'blog-categories': 'Quản Lý Thể Loại Blog',
-    revenue: 'Báo Cáo & Thống Kê Doanh Thu'
+    revenue: 'Báo Cáo & Thống Kê Doanh Thu',
+    monitor: 'Giám Sát Vận Hành'
   };
   return titles[activeTab.value];
 });

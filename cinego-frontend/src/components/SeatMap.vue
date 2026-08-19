@@ -71,7 +71,8 @@ const props = defineProps({
   mode: { type: String, default: 'client' },
   selectedSeatIds: { type: Array, default: () => [] },
   layout: { type: Object, default: () => ({ gap_cols: [], gap_rows: [] }) },
-  maxCols: { type: Number, default: 14 }
+  maxCols: { type: Number, default: 14 },
+  allowBookedClick: { type: Boolean, default: false }
 });
 
 const MAX_GRID_COLS = computed(() => {
@@ -186,7 +187,7 @@ const getPhysicalGridPos = (seat) => {
     let maxStandardCols = MAX_GRID_COLS.value;
     
     return {
-      gridTemplateColumns: `repeat(${maxStandardCols}, minmax(36px, 52px))`,
+      gridTemplateColumns: `repeat(${maxStandardCols}, minmax(28px, 42px))`,
       justifyContent: 'center'
     };
   });
@@ -340,7 +341,8 @@ onBeforeUnmount(() => {
 
 const handleSeatClick = (seat, event) => {
   if (props.mode === 'client') {
-    if (seat.is_booked || seat.type === 'hidden' || seat.type === 'deleted' || seat.type === 'couple_hidden') return;
+    if (seat.type === 'hidden' || seat.type === 'deleted' || seat.type === 'couple_hidden') return;
+    if (seat.is_booked && !props.allowBookedClick) return;
     emit('seat-clicked', seat);
   } else if (props.mode === 'admin') {
     // Tránh việc Click đơn lẻ bị ảnh hưởng nếu người dùng vừa vuốt quét (Dựa vào diện tích hộp)
@@ -389,6 +391,9 @@ const getSeatClass = (seat) => {
       classes.push('seat-hidden-client');
     } else if (seat.is_booked) {
       classes.push('seat-booked');
+      if (props.selectedSeatIds.includes(seat.id)) {
+        classes.push('seat-selected');
+      }
     } else {
       classes.push('cursor-pointer');
       if (props.selectedSeatIds.includes(seat.id)) {
@@ -409,7 +414,7 @@ const getSeatClass = (seat) => {
   border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
   border: 1px solid rgba(255,255,255,0.05);
   user-select: none;
-  width: fit-content; max-width: 100%; margin: 0 auto;
+  width: fit-content; margin: 0 auto;
 }
 .disable-scroll { touch-action: none; }
 
@@ -457,23 +462,23 @@ const getSeatClass = (seat) => {
 @keyframes slide-down { 0% { top: -100%; } 100% { top: 200%; } }
 
 .seats-grid {
-  display: grid; gap: 15px;
+  display: grid; gap: 10px; /* Reduced gap */
   flex: 1 1 auto; min-width: 0;
 }
 
 /* TỐI ƯU HIỆU NĂNG: Bỏ transition nặng, dùng will-change */
 .seat-base {
-  width: 100%; height: 48px;
-  border-radius: 12px 12px 6px 6px;
+  width: 100%; height: 36px; /* Reduced height from 48px */
+  border-radius: 8px 8px 4px 4px;
   display: flex; justify-content: center; align-items: center;
-  font-size: 13px; font-weight: 800; color: white;
+  font-size: 11px; font-weight: 800; color: white; /* Reduced font size */
   will-change: transform, border-color, background-color;
   position: relative;
   box-shadow: 0 4px 6px rgba(0,0,0,0.3); /* Giảm độ nặng bóng đổ */
   border: 2px solid transparent;
 }
 .seat-base::after {
-  content: ''; position: absolute; bottom: 4px; width: 80%; height: 4px;
+  content: ''; position: absolute; bottom: 3px; width: 80%; height: 3px;
   background: rgba(0,0,0,0.3); border-radius: 4px;
 }
 .cursor-pointer { cursor: pointer; }
@@ -484,10 +489,10 @@ const getSeatClass = (seat) => {
 .seat-couple { background: linear-gradient(145deg, #ec4899, #be185d); width: 100%; border-color: #f472b6; }
 .seat-couple-hidden { display: none !important; }
 
-.seat-booked { background: linear-gradient(145deg, #1f2937, #111827) !important; color: #374151; cursor: not-allowed; opacity: 0.6; box-shadow: inset 0 4px 10px rgba(0,0,0,0.8) !important; }
+.seat-booked { background: linear-gradient(145deg, #059669, #047857) !important; color: rgba(255,255,255,0.8); cursor: pointer; opacity: 0.9; }
 .seat-booked::after { display: none; }
 
-.seat-selected { background: linear-gradient(145deg, #10b981, #059669) !important; border: 2px solid #fff !important; transform: translateY(-5px); color: white; }
+.seat-selected { background: linear-gradient(145deg, #fbbf24, #d97706) !important; border: 2px solid #fff !important; transform: translateY(-5px); color: white; }
 .seat-hidden-client { opacity: 0; pointer-events: none; }
 .seat-hidden-admin { background: transparent !important; border: 2px dashed #4b5563 !important; color: #4b5563; box-shadow: none; }
 .seat-hidden-admin::after { display: none; }
@@ -508,8 +513,8 @@ const getSeatClass = (seat) => {
 .seat-box.standard { background: linear-gradient(145deg, #4b5563, #374151); }
 .seat-box.vip { background: linear-gradient(145deg, #ef4444, #b91c1c); }
 .seat-box.couple { background: linear-gradient(145deg, #ec4899, #be185d); }
-.seat-box.booked { background: #1f2937; }
-.seat-box.selected { background: linear-gradient(145deg, #10b981, #059669); }
+.seat-box.booked { background: linear-gradient(145deg, #059669, #047857); }
+.seat-box.selected { background: linear-gradient(145deg, #fbbf24, #d97706); }
 .seat-box.admin-selected { border: 2px solid #fbbf24; background: transparent; }
 .seat-box.hidden-demo { border: 2px dashed #4b5563; background: transparent; }
 .seat-box.deleted-demo { border: 2px dotted transparent; background: transparent; opacity: 0.3; }

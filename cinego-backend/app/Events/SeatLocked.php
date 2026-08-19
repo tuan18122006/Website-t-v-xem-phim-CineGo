@@ -18,15 +18,17 @@ class SeatLocked implements ShouldBroadcastNow
     public $showtimeId;
     public $seatId;
     public $userId;
+    public $status;
 
     /**
      * Create a new event instance.
      */
-    public function __construct($showtimeId, $seatId, $userId)
+    public function __construct($showtimeId, $seatId, $userId = null, $status = 'holding')
     {
         $this->showtimeId = $showtimeId;
         $this->seatId = $seatId;
         $this->userId = $userId;
+        $this->status = $status;
     }
 
     /**

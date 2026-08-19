@@ -71,7 +71,7 @@ Route::get('/settings/payment', [\App\Http\Controllers\Api\SettingController::cl
 // VNPay trả về cho đơn POS (công khai — VNPay redirect trình duyệt về, không kèm token)
 Route::get('/staff/pos/vnpay-return', [\App\Http\Controllers\Api\POSController::class, 'posVnpayReturn']);
 
->>>>>>> origin/cuong1
+
 Route::middleware('auth:sanctum')->group(function () {
 
     // Đăng xuất & hồ sơ cho MỌI user đã đăng nhập (khách hàng, staff, admin)
@@ -208,7 +208,6 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     // Cấu hình giá hệ thống
     Route::get('/pricing-rules', [\App\Http\Controllers\Api\PricingRuleController::class, 'index']);
     Route::put('/pricing-rules', [\App\Http\Controllers\Api\PricingRuleController::class, 'update']);
-=======
 
     // Quản lý quy tắc giá theo ngày/giờ
     Route::get('/time-based-pricing', [TimeBasedPricingController::class, 'index']);
@@ -249,14 +248,14 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
         Route::get('/users/{id}/histories', [LoyaltyController::class, 'adminGetUserHistories']);
         Route::post('/users/{id}/adjust-points', [LoyaltyController::class, 'adminAdjustPoints']);
     });
-<<<<<<< HEAD
+
 
     // Thùng rác (khôi phục / xóa vĩnh viễn)
     Route::get('/trash', [TrashController::class, 'index']);
     Route::post('/trash/{type}/{id}/restore', [TrashController::class, 'restore']);
     Route::delete('/trash/{type}/{id}', [TrashController::class, 'forceDelete']);
     Route::delete('/trash/empty', [TrashController::class, 'emptyAll']);
->>>>>>> origin/cuong1
+
 });
 
 // ==================================================================
@@ -268,9 +267,9 @@ Route::middleware(['auth:sanctum', 'can:staff-or-admin'])->prefix('staff')->grou
     Route::post('/customers', [\App\Http\Controllers\Api\POSController::class, 'quickCreateCustomer']);
     Route::get('/combos', [\App\Http\Controllers\Api\POSController::class, 'listCombos']);
     Route::post('/bookings/pos', [\App\Http\Controllers\Api\POSController::class, 'storePOSBooking']);
-<<<<<<< HEAD
+
     Route::post('/bookings/pos/vnpay', [\App\Http\Controllers\Api\POSController::class, 'createPOSPayment']);
-=======
+
 
     // Tra cứu đơn hàng / Hỗ trợ khách hàng
     Route::get('/bookings/lookup', [BookingLookupController::class, 'search']);
@@ -281,6 +280,17 @@ Route::middleware(['auth:sanctum', 'can:staff-or-admin'])->prefix('staff')->grou
     Route::post('/shifts/start', [\App\Http\Controllers\Api\ShiftController::class, 'checkIn']);
     Route::post('/shifts/end', [\App\Http\Controllers\Api\ShiftController::class, 'checkOut']);
     Route::get('/shifts/active', [\App\Http\Controllers\Api\ShiftController::class, 'activeShift']);
+
+    // Quản lý sự cố & Khóa ghế (Operations)
+    Route::post('/seats/lock', [\App\Http\Controllers\Api\SeatOperationsController::class, 'lockTemporary']);
+    Route::post('/seats/broken', [\App\Http\Controllers\Api\SeatOperationsController::class, 'markBroken']);
+    Route::post('/seats/unlock', [\App\Http\Controllers\Api\SeatOperationsController::class, 'unlockSeat']);
+    Route::get('/rooms/{roomId}/locks', [\App\Http\Controllers\Api\SeatOperationsController::class, 'getActiveLocks']);
+
+    // Xử lý đền bù (Compensation)
+    Route::post('/compensation/swap', [\App\Http\Controllers\Api\CompensationController::class, 'quickSwap']);
+    Route::post('/compensation/reschedule', [\App\Http\Controllers\Api\CompensationController::class, 'reschedule']);
+    Route::post('/compensation/refund', [\App\Http\Controllers\Api\CompensationController::class, 'pointRefund']);
 });
 Route::post('/vouchers/verify', [VoucherController::class, 'verify']);
 Route::get('/payment/vnpay/return', [PaymentController::class, 'vnpayReturn']);
