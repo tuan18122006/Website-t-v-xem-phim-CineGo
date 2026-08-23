@@ -12,6 +12,10 @@
         </p>
       </div>
       <div class="header-actions">
+        <button type="button" @click="goBack" class="btn-back-cine">
+          ← Quay lại
+        </button>
+
         <button
           type="button"
           @click="savePost('draft')"
@@ -20,6 +24,7 @@
         >
           Lưu bản nháp
         </button>
+
         <button
           type="button"
           @click="savePost('published')"
@@ -178,11 +183,22 @@
           <h4 class="sidebar-box-title">🖼️ Ảnh bìa bài viết (16:9)</h4>
           <div class="sidebar-box-content">
             <div class="thumbnail-uploader-box" @click="triggerUpload">
+              <input
+                ref="thumbnailInput"
+                type="file"
+                accept="image/*"
+                hidden
+                @change="handleThumbnailUpload"
+              />
+
               <div v-if="!form.thumbnail_url" class="uploader-placeholder">
                 <span class="upload-icon">📸</span>
                 <p class="upload-text">Tải ảnh bìa lên</p>
-                <span class="upload-hint">Tỷ lệ khuyên dùng 1920x1080</span>
+                <span class="upload-hint">
+                  Chọn ảnh từ máy tính · Khuyên dùng 1920x1080
+                </span>
               </div>
+
               <div v-else class="uploader-preview">
                 <img
                   :src="form.thumbnail_url"
@@ -242,13 +258,13 @@ const submitting = ref(false);
 const categories = ref([]);
 const activeMovies = ref([]);
 
-// 💡 ĐÃ ĐỔI: category_id -> blog_category_id cho đồng bộ với Laravel
 const form = ref({
   title: "",
   excerpt: "",
   content: "",
   thumbnail_url: "",
-  category_id: "", // Sửa ở đây
+  thumbnail_file: null,
+  category_id: "",
   movie_id: null,
   status: "published",
   published_at: "",
@@ -258,7 +274,6 @@ const form = ref({
 
 const errors = ref({});
 
-// Thuật toán sinh Slug URL tự động chuẩn SEO
 const generateSlug = (title) => {
   if (!title) return "";
   let slug = title.toLowerCase();
@@ -303,7 +318,7 @@ const checkEditState = async () => {
       form.value = { ...data };
     } catch (error) {
       toast("Không tìm thấy bài viết cần sửa!", "error");
-      localStorage.setItem('admin_active_tab', 'blogs');
+      localStorage.setItem("admin_active_tab", "blogs");
       router.push("/admin");
     }
   }
@@ -343,22 +358,52 @@ const savePost = async (targetStatus) => {
   }
 
   submitting.value = true;
+
   try {
-    const payload = {
-      ...form.value,
-      slug: generateSlug(form.value.title),
-    };
+    const formData = new FormData();
+
+    formData.append("title", form.value.title);
+    formData.append("excerpt", form.value.excerpt || "");
+    formData.append("content", form.value.content);
+    formData.append("slug", generateSlug(form.value.title));
+    formData.append("category_id", form.value.category_id);
+    formData.append("movie_id", form.value.movie_id || "");
+    formData.append("status", form.value.status);
+    formData.append("published_at", form.value.published_at || "");
+    formData.append("meta_title", form.value.meta_title || "");
+    formData.append("meta_description", form.value.meta_description || "");
+
+    // Nếu có ảnh mới thì gửi file
+    if (form.value.thumbnail_file) {
+      formData.append("thumbnail", form.value.thumbnail_file);
+    }
 
     if (isEditing.value) {
-      await api.put(`/admin/blogs/${editingId.value}`, payload);
+      // Laravel cần xử lý PUT + multipart
+      formData.append("_method", "PUT");
+
+      await api.post(`/admin/blogs/${editingId.value}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
       toast("Cập nhật bài viết thành công!");
     } else {
-      await api.post("/admin/blogs", payload);
+      await api.post("/admin/blogs", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
       toast("Đã xuất bản bài viết mới thành công!");
     }
-    localStorage.setItem('admin_active_tab', 'blogs');
+
+    localStorage.setItem("admin_active_tab", "blogs");
     router.push("/admin");
   } catch (error) {
+    console.error(error);
+
     if (error.response?.status === 422) {
       errors.value = error.response.data.errors;
     } else {
@@ -369,10 +414,36 @@ const savePost = async (targetStatus) => {
   }
 };
 
-// Giả lập uploader ảnh
+const thumbnailInput = ref(null);
+
 const triggerUpload = () => {
-  const url = prompt("Nhập tạm URL ảnh bìa để kiểm tra giao diện:");
-  if (url) form.value.thumbnail_url = url;
+  thumbnailInput.value?.click();
+};
+
+const handleThumbnailUpload = (event) => {
+  const file = event.target.files?.[0];
+
+  if (!file) return;
+
+  if (!file.type.startsWith("image/")) {
+    toast("Vui lòng chọn file ảnh!", "warning");
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    toast("Ảnh không được vượt quá 5MB!", "warning");
+    return;
+  }
+
+  form.value.thumbnail_file = file;
+  form.value.thumbnail_url = URL.createObjectURL(file);
+
+  event.target.value = "";
+};
+
+const goBack = () => {
+  localStorage.setItem("admin_active_tab", "blogs");
+  router.push("/admin");
 };
 
 onMounted(async () => {
@@ -798,5 +869,21 @@ onMounted(async () => {
   margin-top: 4px;
   display: block;
   font-weight: 600;
+}
+
+.btn-back-cine {
+  padding: 10px 18px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-back-cine:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
 }
 </style>
