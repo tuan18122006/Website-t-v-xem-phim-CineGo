@@ -137,14 +137,21 @@ public function history(Request $request)
         $userId = auth()->id();
 
         $bookings = Booking::with([
-            'showtime.movie:id,title',
+            'showtime.movie:id,title,poster_url,duration',
             'showtime.room:id,name',
+            'showtime:id,start_time,end_time,movie_id,room_id',
             'bookingDetails.seat',
             'bookingCombos.combo'
         ])
             ->where('user_id', $userId)
             ->orderBy('id', 'desc')
             ->get();
+
+        if ($request->boolean('watched_only')) {
+            $bookings = $bookings->filter(function ($booking) {
+                return $booking->showtime?->end_time && Carbon::parse($booking->showtime->end_time)->isPast();
+            })->values();
+        }
 
         $formattedTickets = $bookings->map(function ($booking) {
 
@@ -189,11 +196,16 @@ public function history(Request $request)
 
             return [
                 'id'             => $booking->id,
+                'booking_id'     => $booking->id,
                 'booking_code'   => $booking->booking_code,
+                'movie_id'       => $booking->showtime?->movie_id,
                 'movie_title'    => $booking->showtime?->movie?->title ?? 'Phim hệ thống',
+                'poster_url'     => $booking->showtime?->movie?->poster_url ?? '',
                 'room_name'      => $booking->showtime?->room?->name ?? 'Phòng chiếu CineGo',
                 'start_time'     => $booking->showtime?->start_time ? Carbon::parse($booking->showtime->start_time)->format('H:i') : '00:00',
                 'date'           => $booking->showtime?->start_time ? Carbon::parse($booking->showtime->start_time)->format('Y-m-d') : Carbon::now()->format('Y-m-d'),
+                'showtime_start' => $booking->showtime?->start_time ? Carbon::parse($booking->showtime->start_time)->format('H:i d/m/Y') : '—',
+                'showtime_end'   => $booking->showtime?->end_time ? Carbon::parse($booking->showtime->end_time)->format('H:i d/m/Y') : '—',
                 'seats'          => $seatsList,
                 'combos'         => $combosList,
                 'total_ticket_price' => $totalTicketPrice,
@@ -202,8 +214,10 @@ public function history(Request $request)
                 'discount_amount' => $booking->discount_amount,
                 'total_price'    => $booking->total_amount,
                 'payment_method' => $booking->payment_method,
+                'payment_status' => $booking->payment_status,
                 'created_at'     => $booking->created_at ? $booking->created_at->format('H:i d/m/Y') : '',
                 'status'         => $booking->payment_status,
+                'booking_status' => $booking->showtime?->end_time && Carbon::parse($booking->showtime->end_time)->isPast() ? 'Đã chiếu' : 'Sắp chiếu',
                 'status_label'   => match($booking->payment_status) {
                     'paid'                 => 'Đã thanh toán',
                     'waiting_confirmation' => 'Đang chờ xác nhận',

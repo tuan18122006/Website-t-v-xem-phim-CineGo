@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\RefundRequest;
 use App\Models\Booking;
 use App\Models\ActionLog;
+use App\Models\User;
+use App\Services\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -31,11 +33,12 @@ class RefundController extends Controller
         }
 
         // Kiểm tra xem đã có yêu cầu hoàn tiền nào cho hóa đơn này chưa
-        $exists = RefundRequest::where('booking_id', $booking->id)->exists();
+        $exists = RefundRequest::where('booking_id', $booking->id)
+            ->where('status', 'pending')->exists();
         if ($exists) {
             return response()->json([
                 'success' => false,
-                'message' => 'Hóa đơn này đã có yêu cầu hoàn tiền đang xử lý hoặc đã xử lý rồi!'
+                'message' => 'Hóa đơn này đang có yêu cầu hoàn tiền chờ xử lý!'
             ], 400);
         }
 
@@ -46,7 +49,6 @@ class RefundController extends Controller
             'reason' => $request->reason,
         ]);
 
-        // Ghi lại log bảo mật hành động của nhân viên
         ActionLog::create([
             'user_id' => $user->id,
             'action' => 'request_refund',
@@ -63,7 +65,6 @@ class RefundController extends Controller
         ], 201);
     }
 
-    // Nhân viên / Admin gửi yêu cầu hoàn tiền theo ID đơn (route: POST /admin/orders/{id}/refund)
     public function requestRefundById(Request $request, $id)
     {
         $request->validate([
@@ -80,11 +81,12 @@ class RefundController extends Controller
             ], 400);
         }
 
-        $exists = RefundRequest::where('booking_id', $booking->id)->exists();
+        $exists = RefundRequest::where('booking_id', $booking->id)
+            ->where('status', 'pending')->exists();
         if ($exists) {
             return response()->json([
                 'success' => false,
-                'message' => 'Hóa đơn này đã có yêu cầu hoàn tiền đang xử lý hoặc đã xử lý rồi!'
+                'message' => 'Hóa đơn này đang có yêu cầu hoàn tiền chờ xử lý!'
             ], 400);
         }
 
@@ -148,10 +150,11 @@ class RefundController extends Controller
         $booking = Booking::findOrFail($refund->booking_id);
 
         if ($request->status === 'approved') {
-            // Cập nhật trạng thái hóa đơn đặt vé về HỦY và HOÀN TIỀN
+            $refundAmount = (float) $booking->total_amount;
+
             $booking->update([
-                'booking_status' => 'cancelled',
-                'payment_status' => 'failed', // Coi như thanh toán thất bại/đã hủy để giải phóng ghế
+                'booking_status' => 'refunded',
+                'payment_status' => 'refunded',
             ]);
 
             $refund->update([
@@ -159,13 +162,21 @@ class RefundController extends Controller
                 'approved_by' => $manager->id,
             ]);
 
-            // Ghi nhận log phê duyệt
+            $user = User::findOrFail($booking->user_id);
+            app(WalletService::class)->credit(
+                $user,
+                $refundAmount,
+                "Hoàn tiền theo yêu cầu. Mã đơn: {$booking->booking_code}",
+                'refund',
+                $booking
+            );
+
             ActionLog::create([
                 'user_id' => $manager->id,
                 'action' => 'approve_refund',
                 'target_type' => 'bookings',
                 'target_id' => $booking->id,
-                'details' => ['status' => 'approved', 'refund_request_id' => $id],
+                'details' => ['status' => 'approved', 'refund_request_id' => $id, 'refund_amount' => $refundAmount],
                 'ip_address' => $request->ip(),
             ]);
         } else {

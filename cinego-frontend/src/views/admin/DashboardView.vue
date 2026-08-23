@@ -140,7 +140,7 @@
           </transition>
         </div>
 
-        <button 
+                <button 
   class="nav-link" 
   :class="{ active: activeTab === 'rooms' }" 
   @click="activeTab = 'rooms'"
@@ -181,6 +181,11 @@
         <button class="nav-link" :class="{ active: activeTab === 'loyalty' }" @click="activeTab = 'loyalty'">
           <span class="nav-icon"><Star :size="20" /></span>
           <span>Quản Lý Tích Điểm Khách Hàng</span>
+        </button>
+
+        <button class="nav-link" :class="{ active: activeTab === 'wallet' }" @click="activeTab = 'wallet'">
+          <span class="nav-icon"><CircleDollarSign :size="20" /></span>
+          <span>Duyệt Rút Tiền Ví</span>
         </button>
 
         <button class="nav-link" :class="{ active: activeTab === 'reviews' }" @click="activeTab = 'reviews'">
@@ -484,8 +489,6 @@
           </div>
         </div>
 
-
-
       </div>
 
       <!-- TAB 2: DYNAMIC MOVIES CRUD -->
@@ -579,6 +582,11 @@
           <UserLoyaltyManager />
         </div>
 
+        <!-- TAB: DUYỆT RÚT TIỀN VÍ -->
+        <div v-if="activeTab === 'wallet'" class="dashboard-tab-content" style="min-height: 500px;">
+          <WithdrawalManagerView />
+        </div>
+
         <!-- TAB: THÙNG RÁC -->
         <div v-if="activeTab === 'trash'" class="dashboard-tab-content" style="min-height: 500px;">
           <TrashView />
@@ -617,6 +625,7 @@ import BookingLookupView from "./BookingLookupView.vue";
 import OrderManagementView from "./OrderManagementView.vue";
 import TicketScannerView from "./TicketScannerView.vue";
 import UserLoyaltyManager from './UserLoyaltyManager.vue';
+import WithdrawalManagerView from './WithdrawalManagerView.vue';
 import PaymentSettingsView from './PaymentSettingsView.vue';
 import TrashView from './TrashView.vue';
 

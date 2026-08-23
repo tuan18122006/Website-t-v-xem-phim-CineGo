@@ -28,6 +28,7 @@
           <option value="waiting_confirmation">Chờ xác nhận QR</option>
           <option value="paid">Đã thanh toán</option>
           <option value="cancelled">Đã hủy</option>
+          <option value="payment_cancelled">Đã hủy thanh toán</option>
           <option value="refunded">Đã hoàn tiền</option>
         </select>
         <button class="orders-filter-btn" @click="loadOrders">Lọc</button>
@@ -198,6 +199,7 @@ const payLabel = (status) => {
     waiting_confirmation: 'Chờ xác nhận QR',
     paid: 'Đã thanh toán',
     cancelled: 'Đã hủy',
+    payment_cancelled: 'Đã hủy thanh toán',
     refunded: 'Đã hoàn tiền',
   }[status] || status;
 };
@@ -216,6 +218,7 @@ const payClass = (status) => {
     pending: 'is-pending',
     waiting_confirmation: 'is-waiting',
     cancelled: 'is-failed',
+    payment_cancelled: 'is-failed',
     refunded: 'is-refunded',
   }[status] || '';
 };
