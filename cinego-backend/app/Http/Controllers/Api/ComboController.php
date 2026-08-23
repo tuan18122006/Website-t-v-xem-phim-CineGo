@@ -96,6 +96,7 @@ class ComboController extends Controller
             'name.unique' => 'Tên sản phẩm đã tồn tại.',
 
             'description.required' => 'Vui lòng nhập mô tả.',
+            'description.max' => 'Mô tả không được vượt quá 2000 ký tự.',
 
 
             'type.required' => 'Vui lòng chọn loại sản phẩm.',
@@ -183,6 +184,12 @@ class ComboController extends Controller
                 'integer',
                 'min:1'
             ],
+            'valid_minutes' =>
+            [
+                'nullable',
+                'integer',
+                'min:1'
+            ],
             'limit_per_user' =>
             [
                 'nullable',
@@ -199,6 +206,7 @@ class ComboController extends Controller
             ],
         ], [
             'name.required' => 'Vui lòng nhập tên combo.',
+            'name.max' => 'Tên combo không được vượt quá 255 ký tự.',
             'name.unique' => 'Tên sản phẩm đã tồn tại.',
             'type.required' => 'Vui lòng chọn loại sản phẩm.',
             'type.in' => 'Loại sản phẩm không hợp lệ.',
@@ -210,8 +218,13 @@ class ComboController extends Controller
             'stock.integer' => 'Số lượng kho phải là số nguyên.',
             'stock.min' => 'Số lượng kho không được nhỏ hơn 0.',
             'points_required.integer' => 'Điểm đổi phải là số nguyên.',
+            'points_required.min'     => 'Điểm đổi không được nhỏ hơn 0.',
             'valid_days.integer' => 'Số ngày hạn dùng phải là số nguyên.',
+            'valid_days.min'     => 'Số ngày hạn dùng phải lớn hơn hoặc bằng 1.',
+            'valid_minutes.integer' => 'Số phút hạn dùng phải là số nguyên.',
+            'valid_minutes.min'     => 'Số phút hạn dùng phải lớn hơn hoặc bằng 1.',
             'limit_per_user.integer' => 'Giới hạn dùng phải là số nguyên.',
+            'limit_per_user.min'     => 'Giới hạn dùng phải lớn hơn hoặc bằng 1.',
             'image.image' => 'File được chọn phải là hình ảnh.',
             'image.mimes' => 'Ảnh phải có định dạng JPG, JPEG, PNG hoặc WEBP.',
             'image.max' => 'Dung lượng ảnh không được vượt quá 5MB.',

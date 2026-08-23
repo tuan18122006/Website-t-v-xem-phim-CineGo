@@ -160,17 +160,39 @@ class VoucherController extends Controller
             'max_discount'    => 'nullable|numeric|min:0',
             'expires_at'      => 'required|date|after:now',
             'usage_limit'     => 'nullable|integer|min:1',
+            'user_limit'      => 'nullable|integer|min:1',
             'target_limit'    => 'required|in:all,new_user,birthday',
             'usage_condition' => 'nullable|array',
             'points_required' => 'nullable|integer|min:0',
             'max_exchanges'   => 'nullable|integer|min:1',
             'is_active'       => 'nullable|boolean'
         ], [
-            'code.required'   => 'Vui lòng nhập mã giảm giá.',
-            'code.unique'     => 'Mã giảm giá này đã tồn tại, vui lòng nhập mã khác!',
-            'code.max'        => 'Mã giảm giá không được quá 20 ký tự.',
-            'code.alpha_dash' => 'Mã giảm giá chỉ được chứa chữ cái, số, dấu gạch ngang và gạch dưới.',
-            'expires_at.after' => 'Ngày hết hạn phải sau thời gian hiện tại.'
+            'code.required'        => 'Vui lòng nhập mã giảm giá.',
+            'code.unique'          => 'Mã giảm giá này đã tồn tại, vui lòng nhập mã khác!',
+            'code.max'             => 'Mã giảm giá không được quá 20 ký tự.',
+            'code.alpha_dash'      => 'Mã giảm giá chỉ được chứa chữ cái, số, dấu gạch ngang và gạch dưới.',
+            'discount_type.required' => 'Vui lòng chọn loại giảm giá.',
+            'discount_type.in'    => 'Loại giảm giá không hợp lệ.',
+            'discount_value.required' => 'Vui lòng nhập giá trị giảm giá.',
+            'discount_value.numeric'  => 'Giá trị giảm giá phải là số.',
+            'discount_value.min'      => 'Giá trị giảm giá không được nhỏ hơn 0.',
+            'min_spend.required'  => 'Vui lòng nhập giá trị đơn hàng tối thiểu.',
+            'min_spend.numeric'   => 'Giá trị đơn hàng tối thiểu phải là số.',
+            'min_spend.min'       => 'Giá trị đơn hàng tối thiểu không được nhỏ hơn 0.',
+            'max_discount.numeric' => 'Giảm giá tối đa phải là số.',
+            'max_discount.min'    => 'Giảm giá tối đa không được nhỏ hơn 0.',
+            'expires_at.required' => 'Vui lòng chọn ngày hết hạn.',
+            'expires_at.after'    => 'Ngày hết hạn phải sau thời gian hiện tại.',
+            'usage_limit.integer' => 'Giới hạn lượt dùng phải là số nguyên.',
+            'usage_limit.min'     => 'Giới hạn lượt dùng phải lớn hơn hoặc bằng 1.',
+            'user_limit.integer'  => 'Giới hạn mỗi người phải là số nguyên.',
+            'user_limit.min'      => 'Giới hạn mỗi người phải lớn hơn hoặc bằng 1.',
+            'target_limit.required' => 'Vui lòng chọn đối tượng áp dụng.',
+            'target_limit.in'     => 'Đối tượng áp dụng không hợp lệ.',
+            'points_required.integer' => 'Điểm đổi phải là số nguyên.',
+            'points_required.min'     => 'Điểm đổi không được nhỏ hơn 0.',
+            'max_exchanges.integer'   => 'Số lần đổi tối đa phải là số nguyên.',
+            'max_exchanges.min'       => 'Số lần đổi tối đa phải lớn hơn hoặc bằng 1.',
         ]);
 
         $data['starts_at'] = $request->filled('starts_at') ? $request->starts_at : now();
@@ -183,7 +205,7 @@ class VoucherController extends Controller
         $voucher = Voucher::findOrFail($id);
 
         $data = $request->validate([
-            'code'            => 'required|max:20|unique:vouchers,code,' . $id,
+            'code'            => 'required|max:20|alpha_dash|unique:vouchers,code,' . $id,
             'discount_type'   => 'required|in:fixed,percentage',
             'discount_value'  => [
                 'required',
@@ -208,11 +230,31 @@ class VoucherController extends Controller
             'is_active'       => 'nullable|boolean'
 
         ], [
-            'code.required'   => 'Vui lòng nhập mã giảm giá.',
-            'code.unique'     => 'Mã giảm giá này đã tồn tại, vui lòng nhập mã khác!',
-            'code.max'        => 'Mã giảm giá không được quá 20 ký tự.',
-            'code.alpha_dash' => 'Mã giảm giá chỉ được chứa chữ cái, số, dấu gạch ngang và gạch dưới.',
-            'expires_at.after' => 'Ngày hết hạn phải sau thời gian hiện tại.'
+            'code.required'        => 'Vui lòng nhập mã giảm giá.',
+            'code.unique'          => 'Mã giảm giá này đã tồn tại, vui lòng nhập mã khác!',
+            'code.max'             => 'Mã giảm giá không được quá 20 ký tự.',
+            'code.alpha_dash'      => 'Mã giảm giá chỉ được chứa chữ cái, số, dấu gạch ngang và gạch dưới.',
+            'discount_type.required' => 'Vui lòng chọn loại giảm giá.',
+            'discount_type.in'    => 'Loại giảm giá không hợp lệ.',
+            'discount_value.required' => 'Vui lòng nhập giá trị giảm giá.',
+            'discount_value.numeric'  => 'Giá trị giảm giá phải là số.',
+            'discount_value.min'      => 'Giá trị giảm giá không được nhỏ hơn 0.',
+            'min_spend.required'  => 'Vui lòng nhập giá trị đơn hàng tối thiểu.',
+            'min_spend.numeric'   => 'Giá trị đơn hàng tối thiểu phải là số.',
+            'min_spend.min'       => 'Giá trị đơn hàng tối thiểu không được nhỏ hơn 0.',
+            'max_discount.numeric' => 'Giảm giá tối đa phải là số.',
+            'max_discount.min'    => 'Giảm giá tối đa không được nhỏ hơn 0.',
+            'expires_at.required' => 'Vui lòng chọn ngày hết hạn.',
+            'usage_limit.integer' => 'Giới hạn lượt dùng phải là số nguyên.',
+            'usage_limit.min'     => 'Giới hạn lượt dùng phải lớn hơn hoặc bằng 1.',
+            'user_limit.integer'  => 'Giới hạn mỗi người phải là số nguyên.',
+            'user_limit.min'      => 'Giới hạn mỗi người phải lớn hơn hoặc bằng 1.',
+            'target_limit.required' => 'Vui lòng chọn đối tượng áp dụng.',
+            'target_limit.in'     => 'Đối tượng áp dụng không hợp lệ.',
+            'points_required.integer' => 'Điểm đổi phải là số nguyên.',
+            'points_required.min'     => 'Điểm đổi không được nhỏ hơn 0.',
+            'max_exchanges.integer'   => 'Số lần đổi tối đa phải là số nguyên.',
+            'max_exchanges.min'       => 'Số lần đổi tối đa phải lớn hơn hoặc bằng 1.',
         ]);
 
         $data['starts_at'] = $request->filled('starts_at')

@@ -28,6 +28,7 @@ class ComboItemController extends Controller
             'item_id' => 'required|exists:combos,id',
             'quantity' => 'required|integer|min:1'
         ], [
+            'combo_id.required' => 'Vui lòng chọn combo.',
             'item_id.required' => 'Vui lòng chọn 1 loại đồ.',
             'quantity.min'      => 'Số lượng không được là số âm hoặc bằng 0.',
             'quantity.required' => 'Vui lòng nhập số lượng.',
