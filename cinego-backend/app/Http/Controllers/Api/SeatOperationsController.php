@@ -95,11 +95,11 @@ class SeatOperationsController extends Controller
             $seat->status = 'broken';
             $seat->save();
 
-            // Tìm TẤT CẢ các vé tương lai đã mua trên ghế này
+            // Tìm TẤT CẢ các vé trên ghế này ở các suất chiếu chưa kết thúc
             $affectedBookings = BookingDetail::with(['booking.user', 'booking.showtime.movie'])
                 ->join('bookings', 'booking_details.booking_id', '=', 'bookings.id')
                 ->join('showtimes', 'bookings.showtime_id', '=', 'showtimes.id')
-                ->where('showtimes.start_time', '>', now())
+                ->where('showtimes.end_time', '>', now())
                 ->where('bookings.payment_status', 'paid')
                 ->where('booking_details.seat_id', $seat->id)
                 ->select('booking_details.*')
@@ -107,6 +107,41 @@ class SeatOperationsController extends Controller
                 ->get();
 
             DB::commit();
+
+            // Thông báo cho từng user bị ảnh hưởng (đổi ghế hoặc hoàn tiền vào ví)
+            if ($affectedBookings->isNotEmpty()) {
+                $seatLabel = $seat->row . $seat->number;
+                foreach ($affectedBookings as $detail) {
+                    $user = $detail->booking->user ?? null;
+                    if (!$user) continue;
+
+                    $showtime = $detail->booking->showtime;
+                    $movieTitle = $showtime->movie->title ?? 'phim';
+                    $showtimeLabel = $showtime->start_time ? $showtime->start_time->format('d/m/Y H:i') : '';
+                    $roomName = $showtime->room->name ?? '';
+                    $refundAmount = (float) $detail->price;
+
+                    $user->notify(new \App\Notifications\SeatIncidentNotification(
+                        $detail->booking->booking_code,
+                        "Ghế {$seatLabel} suất " . $movieTitle . " (" . $showtimeLabel . ") của đơn " . $detail->booking->booking_code . " gặp sự cố. Vui lòng liên hệ nhân viên để đổi ghế hoặc nhận hoàn tiền vào ví."
+                    ));
+
+                    try {
+                        \Illuminate\Support\Facades\Mail::to($user->email)->send(
+                            new \App\Mail\SeatIncidentMail(
+                                $detail->booking,
+                                $seatLabel,
+                                $movieTitle,
+                                $showtimeLabel,
+                                $roomName,
+                                $refundAmount
+                            )
+                        );
+                    } catch (\Exception $e) {
+                        \Log::error("Gửi email sự cố ghế thất bại cho user {$user->id}: " . $e->getMessage());
+                    }
+                }
+            }
 
             return response()->json([
                 'success' => true,

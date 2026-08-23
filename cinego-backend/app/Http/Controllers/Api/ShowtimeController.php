@@ -266,6 +266,14 @@ class ShowtimeController extends Controller
             ->pluck('booking_details.seat_id')
             ->toArray();
 
+        $bookedDetails = BookingDetail::with('booking.user')
+            ->join('bookings', 'booking_details.booking_id', '=', 'bookings.id')
+            ->where('bookings.showtime_id', $showtime->id)
+            ->where('bookings.payment_status', 'paid')
+            ->select('booking_details.*', 'bookings.booking_code', 'bookings.user_id')
+            ->get()
+            ->keyBy('seat_id');
+
         // 5. Lấy danh sách ghế đang bị giữ bởi người khác (expires_at > now)
         $heldSeatIds = SeatHold::where('showtime_id', $showtime->id)
             ->where('expires_at', '>', $now)
@@ -280,7 +288,7 @@ class ShowtimeController extends Controller
             ->toArray();
 
         // 6. Định dạng đầu ra khớp chính xác với frontend yêu cầu
-        $formattedSeats = $seats->map(function ($seat) use ($bookedSeatIds, $heldSeatIds, $lockedSeatIds, $prices) {
+        $formattedSeats = $seats->map(function ($seat) use ($bookedSeatIds, $heldSeatIds, $lockedSeatIds, $prices, $bookedDetails) {
             $status = 'available';
             if ($seat->status === 'broken' || in_array($seat->id, $lockedSeatIds)) {
                 $status = 'broken';
@@ -290,7 +298,7 @@ class ShowtimeController extends Controller
                 $status = 'holding';
             }
 
-            return [
+            $result = [
                 'id' => $seat->id,
                 'row_name' => $seat->row,
                 'seat_number' => $seat->number,
@@ -298,6 +306,18 @@ class ShowtimeController extends Controller
                 'type' => $seat->type, 
                 'price' => $prices[$seat->type] ?? 0, 
             ];
+
+            if ($status === 'sold' && isset($bookedDetails[$seat->id])) {
+                $detail = $bookedDetails[$seat->id];
+                $result['booking_detail_id'] = $detail->id;
+                $result['booking_id'] = $detail->booking_id;
+                $result['booking_code'] = $detail->booking_code;
+                $result['customer_name'] = $detail->booking->user->name ?? 'N/A';
+                $result['customer_email'] = $detail->booking->user->email ?? 'N/A';
+                $result['customer_phone'] = $detail->booking->user->phone ?? 'N/A';
+            }
+
+            return $result;
         });
 
         return response()->json([
@@ -392,13 +412,18 @@ class ShowtimeController extends Controller
     public function getShowtimesByDate(Request $request)
     {
         $date = $request->query('date', now()->toDateString());
+        $includeAll = $request->boolean('all', false);
 
-        $showtimes = Showtime::with(['movie.genres', 'room'])
+        $query = Showtime::with(['movie.genres', 'room'])
             ->whereDate('start_time', $date)
-            ->where('start_time', '>=', now())
             ->where('status', 'active')
-            ->orderBy('start_time', 'asc')
-            ->get();
+            ->orderBy('start_time', 'asc');
+
+        if (!$includeAll) {
+            $query->where('start_time', '>=', now());
+        }
+
+        $showtimes = $query->get();
 
         $grouped = $showtimes->groupBy('movie_id')->map(function ($items) {
             $movie = $items->first()->movie;

@@ -58,8 +58,8 @@ class TimeBasedPricingRule extends Model
 
         // Kiểm tra ngày nếu use_date được kích hoạt
         if ($this->use_date) {
-            if ($datetime->date() < $this->start_date->format('Y-m-d') ||
-                $datetime->date() > $this->end_date->format('Y-m-d')) {
+            if ($datetime->toDateString() < $this->start_date->format('Y-m-d') ||
+                $datetime->toDateString() > $this->end_date->format('Y-m-d')) {
                 return false;
             }
         }
@@ -102,18 +102,17 @@ class TimeBasedPricingRule extends Model
                   });
             });
         } else {
-            // Nếu không có movie_id, chỉ lấy quy tắc toàn hệ thống
             $query->where('scope', 'system');
         }
 
         return $query
             ->where(function ($q) use ($datetime) {
                 $q->whereNull('start_date')
-                  ->orWhere('start_date', '<=', $datetime->date());
+                  ->orWhere('start_date', '<=', $datetime->toDateString());
             })
             ->where(function ($q) use ($datetime) {
                 $q->whereNull('end_date')
-                  ->orWhere('end_date', '>=', $datetime->date());
+                  ->orWhere('end_date', '>=', $datetime->toDateString());
             })
             ->get()
             ->filter(function (self $rule) use ($datetime, $seatType) {

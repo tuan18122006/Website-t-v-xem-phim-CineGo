@@ -239,12 +239,18 @@ const routes = [
     component: () => import("../views/admin/VoucherManager.vue"),
     meta: { requiresAuth: true, role: "admin" }
   },
-    {
-      path: '/admin/loyalty',
-      name: 'AdminLoyalty',
-      component: () => import('../views/admin/UserLoyaltyManager.vue'),
-      meta: { requiresAuth: true, role: "admin" }
-    },
+{
+    path: '/admin/loyalty',
+    name: 'AdminLoyalty',
+    component: () => import('../views/admin/UserLoyaltyManager.vue'),
+    meta: { requiresAuth: true, role: "admin" }
+  },
+  {
+    path: '/admin/wallet',
+    name: 'admin-WalletWithdrawals',
+    component: () => import('../views/admin/WithdrawalManagerView.vue'),
+    meta: { requiresAuth: true, role: "admin" }
+  },
     {
       path: '/admin/settings/payment',
       name: 'admin-PaymentSettings',

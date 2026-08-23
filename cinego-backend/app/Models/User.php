@@ -37,6 +37,7 @@ class User extends Authenticatable
         'is_anonymized',
         'work_status',
         'cine_points',
+        'wallet_balance',
         'age',
         'google_id',
         'avatar_url',
@@ -51,6 +52,16 @@ class User extends Authenticatable
     public function pointHistories(): HasMany
     {
         return $this->hasMany(PointHistory::class);
+    }
+
+    public function walletTransactions(): HasMany
+    {
+        return $this->hasMany(WalletTransaction::class);
+    }
+
+    public function withdrawals(): HasMany
+    {
+        return $this->hasMany(Withdrawal::class);
     }
 
     public function getPointMultiplierAttribute()

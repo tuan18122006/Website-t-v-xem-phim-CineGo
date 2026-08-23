@@ -63,7 +63,7 @@
       </aside>
 
       <main class="cinego-content-area">
-                <div class="cinego-member-summary-box">
+                <div v-if="activeTab === 'info'" class="cinego-member-summary-box">
           <div class="avatar-block">
             <div class="avatar-frame">
               <img :src="profileForm.avatar_url || '/default-avatar.png'" alt="Avatar" class="avatar-img" />
@@ -179,48 +179,26 @@
             </div>
 
             <!-- 2. Trạng thái có dữ liệu -->
-            <div v-else-if="filteredMyVouchers.length > 0" class="my-vouchers-grid"
-              style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-top: 15px;">
-              <div v-for="item in filteredMyVouchers" :key="item.id" :style="{
-                border: '1px solid #e2e8f0',
-                padding: '15px',
-                borderRadius: '8px',
-                background: (item.is_used || item.is_expired) ? '#f1f5f9' : '#fff',
-                opacity: (item.is_used || item.is_expired) ? '0.7' : '1',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                position: 'relative',
-                borderLeft: (item.is_used || item.is_expired) ? '5px solid #94a3b8' : '5px solid var(--accent-red)'
-              }">
-                <div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                    <h4 style="color: var(--accent-red); font-weight: 800; font-size: 16px; margin: 0;">{{ item.code }}
-                    </h4>
-                    <span v-if="item.is_used"
-                      style="background: #e2e8f0; color: #475569; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">Đã
-                      dùng</span>
-                    <span v-else-if="item.is_expired"
-                      style="background: #fef3c7; color: #d97706; font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 4px;">Hết
-                      hạn</span>
-                  </div>
-
-                  <p class="voucher-desc" style="font-size: 13px; color: #64748b; margin-top: 4px;">
-                    {{ item.description || (item.type === 'combo' ? 'Ưu đãi Bắp Nước' : 'Voucher giảm giá vé') }}
-                  </p>
-                  <p style="font-size: 12px; color: #64748b; margin-bottom: 8px;" v-if="item.min_order_value > 0">
-                    Đơn tối thiểu: {{ formatPrice(item.min_order_value) }}đ
-                  </p>
-                  <p style="font-size: 11.5px; color: #94a3b8; margin: 0;">
-                    HSD: {{ item.end_date ? formatDate(item.end_date) : 'Không giới hạn' }}
-                  </p>
+            <div v-else-if="filteredMyVouchers.length > 0" class="my-vouchers-grid">
+              <div v-for="item in filteredMyVouchers" :key="item.id"
+                class="voucher-wallet-card"
+                :class="{ 'is-used': item.is_used || item.is_expired }">
+                <div class="voucher-wallet-left">
+                  <div class="voucher-wallet-code">{{ item.code }}</div>
+                  <span v-if="item.is_used" class="voucher-wallet-status status-used">Đã dùng</span>
+                  <span v-else-if="item.is_expired" class="voucher-wallet-status status-expired">Hết hạn</span>
+                  <span v-else class="voucher-wallet-status status-active">Đang dùng</span>
                 </div>
-
-                <div style="margin-top: 15px; text-align: right;">
-                  <router-link v-if="!item.is_used && !item.is_expired" to="/quick-booking" class="btn-cinego-small"
-                    style="text-decoration: none; display: inline-block;">
+                <div class="voucher-wallet-center">
+                  <p class="voucher-wallet-desc">{{ item.description || (item.type === 'combo' ? 'Ưu đãi Bắp Nước' : 'Voucher giảm giá vé') }}</p>
+                  <p v-if="item.min_order_value > 0" class="voucher-wallet-min">Đơn tối thiểu: {{ formatPrice(item.min_order_value) }}đ</p>
+                  <p class="voucher-wallet-exp">HSD: {{ item.end_date ? formatDate(item.end_date) : 'Không giới hạn' }}</p>
+                </div>
+                <div class="voucher-wallet-right">
+                  <router-link v-if="!item.is_used && !item.is_expired" to="/quick-booking" class="voucher-wallet-btn">
                     DÙNG NGAY
                   </router-link>
+                  <span v-else class="voucher-wallet-btn expired">—</span>
                 </div>
               </div>
             </div>
@@ -236,68 +214,65 @@
               <h3>Đổi điểm tích lũy nhận ưu đãi</h3>
               <div class="history-filter-toggle">
                 <button :class="{ active: loyaltySubTab === 'vouchers' }" @click="loyaltySubTab = 'vouchers'">
-                  🎟️ Đổi Voucher
+                   Đổi Voucher
                 </button>
                 <button :class="{ active: loyaltySubTab === 'combos' }" @click="loyaltySubTab = 'combos'">
-                  🍿 Đổi Combo
+                   Đổi Combo
                 </button>
                 <button :class="{ active: loyaltySubTab === 'history' }" @click="loyaltySubTab = 'history'">
-                  📜 Lịch Sử Điểm
+                   Lịch Sử Điểm
                 </button>
               </div>
             </div>
 
             <!-- 1. TAB ĐỔI VOUCHER -->
             <div v-if="loyaltySubTab === 'vouchers'">
-              <div v-if="redeemableVouchers.length > 0" class="loyalty-grid"
-                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
-                <div v-for="item in redeemableVouchers" :key="item.id"
-                  style="border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; background: #f8fafc; display: flex; flex-direction: column; justify-content: space-between;">
-                  <div>
-                    <h4 style="color: var(--accent-red); font-weight: 800; font-size: 16px; margin: 0 0 5px 0;">{{
-                      item.code }}</h4>
-                    <p style="font-size: 13px; color: #475569; margin-bottom: 10px;">
-                      {{ item.description || 'Voucher giảm giá vé xem phim' }}
-                    </p>
-                    <span
-                      style="background: #fef3c7; color: #d97706; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 12px;">
-                      Yêu cầu: {{ item.points_required }} điểm
-                    </span>
+              <div v-if="redeemableVouchers.length > 0" class="loyalty-grid">
+                <div v-for="item in redeemableVouchers" :key="item.id" class="loyalty-card">
+                  <div class="loyalty-card-badge">
+                    <span class="loyalty-card-points">{{ item.points_required }}</span>
+                    <span class="loyalty-card-points-label">điểm</span>
+                  </div>
+                  <div class="loyalty-card-body">
+                    <h4 class="loyalty-card-title">{{ item.code }}</h4>
+                    <p class="loyalty-card-desc">{{ item.description || 'Voucher giảm giá vé xem phim' }}</p>
                   </div>
                   <button @click="redeemVoucher(item.id)"
-                    :disabled="loyaltyData.loyalty_points < item.points_required || btnLoading" class="btn-cinego-small"
-                    style="margin-top: 12px; width: 100%; text-align: center; justify-content: center;">
-                    {{ loyaltyData.loyalty_points < item.points_required ? 'Chưa đủ điểm' : 'ĐỔI NGAY' }} </button>
+                    :disabled="loyaltyData.loyalty_points < item.points_required || btnLoading"
+                    class="loyalty-card-btn"
+                    :class="{ 'disabled': loyaltyData.loyalty_points < item.points_required }">
+                    {{ loyaltyData.loyalty_points < item.points_required ? 'Chưa đủ điểm' : 'ĐỔI NGAY' }}
+                  </button>
                 </div>
               </div>
-              <div v-else class="text-center empty-msg" style="padding: 30px; color: #94a3b8;">
+              <div v-else class="text-center empty-msg" style="padding: 40px; color: #94a3b8;">
+                <p style="font-size: 32px; margin-bottom: 8px;">🎬</p>
                 Hiện chưa có Voucher nào hỗ trợ đổi bằng điểm.
               </div>
             </div>
 
             <!-- 2. TAB ĐỔI COMBO -->
             <div v-if="loyaltySubTab === 'combos'">
-              <div v-if="redeemableCombos.length > 0" class="loyalty-grid"
-                style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
-                <div v-for="item in redeemableCombos" :key="item.id"
-                  style="border: 1px solid #e2e8f0; padding: 15px; border-radius: 8px; background: #f8fafc; display: flex; flex-direction: column; justify-content: space-between;">
-                  <div>
-                    <h4 style="color: #1e293b; font-weight: 800; font-size: 16px; margin: 0 0 5px 0;">{{ item.name }}
-                    </h4>
-                    <p style="font-size: 13px; color: #475569; margin-bottom: 10px;">{{ item.description }}</p>
-                    <span
-                      style="background: #fef3c7; color: #d97706; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 12px;">
-                      Yêu cầu: {{ item.points_required }} điểm
-                    </span>
+              <div v-if="redeemableCombos.length > 0" class="loyalty-grid">
+                <div v-for="item in redeemableCombos" :key="item.id" class="loyalty-card combo-card">
+                  <div class="loyalty-card-badge combo-badge">
+                    <span class="loyalty-card-points">{{ item.points_required }}</span>
+                    <span class="loyalty-card-points-label">điểm</span>
+                  </div>
+                  <div class="loyalty-card-body">
+                    <h4 class="loyalty-card-title">{{ item.name }}</h4>
+                    <p class="loyalty-card-desc">{{ item.description }}</p>
                   </div>
                   <button @click="redeemCombo(item.id)"
-                    :disabled="loyaltyData.loyalty_points < item.points_required || btnLoading" class="btn-cinego-small"
-                    style="margin-top: 12px; width: 100%; text-align: center; justify-content: center;">
-                    {{ btnLoading ? 'Đang xử lý...' : (loyaltyData.loyalty_points < item.points_required
-                      ? 'Chưa đủ điểm' : 'ĐỔI NGAY') }} </button>
+                    :disabled="loyaltyData.loyalty_points < item.points_required || btnLoading"
+                    class="loyalty-card-btn combo-btn"
+                    :class="{ 'disabled': loyaltyData.loyalty_points < item.points_required }">
+                    {{ btnLoading ? 'Đang xử lý...' : (loyaltyData.loyalty_points < item.points_required ? 'Chưa đủ điểm' : 'ĐỔI NGAY') }}
+                  </button>
                 </div>
               </div>
-              <div v-else class="text-center empty-msg" style="padding: 30px; color: #94a3b8;">
+              <div v-else class="text-center empty-msg" style="padding: 40px; color: #94a3b8;">
+                <p style="font-size: 32px; margin-bottom: 8px;">🍿</p>
                 Hiện chưa có Combo bắp nước nào hỗ trợ đổi bằng điểm.
               </div>
             </div>
@@ -492,13 +467,21 @@
                 >
                   Vé cũ
                 </button>
+                <button
+                  :class="{ active: subTab === 'affected' }"
+                  @click="subTab = 'affected'; fetchAffectedTickets()"
+                  style="position: relative;"
+                >
+                  Vé bị ảnh hưởng
+                  <span v-if="affectedTickets.length > 0" style="position: absolute; top: -4px; right: -4px; background: #ef4444; color: white; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 10px; min-width: 16px; text-align: center;">{{ affectedTickets.length }}</span>
+                </button>
               </div>
             </div>
 
             <div v-if="loadingHistory" class="cinego-loading">
               Đang quét vé từ hệ thống...
             </div>
-            <div v-else class="cinego-history-table-wrapper">
+            <div v-else-if="subTab !== 'affected'" class="cinego-history-table-wrapper">
               <table class="cinego-table">
                 <thead>
                   <tr>
@@ -604,6 +587,46 @@
                 >
                   Sau
                 </button>
+              </div>
+            </div>
+
+            <div v-if="subTab === 'affected'" style="margin-top: 10px;">
+              <div v-if="loadingAffected" class="cinego-loading" style="padding: 30px; text-align: center; color: #94a3b8;">
+                Đang tải danh sách vé bị ảnh hưởng...
+              </div>
+              <div v-else-if="affectedTickets.length === 0" style="padding: 40px; text-align: center; color: #94a3b8;">
+                <p style="font-size: 40px; margin-bottom: 10px;">🎉</p>
+                <p>Bạn không có vé nào bị ảnh hưởng bởi sự cố ghế hỏng.</p>
+              </div>
+              <div v-else>
+                <div v-for="ticket in affectedTickets" :key="ticket.booking_detail_id"
+                  style="border: 1px solid #fecaca; border-left: 4px solid #ef4444; border-radius: 8px; padding: 16px; margin-bottom: 12px; background: #fff5f5; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                  <div style="flex: 1; min-width: 200px;">
+                    <p style="margin: 0 0 4px 0; font-weight: 700; color: #1e293b; font-size: 15px;">{{ ticket.movie_title }}</p>
+                    <p style="margin: 0 0 2px 0; font-size: 13px; color: #64748b;">
+                      Suất: <strong>{{ formatDateTime(ticket.showtime_at) }}</strong>
+                    </p>
+                    <p style="margin: 0 0 2px 0; font-size: 13px; color: #64748b;">
+                      Ghế: <strong style="color: #ef4444;">{{ ticket.seat_label }}</strong> (hỏng)
+                    </p>
+                    <p style="margin: 0; font-size: 12px; color: #94a3b8;">
+                      Mã đơn: {{ ticket.booking_code }}
+                    </p>
+                  </div>
+                  <div style="text-align: right;">
+                    <p style="margin: 0 0 8px 0; font-weight: 700; color: #ef4444; font-size: 16px;">{{ formatCurrency(ticket.total_amount) }}</p>
+                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                      <button @click="swapAffectedTicket(ticket)" :disabled="ticket._loading"
+                        style="background: #334155; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                        {{ ticket._loading ? 'Đang xử lý...' : 'Đổi ghế' }}
+                      </button>
+                      <button @click="selfRefundTicket(ticket)" :disabled="ticket._loading"
+                        style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+                        {{ ticket._loading ? 'Đang xử lý...' : 'Hoàn tiền vào ví' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1072,7 +1095,56 @@
       </div>
     </div>
 
-    <!-- Modal Quyền lợi Thành viên -->
+    <!-- Modal Do Ghem voi So Do -->
+    <div
+      v-if="isSwapModalOpen"
+      class="modal-overlay"
+      @click.self="isSwapModalOpen = false"
+    >
+      <div
+        class="modal-content"
+        style="max-width: 750px; width: 95%; background: #0f172a; border-radius: 16px; overflow: hidden; max-height: 90vh; display: flex; flex-direction: column;"
+      >
+        <div style="background: linear-gradient(135deg, #334155, #1e293b); padding: 20px; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+          <div>
+            <h3 style="margin: 0; color: white; font-size: 18px; font-weight: 800;">ĐỔI GHÉ</h3>
+            <p style="margin: 4px 0 0; color: #94a3b8; font-size: 13px;">
+              Ghế chọn: <span style="color: #ef4444; font-weight: 700;">{{ swapTicketData?.seat_label }}</span>
+              - Chọn ghế trống trong sơ đồ bên dưới
+            </p>
+          </div>
+          <button @click="isSwapModalOpen = false" style="background: none; border: none; color: #94a3b8; font-size: 22px; cursor: pointer; padding: 4px 8px;">X</button>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto; padding: 10px; display: flex; justify-content: center;">
+          <SeatMap
+            :seats="swapSeats.map(s => ({ id: s.id, row: s.row_name, number: s.seat_number, type: s.type, status: s.status, is_booked: s.status === 'sold' || s.status === 'broken' || s.status === 'holding' }))"
+            mode="client"
+            :allowBookedClick="false"
+            :selectedSeatIds="swapSelectedSeat ? [swapSelectedSeat.id] : []"
+            @seat-clicked="handleSwapSeatClick"
+          />
+        </div>
+
+        <div style="padding: 16px 20px; background: #1e293b; border-top: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+          <div style="color: #94a3b8; font-size: 13px;">
+            <template v-if="swapSelectedSeat">
+              Đã chọn: <strong style="color: #22c55e;">{{ swapSeatLabel(swapSelectedSeat) }}</strong>
+              ({{ swapSelectedSeat.type }})
+            </template>
+            <template v-else>Nhấn vào ghế trống trong sơ đồ để chọn</template>
+          </div>
+          <div style="display: flex; gap: 10px;">
+            <button @click="isSwapModalOpen = false" style="background: #334155; color: #94a3b8; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">Hủy</button>
+            <button @click="confirmSwapSeat" :disabled="!swapSelectedSeat || swapLoading" :style="{ background: '#22c55e', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', opacity: (!swapSelectedSeat || swapLoading) ? 0.5 : 1 }">
+              {{ swapLoading ? 'Đang xử lý...' : 'Xác nhận đổi' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Quyen loi Thanh vien -->
     <div v-show="isTierModalOpen" class="modal-overlay" @click.self="closeTierModal" style="z-index: 9999;">
         <div class="modal-content tier-modal-wrapper hide-scrollbar" style="max-width: 700px; padding: 30px;">
           <button class="btn-close" @click="closeTierModal">✕</button>
@@ -1209,6 +1281,7 @@ import { useAuthStore } from "../../stores/auth";
 import api from "../../api/axios";
 import Swal from "sweetalert2";
 import WatchedMoviesList from "../../components/WatchedMoviesList.vue";
+import SeatMap from "../../components/SeatMap.vue";
 
 const toast = (title, icon = 'success') => {
   Swal.fire({
@@ -1259,6 +1332,13 @@ const subTab = ref("upcoming");
 const isEditingInfo = ref(false);
 const btnLoading = ref(false);
 const loadingHistory = ref(false);
+const loadingAffected = ref(false);
+const affectedTickets = ref([]);
+const isSwapModalOpen = ref(false);
+const swapTicketData = ref(null);
+const swapSeats = ref([]);
+const swapSelectedSeat = ref(null);
+const swapLoading = ref(false);
 const isQrModalOpen = ref(false);
 const isDetailModalOpen = ref(false);
 const loadingLoyalty = ref(false);
@@ -1437,6 +1517,147 @@ const fetchBookingHistory = async () => {
 
 
 
+const formatDateTime = (dateStr) => {
+  if (!dateStr) return "";
+  return new Date(dateStr).toLocaleString("vi-VN");
+};
+
+const fetchAffectedTickets = async () => {
+  loadingAffected.value = true;
+  try {
+    const { data } = await api.get("/my-affected-tickets");
+    affectedTickets.value = (data.data || []).map(t => ({ ...t, _loading: false }));
+  } catch (err) {
+    console.error("Lỗi lấy vé bị ảnh hưởng:", err);
+  } finally {
+    loadingAffected.value = false;
+  }
+};
+
+const selfRefundTicket = async (ticket) => {
+  const result = await Swal.fire({
+    title: 'Hoàn tiền vào ví?',
+    text: `Ghế ${ticket.seat_label} - ${ticket.movie_title}. Số tiền ${formatCurrency(ticket.total_amount)} sẽ được hoàn vào ví tiền của bạn.`,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Xác nhận hoàn tiền',
+    cancelButtonText: 'Hủy'
+  });
+
+  if (!result.isConfirmed) return;
+
+  ticket._loading = true;
+  try {
+    const { data } = await api.post("/self-refund", { booking_detail_id: ticket.booking_detail_id });
+    if (data.success) {
+      Swal.fire('Thành công', data.message, 'success');
+      fetchAffectedTickets();
+      fetchBookingHistory();
+    }
+  } catch (err) {
+    Swal.fire('Lỗi', err.response?.data?.message || 'Không thể hoàn tiền.', 'error');
+  } finally {
+    ticket._loading = false;
+  }
+};
+
+const swapAffectedTicket = async (ticket) => {
+  try {
+    const { data } = await api.get(`/showtimes/${ticket.showtime_id}/seats`);
+    const seats = (data.seats || []).filter(s =>
+      s.type !== 'hidden' && s.type !== 'deleted' && s.type !== 'couple_hidden'
+    );
+
+    const availableCount = seats.filter(s => s.status === 'available').length;
+    if (availableCount === 0) {
+      Swal.fire('Thông báo', 'Không còn ghế trống trong phòng này.', 'info');
+      return;
+    }
+
+    swapTicketData.value = ticket;
+    swapSeats.value = seats;
+    swapSelectedSeat.value = null;
+    isSwapModalOpen.value = true;
+  } catch (err) {
+    Swal.fire('Lỗi', 'Không thể tải sơ đồ ghế.', 'error');
+  }
+};
+
+const handleSwapSeatClick = (seat) => {
+  if (seat.status !== 'available') return;
+  swapSelectedSeat.value = seat;
+};
+
+const swapSeatLabel = (seat) => {
+  if (!seat) return '';
+  const original = swapSeats.value.find(s => s.id === seat.id) || seat;
+  const seatsByRow = {};
+  swapSeats.value.forEach(s => {
+    if (!seatsByRow[s.row_name]) seatsByRow[s.row_name] = [];
+    seatsByRow[s.row_name].push(s);
+  });
+  const sorted = (seatsByRow[original.row_name] || []).sort((a, b) => a.seat_number - b.seat_number);
+  let displayNum = 1;
+  for (const s of sorted) {
+    if (s.id === original.id) break;
+    if (s.type !== 'hidden' && s.type !== 'deleted' && s.type !== 'couple_hidden') displayNum++;
+  }
+  return `${original.row_name}${displayNum}`;
+};
+
+const confirmSwapSeat = async () => {
+  if (!swapSelectedSeat.value || !swapTicketData.value) return;
+
+  const seat = swapSelectedSeat.value;
+  const ticket = swapTicketData.value;
+
+  const result = await Swal.fire({
+    title: 'Xác nhận đổi ghế?',
+    html: `
+      <div style="font-size: 14px;">
+        <p>Ghế hỏng: <strong style="color: #ef4444;">${ticket.seat_label}</strong></p>
+        <p>Đổi sang: <strong style="color: #22c55e;">${swapSeatLabel(seat)}</strong> (${seat.type})</p>
+      </div>
+    `,
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#22c55e',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Xác nhận đổi',
+    cancelButtonText: 'Hủy'
+  });
+
+  if (!result.isConfirmed) return;
+
+  swapLoading.value = true;
+  try {
+    const { data } = await api.post("/self-swap", {
+      booking_detail_id: ticket.booking_detail_id,
+      new_seat_id: seat.id
+    });
+    if (data.success) {
+      isSwapModalOpen.value = false;
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: `Đã đổi ghế ${ticket.seat_label} → ${swapSeatLabel(seat)} thành công!`,
+        showConfirmButton: false,
+        timer: 4000,
+        timerProgressBar: true
+      });
+      fetchAffectedTickets();
+      fetchBookingHistory();
+    }
+  } catch (err) {
+    Swal.fire('Lỗi', err.response?.data?.message || 'Không thể đổi ghế.', 'error');
+  } finally {
+    swapLoading.value = false;
+  }
+};
+
 const handleAvatarUpload = async (event) => {
   const file = event.target.files[0];
   if (!file) return;
@@ -1605,7 +1826,11 @@ const formatLogType = (type) => {
     'redeem': 'Đổi quà',
     'redemption': 'Đổi quà',
     'admin_adjustment': 'Admin điều chỉnh',
-    'earn': 'Tích điểm'
+    'earn': 'Tích điểm',
+    'booking_earning': 'Điểm từ đặt vé',
+    'refunded': 'Hoàn tiền',
+    'payment_cancelled': 'Đã hủy giao dịch',
+    'bonus': 'Thưởng điểm'
   };
   return types[type] || type;
 };
@@ -1881,6 +2106,7 @@ const changePassword = async () => {
 onMounted(() => {
   fetchUserData();
   fetchBookingHistory();
+  fetchAffectedTickets();
   fetchLoyaltyProgress();
   fetchLoyaltyHistories();
   fetchLoyaltyItems();
@@ -2321,6 +2547,245 @@ onUnmounted(() => {
 .btn-stat-view:hover {
   background: #f3f4f6;
   border-color: #9ca3af;
+}
+
+.loyalty-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.my-vouchers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.voucher-wallet-card {
+  display: flex;
+  align-items: stretch;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-left: 4px solid #dc2626;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.voucher-wallet-card:hover:not(.is-used) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
+}
+
+.voucher-wallet-card.is-used {
+  opacity: 0.6;
+  border-left-color: #cbd5e1;
+}
+
+.voucher-wallet-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 14px;
+  background: linear-gradient(135deg, #fef2f2, #fff5f5);
+  min-width: 100px;
+  text-align: center;
+  gap: 6px;
+}
+
+.is-used .voucher-wallet-left {
+  background: #f8fafc;
+}
+
+.voucher-wallet-code {
+  font-size: 14px;
+  font-weight: 900;
+  color: #dc2626;
+  letter-spacing: 0.5px;
+  word-break: break-all;
+}
+
+.is-used .voucher-wallet-code {
+  color: #94a3b8;
+}
+
+.voucher-wallet-status {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.status-active {
+  background: #1e293b;
+  color: #fff;
+}
+
+.status-used {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.status-expired {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.voucher-wallet-center {
+  flex: 1;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.voucher-wallet-desc {
+  margin: 0 0 4px 0;
+  font-size: 13px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.voucher-wallet-min {
+  margin: 0 0 3px 0;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.voucher-wallet-exp {
+  margin: 0;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.voucher-wallet-right {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+}
+
+.voucher-wallet-btn {
+  padding: 8px 14px;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.voucher-wallet-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(220, 38, 38, 0.3);
+}
+
+.voucher-wallet-btn.expired {
+  background: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.loyalty-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.loyalty-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.loyalty-card-badge {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  padding: 14px 16px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.loyalty-card-badge.combo-badge {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+}
+
+.loyalty-card-points {
+  font-size: 28px;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1;
+}
+
+.loyalty-card-points-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.loyalty-card-body {
+  padding: 14px 16px;
+  flex: 1;
+}
+
+.loyalty-card-title {
+  margin: 0 0 6px 0;
+  font-size: 15px;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.loyalty-card-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.loyalty-card-btn {
+  margin: 0 16px 16px;
+  padding: 10px 0;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+
+.loyalty-card-btn.combo-btn {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+}
+
+.loyalty-card-btn:hover:not(.disabled) {
+  opacity: 0.9;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.loyalty-card-btn.combo-btn:hover:not(.disabled) {
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+.loyalty-card-btn.disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .btn-cinego-small {
@@ -2786,6 +3251,9 @@ onUnmounted(() => {
   background: white;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  max-height: 85vh;
+  overflow: visible;
+  overflow-y: auto;
 }
 
 .tier-modal-title {

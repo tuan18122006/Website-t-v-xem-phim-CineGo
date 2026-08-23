@@ -18,7 +18,7 @@
       <div v-else class="bookings-list">
         <div v-for="booking in paginatedBookings" :key="booking.booking_id" class="booking-card glass-panel">
           <div class="booking-card-left">
-            <img :src="booking.poster_url || defaultPoster" :alt="booking.movie_title" class="movie-poster" />
+            <img :src="getPosterUrl(booking.poster_url)" :alt="booking.movie_title" class="movie-poster" />
           </div>
           <div class="booking-card-right">
             <div class="booking-meta">
@@ -27,7 +27,7 @@
                 <p class="movie-subtitle">Mã vé: <strong>{{ booking.booking_code }}</strong></p>
               </div>
               <div class="status-pill" :class="booking.payment_status">
-                {{ booking.payment_status === 'paid' ? 'Đã thanh toán' : booking.payment_status }}
+                {{ paymentStatusLabel(booking.payment_status) }}
               </div>
             </div>
 
@@ -117,12 +117,32 @@ const paginatedBookings = computed(() => {
 
 const defaultPoster = 'https://images.unsplash.com/photo-1524985069026-dd778a71c7b4?auto=format&fit=crop&w=500&q=80';
 
+const paymentStatusLabel = (status) => {
+  const labels = {
+    'paid': 'Đã thanh toán',
+    'waiting_confirmation': 'Chờ xác nhận',
+    'payment_cancelled': 'Đã hủy giao dịch',
+    'cancelled': 'Đã hủy',
+    'refunded': 'Hoàn tiền',
+    'pending': 'Chờ thanh toán'
+  };
+  return labels[status] || status;
+};
+
+const getPosterUrl = (url) => {
+  if (!url) return defaultPoster;
+  if (url.startsWith('http')) return url;
+  if (url.startsWith('blob:')) return url;
+  const cleanPath = url.replace(/^(.*\/storage\/)/, '');
+  return `http://127.0.0.1:8000/storage/${cleanPath}`;
+};
+
 const loadBookings = async () => {
   isLoading.value = true;
   errorMessage.value = null;
 
   try {
-    const response = await api.get('/bookings/history');
+    const response = await api.get('/user/bookings?watched_only=1');
     bookings.value = response.data?.data || [];
   } catch (err) {
     console.error('Lỗi khi tải lịch sử vé:', err);
@@ -246,6 +266,22 @@ onMounted(() => {
 .status-pill.paid {
   background: rgba(46, 204, 113, 0.12);
   color: #27ae60;
+}
+
+.status-pill.payment_cancelled,
+.status-pill.cancelled {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.status-pill.waiting_confirmation {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.status-pill.refunded {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4f46e5;
 }
 
 .booking-details-grid {

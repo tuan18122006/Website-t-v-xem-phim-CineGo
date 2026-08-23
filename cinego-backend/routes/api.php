@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\SeatHoldController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\WalletController;
 use App\Http\Controllers\Api\BookingLookupController;
 use App\Http\Controllers\Api\ArticleController;
 use App\Http\Controllers\Api\VoucherController;
@@ -98,6 +99,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/payments/check-pending', [PaymentController::class, 'checkPendingBooking']);
     Route::post('/payments/cancel-pending', [PaymentController::class, 'cancelPendingBooking']);
     Route::post('/payments/retry/{id}', [PaymentController::class, 'retryPayment']);
+    // ví tiền (khách hàng)
+    Route::get('/wallet', [WalletController::class, 'index']);
+    Route::get('/wallet/banks', [WalletController::class, 'banks']);
+    Route::post('/wallet/withdraw', [WalletController::class, 'withdraw']);
+
+    // vé bị ảnh hưởng bởi ghế hỏng (khách hàng tự xử lý)
+    Route::get('/my-affected-tickets', [\App\Http\Controllers\Api\CompensationController::class, 'myAffectedTickets']);
+    Route::post('/self-refund', [\App\Http\Controllers\Api\CompensationController::class, 'selfRefund']);
+    Route::post('/self-swap', [\App\Http\Controllers\Api\CompensationController::class, 'selfSwap']);
     // giữ ghế
     Route::post('/seats/hold', [BookingController::class, 'holdSeats']);
     
@@ -159,6 +169,11 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     // Đối soát ca
     Route::get('/shifts/pending-audits', [\App\Http\Controllers\Api\ShiftController::class, 'pendingAudits']);
     Route::post('/shifts/{id}/audit', [\App\Http\Controllers\Api\ShiftController::class, 'audit']);
+
+    // Quản lý rút tiền ví
+    Route::get('/wallet/withdrawals', [WalletController::class, 'adminList']);
+    Route::post('/wallet/withdrawals/{id}/complete', [WalletController::class, 'adminComplete']);
+    Route::post('/wallet/withdrawals/{id}/reject', [WalletController::class, 'adminReject']);
 
     // Quản lý đơn hàng
     Route::get('/orders', [BookingController::class, 'index']);

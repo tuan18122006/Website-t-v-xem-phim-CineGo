@@ -56,6 +56,7 @@
       <div class="legend-item"><div class="seat-box couple"></div> Đôi</div>
       <div class="legend-item" v-if="mode === 'client'"><div class="seat-box booked"></div> Đã bán</div>
       <div class="legend-item" v-if="mode === 'client'"><div class="seat-box selected"></div> Đang chọn</div>
+      <div class="legend-item"><div class="seat-box broken"></div> Hỏng/Bảo trì</div>
       <div class="legend-item" v-if="mode === 'admin'"><div class="seat-box hidden-demo"></div> Khoảng trống</div>
       <div class="legend-item" v-if="mode === 'admin'"><div class="seat-box deleted-demo"></div> Đã xóa</div>
       <div class="legend-item" v-if="mode === 'admin'"><div class="seat-box admin-selected"></div> Đang quét chọn</div>
@@ -378,6 +379,8 @@ const getSeatClass = (seat) => {
     if (seat.type === 'couple') classes.push('seat-couple');
     if (seat.type === 'couple_hidden') classes.push('seat-couple-hidden');
   
+  if (seat.status === 'broken') classes.push('seat-broken');
+
   if (props.mode === 'admin') {
     if (seat.type === 'hidden') classes.push('seat-hidden-admin');
     if (seat.type === 'deleted') classes.push('seat-deleted-admin');
@@ -492,6 +495,26 @@ const getSeatClass = (seat) => {
 .seat-booked { background: linear-gradient(145deg, #059669, #047857) !important; color: rgba(255,255,255,0.8); cursor: pointer; opacity: 0.9; }
 .seat-booked::after { display: none; }
 
+.seat-broken {
+  background: linear-gradient(145deg, #1e1e2e, #16161e) !important;
+  border: 2px solid #ef4444 !important;
+  position: relative;
+  opacity: 1;
+}
+.seat-broken::after { display: none; }
+.seat-broken::before {
+  content: '✕';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  font-weight: 900;
+  color: #ef4444;
+  text-shadow: 0 0 4px rgba(239,68,68,0.8);
+  z-index: 2;
+  line-height: 1;
+}
+
 .seat-selected { background: linear-gradient(145deg, #fbbf24, #d97706) !important; border: 2px solid #fff !important; transform: translateY(-5px); color: white; }
 .seat-hidden-client { opacity: 0; pointer-events: none; }
 .seat-hidden-admin { background: transparent !important; border: 2px dashed #4b5563 !important; color: #4b5563; box-shadow: none; }
@@ -514,6 +537,8 @@ const getSeatClass = (seat) => {
 .seat-box.vip { background: linear-gradient(145deg, #ef4444, #b91c1c); }
 .seat-box.couple { background: linear-gradient(145deg, #ec4899, #be185d); }
 .seat-box.booked { background: linear-gradient(145deg, #059669, #047857); }
+.seat-box.broken { background: linear-gradient(145deg, #1e1e2e, #16161e); border: 2px solid #ef4444; position: relative; }
+.seat-box.broken::after { content: '✕'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 12px; font-weight: 900; color: #ef4444; }
 .seat-box.selected { background: linear-gradient(145deg, #fbbf24, #d97706); }
 .seat-box.admin-selected { border: 2px solid #fbbf24; background: transparent; }
 .seat-box.hidden-demo { border: 2px dashed #4b5563; background: transparent; }
