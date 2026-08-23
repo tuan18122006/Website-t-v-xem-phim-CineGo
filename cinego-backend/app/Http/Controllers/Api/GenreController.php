@@ -25,6 +25,7 @@ class GenreController extends Controller
         ],[
             'name.unique' => 'Tên thể loại này đã tồn tại, vui lòng chọn tên khác!',
             'name.required' => 'Tên thể loại không được để trống.',
+            'name.max' => 'Tên thể loại không được vượt quá 255 ký tự.',
         ]);
 
         $baseSlug = Str::slug($request->name);
@@ -59,6 +60,7 @@ class GenreController extends Controller
         ], [
             'name.unique' => 'Tên thể loại này đã tồn tại, vui lòng chọn tên khác!',
             'name.required' => 'Tên thể loại không được để trống.',
+            'name.max' => 'Tên thể loại không được vượt quá 255 ký tự.',
         ]);
 
         $baseSlug = Str::slug($request->name);
