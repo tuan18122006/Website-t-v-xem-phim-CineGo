@@ -258,16 +258,18 @@ class PaymentController extends Controller
         }
 
         if (($vnpParams['vnp_ResponseCode'] ?? null) === '00') {
-            try {
-                if ($booking->payment_status !== 'paid') {
-                    $this->bookingService->markAsPaid($booking);
+            if ($booking->payment_status !== 'paid') {
+                try {
+                    DB::transaction(function () use ($booking) {
+                        $this->bookingService->markAsPaid($booking);
 
-                    DB::table('seat_hold_confirms')
-                        ->where('user_id', $booking->user_id)
-                        ->where('showtime_id', $booking->showtime_id)
-                        ->delete();
+                        DB::table('seat_hold_confirms')
+                            ->where('user_id', $booking->user_id)
+                            ->where('showtime_id', $booking->showtime_id)
+                            ->delete();
 
-                    $this->handlePaymentSuccess($booking);
+                        $this->handlePaymentSuccess($booking);
+                    });
 
                     if ($booking->user) {
                         $booking->user->notify(new \App\Notifications\BookingConfirmedNotification(
@@ -287,9 +289,18 @@ class PaymentController extends Controller
                     if ($booking->user && $booking->user->email) {
                         Mail::to($booking->user->email)->send(new BookingSuccessMail($booking));
                     }
+
+                    return redirect(
+                        $frontendUrl . '/payment/result?status=success&code=' . $booking->booking_code . '&booking_id=' . $booking->id
+                    );
+                } catch (\Exception $ex) {
+                    \Illuminate\Support\Facades\Log::error('Lỗi xử lý kết quả VNPAY: ' . $ex->getMessage());
+                    $this->bookingService->markAsFailed($booking);
+
+                    return redirect(
+                        $frontendUrl . '/payment/result?status=failed&booking_code=' . urlencode($booking->booking_code) . '&booking_id=' . $booking->id
+                    );
                 }
-            } catch (\Exception $ex) {
-                \Illuminate\Support\Facades\Log::error('Lỗi xử lý kết quả VNPAY: ' . $ex->getMessage());
             }
 
             return redirect(
@@ -321,6 +332,17 @@ class PaymentController extends Controller
             }
         } else {
             $this->bookingService->markAsFailed($booking);
+
+            DB::table('seat_holds')
+                ->where('showtime_id', $booking->showtime_id)
+                ->whereIn('seat_id', $booking->bookingDetails()->pluck('seat_id'))
+                ->where('user_id', $booking->user_id)
+                ->delete();
+
+            DB::table('seat_hold_confirms')
+                ->where('showtime_id', $booking->showtime_id)
+                ->where('user_id', $booking->user_id)
+                ->delete();
 
             if ($booking->user) {
                 $booking->user->notify(new \App\Notifications\PaymentFailedNotification(
