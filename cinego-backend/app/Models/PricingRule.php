@@ -17,7 +17,12 @@ class PricingRule extends Model
         'weekend_surcharge',
         'happy_hour_discount',
         'format_3d_surcharge',
-        'sneak_show_surcharge'
+        'sneak_show_surcharge',
+        'pricing_rules'
+    ];
+
+    protected $casts = [
+        'pricing_rules' => 'array'
     ];
 
     protected static array $legacyAliases = [
