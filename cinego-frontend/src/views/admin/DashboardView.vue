@@ -85,6 +85,15 @@
         </button>
 
         <!-- ORDERS DROPDOWN -->
+        <button
+          class="nav-link"
+          :class="{ active: activeTab === 'pricing' }"
+          @click="activeTab = 'pricing'"
+        >
+          <span class="nav-icon"><CircleDollarSign :size="20" /></span>
+          <span>Cấu Hình Giá</span>
+        </button>
+        
         <div class="nav-dropdown">
           <button
             class="nav-link dropdown-toggle"
@@ -511,6 +520,11 @@
           <ShowtimesView />
         </div>
   
+        <!-- TAB: CẤU HÌNH GIÁ -->
+        <div v-if="activeTab === 'pricing'">
+          <PricingConfigView />
+        </div>
+  
         <!-- TAB: ORDERS MANAGEMENT -->
         <div v-if="activeTab === 'orders'">
           <OrderManagementView />
@@ -628,6 +642,7 @@ import UserLoyaltyManager from './UserLoyaltyManager.vue';
 import WithdrawalManagerView from './WithdrawalManagerView.vue';
 import PaymentSettingsView from './PaymentSettingsView.vue';
 import TrashView from './TrashView.vue';
+import PricingConfigView from './PricingConfigView.vue';
 
 const authStore = useAuthStore();
 const router = useRouter();

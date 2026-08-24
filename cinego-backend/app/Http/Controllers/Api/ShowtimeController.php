@@ -238,10 +238,22 @@ class ShowtimeController extends Controller
             return response()->json(['message' => 'Không tìm thấy suất chiếu'], 404);
         }
 
-        
-        $prices = ['standard' => 75000, 'vip' => 95000, 'couple' => 140000];
-        foreach ($showtime->priceConfigs as $config) {
-            $prices[$config->seat_type] = (float) $config->price;
+        // Đọc giá từ pricing_snapshot (chốt lúc tạo suất chiếu)
+        $snapshot = $showtime->pricing_snapshot ?? [];
+        $prices = [
+            'standard' => (float) ($snapshot['standard_price'] ?? 0),
+            'vip'      => (float) ($snapshot['vip_price'] ?? 0),
+            'couple'   => (float) ($snapshot['couple_price'] ?? 0),
+        ];
+
+        // Nếu suất chiếu cũ chưa có snapshot, fallback về PricingRule hệ thống
+        if (!$prices['standard'] && !$prices['vip'] && !$prices['couple']) {
+            $rule = \App\Models\PricingRule::first();
+            $prices = [
+                'standard' => (float) ($rule?->standard_price ?? 50000),
+                'vip'      => (float) ($rule?->vip_price ?? 70000),
+                'couple'   => (float) ($rule?->couple_price ?? 120000),
+            ];
         }
 
         $now = Carbon::now();

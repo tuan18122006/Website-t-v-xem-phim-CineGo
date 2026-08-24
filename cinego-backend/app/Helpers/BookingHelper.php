@@ -2,42 +2,58 @@
 
 namespace App\Helpers;
 
-use App\Models\PriceConfig;
+use App\Models\Showtime;
+use App\Models\PricingRule;
 use App\Models\Seat;
 use App\Models\Combo;
+
 class BookingHelper
 {
     /**
-     * Calculate seat prices based on showtime and selected seat IDs.
+     * Tính giá vé dựa trên pricing_snapshot của suất chiếu.
+     * Snapshot được chốt lúc tạo suất chiếu, đảm bảo giá thanh toán
+     * khớp chính xác với giá đã hiển thị cho khách hàng lúc chọn ghế.
      */
     public static function calculateSeats(int $showtimeId, array $seatIds): array
     {
-        $prices = PriceConfig::where('showtime_id', $showtimeId)->pluck('price', 'seat_type')->toArray();
-        
-        // Fallback pricing if price configs are missing
-        $defaultPrices = [
-            'standard' => 80000.00,
-            'vip' => 100000.00,
-            'couple' => 140000.00,
+        // Lấy giá từ snapshot của suất chiếu (được chốt lúc admin tạo suất)
+        $showtime = Showtime::find($showtimeId);
+        $snapshot = $showtime?->pricing_snapshot ?? [];
+
+        // Dựng bảng giá từ snapshot
+        $prices = [
+            'standard' => (float) ($snapshot['standard_price'] ?? 0),
+            'vip'      => (float) ($snapshot['vip_price'] ?? 0),
+            'couple'   => (float) ($snapshot['couple_price'] ?? 0),
         ];
+
+        // Nếu snapshot trống (suất chiếu cũ chưa có snapshot), fallback về PricingRule toàn hệ thống
+        if (!$prices['standard'] && !$prices['vip'] && !$prices['couple']) {
+            $rule = PricingRule::first();
+            $prices = [
+                'standard' => (float) ($rule?->standard_price ?? 50000),
+                'vip'      => (float) ($rule?->vip_price ?? 70000),
+                'couple'   => (float) ($rule?->couple_price ?? 120000),
+            ];
+        }
 
         $seats = Seat::whereIn('id', $seatIds)->get();
         $subtotal = 0.00;
         $details = [];
 
         foreach ($seats as $seat) {
-            $type = $seat->type;
-            $price = $prices[$type] ?? $defaultPrices[$type] ?? 75000.00;
+            $type = $seat->type ?? 'standard';
+            $price = $prices[$type] ?? $prices['standard'];
             $subtotal += $price;
             $details[] = [
                 'seat_id' => $seat->id,
-                'price' => $price
+                'price'   => $price,
             ];
         }
 
         return [
             'subtotal' => $subtotal,
-            'details' => $details
+            'details'  => $details,
         ];
     }
 
