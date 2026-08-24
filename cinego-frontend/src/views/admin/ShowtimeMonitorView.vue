@@ -331,15 +331,22 @@ const handleSeatClick = async (seatObj) => {
   bookingInfo.value = null;
 
   if (fullSeat.status === 'sold') {
-    loadingBooking.value = true;
-    try {
-      const { data } = await axios.get(`/staff/seat-operations/booking-info?showtime_id=${selectedShowtimeId.value}&seat_id=${fullSeat.id}`);
-      bookingInfo.value = data.data;
-    } catch (err) {
-      console.error(err);
-    } finally {
-      loadingBooking.value = false;
-    }
+    // Construct bookingInfo from inline seat data
+    const customerSeats = seats.value.filter(s => s.booking_id === fullSeat.booking_id);
+    bookingInfo.value = {
+      id: fullSeat.booking_id,
+      booking_code: fullSeat.booking_code,
+      user: {
+        name: fullSeat.customer_name,
+        email: fullSeat.customer_email,
+        phone_number: fullSeat.customer_phone
+      },
+      booking_details: customerSeats.map(s => ({
+        id: s.booking_detail_id,
+        seat_id: s.id,
+        seat: { row: s.row_name, number: s.seat_number }
+      }))
+    };
   }
 };
 
@@ -356,17 +363,14 @@ const cancelQuickSwap = () => {
 
 const submitQuickSwap = async (newSeatId, lockOptions) => {
   try {
-    const { data } = await axios.post('/staff/seat-operations/quick-swap', {
-      booking_id: bookingInfo.value.id,
-      old_seat_id: quickSwapOldSeat.value.id,
-      new_seat_id: newSeatId,
-      old_seat_action: lockOptions.action,
-      lock_start_time: lockOptions.start,
-      lock_end_time: lockOptions.end,
-      lock_reason: lockOptions.reason
+    const bookingDetail = bookingInfo.value.booking_details.find(d => d.seat.row === quickSwapOldSeat.value.row_name && d.seat.number === quickSwapOldSeat.value.seat_number)
+                          || bookingInfo.value.booking_details[0]; // fallback
+    const { data } = await axios.post('/staff/compensation/swap', {
+      booking_detail_id: bookingDetail.id,
+      new_seat_id: newSeatId
     });
-    
-    Swal.fire('Thành công', data.message, 'success');
+
+    Swal.fire('Thành công', data.message || 'Đổi ghế thành công!', 'success');
     isQuickSwapMode.value = false;
     quickSwapOldSeat.value = null;
     bookingInfo.value = null;
@@ -494,8 +498,15 @@ const openTempLockModal = async () => {
 const openRescheduleModal = async () => {
   if (!bookingInfo.value) return;
 
-  // Step 1: Get movie showtimes
-  const movieId = bookingInfo.value.showtime?.movie_id;
+  const currentShowtimeId = selectedShowtimeId.value;
+  let movieId = null;
+  for (const group of groupedShowtimes.value) {
+    if (group.showtimes.find(s => s.id === currentShowtimeId)) {
+      movieId = group.movie_id;
+      break;
+    }
+  }
+
   if (!movieId) {
     Swal.fire('Lỗi', 'Không xác định được phim.', 'error');
     return;
@@ -521,7 +532,6 @@ const openRescheduleModal = async () => {
   }
 
   // Exclude current showtime
-  const currentShowtimeId = bookingInfo.value.showtime_id;
   const otherShowtimes = allShowtimes.filter(s => s.id !== currentShowtimeId);
 
   if (otherShowtimes.length === 0) {
@@ -753,12 +763,17 @@ const openRescheduleModal = async () => {
 
     // ── BƯỚC 3: Submit ────────────────────────────────────────────────────
     try {
-      const { data: result } = await axios.post('/staff/seat-operations/reschedule', {
+      const seatMapping = {};
+      bookingInfo.value.booking_details.forEach((detail, index) => {
+         seatMapping[detail.seat_id] = finalSeatIds[index];
+      });
+
+      const { data: result } = await axios.post('/staff/compensation/reschedule', {
         booking_id: bookingInfo.value.id,
         new_showtime_id: newShowtimeId,
-        new_seat_ids: finalSeatIds
+        seat_mapping: seatMapping
       });
-      Swal.fire('Thành công! 🎬', result.message, 'success');
+      Swal.fire('Thành công! 🎬', result.message || 'Đổi lịch thành công!', 'success');
       refreshSeats();
       selectedSeat.value = null;
       bookingInfo.value = null;
