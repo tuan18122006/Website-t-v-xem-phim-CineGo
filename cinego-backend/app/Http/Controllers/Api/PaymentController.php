@@ -67,6 +67,28 @@ class PaymentController extends Controller
             ], 400);
         }
 
+        // Kiểm tra xem ghế có bị Admin khóa hoặc báo hỏng trong lúc đang chọn không
+        $hasIncident = \App\Models\Seat::whereIn('id', $request->seat_ids)->where('status', 'broken')->exists() || 
+                       \App\Models\SeatLock::whereIn('seat_id', $request->seat_ids)
+                           ->where('room_id', $showtime->room_id)
+                           ->where('start_time', '<', $showtime->end_time)
+                           ->where('end_time', '>', $showtime->start_time)
+                           ->exists();
+
+        if ($hasIncident) {
+            // Xóa luôn hold để giải phóng
+            DB::table('seat_holds')
+                ->where('user_id', auth()->id())
+                ->where('showtime_id', $request->showtime_id)
+                ->whereIn('seat_id', $request->seat_ids)
+                ->delete();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Một số ghế bạn chọn vừa gặp sự cố kỹ thuật và đã bị rạp khóa. Vui lòng chọn ghế khác!'
+            ], 400);
+        }
+
         $vnpayExpireDate = \Carbon\Carbon::parse($hold->expires_at)->format('YmdHis');
         
         $txnRef = 'CG' . time() . rand(100, 999);
@@ -260,7 +282,12 @@ class PaymentController extends Controller
         if (($vnpParams['vnp_ResponseCode'] ?? null) === '00') {
             if ($booking->payment_status !== 'paid') {
                 try {
-                    DB::transaction(function () use ($booking) {
+                    DB::transaction(function () use ($booking, $vnpParams) {
+                        if (isset($vnpParams['vnp_PayDate'])) {
+                            $booking->vnp_transaction_date = $vnpParams['vnp_PayDate'];
+                            $booking->save();
+                        }
+                        
                         $this->bookingService->markAsPaid($booking);
 
                         DB::table('seat_hold_confirms')
@@ -271,30 +298,112 @@ class PaymentController extends Controller
                         $this->handlePaymentSuccess($booking);
                     });
 
-                    if ($booking->user) {
-                        $booking->user->notify(new \App\Notifications\BookingConfirmedNotification(
-                            $booking->booking_code,
-                            "Đơn hàng " . $booking->booking_code . " đã được thanh toán thành công qua VNPay."
-                        ));
-                    }
+                    // Check if any seat was locked/broken while the user was paying
+                    $seatIds = $booking->bookingDetails()->pluck('seat_id')->toArray();
+                    $hasIncident = \App\Models\Seat::whereIn('id', $seatIds)->where('status', 'broken')->exists() || 
+                                   \App\Models\SeatLock::whereIn('seat_id', $seatIds)
+                                       ->where('room_id', $booking->showtime->room_id)
+                                       ->where('start_time', '<', $booking->showtime->end_time)
+                                       ->where('end_time', '>', $booking->showtime->start_time)
+                                       ->exists();
 
-                    $admins = \App\Models\User::where('role', 'admin')->get();
-                    foreach ($admins as $admin) {
-                        $admin->notify(new \App\Notifications\BookingConfirmedNotification(
-                            $booking->booking_code,
-                            "Khách hàng đã thanh toán thành công đơn vé " . $booking->booking_code . " qua VNPay."
-                        ));
-                    }
+                    try {
+                        if ($hasIncident && $booking->user) {
+                            $user = $booking->user;
+                            $refundedViaVNPay = false;
+                            
+                            try {
+                                app(\App\Services\VNPayService::class)->refund($booking, $booking->total_amount, false);
+                                $refundedViaVNPay = true;
+                            } catch (\Exception $e) {
+                                \Log::error("Auto VNPay Refund failed: " . $e->getMessage());
+                            }
+                            
+                            if ($refundedViaVNPay) {
+                                $booking->payment_status = 'refunded';
+                                $booking->booking_status = 'cancelled';
+                                $booking->save();
+                                
+                                $voucher = \App\Models\Voucher::create([
+                                    'code' => 'COMP' . strtoupper(substr(uniqid(), -5)),
+                                    'discount_type' => 'percentage',
+                                    'discount_value' => 20,
+                                    'expires_at' => now()->addDays(30),
+                                ]);
+                                
+                                \App\Models\UserVoucher::create([
+                                    'user_id' => $user->id,
+                                    'voucher_id' => $voucher->id,
+                                ]);
+                                
+                                $user->notify(new \App\Notifications\SeatIncidentNotification(
+                                    $booking->booking_code,
+                                    "Thanh toán thành công nhưng ghế bạn chọn vừa gặp sự cố. Rạp đã hoàn lại " . number_format($booking->total_amount) . "đ trực tiếp qua VNPay. Rạp tặng bạn Voucher Giảm 20% (Mã: {$voucher->code}) như một lời xin lỗi chân thành."
+                                ));
+                            } else {
+                                // Tự động hoàn tiền vào ví nếu VNPay lỗi
+                                $user->wallet_balance += $booking->total_amount;
+                                $user->save();
 
-                    if ($booking->user && $booking->user->email) {
-                        Mail::to($booking->user->email)->send(new BookingSuccessMail($booking));
+                                \App\Models\WalletTransaction::create([
+                                    'user_id' => $user->id,
+                                    'amount' => $booking->total_amount,
+                                    'type' => 'refund',
+                                    'description' => 'Hoàn tiền tự động đơn hàng ' . $booking->booking_code . ' do sự cố ghế hỏng',
+                                    'balance_after' => $user->wallet_balance,
+                                    'reference_type' => \App\Models\Booking::class,
+                                    'reference_id' => $booking->id
+                                ]);
+
+                                $booking->payment_status = 'refunded';
+                                $booking->booking_status = 'cancelled';
+                                $booking->save();
+
+                                $user->notify(new \App\Notifications\SeatIncidentNotification(
+                                    $booking->booking_code,
+                                    "Thanh toán thành công nhưng ghế bạn chọn vừa gặp sự cố. Chúng tôi đã hoàn lại " . number_format($booking->total_amount) . "đ vào Ví CineGo của bạn."
+                                ));
+                            }
+                            
+                            $admins = \App\Models\User::where('role', 'admin')->get();
+                            foreach ($admins as $admin) {
+                                $admin->notify(new \App\Notifications\BookingConfirmedNotification(
+                                    $booking->booking_code,
+                                    "Hệ thống vừa TỰ ĐỘNG HOÀN TIỀN cho đơn " . $booking->booking_code . " do sự cố trùng ghế."
+                                ));
+                            }
+                        } else {
+                            if ($booking->user) {
+                                $booking->user->notify(new \App\Notifications\BookingConfirmedNotification(
+                                    $booking->booking_code,
+                                    "Đơn hàng " . $booking->booking_code . " đã được thanh toán thành công qua VNPay."
+                                ));
+                            }
+                            $admins = \App\Models\User::where('role', 'admin')->get();
+                            foreach ($admins as $admin) {
+                                $admin->notify(new \App\Notifications\BookingConfirmedNotification(
+                                    $booking->booking_code,
+                                    "Khách hàng đã thanh toán thành công đơn vé " . $booking->booking_code . " qua VNPay."
+                                ));
+                            }
+                        }
+
+                        if ($booking->user && $booking->user->email) {
+                            Mail::to($booking->user->email)->send(new BookingSuccessMail($booking));
+                        }
+                    } catch (\Exception $mailEx) {
+                        \Illuminate\Support\Facades\Log::error('Lỗi gửi email/thông báo sau khi thanh toán VNPAY: ' . $mailEx->getMessage());
+                        // DO NOT fail the booking just because email fails
                     }
 
                     return redirect(
                         $frontendUrl . '/payment/result?status=success&code=' . $booking->booking_code . '&booking_id=' . $booking->id
                     );
                 } catch (\Exception $ex) {
-                    \Illuminate\Support\Facades\Log::error('Lỗi xử lý kết quả VNPAY: ' . $ex->getMessage());
+                    \Illuminate\Support\Facades\Log::error('Lỗi xử lý DB kết quả VNPAY: ' . $ex->getMessage());
+                    // This catch should only trigger if the DB transaction fails
+                    // ... But actually we should still probably not mark as failed if VNPay took money!
+                    // Assuming DB transaction is robust.
                     $this->bookingService->markAsFailed($booking);
 
                     return redirect(

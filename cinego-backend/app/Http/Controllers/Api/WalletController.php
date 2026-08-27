@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Withdrawal;
+use App\Notifications\WithdrawalCompletedNotification;
+use App\Notifications\WithdrawalRejectedNotification;
 use App\Services\WalletService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -47,16 +49,21 @@ class WalletController extends Controller
     {
         $request->validate([
             'amount' => 'required|numeric|min:' . self::MIN_WITHDRAW,
-            'bank_name' => 'required|string|max:50',
-            'bank_account' => 'required|string|max:30',
-            'bank_holder' => 'required|string|max:100',
+            'qr_image' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
+            'bank_name' => 'nullable|string|max:50',
+            'bank_account' => 'nullable|string|max:30',
+            'bank_holder' => 'nullable|string|max:100',
         ], [
             'amount.required' => 'Vui lòng nhập số tiền cần rút.',
             'amount.min' => 'Số tiền rút tối thiểu là ' . number_format(self::MIN_WITHDRAW, 0, ',', '.') . 'đ.',
-            'bank_name.required' => 'Vui lòng chọn ngân hàng.',
-            'bank_account.required' => 'Vui lòng nhập số tài khoản.',
-            'bank_holder.required' => 'Vui lòng nhập tên chủ tài khoản.',
+            'qr_image.image' => 'File tải lên phải là hình ảnh QR.',
         ]);
+
+        if (!$request->hasFile('qr_image') && (!$request->bank_name || !$request->bank_account || !$request->bank_holder)) {
+            return response()->json([
+                'message' => 'Vui lòng cung cấp hình ảnh QR hoặc điền đầy đủ thông tin ngân hàng.',
+            ], 422);
+        }
 
         $user = $request->user();
         $amount = (float) $request->amount;
@@ -81,19 +88,27 @@ class WalletController extends Controller
                 throw new \Exception('Số dư ví không đủ để rút.');
             }
 
+            $qrPath = null;
+            if ($request->hasFile('qr_image')) {
+                $qrPath = $request->file('qr_image')->store('withdrawals', 'public');
+            }
+
             $withdrawal = Withdrawal::create([
                 'user_id' => $user->id,
                 'amount' => $amount,
-                'bank_name' => $request->bank_name,
-                'bank_account' => $request->bank_account,
-                'bank_holder' => $request->bank_holder,
+                'bank_name' => $request->bank_name ?? 'QR Code',
+                'bank_account' => $request->bank_account ?? 'QR Code',
+                'bank_holder' => $request->bank_holder ?? 'QR Code',
+                'qr_image' => $qrPath,
                 'status' => 'pending',
             ]);
+
+            $description = $qrPath ? "Rút tiền bằng mã QR" : "Rút tiền về {$request->bank_name} tài khoản {$request->bank_account}";
 
             app(WalletService::class)->debit(
                 $user,
                 $amount,
-                "Rút tiền về {$request->bank_name} tài khoản {$request->bank_account}",
+                $description,
                 'withdraw',
                 $withdrawal
             );
@@ -143,6 +158,12 @@ class WalletController extends Controller
         $withdrawal->processed_at = now();
         $withdrawal->save();
 
+        // Gửi thông báo cho khách
+        $withdrawal->user->notify(new WithdrawalCompletedNotification(
+            (float) $withdrawal->amount,
+            $withdrawal->id
+        ));
+
         return response()->json(['success' => true, 'message' => 'Đã xác nhận hoàn tất chuyển khoản.']);
     }
 
@@ -179,6 +200,13 @@ class WalletController extends Controller
             );
 
             DB::commit();
+
+            // Gửi thông báo cho khách
+            $withdrawal->user->notify(new WithdrawalRejectedNotification(
+                (float) $withdrawal->amount,
+                $withdrawal->id,
+                $request->admin_note
+            ));
 
             return response()->json(['success' => true, 'message' => 'Đã từ chối và hoàn tiền lại ví cho khách.']);
         } catch (\Exception $e) {

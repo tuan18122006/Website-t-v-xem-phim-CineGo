@@ -287,10 +287,13 @@ class ShowtimeController extends Controller
             ->keyBy('seat_id');
 
         // 5. Lấy danh sách ghế đang bị giữ bởi người khác (expires_at > now)
-        $heldSeatIds = SeatHold::where('showtime_id', $showtime->id)
+        $heldDetails = SeatHold::with('user')
+            ->where('showtime_id', $showtime->id)
             ->where('expires_at', '>', $now)
-            ->pluck('seat_id')
-            ->toArray();
+            ->get()
+            ->keyBy('seat_id');
+            
+        $heldSeatIds = $heldDetails->keys()->toArray();
 
         // Lấy danh sách ghế đang bị khóa (bảo trì/sự cố) trong khoảng thời gian diễn ra suất chiếu
         $lockedSeatIds = \App\Models\SeatLock::where('room_id', $showtime->room_id)
@@ -300,7 +303,7 @@ class ShowtimeController extends Controller
             ->toArray();
 
         // 6. Định dạng đầu ra khớp chính xác với frontend yêu cầu
-        $formattedSeats = $seats->map(function ($seat) use ($bookedSeatIds, $heldSeatIds, $lockedSeatIds, $prices, $bookedDetails) {
+        $formattedSeats = $seats->map(function ($seat) use ($bookedSeatIds, $heldSeatIds, $lockedSeatIds, $prices, $bookedDetails, $heldDetails) {
             $status = 'available';
             if ($seat->status === 'broken' || in_array($seat->id, $lockedSeatIds)) {
                 $status = 'broken';
@@ -319,7 +322,7 @@ class ShowtimeController extends Controller
                 'price' => $prices[$seat->type] ?? 0, 
             ];
 
-            if ($status === 'sold' && isset($bookedDetails[$seat->id])) {
+            if (isset($bookedDetails[$seat->id])) {
                 $detail = $bookedDetails[$seat->id];
                 $result['booking_detail_id'] = $detail->id;
                 $result['booking_id'] = $detail->booking_id;
@@ -327,6 +330,12 @@ class ShowtimeController extends Controller
                 $result['customer_name'] = $detail->booking->user->name ?? 'N/A';
                 $result['customer_email'] = $detail->booking->user->email ?? 'N/A';
                 $result['customer_phone'] = $detail->booking->user->phone ?? 'N/A';
+            } elseif ($status === 'holding' && isset($heldDetails[$seat->id])) {
+                $hold = $heldDetails[$seat->id];
+                $result['holder_name'] = $hold->user->name ?? 'Khách';
+                $result['holder_email'] = $hold->user->email ?? 'N/A';
+                $result['holder_phone'] = $hold->user->phone ?? 'N/A';
+                $result['hold_expires_at'] = $hold->expires_at;
             }
 
             return $result;
@@ -384,6 +393,8 @@ class ShowtimeController extends Controller
                     return [
                         'id' => $showtime->id,
                         'start_time' => \Carbon\Carbon::parse($showtime->start_time)->format('H:i'),
+                        'start_date' => \Carbon\Carbon::parse($showtime->start_time)->format('Y-m-d'),
+                        'start_time_full' => \Carbon\Carbon::parse($showtime->start_time)->toISOString(),
                         'available_seats' => $available,
                         'room_name' => $showtime->room->name,
                         'is_sneak_show' => $showtime->is_sneak_show,

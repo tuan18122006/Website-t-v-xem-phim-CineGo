@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Withdrawal extends Model
 {
     protected $fillable = [
-        'user_id', 'amount', 'bank_name', 'bank_account', 'bank_holder',
+        'user_id', 'amount', 'bank_name', 'bank_account', 'bank_holder', 'qr_image',
         'status', 'admin_note', 'processed_by', 'processed_at'
     ];
 

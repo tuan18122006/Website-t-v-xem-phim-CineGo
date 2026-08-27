@@ -25,7 +25,7 @@
                 <span v-for="(rule, index) in currentPricing.pricing_rules.filter(r => r.status === 'active')" :key="index" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; color: #ddd; font-size: 0.9rem;">
                   {{ rule.name }} 
                   <b :style="{ color: rule.adjustment_type === 'free' ? '#64ffda' : 'var(--accent-pink)', marginLeft: '4px' }">
-                    {{ rule.adjustment_type === 'free' ? 'Miễn phí' : (rule.adjustment_type === 'percentage' ? '+' + rule.value + '%' : '+' + formatPrice(rule.value)) }}
+                    {{ rule.adjustment_type === 'free' ? 'Miễn phí' : (rule.adjustment_type === 'percentage' ? (rule.value > 0 ? '+' + rule.value : rule.value) + '%' : (rule.value > 0 ? '+' : '') + formatPrice(rule.value)) }}
                   </b>
                 </span>
               </template>
@@ -224,7 +224,7 @@
                     <span v-for="(rule, index) in selectedDetail.pricing_snapshot.pricing_rules.filter(r => r.status === 'active')" :key="index" style="color: #444; background: #f0f0f0; padding: 2px 6px; border-radius: 4px;">
                       {{ rule.name }}: 
                       <b :style="{ color: rule.adjustment_type === 'free' ? '#00796b' : 'var(--accent-pink)' }">
-                        {{ rule.adjustment_type === 'free' ? 'Miễn phí' : (rule.adjustment_type === 'percentage' ? '+' + rule.value + '%' : '+' + formatPrice(rule.value)) }}
+                        {{ rule.adjustment_type === 'free' ? 'Miễn phí' : (rule.adjustment_type === 'percentage' ? (rule.value > 0 ? '+' + rule.value : rule.value) + '%' : (rule.value > 0 ? '+' : '') + formatPrice(rule.value)) }}
                       </b>
                     </span>
                   </template>

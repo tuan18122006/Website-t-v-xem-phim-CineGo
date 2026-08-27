@@ -120,9 +120,12 @@
             </div>
 
             <!-- Nếu ghế đã bán => Hiển thị thao tác cho khách -->
-            <div v-if="selectedSeat.status === 'sold'" class="actions-group">
-               <div class="alert alert-success">
+            <div v-if="selectedSeat.status === 'sold' || selectedSeat.booking_id" class="actions-group">
+               <div v-if="selectedSeat.status === 'sold'" class="alert alert-success">
                   <CheckCircle2 :size="16" /> Ghế này đã được thanh toán.
+               </div>
+               <div v-else class="alert alert-warning">
+                  <AlertCircle :size="16" /> Ghế này ĐÃ ĐƯỢC THANH TOÁN nhưng ĐANG BỊ BÁO HỎNG/KHÓA! Vui lòng hoàn tiền hoặc đổi lịch cho khách.
                </div>
 
                <!-- Booking Info Block -->
@@ -149,6 +152,31 @@
                </button>
                <button @click="openRefundModal" class="btn btn-danger" :disabled="!bookingInfo">
                  <CircleDollarSign :size="18" /> Hoàn Tiền (Ví)
+               </button>
+               
+               <div style="height: 1px; background: #e5e7eb; margin: 12px 0;"></div>
+               
+               <button @click="markSeatBroken" class="btn btn-danger-solid">
+                 <TriangleAlert :size="18" /> Báo Hỏng Ghế (Gửi Mail)
+               </button>
+            </div>
+
+            <!-- Nếu ghế đang giữ -->
+            <div v-else-if="selectedSeat.status === 'holding'" class="actions-group">
+               <div class="alert alert-warning" style="background:#fffbeb; color:#d97706; border-color:#fef3c7;">
+                  <Clock :size="16" /> Ghế đang được khách giữ để thanh toán.
+               </div>
+               <div class="booking-info-box" style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:6px; padding:12px;">
+                 <p><strong>Khách hàng:</strong> {{ selectedSeat.holder_name || 'Khách vãng lai' }}</p>
+                 <p><strong>Email:</strong> {{ selectedSeat.holder_email }}</p>
+                 <p><strong>SĐT:</strong> {{ selectedSeat.holder_phone }}</p>
+                 <p><strong>Hết hạn giữ ghế:</strong> {{ selectedSeat.hold_expires_at ? new Date(selectedSeat.hold_expires_at).toLocaleTimeString('vi-VN') : 'N/A' }}</p>
+               </div>
+               <p style="font-size: 12px; color: #6b7280; margin-bottom: 12px;">
+                 * Bạn chưa thể hoàn tiền vì khách chưa thanh toán xong.
+               </p>
+               <button @click="markSeatBroken" class="btn btn-danger-solid">
+                 <TriangleAlert :size="18" /> Báo Hỏng Vật Lý Ngay
                </button>
             </div>
 
@@ -246,9 +274,11 @@ const selectShowtime = async (id) => {
   await refreshSeats();
 };
 
-const refreshSeats = async () => {
+const refreshSeats = async (isBackgroundUpdate = false) => {
   if (!selectedShowtimeId.value) return;
-  loadingSeats.value = true;
+  if (!isBackgroundUpdate) {
+    loadingSeats.value = true;
+  }
   try {
     const { data } = await axios.get(`/showtimes/${selectedShowtimeId.value}/seats`);
     seats.value = data.seats;
@@ -257,11 +287,33 @@ const refreshSeats = async () => {
       selectedSeat.value = seats.value.find(s => s.id === selectedSeat.value.id) || null;
     }
   } catch (err) {
-    Swal.fire('Lỗi', "Lỗi tải sơ đồ ghế", 'error');
+    if (!isBackgroundUpdate) {
+      Swal.fire('Lỗi', "Lỗi tải sơ đồ ghế", 'error');
+    }
   } finally {
-    loadingSeats.value = false;
+    if (!isBackgroundUpdate) {
+      loadingSeats.value = false;
+    }
   }
 };
+
+let pollInterval = null;
+
+onMounted(() => {
+  fetchShowtimes();
+  
+  // Tự động làm mới sơ đồ ghế mỗi 3 giây
+  pollInterval = setInterval(() => {
+    if (selectedShowtimeId.value) {
+      refreshSeats(true);
+    }
+  }, 3000);
+});
+
+import { onUnmounted } from 'vue';
+onUnmounted(() => {
+  if (pollInterval) clearInterval(pollInterval);
+});
 
 const handleSeatClick = async (seatObj) => {
   const fullSeat = seats.value.find(s => s.id === seatObj.id);
@@ -330,7 +382,7 @@ const handleSeatClick = async (seatObj) => {
   selectedSeat.value = fullSeat;
   bookingInfo.value = null;
 
-  if (fullSeat.status === 'sold') {
+  if (fullSeat.status === 'sold' || fullSeat.booking_id) {
     // Construct bookingInfo from inline seat data
     const customerSeats = seats.value.filter(s => s.booking_id === fullSeat.booking_id);
     bookingInfo.value = {
@@ -382,25 +434,48 @@ const submitQuickSwap = async (newSeatId, lockOptions) => {
 };
 
 const markSeatBroken = async () => {
-  if (!confirm('Xác nhận báo hỏng vĩnh viễn chiếc ghế này? Các vé tương lai mua trên ghế này sẽ bị ảnh hưởng!')) return;
+  const result = await Swal.fire({
+    title: 'Xác nhận báo hỏng?',
+    text: 'Báo hỏng vĩnh viễn chiếc ghế này? Các vé tương lai mua trên ghế này sẽ bị ảnh hưởng!',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#d33',
+    cancelButtonColor: '#3085d6',
+    confirmButtonText: 'Đồng ý',
+    cancelButtonText: 'Hủy'
+  });
+  if (!result.isConfirmed) return;
+
   try {
     const { data } = await axios.post('/staff/seats/broken', { seat_id: selectedSeat.value.id });
-    Swal.fire('Thành công', data.message, 'success');
     if (data.has_conflict) {
-      alert(`CẢNH BÁO: Có ${data.affected_bookings.length} vé đã mua trên ghế này ở các suất chiếu tương lai cần được đổi/hoàn tiền!`);
+      Swal.fire('CẢNH BÁO', `Thành công, nhưng có ${data.affected_bookings.length} vé đã mua trên ghế này ở các suất chiếu tương lai cần được đổi/hoàn tiền!`, 'warning');
+    } else {
+      Swal.fire('Thành công', data.message, 'success');
     }
-    refreshSeats();
+    refreshSeats(false); // Force overlay load
   } catch (err) {
     Swal.fire('Lỗi', err.response?.data?.message || 'Lỗi xử lý', 'error');
   }
 };
 
 const unlockSeat = async () => {
-  if (!confirm('Xác nhận mở khóa chiếc ghế này?')) return;
+  const result = await Swal.fire({
+    title: 'Xác nhận mở khóa?',
+    text: 'Bạn có chắc chắn muốn mở khóa chiếc ghế này?',
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#28a745',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Đồng ý',
+    cancelButtonText: 'Hủy'
+  });
+  if (!result.isConfirmed) return;
+
   try {
     const { data } = await axios.post('/staff/seats/unlock', { seat_id: selectedSeat.value.id });
     Swal.fire('Thành công', data.message, 'success');
-    refreshSeats();
+    refreshSeats(false); // Force overlay load
   } catch (err) {
     Swal.fire('Lỗi', err.response?.data?.message || 'Lỗi xử lý', 'error');
   }
@@ -542,6 +617,7 @@ const openRescheduleModal = async () => {
   // Số ghế cần cho đơn này
   const neededCount = bookingInfo.value.booking_details?.length || 1;
 
+
   // Group by Date
   const showtimesByDate = {};
   otherShowtimes.forEach(s => {
@@ -555,7 +631,11 @@ const openRescheduleModal = async () => {
         <div style="max-height:300px;overflow-y:auto;padding-right:4px;padding-bottom:10px;">`;
 
   for (const [date, sts] of Object.entries(showtimesByDate)) {
-    htmlContent += `<div style="font-weight:bold;font-size:13px;margin-top:10px;margin-bottom:8px;color:#374151;border-bottom:1px solid #e5e7eb;padding-bottom:4px;">📅 Ngày ${date}</div>`;
+    // Format YYYY-MM-DD to DD/MM/YYYY
+    const dParts = date.split('-');
+    const displayDate = dParts.length === 3 ? `${dParts[2]}/${dParts[1]}/${dParts[0]}` : date;
+
+    htmlContent += `<div style="font-weight:bold;font-size:13px;margin-top:10px;margin-bottom:8px;color:#374151;border-bottom:1px solid #e5e7eb;padding-bottom:4px;">📅 Ngày ${displayDate}</div>`;
     htmlContent += `<div style="display:flex;flex-wrap:wrap;gap:8px;">`;
     sts.forEach(s => {
       const avail = s.available_seats ?? 0;

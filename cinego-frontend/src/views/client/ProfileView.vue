@@ -45,6 +45,13 @@
           </button>
           <button
             class="cinego-menu-btn"
+            :class="{ active: activeTab === 'wallet' }"
+            @click="activeTab = 'wallet'"
+          >
+            VÍ TIỀN
+          </button>
+          <button
+            class="cinego-menu-btn"
             :class="{ active: activeTab === 'notifications' }"
             @click="activeTab = 'notifications'"
             style="position: relative;"
@@ -154,6 +161,74 @@
         </div>
 
         <div class="cinego-tab-dynamic-content">
+          <!-- 💰 GIAO DIỆN VÍ TIỀN (WALLET) -->
+          <div v-if="activeTab === 'wallet'" class="cinego-section-block">
+            <div class="cinego-section-title" style="display: flex; justify-content: space-between; align-items: center;">
+              <h3>Ví Tiền Của Tôi</h3>
+            </div>
+            
+            <div v-if="loadingWallet" class="cinego-loading" style="padding: 30px; text-align: center;">Đang tải thông tin ví...</div>
+            <div v-else>
+              <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 12px; padding: 24px; color: white; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
+                <div>
+                  <p style="margin: 0; font-size: 14px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">Số dư hiện tại</p>
+                  <p style="margin: 8px 0 0; font-size: 32px; font-weight: 700; color: #fff;">{{ formatPrice(walletData.balance || 0) }}đ</p>
+                </div>
+                <button @click="openWithdrawModal" style="background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s;">
+                  Rút Tiền
+                </button>
+              </div>
+
+              <h4>Lịch sử giao dịch ví</h4>
+              <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;">
+                <thead>
+                  <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
+                    <th style="padding: 12px; text-align: left;">Ngày/Giờ</th>
+                    <th style="padding: 12px; text-align: left;">Giao dịch</th>
+                    <th style="padding: 12px; text-align: right;">Số tiền</th>
+                    <th style="padding: 12px; text-align: right;">Số dư sau GD</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="tx in walletData.transactions" :key="tx.id" style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 12px;">{{ formatDateTime(tx.created_at) }}</td>
+                    <td style="padding: 12px;">{{ tx.description }}</td>
+                    <td style="padding: 12px; text-align: right;" :style="{ color: tx.type === 'deposit' || tx.type === 'refund' ? '#22c55e' : '#ef4444', fontWeight: 'bold' }">
+                      {{ tx.type === 'deposit' || tx.type === 'refund' ? '+' : '-' }}{{ formatPrice(tx.amount < 0 ? -tx.amount : tx.amount) }}đ
+                    </td>
+                    <td style="padding: 12px; text-align: right; font-weight: 500;">{{ formatPrice(tx.balance_after) }}đ</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div v-if="walletData.withdrawals && walletData.withdrawals.length > 0" style="margin-top: 40px;">
+                <h4>Lịch sử yêu cầu rút tiền</h4>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;">
+                  <thead>
+                    <tr style="background: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
+                      <th style="padding: 12px; text-align: left;">Ngày yêu cầu</th>
+                      <th style="padding: 12px; text-align: left;">Ngân hàng</th>
+                      <th style="padding: 12px; text-align: right;">Số tiền</th>
+                      <th style="padding: 12px; text-align: center;">Trạng thái</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="wd in walletData.withdrawals" :key="wd.id" style="border-bottom: 1px solid #e2e8f0;">
+                      <td style="padding: 12px;">{{ formatDateTime(wd.created_at) }}</td>
+                      <td style="padding: 12px;">{{ wd.bank_name }} - {{ wd.bank_account }}</td>
+                      <td style="padding: 12px; text-align: right; color: #ef4444; font-weight: bold;">-{{ formatPrice(wd.amount) }}đ</td>
+                      <td style="padding: 12px; text-align: center;">
+                        <span v-if="wd.status === 'pending'" style="background: #fef08a; color: #854d0e; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">Đang xử lý</span>
+                        <span v-else-if="wd.status === 'completed'" style="background: #bbf7d0; color: #166534; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">Đã duyệt</span>
+                        <span v-else-if="wd.status === 'rejected'" style="background: #fecaca; color: #991b1b; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600;">Từ chối</span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
           <!-- 🎟️ GIAO DIỆN VÍ VOUCHER CỦA TÔI -->
           <div v-if="activeTab === 'my_vouchers'" class="cinego-section-block">
             <div class="cinego-section-title"
@@ -351,8 +426,17 @@
                    class="notif-page-item" 
                    :class="{'unread': notif.read_at === null}"
                    @click="markAsRead(notif.id)">
-                <div class="notif-page-icon">{{ notif.data.type === 'booking_confirmed' ? '🎟️' : '🎁' }}</div>
+                <div class="notif-page-icon">
+                  {{ notif.data.type === 'booking_confirmed' ? '🎟️'
+                    : notif.data.type === 'withdrawal_completed' ? '💸'
+                    : notif.data.type === 'withdrawal_rejected' ? '🚫'
+                    : notif.data.type === 'wallet_credit' ? '💰'
+                    : notif.data.type === 'seat_incident' ? '⚠️'
+                    : notif.data.type === 'compensation' ? '💵'
+                    : '🎁' }}
+                </div>
                 <div class="notif-page-content">
+                  <p class="notif-page-title" v-if="notif.data.title" style="font-weight: 700; margin: 0 0 4px 0; font-size: 14px; color: #0f172a;">{{ notif.data.title }}</p>
                   <p class="notif-page-message">{{ notif.data.message }}</p>
                   <span class="notif-page-time">{{ new Date(notif.created_at).toLocaleString('vi-VN') }}</span>
                 </div>
@@ -534,6 +618,14 @@
                           <span v-else-if="ticket.status === 'payment_cancelled'" class="badge badge-danger">
                             Hủy thanh toán
                           </span>
+                          <!-- Badge đã hoàn tiền -->
+                          <span v-else-if="ticket.status === 'refunded'" class="badge" style="background: #818cf8; color: #fff;">
+                            💰 Đã hoàn tiền
+                          </span>
+                          <!-- Badge đã hủy -->
+                          <span v-else-if="ticket.status === 'cancelled'" class="badge badge-danger">
+                            Đã hủy
+                          </span>
                           <span v-else class="badge badge-pending">
                             Chờ thanh toán
                           </span>
@@ -622,7 +714,7 @@
                       </button>
                       <button @click="selfRefundTicket(ticket)" :disabled="ticket._loading"
                         style="background: #ef4444; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;">
-                        {{ ticket._loading ? 'Đang xử lý...' : 'Hoàn tiền vào ví' }}
+                        {{ ticket._loading ? 'Đang xử lý...' : 'Hoàn Tiền (VNPay/Ví)' }}
                       </button>
                     </div>
                   </div>
@@ -1235,6 +1327,50 @@
         </div>
       </div>
 
+      <!-- Modal Rút Tiền -->
+      <div v-if="isWithdrawModalOpen" class="modal-overlay" @click.self="isWithdrawModalOpen = false">
+        <div class="modal-content hide-scrollbar" style="max-width: 500px; width: 100%; padding: 25px; text-align: left; max-height: 90vh; overflow-y: auto;">
+          <button @click="isWithdrawModalOpen = false" class="btn-close">×</button>
+          <h3 style="margin-top: 0; color: #1e293b; text-align: center;">RÚT TIỀN VỀ NGÂN HÀNG</h3>
+          <p style="color: #64748b; font-size: 14px; text-align: center; margin-bottom: 20px;">
+            Số dư khả dụng: <strong style="color: #0f172a; font-size: 16px;">{{ formatPrice(walletData.balance) }}đ</strong>
+          </p>
+          
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+            <label style="font-weight: 600; font-size: 14px; color: #1e293b;">Số tiền cần rút (Tối thiểu 50.000đ)</label>
+            <input type="number" v-model="withdrawForm.amount" class="cinego-input" placeholder="Nhập số tiền..." style="width: 100%;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+            <label style="font-weight: 600; font-size: 14px; color: #1e293b;">Ngân hàng hưởng thụ</label>
+            <select v-model="withdrawForm.bank_name" class="cinego-input" style="width: 100%;">
+              <option value="">-- Chọn ngân hàng --</option>
+              <option v-for="bank in bankList" :key="bank" :value="bank">{{ bank }}</option>
+            </select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+            <label style="font-weight: 600; font-size: 14px; color: #1e293b;">Số tài khoản</label>
+            <input type="text" v-model="withdrawForm.bank_account" class="cinego-input" placeholder="Nhập số tài khoản..." style="width: 100%;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 25px;">
+            <label style="font-weight: 600; font-size: 14px; color: #1e293b;">Tên chủ tài khoản (Viết Hoa không dấu)</label>
+            <input type="text" v-model="withdrawForm.bank_holder" class="cinego-input" placeholder="VD: NGUYEN VAN A" style="text-transform: uppercase; width: 100%;" />
+          </div>
+          
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 25px;">
+            <label style="font-weight: 600; font-size: 14px; color: #1e293b;">Hoặc tải lên Mã QR Nhận Tiền (VietQR, Momo...)</label>
+            <input type="file" @change="handleQrUpload" accept="image/*" class="cinego-input" style="padding: 10px; width: 100%;" />
+            <p style="font-size: 12px; color: #64748b; margin-top: 2px; margin-bottom: 0;">Nếu tải lên QR Code, bạn không bắt buộc phải điền Ngân hàng và Số tài khoản phía trên.</p>
+          </div>
+
+          <div style="display: flex; gap: 10px; justify-content: center;">
+          <button @click="isWithdrawModalOpen = false" class="btn-action-text" style="padding: 10px 20px; background: #e2e8f0; color: #475569; border-radius: 8px;">HỦY BỎ</button>
+          <button @click="submitWithdraw" class="btn-cinego-submit" :disabled="withdrawLoading" style="max-width: 200px; margin: 0; background: #ef4444;">
+            {{ withdrawLoading ? 'ĐANG XỬ LÝ...' : 'TẠO YÊU CẦU' }}
+          </button>
+        </div>
+        </div>
+      </div>
+
   </div>
 </template>
 
@@ -1341,12 +1477,23 @@ const swapSelectedSeat = ref(null);
 const swapLoading = ref(false);
 const isQrModalOpen = ref(false);
 const isDetailModalOpen = ref(false);
-const loadingLoyalty = ref(false);
+// Dữ liệu cho Ví Tiền
+const loadingWallet = ref(false);
+const walletData = ref({ balance: 0, transactions: [], withdrawals: [] });
+const isWithdrawModalOpen = ref(false);
+const withdrawLoading = ref(false);
+const bankList = ref([]);
+const withdrawForm = ref({ amount: '', bank_name: '', bank_account: '', bank_holder: '' });
+const withdrawQrFile = ref(null);
+
+// Dữ liệu cho Ví Voucher
 const loadingMyVouchers = ref(false);
-const redeemableVouchers = ref([]);
-const redeemableCombos = ref([]);
+const unusedVouchers = ref([]);
+const usedVouchers = ref([]);
 const myVouchers = ref([]);
 const pointHistories = ref([]);
+const redeemableVouchers = ref([]);
+const redeemableCombos = ref([]);
 
 const availableVouchersCount = computed(() => redeemableVouchers.value.length);
 const availableCombosCount = computed(() => redeemableCombos.value.length);
@@ -1502,6 +1649,81 @@ watch(() => route.query.tab, (newTab) => {
     activeTab.value = newTab;
   }
 });
+
+watch(activeTab, (newTab) => {
+  if (newTab === 'wallet') {
+    fetchWallet();
+  }
+});
+
+const fetchWallet = async () => {
+  loadingWallet.value = true;
+  try {
+    const { data } = await api.get('/wallet');
+    walletData.value.balance = data.balance;
+    walletData.value.transactions = data.transactions?.data || [];
+    walletData.value.withdrawals = data.withdrawals || [];
+  } catch (err) {
+    console.error("Lỗi lấy dữ liệu ví:", err);
+  } finally {
+    loadingWallet.value = false;
+  }
+};
+
+const openWithdrawModal = async () => {
+  if (bankList.value.length === 0) {
+    try {
+      const { data } = await api.get('/wallet/banks');
+      bankList.value = data.banks || [];
+    } catch (err) {
+      console.error(err);
+    }
+  }
+  withdrawForm.value = { amount: '', bank_name: '', bank_account: '', bank_holder: '' };
+  withdrawQrFile.value = null;
+  isWithdrawModalOpen.value = true;
+};
+
+const handleQrUpload = (e) => {
+  if (e.target.files.length > 0) {
+    withdrawQrFile.value = e.target.files[0];
+  } else {
+    withdrawQrFile.value = null;
+  }
+};
+
+const submitWithdraw = async () => {
+  if (!withdrawForm.value.amount || (!withdrawQrFile.value && (!withdrawForm.value.bank_name || !withdrawForm.value.bank_account || !withdrawForm.value.bank_holder))) {
+    return Swal.fire('Thiếu thông tin', 'Vui lòng cung cấp hình ảnh QR hoặc điền đầy đủ thông tin ngân hàng.', 'warning');
+  }
+  
+  if (withdrawForm.value.amount < 50000) {
+    return Swal.fire('Không hợp lệ', 'Số tiền rút tối thiểu là 50.000đ', 'warning');
+  }
+
+  withdrawLoading.value = true;
+  try {
+    const formData = new FormData();
+    formData.append('amount', withdrawForm.value.amount);
+    if (withdrawForm.value.bank_name) formData.append('bank_name', withdrawForm.value.bank_name);
+    if (withdrawForm.value.bank_account) formData.append('bank_account', withdrawForm.value.bank_account);
+    if (withdrawForm.value.bank_holder) formData.append('bank_holder', withdrawForm.value.bank_holder.toUpperCase());
+    if (withdrawQrFile.value) {
+      formData.append('qr_image', withdrawQrFile.value);
+    }
+
+    const { data } = await api.post('/wallet/withdraw', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    Swal.fire('Thành công', data.message || 'Đã tạo yêu cầu rút tiền thành công.', 'success');
+    isWithdrawModalOpen.value = false;
+    fetchWallet(); // Reload balance and history
+  } catch (err) {
+    Swal.fire('Lỗi', err.response?.data?.message || 'Không thể tạo yêu cầu rút tiền.', 'error');
+  } finally {
+    withdrawLoading.value = false;
+  }
+};
 
 const fetchBookingHistory = async () => {
   loadingHistory.value = true;

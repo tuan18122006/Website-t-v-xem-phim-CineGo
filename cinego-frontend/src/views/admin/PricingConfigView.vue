@@ -36,7 +36,7 @@
             </div>
             <span v-if="pricingErrors.vip_price" class="error-msg">{{ pricingErrors.vip_price[0] }}</span>
           </div>
-          <div class="pricing-field pricing-field--full">
+          <div class="pricing-field">
             <label>Ghế đôi</label>
             <div class="money-input-wrap">
               <input
@@ -45,10 +45,24 @@
                 :value="moneyInputs.couple_price"
                 @input="updateMoneyInput('couple_price', $event)"
                 @blur="formatMoneyInput('couple_price')"
-                placeholder="50.000"
+                placeholder="120.000"
               />
             </div>
             <span v-if="pricingErrors.couple_price" class="error-msg">{{ pricingErrors.couple_price[0] }}</span>
+          </div>
+          <div class="pricing-field">
+            <label>Phụ thu Phim 3D</label>
+            <div class="money-input-wrap">
+              <input
+                type="text"
+                inputmode="numeric"
+                :value="moneyInputs.format_3d_surcharge"
+                @input="updateMoneyInput('format_3d_surcharge', $event)"
+                @blur="formatMoneyInput('format_3d_surcharge')"
+                placeholder="30.000"
+              />
+            </div>
+            <span v-if="pricingErrors.format_3d_surcharge" class="error-msg">{{ pricingErrors.format_3d_surcharge[0] }}</span>
           </div>
         </div>
 
@@ -72,7 +86,7 @@
                 <small>{{ rule.scope === 'movie' ? 'Theo phim' : 'Toàn hệ thống' }} • {{ formatSeatType(rule.seat_type) }} • {{ rule.status === 'active' ? 'Bật' : 'Tắt' }}</small>
               </div>
               <div class="rule-list__meta">
-                <span>{{ rule.adjustment_type === 'free' ? 'Miễn phí' : rule.value ? formatMoney(rule.value) + (rule.adjustment_type === 'percentage' ? '%' : 'đ') : '0đ' }}</span>
+                <span>{{ rule.adjustment_type === 'free' ? 'Miễn phí' : (rule.adjustment_type === 'percentage' ? (rule.value > 0 ? '+' + rule.value : rule.value) + '%' : (rule.value > 0 ? '+' : '') + formatMoney(rule.value) + 'đ') }}</span>
                 <div class="rule-list__actions">
                   <button type="button" class="mini-btn" @click="viewRule(index)">Xem chi tiết</button>
                   <button type="button" class="mini-btn" @click="editRule(index)">Sửa</button>
@@ -237,7 +251,7 @@
               <div class="detail-row"><span class="detail-label">Ngày ngoại trừ</span><span class="detail-value">{{ pricingRuleDraft.excluded_dates.length ? pricingRuleDraft.excluded_dates.map(formatDisplayDate).join(', ') : 'Không có' }}</span></div>
               <div class="detail-row"><span class="detail-label">Khung giờ</span><span class="detail-value">{{ pricingRuleDraft.use_time_filter ? `${pricingRuleDraft.time_from || '--:--'} - ${pricingRuleDraft.time_to || '--:--'}` : 'Tất cả suất chiếu trong ngày' }}</span></div>
               <div class="detail-row"><span class="detail-label">Kiểu điều chỉnh</span><span class="detail-value">{{ formatAdjustmentType(pricingRuleDraft.adjustment_type) }}</span></div>
-              <div class="detail-row"><span class="detail-label">Giá trị</span><span class="detail-value">{{ pricingRuleDraft.adjustment_type === 'free' ? 'Miễn phí' : `${formatMoney(pricingRuleDraft.value) || 0}${pricingRuleDraft.adjustment_type === 'percentage' ? '%' : 'đ'}` }}</span></div>
+              <div class="detail-row"><span class="detail-label">Giá trị</span><span class="detail-value">{{ pricingRuleDraft.adjustment_type === 'free' ? 'Miễn phí' : (pricingRuleDraft.adjustment_type === 'percentage' ? (pricingRuleDraft.value > 0 ? '+' + pricingRuleDraft.value : pricingRuleDraft.value) + '%' : (pricingRuleDraft.value > 0 ? '+' : '') + formatMoney(pricingRuleDraft.value) + 'đ') }}</span></div>
               <div class="detail-row"><span class="detail-label">Trạng thái</span><span class="detail-value">{{ pricingRuleDraft.status === 'active' ? 'Bật' : 'Tắt' }}</span></div>
             </div>
           </div>
@@ -263,7 +277,7 @@ const movies = ref([]);
 const loadingPricing = ref(true);
 const savingPricing = ref(false);
 const pricingForm = ref({ pricing_rules: [] });
-const moneyInputs = ref({ standard_price: '', vip_price: '', couple_price: '' });
+const moneyInputs = ref({ standard_price: '', vip_price: '', couple_price: '', format_3d_surcharge: '' });
 const pricingErrors = ref({});
 const pricingRuleErrors = ref({});
 const editingRuleIndex = ref(null);
@@ -334,11 +348,13 @@ const toggleAllWeekdays = () => {
 };
 
 const formatMoney = (value) => {
-  if (value === '' || value === null || value === undefined) return '';
+  if (value === '' || value === null || value === undefined) return '0';
   const number = Number(value);
-  if (!Number.isFinite(number) || number <= 0) return '';
-  const thousandUnits = Math.round(number / 1000);
-  return `${new Intl.NumberFormat('vi-VN').format(thousandUnits)}.000`;
+  if (!Number.isFinite(number)) return '0';
+  if (number === 0) return '0';
+  const sign = number < 0 ? '-' : '';
+  const absThousandUnits = Math.round(Math.abs(number) / 1000);
+  return `${sign}${new Intl.NumberFormat('vi-VN').format(absThousandUnits)}.000`;
 };
 
 const parseMoneyInput = (value) => {
@@ -570,7 +586,8 @@ const savePricingConfig = async () => {
     const basePricing = {
       standard_price: pricingForm.value.standard_price,
       vip_price: pricingForm.value.vip_price,
-      couple_price: pricingForm.value.couple_price
+      couple_price: pricingForm.value.couple_price,
+      format_3d_surcharge: pricingForm.value.format_3d_surcharge
     };
     const response = await api.put('/admin/pricing-rules', basePricing);
     if (response.data.success) {
@@ -603,7 +620,8 @@ onMounted(async () => {
     moneyInputs.value = {
       standard_price: formatMoney(pricingForm.value.standard_price),
       vip_price: formatMoney(pricingForm.value.vip_price),
-      couple_price: formatMoney(pricingForm.value.couple_price)
+      couple_price: formatMoney(pricingForm.value.couple_price),
+      format_3d_surcharge: formatMoney(pricingForm.value.format_3d_surcharge)
     };
     movies.value = moviesResponse.data.data || moviesResponse.data || [];
   } catch (error) {

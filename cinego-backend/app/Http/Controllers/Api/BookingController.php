@@ -223,6 +223,7 @@ public function history(Request $request)
                     'waiting_confirmation' => 'Đang chờ xác nhận',
                     'payment_cancelled'    => 'Hủy thanh toán',
                     'cancelled'            => 'Đã hủy',
+                    'refunded'             => 'Đã hoàn tiền',
                     default                => 'Chưa hoàn tất',
                 },
                 'retry_count'       => (int) ($booking->retry_count ?? 0),
@@ -376,6 +377,23 @@ public function holdSeats(Request $request)
                 'success' => false,
                 'message' => 'Ghế này vừa có người khác nhanh tay chọn giữ trước!'
             ], 422);
+        }
+
+        $showtime = \App\Models\Showtime::find($request->showtime_id);
+        if ($showtime) {
+            $isBrokenOrLocked = \App\Models\Seat::whereIn('id', $request->seat_ids)->where('status', 'broken')->exists() || 
+                                \App\Models\SeatLock::whereIn('seat_id', $request->seat_ids)
+                                    ->where('room_id', $showtime->room_id)
+                                    ->where('start_time', '<', $showtime->end_time)
+                                    ->where('end_time', '>', $showtime->start_time)
+                                    ->exists();
+
+            if ($isBrokenOrLocked) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Một số ghế bạn chọn vừa gặp sự cố kỹ thuật và đã bị rạp khóa. Vui lòng chọn ghế khác!'
+                ], 422);
+            }
         }
 
       

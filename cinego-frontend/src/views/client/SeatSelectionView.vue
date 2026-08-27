@@ -534,6 +534,18 @@ onMounted(() => {
       .listen('SeatLocked', (e) => {
         const seat = rawSeatsFromAPI.value.find(s => s.id === e.seatId);
         if (seat) seat.status = e.status || 'holding';
+        
+        // Cảnh báo và đá ghế ra khỏi giỏ nếu admin khóa ghế mà khách đang chọn
+        const isSelected = bookingStore.selectedSeats.find(s => s.id === e.seatId);
+        if (isSelected && (e.status === 'broken' || e.status === 'locked')) {
+           bookingStore.removeSeat(isSelected);
+           Swal.fire({
+             title: 'Ghế gặp sự cố!',
+             text: `Ghế ${isSelected.row}${isSelected.number} bạn đang chọn vừa được rạp khóa do bảo trì. Vui lòng chọn ghế khác!`,
+             icon: 'warning',
+             confirmButtonColor: '#e50914'
+           });
+        }
       })
       .listen('SeatUnlocked', (e) => {
         const seat = rawSeatsFromAPI.value.find(s => s.id === e.seatId);

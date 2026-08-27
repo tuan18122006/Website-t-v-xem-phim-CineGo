@@ -53,15 +53,19 @@ class CompensationController extends Controller
     public function selfRefund(Request $request)
     {
         $request->validate([
-            'booking_detail_id' => 'required|exists:booking_details,id'
+            'booking_detail_id' => 'required|exists:booking_details,id',
+            'is_full_refund' => 'nullable|boolean'
         ]);
+
+        $isFullRefund = $request->boolean('is_full_refund', false);
 
         DB::beginTransaction();
         try {
             $detail = BookingDetail::with('booking')->findOrFail($request->booking_detail_id);
             $booking = $detail->booking;
+            $user = $request->user();
 
-            if ($booking->user_id !== $request->user()->id) {
+            if ($booking->user_id !== $user->id) {
                 throw new \Exception('Bạn không có quyền với đơn hàng này.');
             }
             if ($booking->payment_status !== 'paid') {
@@ -74,48 +78,91 @@ class CompensationController extends Controller
                 throw new \Exception('Ghế đã check-in, không thể hoàn tiền.');
             }
 
-            $seat = Seat::findOrFail($detail->seat_id);
-            if ($seat->status !== 'broken') {
-                throw new \Exception('Ghế này không nằm trong diện sự cố. Vui lòng liên hệ nhân viên.');
-            }
+            if ($isFullRefund) {
+                $hasBrokenSeat = \App\Models\BookingDetail::join('seats', 'booking_details.seat_id', '=', 'seats.id')
+                    ->where('booking_details.booking_id', $booking->id)
+                    ->where('seats.status', 'broken')
+                    ->exists();
+                if (!$hasBrokenSeat) throw new \Exception('Không có ghế nào bị hỏng trong đơn hàng này.');
 
-            $refundAmount = (float) $detail->price;
-
-            $remainingDetails = $booking->bookingDetails()
-                ->where('id', '!=', $detail->id)
-                ->count();
-
-            DB::table('seat_holds')
-                ->where('showtime_id', $booking->showtime_id)
-                ->where('seat_id', $detail->seat_id)
-                ->where('user_id', $booking->user_id)
-                ->delete();
-
-            $detail->delete();
-
-            $booking->total_amount -= $refundAmount;
-            if ($remainingDetails === 0) {
+                $refundAmount = (float) $booking->total_amount;
+                
+                DB::table('seat_holds')
+                    ->where('showtime_id', $booking->showtime_id)
+                    ->where('user_id', $booking->user_id)
+                    ->delete();
+                
+                $booking->bookingDetails()->delete();
+                $booking->total_amount = 0;
                 $booking->booking_status = 'refunded';
                 $booking->payment_status = 'refunded';
+                $booking->save();
+            } else {
+                $seat = Seat::findOrFail($detail->seat_id);
+                if ($seat->status !== 'broken') {
+                    throw new \Exception('Ghế này không nằm trong diện sự cố. Vui lòng liên hệ nhân viên.');
+                }
+                
+                $refundAmount = (float) $detail->price;
+                $remainingDetails = $booking->bookingDetails()->where('id', '!=', $detail->id)->count();
+                
+                DB::table('seat_holds')->where('showtime_id', $booking->showtime_id)->where('seat_id', $detail->seat_id)->where('user_id', $booking->user_id)->delete();
+                $detail->delete();
+                
+                $booking->total_amount -= $refundAmount;
+                if ($remainingDetails === 0) {
+                    $booking->booking_status = 'refunded';
+                    $booking->payment_status = 'refunded';
+                }
+                $booking->save();
             }
-            $booking->save();
 
-            $user = $request->user();
-            app(WalletService::class)->credit(
-                $user,
-                $refundAmount,
-                "Hoàn tiền ghế hỏng {$seat->row}{$seat->number}. Đơn {$booking->booking_code}",
-                'refund',
-                $booking
-            );
+            // Thực hiện hoàn tiền
+            $refundedViaVNPay = false;
+            if ($booking->payment_method === 'vnpay' && $booking->vnp_transaction_date) {
+                try {
+                    app(\App\Services\VNPayService::class)->refund($booking, $refundAmount, !$isFullRefund);
+                    $refundedViaVNPay = true;
+                } catch (\Exception $e) {
+                    \Log::error("Manual VNPay Refund failed: " . $e->getMessage());
+                }
+            }
+
+            $message = '';
+            if ($refundedViaVNPay) {
+                $message = 'Đã hoàn ' . number_format($refundAmount) . 'đ qua VNPay.';
+            } else {
+                app(\App\Services\WalletService::class)->credit(
+                    $user,
+                    $refundAmount,
+                    $isFullRefund ? "Hoàn tiền toàn bộ đơn {$booking->booking_code} do sự cố" : "Hoàn tiền ghế hỏng. Đơn {$booking->booking_code}",
+                    'refund',
+                    $booking
+                );
+                $message = 'Đã hoàn ' . number_format($refundAmount) . 'đ vào Ví Tiền.';
+            }
+
+            // Tặng kèm Voucher 20%
+            $voucherCode = 'COMP' . strtoupper(substr(uniqid(), -5));
+            $voucher = \App\Models\Voucher::create([
+                'code' => $voucherCode,
+                'discount_type' => 'percentage',
+                'discount_value' => 20,
+                'expires_at' => now()->addDays(30),
+            ]);
+            \App\Models\UserVoucher::create([
+                'user_id' => $user->id,
+                'voucher_id' => $voucher->id,
+            ]);
+            $message .= " Tặng kèm Voucher 20% ({$voucherCode}) để xin lỗi.";
 
             DB::commit();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Đã hoàn tiền vào Ví Tiền thành công.',
+                'message' => $message,
                 'refund_amount' => $refundAmount,
-                'new_balance' => app(WalletService::class)->getBalance($user)
+                'new_balance' => app(\App\Services\WalletService::class)->getBalance($user)
             ]);
         } catch (\Exception $e) {
             DB::rollBack();

@@ -557,7 +557,20 @@ const confirmPayment = async () => {
     bookingStore.clearBooking();
   } catch (err) {
     console.error("Lỗi thanh toán:", err.response?.data || err);
-    alert(err.response?.data?.message || "Giao dịch thất bại. Vui lòng thử lại!");
+    const msg = err.response?.data?.message || "Giao dịch thất bại. Vui lòng thử lại!";
+    
+    await Swal.fire({
+      title: 'Thông báo',
+      text: msg,
+      icon: 'error',
+      confirmButtonColor: '#e50914'
+    });
+
+    if (err.response?.status === 400 && msg.includes('sự cố')) {
+      // Ghế bị lỗi/khóa, SeatHold đã bị xóa trên backend, đưa khách về chọn lại
+      bookingStore.clearBooking();
+      router.push('/');
+    }
   } finally {
     submitting.value = false;
   }

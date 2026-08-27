@@ -10,186 +10,84 @@
       </div>
 
       <nav class="sidebar-nav">
-        <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'stats' }" 
-          @click="activeTab = 'stats'"
-        >
-          <span class="nav-icon"><BarChart3 :size="20" /></span>
-          <span>Dashboard</span>
-        </button>
-
-        <!-- MOVIES DROPDOWN -->
+        <!-- 1. THỐNG KÊ & GIAO DỊCH -->
         <div class="nav-dropdown">
-          <button
-            class="nav-link dropdown-toggle"
-            :class="{
-              active: activeTab === 'movies' || activeTab === 'genres' || activeTab === 'banners' || activeTab === 'actors',
-            }"
-            @click="movieMenuOpen = !movieMenuOpen"
-          >
-            <div class="dropdown-left">
-              <span class="nav-icon"><Clapperboard :size="20" /></span>
-              <span>Quản Lý Phim</span>
-            </div>
-
-            <span class="dropdown-arrow" :class="{ open: movieMenuOpen }">
-              ▼
-            </span>
+          <button class="nav-link dropdown-toggle" :class="{ active: statMenuOpen }" @click="statMenuOpen = !statMenuOpen">
+            <div class="dropdown-left"><span class="nav-icon"><BarChart3 :size="20" /></span><span>Thống Kê & Báo Cáo</span></div>
+            <span class="dropdown-arrow" :class="{ open: statMenuOpen }">▼</span>
           </button>
+          <transition name="dropdown">
+            <div v-show="statMenuOpen" class="dropdown-content">
+              <button class="sub-nav-link" :class="{ active: activeTab === 'stats' }" @click="activeTab = 'stats'"><BarChart3 :size="15" style="vertical-align:-2px" /> Dashboard</button>
+              <button class="sub-nav-link" :class="{ active: activeTab === 'orders' }" @click="activeTab = 'orders'"><Receipt :size="15" style="vertical-align:-2px" /> Danh sách đơn hàng</button>
+              <button class="sub-nav-link" :class="{ active: activeTab === 'lookup' }" @click="activeTab = 'lookup'"><Search :size="15" style="vertical-align:-2px" /> Tra cứu & Hỗ trợ</button>
+              <button class="sub-nav-link" :class="{ active: activeTab === 'scan' }" @click="activeTab = 'scan'"><Camera :size="15" style="vertical-align:-2px" /> Quét mã QR / Soát vé</button>
+              <button class="sub-nav-link" :class="{ active: activeTab === 'payment_settings' }" @click="activeTab = 'payment_settings'"><Settings :size="15" style="vertical-align:-2px" /> Cấu hình thanh toán</button>
+            </div>
+          </transition>
+        </div>
 
+        <!-- 2. QUẢN LÝ PHIM -->
+        <div class="nav-dropdown">
+          <button class="nav-link dropdown-toggle" :class="{ active: movieMenuOpen }" @click="movieMenuOpen = !movieMenuOpen">
+            <div class="dropdown-left"><span class="nav-icon"><Clapperboard :size="20" /></span><span>Quản Lý Phim</span></div>
+            <span class="dropdown-arrow" :class="{ open: movieMenuOpen }">▼</span>
+          </button>
           <transition name="dropdown">
             <div v-show="movieMenuOpen" class="dropdown-content">
-              <button
-                class="sub-nav-link"
-                :class="{ active: activeTab === 'movies' }"
-                @click="activeTab = 'movies'"
-              >
-                <Clapperboard :size="15" style="vertical-align:-2px" /> Danh sách phim
-              </button>
-
-              <button
-                class="sub-nav-link"
-                :class="{ active: activeTab === 'genres' }"
-                @click="activeTab = 'genres'"
-              >
-                <Tag :size="15" style="vertical-align:-2px" /> Quản lý thể loại
-              </button>
-
-              <button
-                class="sub-nav-link"
-                :class="{ active: activeTab === 'actors' }"
-                @click="activeTab = 'actors'"
-              >
-                <Drama :size="15" style="vertical-align:-2px" /> Quản lý diễn viên
-              </button>
-
-              <button
-                class="sub-nav-link"
-                :class="{ active: activeTab === 'banners' }"
-                @click="activeTab = 'banners'"
-              >
-                <Image :size="15" style="vertical-align:-2px" /> Quản lý Banner
-              </button>
+              <button class="sub-nav-link" :class="{ active: activeTab === 'movies' }" @click="activeTab = 'movies'"><Clapperboard :size="15" style="vertical-align:-2px" /> Danh sách phim</button>
+              <button class="sub-nav-link" :class="{ active: activeTab === 'genres' }" @click="activeTab = 'genres'"><Tag :size="15" style="vertical-align:-2px" /> Quản lý thể loại</button>
+              <button class="sub-nav-link" :class="{ active: activeTab === 'actors' }" @click="activeTab = 'actors'"><Drama :size="15" style="vertical-align:-2px" /> Quản lý diễn viên</button>
+              <button class="sub-nav-link" :class="{ active: activeTab === 'banners' }" @click="activeTab = 'banners'"><Image :size="15" style="vertical-align:-2px" /> Quản lý Banner</button>
             </div>
           </transition>
         </div>
-        
-        <button 
-          class="nav-link" 
-          :class="{ active: activeTab === 'showtimes' }" 
-          @click="activeTab = 'showtimes'"
-        >
-          <span class="nav-icon"><Clock :size="20" /></span>
-          <span>Quản Lý Lịch Chiếu</span>
-        </button>
 
-        <!-- ORDERS DROPDOWN -->
-        <button
-          class="nav-link"
-          :class="{ active: activeTab === 'pricing' }"
-          @click="activeTab = 'pricing'"
-        >
-          <span class="nav-icon"><CircleDollarSign :size="20" /></span>
-          <span>Cấu Hình Giá</span>
-        </button>
-        
+        <!-- 3. LỊCH CHIẾU & GIÁ VÉ -->
         <div class="nav-dropdown">
-          <button
-            class="nav-link dropdown-toggle"
-            :class="{
-              active: activeTab === 'orders' || activeTab === 'lookup' || activeTab === 'scan',
-            }"
-            @click="orderMenuOpen = !orderMenuOpen"
-          >
-            <div class="dropdown-left">
-              <span class="nav-icon"><Receipt :size="20" /></span>
-              <span>Quản Lý Đơn Hàng</span>
-            </div>
-
-            <span class="dropdown-arrow" :class="{ open: orderMenuOpen }">
-              ▼
-            </span>
+          <button class="nav-link dropdown-toggle" :class="{ active: pricingMenuOpen }" @click="pricingMenuOpen = !pricingMenuOpen">
+            <div class="dropdown-left"><span class="nav-icon"><Clock :size="20" /></span><span>Lịch Chiếu & Giá Vé</span></div>
+            <span class="dropdown-arrow" :class="{ open: pricingMenuOpen }">▼</span>
           </button>
-
           <transition name="dropdown">
-            <div v-show="orderMenuOpen" class="dropdown-content">
-              <button
-                class="sub-nav-link"
-                :class="{ active: activeTab === 'orders' }"
-                @click="activeTab = 'orders'"
-              >
-                <Receipt :size="15" style="vertical-align:-2px" /> Danh sách đơn hàng
-              </button>
+            <div v-show="pricingMenuOpen" class="dropdown-content">
+              <button class="sub-nav-link" :class="{ active: activeTab === 'showtimes' }" @click="activeTab = 'showtimes'"><Clock :size="15" style="vertical-align:-2px" /> Lịch chiếu phim</button>
+              <button class="sub-nav-link" :class="{ active: activeTab === 'pricing' }" @click="activeTab = 'pricing'"><CircleDollarSign :size="15" style="vertical-align:-2px" /> Cấu hình giá</button>
+            </div>
+          </transition>
+        </div>
 
-              <button
-                class="sub-nav-link"
-                :class="{ active: activeTab === 'lookup' }"
-                @click="activeTab = 'lookup'"
-              >
-                <Search :size="15" style="vertical-align:-2px" /> Tra cứu & Hỗ trợ
-              </button>
-
-              <button
-                class="sub-nav-link"
-                :class="{ active: activeTab === 'scan' }"
-                @click="activeTab = 'scan'"
-              >
-                <Camera :size="15" style="vertical-align:-2px" /> Quét mã QR / Soát vé
-              </button>
-
-              <button
-                class="sub-nav-link"
-                :class="{ active: activeTab === 'payment_settings' }"
-                @click="activeTab = 'payment_settings'"
-              >
-                <Settings :size="15" style="vertical-align:-2px" /> Cấu hình thanh toán
+        <!-- 4. TÀI KHOẢN & VẬN HÀNH -->
+        <div class="nav-dropdown">
+          <button class="nav-link dropdown-toggle" :class="{ active: userMenuOpen }" @click="userMenuOpen = !userMenuOpen">
+            <div class="dropdown-left"><span class="nav-icon"><Users :size="20" /></span><span>Tài Khoản & Vận Hành</span></div>
+            <span class="dropdown-arrow" :class="{ open: userMenuOpen }">▼</span>
+          </button>
+          <transition name="dropdown">
+            <div v-show="userMenuOpen" class="dropdown-content">
+              <button class="sub-nav-link" :class="{ active: activeTab === 'users' }" @click="activeTab = 'users'"><Users :size="15" style="vertical-align:-2px" /> Quản lý tài khoản</button>
+              <button class="sub-nav-link" :class="{ active: activeTab === 'loyalty' }" @click="activeTab = 'loyalty'"><Star :size="15" style="vertical-align:-2px" /> Tích điểm khách hàng</button>
+              <button class="sub-nav-link" :class="{ active: activeTab === 'monitor' }" @click="activeTab = 'monitor'">
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-monitor" style="vertical-align:-2px"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg> Giám sát vận hành
               </button>
             </div>
           </transition>
         </div>
 
-                <button 
-  class="nav-link" 
-  :class="{ active: activeTab === 'rooms' }" 
-  @click="activeTab = 'rooms'"
->
-  <span class="nav-icon"><Building2 :size="20" /></span>
-  <span>Quản Lý Phòng Chiếu & Ghế</span>
-</button>
-
-<button 
-  class="nav-link" 
-  :class="{ active: activeTab === 'monitor' }" 
-  @click="activeTab = 'monitor'"
->
-  <span class="nav-icon"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-monitor"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg></span>
-  <span>Giám Sát Vận Hành</span>
-</button>
-
-        <button
-          class="nav-link"
-          :class="{ active: activeTab === 'users' }"
-          @click="activeTab = 'users'"
-        >
-          <span class="nav-icon"><Users :size="20" /></span>
-          <span>Quản Lý Tài Khoản</span>
+        <!-- CÁC CHỨC NĂNG CÒN LẠI -->
+        <button class="nav-link" :class="{ active: activeTab === 'rooms' }" @click="activeTab = 'rooms'">
+          <span class="nav-icon"><Building2 :size="20" /></span>
+          <span>Phòng Chiếu & Ghế</span>
         </button>
 
-
-         <button class="nav-link" :class="{ active: activeTab === 'combos' }" @click="activeTab = 'combos'">
+        <button class="nav-link" :class="{ active: activeTab === 'combos' }" @click="activeTab = 'combos'">
           <span class="nav-icon"><Popcorn :size="20" /></span>
-          <span>Quản Lý Đồ Ăn Và Combo</span>
+          <span>Đồ Ăn & Combo</span>
         </button>
          
         <button class="nav-link" :class="{ active: activeTab === 'vouchers' }" @click="activeTab = 'vouchers'">
           <span class="nav-icon"><Ticket :size="20" /></span>
-          <span>Quản Lý Mã Giảm Giá</span>
-        </button>
-
-        <button class="nav-link" :class="{ active: activeTab === 'loyalty' }" @click="activeTab = 'loyalty'">
-          <span class="nav-icon"><Star :size="20" /></span>
-          <span>Quản Lý Tích Điểm Khách Hàng</span>
+          <span>Mã Giảm Giá</span>
         </button>
 
         <button class="nav-link" :class="{ active: activeTab === 'wallet' }" @click="activeTab = 'wallet'">
@@ -199,7 +97,7 @@
 
         <button class="nav-link" :class="{ active: activeTab === 'reviews' }" @click="activeTab = 'reviews'">
           <span class="nav-icon"><Star :size="20" /></span>
-          <span>Quản Lý Đánh Giá</span>
+          <span>Đánh Giá Khách Hàng</span>
         </button>
 
         <!-- BLOG DROPDOWN -->
@@ -732,11 +630,19 @@ const blogMenuOpen = ref(
 );
 
 const movieMenuOpen = ref(
-  activeTab.value === 'movies' || activeTab.value === 'banners' || activeTab.value === 'actors'
+  ['movies', 'banners', 'actors', 'genres'].includes(activeTab.value)
 );
 
-const orderMenuOpen = ref(
-  activeTab.value === 'orders' || activeTab.value === 'lookup' || activeTab.value === 'scan'
+const statMenuOpen = ref(
+  ['stats', 'orders', 'lookup', 'scan', 'payment_settings'].includes(activeTab.value)
+);
+
+const pricingMenuOpen = ref(
+  ['showtimes', 'pricing'].includes(activeTab.value)
+);
+
+const userMenuOpen = ref(
+  ['users', 'monitor', 'loyalty'].includes(activeTab.value)
 );
 
 watch(activeTab, (newVal) => {
@@ -744,11 +650,17 @@ watch(activeTab, (newVal) => {
   if (newVal !== 'blogs' && newVal !== 'blog-categories') {
     blogMenuOpen.value = false;
   }
-  if (newVal !== 'movies' && newVal !== 'banners' && newVal !== 'actors') {
+  if (!['movies', 'banners', 'actors', 'genres'].includes(newVal)) {
     movieMenuOpen.value = false;
   }
-  if (newVal !== 'orders' && newVal !== 'lookup' && newVal !== 'scan') {
-    orderMenuOpen.value = false;
+  if (!['stats', 'orders', 'lookup', 'scan', 'payment_settings'].includes(newVal)) {
+    statMenuOpen.value = false;
+  }
+  if (!['showtimes', 'pricing'].includes(newVal)) {
+    pricingMenuOpen.value = false;
+  }
+  if (!['users', 'monitor', 'loyalty'].includes(newVal)) {
+    userMenuOpen.value = false;
   }
 });
 const moviesCount = ref(0);

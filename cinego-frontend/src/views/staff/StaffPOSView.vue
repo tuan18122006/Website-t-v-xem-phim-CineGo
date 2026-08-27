@@ -237,7 +237,7 @@
 
     <transition name="fade">
       <div v-if="success" class="ov-backdrop">
-        <div class="done">
+        <div class="success-pane">
           <div class="done-glow"></div>
           <div class="done-check">✓</div>
           <h3>Đặt vé thành công!</h3>
@@ -771,15 +771,16 @@ watch([step, selected, comboQty, payment, moviePage], () => { if (ready) persist
   backdrop-filter: blur(6px);
 }
 
-.steps { display: flex; list-style: none; padding: 0; margin: 0 0 24px; gap: 4px; flex-wrap: wrap; position: relative; }
-.step { display: flex; align-items: center; gap: 9px; padding: 6px 14px 6px 6px; border-radius: 999px; opacity: 0.5; transition: 0.25s; }
+.steps { display: flex; list-style: none; padding: 0; margin: 0 0 20px; gap: 2px; flex-wrap: nowrap; overflow-x: auto; position: relative; scrollbar-width: none; }
+.steps::-webkit-scrollbar { display: none; }
+.step { display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: 999px; opacity: 0.5; transition: 0.25s; flex-shrink: 0; }
 .step.current { opacity: 1; background: rgba(229, 9, 20, 0.14); box-shadow: inset 0 0 0 1px rgba(229, 9, 20, 0.35); }
 .step.done { opacity: 1; }
 .step.clickable { cursor: pointer; }
-.step-dot { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 900; color: #2a1416; background: #5b4a4d; flex-shrink: 0; transition: 0.25s; }
-.step.current .step-dot { background: linear-gradient(135deg, var(--gold), #e0a63a); color: #3a2500; box-shadow: 0 0 14px rgba(245, 194, 73, 0.6); }
+.step-dot { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 10px; font-weight: 900; color: #2a1416; background: #5b4a4d; flex-shrink: 0; transition: 0.25s; }
+.step.current .step-dot { background: linear-gradient(135deg, var(--gold), #e0a63a); color: #3a2500; box-shadow: 0 0 12px rgba(245, 194, 73, 0.6); }
 .step.done .step-dot { background: linear-gradient(135deg, var(--red), var(--red-deep)); color: #fff; }
-.step-label { font-size: 13px; font-weight: 800; white-space: nowrap; }
+.step-label { font-size: 11px; font-weight: 800; white-space: nowrap; }
 
 .pane-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px; border-bottom: 1px solid var(--line); padding-bottom: 12px; }
 .pane-head h3 { font-size: 19px; font-weight: 900; letter-spacing: 0.3px; }
@@ -818,23 +819,23 @@ watch([step, selected, comboQty, payment, moviePage], () => { if (ready) persist
 .screen { position: relative; height: 30px; border-radius: 60% 60% 10px 10px / 100% 100% 10px 10px; background: linear-gradient(180deg, #f4eef0, #b9b1b3 60%, #6f696b); box-shadow: 0 -3px 34px rgba(245, 194, 73, 0.55), 0 6px 16px rgba(0, 0, 0, 0.5); display: grid; place-items: center; }
 .screen span { font-size: 11px; font-weight: 900; letter-spacing: 8px; color: #2a2224; }
 
-.seatmap { display: flex; flex-direction: column; gap: 8px; align-items: center; overflow-x: auto; padding-bottom: 8px; }
-.seat-row { display: flex; align-items: center; gap: 12px; }
-.row-label { width: 16px; text-align: center; font-size: 11px; font-weight: 800; color: var(--muted); }
-.seat-line { display: flex; gap: 6px; }
+.seatmap { display: flex; flex-direction: column; gap: 5px; align-items: center; overflow-x: auto; padding-bottom: 6px; }
+.seat-row { display: flex; align-items: center; gap: 7px; }
+.row-label { width: 13px; text-align: center; font-size: 9px; font-weight: 800; color: var(--muted); }
+.seat-line { display: flex; gap: 4px; }
 .seat {
-  width: 30px; height: 30px; border: none; cursor: pointer; font-size: 10px; font-weight: 800; color: #2a2224;
-  border-radius: 7px 7px 5px 5px; transition: 0.12s; position: relative;
+  width: 23px; height: 23px; border: none; cursor: pointer; font-size: 8px; font-weight: 800; color: #2a2224;
+  border-radius: 5px 5px 4px 4px; transition: 0.12s; position: relative;
   background: #4a4145; color: #2a2224;
-  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25);
 }
 .seat--standard { background: #8fa4e6; }
 .seat--vip { background: #e9b866; }
 .seat--couple { background: #e884b7; }
-.seat:hover:not(:disabled) { transform: translateY(-3px); filter: brightness(1.08); }
+.seat:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.08); }
 .seat.sold, .seat.holding, .seat.broken { background: #362d31; color: #5a4e52; cursor: not-allowed; box-shadow: none; }
 .seat.broken { background: repeating-linear-gradient(45deg, #362d31, #362d31 3px, #241d20 3px, #241d20 6px); }
-.seat.picked { background: linear-gradient(135deg, var(--gold), #e0a63a); color: #3a2500; box-shadow: 0 0 16px rgba(245, 194, 73, 0.7), inset 0 -3px 0 rgba(0, 0, 0, 0.2); transform: translateY(-2px); }
+.seat.picked { background: linear-gradient(135deg, var(--gold), #e0a63a); color: #3a2500; box-shadow: 0 0 12px rgba(245, 194, 73, 0.7), inset 0 -2px 0 rgba(0, 0, 0, 0.2); transform: translateY(-2px); }
 
 .legend { display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin-top: 22px; font-size: 12px; color: var(--muted); }
 .legend .dot { width: 13px; height: 13px; border-radius: 4px; display: inline-block; margin-right: 5px; vertical-align: -2px; }
@@ -952,7 +953,7 @@ watch([step, selected, comboQty, payment, moviePage], () => { if (ready) persist
 .stub-note { text-align: center; font-size: 10.5px; color: #8a7d80; margin-top: 10px; }
 
 .ov-backdrop { position: fixed; inset: 0; z-index: 2000; background: rgba(10, 6, 7, 0.66); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; padding: 20px; }
-.done { position: relative; background: linear-gradient(180deg, #241a1c, #160f11); border: 1px solid rgba(245, 194, 73, 0.25); border-radius: 22px; padding: 40px 36px; text-align: center; max-width: 390px; width: 100%; overflow: hidden; }
+.success-pane { position: relative; background: linear-gradient(180deg, #241a1c, #160f11); border: 1px solid rgba(245, 194, 73, 0.25); border-radius: 22px; padding: 40px 36px; text-align: center; max-width: 390px; width: 100%; overflow: hidden; }
 .done-glow { position: absolute; top: -60px; left: 50%; transform: translateX(-50%); width: 240px; height: 240px; background: radial-gradient(circle, rgba(16, 185, 129, 0.35), transparent 70%); }
 .done-check { position: relative; width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-size: 40px; display: grid; place-items: center; margin: 0 auto 18px; box-shadow: 0 0 30px rgba(16, 185, 129, 0.6); animation: pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
 @keyframes pop { from { transform: scale(0); } }

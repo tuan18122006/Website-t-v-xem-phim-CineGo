@@ -20,7 +20,11 @@
           <p class="wdm-info">
             <strong>{{ w.user?.name }}</strong> ({{ w.user?.email || w.user?.phone || 'N/A' }})
           </p>
-          <p class="wdm-info">{{ w.bank_name }} · TK {{ w.bank_account }} · {{ w.bank_holder }}</p>
+          <p class="wdm-info" v-if="w.bank_name !== 'QR Code'">{{ w.bank_name }} · TK {{ w.bank_account }} · {{ w.bank_holder }}</p>
+          <div v-if="w.qr_image" style="margin-top: 10px; margin-bottom: 5px;">
+            <img :src="getQrImageUrl(w.qr_image)" alt="QR Code" style="max-width: 150px; border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer;" @click="viewFullImage(w)" />
+            <p style="font-size: 11px; color: #64748b; margin-top: 4px;">Click để xem ảnh lớn</p>
+          </div>
           <p class="wdm-time">Yêu cầu lúc: {{ formatDateTime(w.created_at) }}</p>
           <p v-if="w.admin_note" class="wdm-note">Ghi chú: {{ w.admin_note }}</p>
         </div>
@@ -64,6 +68,35 @@ const formatCurrency = (val) => parseInt(val || 0).toLocaleString("vi-VN") + "đ
 const formatDateTime = (dateStr) => {
   if (!dateStr) return "";
   return new Date(dateStr).toLocaleString("vi-VN");
+};
+
+const getQrImageUrl = (path) => {
+  if (!path) return '';
+  return `http://localhost:8000/storage/${path}`;
+};
+
+const viewFullImage = (w) => {
+  const url = getQrImageUrl(w.qr_image);
+  Swal.fire({
+    title: 'Chi Tiết Giao Dịch Chuyển Khoản',
+    html: `
+      <div style="text-align: left; font-size: 14px; line-height: 1.6; color: #334155; margin-bottom: 20px; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
+        <p style="margin:0 0 5px 0;"><strong>Khách hàng:</strong> ${w.user?.name} (${w.user?.email || w.user?.phone || 'N/A'})</p>
+        <p style="margin:0 0 5px 0;"><strong>Số tiền rút:</strong> <span style="color:#ef4444; font-weight:bold; font-size:16px;">${formatCurrency(w.amount)}</span></p>
+        <p style="margin:0 0 5px 0;"><strong>Ngân hàng:</strong> ${w.bank_name !== 'QR Code' ? w.bank_name : 'Không nhập (Quét QR)'}</p>
+        <p style="margin:0 0 5px 0;"><strong>Số tài khoản:</strong> ${w.bank_account !== 'QR Code' ? w.bank_account : 'Không nhập (Quét QR)'}</p>
+        <p style="margin:0;"><strong>Chủ tài khoản:</strong> ${w.bank_holder !== 'QR Code' ? w.bank_holder : 'Không nhập (Quét QR)'}</p>
+      </div>
+      <div>
+        <p style="font-weight: 600; margin-bottom: 10px; color: #0f172a;">Ảnh QR Khách tải lên:</p>
+        <img src="${url}" alt="QR Code" style="max-width: 100%; max-height: 50vh; object-fit: contain; border-radius: 8px; border: 1px solid #cbd5e1; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);" />
+      </div>
+    `,
+    showConfirmButton: true,
+    confirmButtonText: 'Đóng',
+    confirmButtonColor: '#3b82f6',
+    width: '550px',
+  });
 };
 
 const fetchList = async (page = 1) => {

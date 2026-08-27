@@ -419,7 +419,9 @@ onMounted(() => {
 
 .movie-poster {
   width: 100%;
-  height: auto;
+  height: 100%;
+  aspect-ratio: 2/3;
+  object-fit: cover;
   display: block;
   transition: transform 0.3s ease;
 }
