@@ -142,10 +142,7 @@
                 <td class="ta-right action-buttons-cell">
                   <button class="btn-action-icon" title="Hồ sơ 360" @click="openDetail(u)"><IconEye /></button>
                   <button class="btn-action-icon" title="Chỉnh sửa" @click="openEdit(u)"><IconEdit /></button>
-                  <button v-if="activeSection === 'customer'" class="btn-action-text mint" @click="promoteToStaff(u)">
-                    <IconUserPlus /> Lên Nhân viên
-                  </button>
-                  <template v-else>
+                  <template v-if="activeSection !== 'customer'">
                     <button class="btn-action-text red" @click="changeRole(u, 'admin')"><IconArrowUp /> Lên Admin</button>
                     <button class="btn-action-text" @click="changeRole(u, 'customer')"><IconArrowDown /> Xuống Khách</button>
                   </template>
@@ -1051,12 +1048,6 @@ const toggleStatus = async (u) => {
     u.lock_reason = originalReason;
     error.value = 'Không đổi được trạng thái.'; 
   }
-};
-
-const promoteToStaff = async (u) => {
-  const confirmed = await showCustomConfirm('Nâng cấp tài khoản', `Nâng cấp "${u.name}" lên Nhân viên (Staff)?`);
-  if (!confirmed) return;
-  await changeRole(u, 'staff');
 };
 
 const changeRole = async (u, role) => {
