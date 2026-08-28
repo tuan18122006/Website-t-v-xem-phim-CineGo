@@ -24,6 +24,7 @@ class RoomController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:500',
             'rows' => 'required|integer|max:10',
             'cols' => 'required|integer|min:1|max:14',
         ], [
@@ -33,6 +34,7 @@ class RoomController extends Controller
 
         $room = Room::create([
             'name' => $request->name,
+            'description' => $request->description,
             'total_seats' => $request->rows * $request->cols,
             'status' => 'active',
             'layout' => [

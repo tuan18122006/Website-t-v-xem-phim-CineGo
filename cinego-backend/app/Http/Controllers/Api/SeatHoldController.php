@@ -144,18 +144,9 @@ class SeatHoldController extends Controller
                     ->where('user_id', $userId)
                     ->where('showtime_id', $request->showtime_id)
                     ->where('confirmed_at', '>', $now->copy()->subMinutes(self::CHECKOUT_HOLD_MINUTES))
-                    ->get();
+                    ->first();
 
-                $sameSeatsConfirmed = $recentlyConfirmed->contains(function ($record) use ($seatIds) {
-                    $recordedSeats = is_array($record->seat_ids) ? $record->seat_ids : json_decode($record->seat_ids ?? '[]', true);
-                    $recordedSeats = array_map('intval', (array) $recordedSeats);
-                    $currentSeats = array_map('intval', $seatIds);
-                    sort($recordedSeats);
-                    sort($currentSeats);
-                    return $recordedSeats === $currentSeats;
-                });
-
-                if ($sameSeatsConfirmed) {
+                if ($recentlyConfirmed) {
                     $currentExpiresAt = DB::table('seat_holds')
                         ->where('user_id', $userId)
                         ->where('showtime_id', $request->showtime_id)

@@ -374,6 +374,7 @@ class ShowtimeController extends Controller
             return [
                 'roomId' => $room->id,
                 'roomName' => $room->name,
+                'room_description' => $room->description,
                 'showtimes' => $items->map(function ($showtime) use ($totalSeats) {
                     $now = Carbon::now();
 
@@ -397,6 +398,7 @@ class ShowtimeController extends Controller
                         'start_time_full' => \Carbon\Carbon::parse($showtime->start_time)->toISOString(),
                         'available_seats' => $available,
                         'room_name' => $showtime->room->name,
+                        'room_description' => $showtime->room->description,
                         'is_sneak_show' => $showtime->is_sneak_show,
                     ];
                 })->values()
@@ -466,6 +468,7 @@ class ShowtimeController extends Controller
                         'translation' => $st->translation,
                         'room_id' => $st->room_id,
                         'room_name' => $st->room->name,
+                        'room_description' => $st->room->description,
                         'is_sneak_show' => $st->is_sneak_show
                     ];
                 })->values()

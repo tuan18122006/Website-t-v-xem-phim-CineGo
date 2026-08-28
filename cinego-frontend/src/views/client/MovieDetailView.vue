@@ -66,7 +66,7 @@
         <div v-for="room in showtimesByRoom" :key="room.roomId" class="room-row glass-panel">
           <div class="room-info">
             <h3 class="room-name">{{ room.roomName }}</h3>
-            <span class="room-type">Phòng chiếu 2D & Âm thanh Dolby Atmos</span>
+            <span class="room-type">{{ room.room_description || 'Phòng chiếu 2D & Âm thanh Dolby Atmos' }}</span>
           </div>
 
           <div class="showtimes-grid">
@@ -228,6 +228,7 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useBookingStore } from '../../stores/booking';
 import api from '../../api/axios';
+import Swal from 'sweetalert2';
 
 const route = useRoute();
 const router = useRouter();
@@ -604,7 +605,7 @@ watch(() => route.query.review, () => {
   handleAutoScrollToReview();
 });
 
-const proceedToSeatSelection = () => {
+const proceedToSeatSelection = async () => {
   if (selectedShowtime.value) {
     const formattedShowtime = {
       ...selectedShowtime.value,
@@ -613,13 +614,79 @@ const proceedToSeatSelection = () => {
     };
     const storedShowtime = bookingStore.selectedShowtime;
     const isSameShowtime = storedShowtime && storedShowtime.id === formattedShowtime.id && storedShowtime.date === formattedShowtime.date;
+
+    if (!isSameShowtime && bookingStore.selectedSeats.length > 0 && bookingStore.holdExpiresAt && bookingStore.holdExpiresAt > Date.now()) {
+      const seatLabels = bookingStore.selectedSeats.map(s => s.row + s.number).join(', ');
+      const result = await Swal.fire({
+        title: 'Đang giữ ghế cho suất chiếu khác',
+        html: '<div style="text-align: left; font-size: 14px;">' +
+          '<p style="margin: 6px 0;"><strong>Phim:</strong> ' + (bookingStore.selectedMovie?.title || '') + '</p>' +
+          '<p style="margin: 6px 0;"><strong>Suất:</strong> ' + (storedShowtime?.start_time?.substring(0, 5) || '') + ' - ' + (storedShowtime?.dateLabel || '') + '</p>' +
+          '<p style="margin: 6px 0;"><strong>Ghế:</strong> ' + seatLabels + '</p>' +
+          '<p style="margin: 10px 0 0; color: #ef4444; font-style: italic;">Nếu chuyển suất, những ghế này sẽ được giải phóng.</p>' +
+          '</div>',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Hủy giữ ghế & chuyển suất',
+        cancelButtonText: 'Giữ nguyên',
+        reverseButtons: true
+      });
+
+      if (!result.isConfirmed) return;
+
+      try {
+        const seatIds = bookingStore.selectedSeats.map(s => s.id);
+        await Promise.allSettled(
+          seatIds.map(seatId =>
+            api.post('/seat-holds/release', { showtime_id: storedShowtime.id, seat_id: seatId })
+          )
+        );
+      } catch (e) {
+        console.error('Lỗi giải phóng ghế:', e);
+      }
+    }
+
     if (!isSameShowtime) {
-    
       if (!bookingStore.selectedMovie || bookingStore.selectedMovie.id != movie.value?.id) {
         bookingStore.selectMovie(movie.value);
       }
       bookingStore.selectShowtime(formattedShowtime);
     }
+
+    try {
+      const pendingCheck = await api.get('/payments/check-pending', {
+        params: { showtime_id: formattedShowtime.id }
+      });
+
+      if (pendingCheck.data?.has_pending) {
+        const old = pendingCheck.data;
+        const seatList = (old.seats || []).join(', ');
+        const showtimeInfo = old.showtime_info ? ` (${old.showtime_info})` : '';
+
+        const { isConfirmed } = await Swal.fire({
+          title: 'Bạn có đơn thanh toán lại chưa hoàn tất',
+          html: `Đơn <b>${old.booking_code}</b>${showtimeInfo} (ghế: <b>${seatList}</b>) vẫn đang chờ thanh toán.<br/><br/>Tạo đơn mới sẽ <b>hủy đơn cũ</b>. Bạn có chắc muốn tiếp tục?`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Đồng ý, hủy đơn cũ',
+          cancelButtonText: 'Quay lại',
+          confirmButtonColor: '#e50914',
+          reverseButtons: true,
+        });
+
+        if (!isConfirmed) return;
+
+        await api.post('/payments/cancel-pending', {
+          showtime_id: formattedShowtime.id,
+          seat_ids: bookingStore.selectedSeats.map(s => s.id),
+        });
+      }
+    } catch (e) {
+      console.error('Lỗi kiểm tra đơn pending:', e);
+    }
+
     if (route.query.mode === 'pos') {
       router.push({ path: '/booking/seats', query: { mode: 'pos' } });
     } else {

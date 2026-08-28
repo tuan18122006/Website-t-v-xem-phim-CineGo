@@ -672,8 +672,8 @@ const proceedToPayment = async () => {
       seat_ids: bookingStore.selectedSeats.map((s) => s.id),
     });
 
-    bookingStore.setHoldExpiry(10);
     bookingStore.holdExpiresAt = Date.parse(response.data.expires_at);
+    localStorage.setItem('cinego_holdExpiresAt', Date.parse(response.data.expires_at));
     startTimer();
 
     if (route.query.mode === 'pos') {

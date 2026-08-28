@@ -12,6 +12,7 @@
           <tr>
             <th>ID</th>
             <th>Tên Phòng Chiếu</th>
+            <th>Mô Tả</th>
             <th>Tổng Ghế</th>
             <th>Trạng thái</th>
             <th>Hành Động</th>
@@ -21,6 +22,7 @@
           <tr v-for="room in rooms" :key="room.id" class="table-row">
             <td>#{{ room.id }}</td>
             <td class="cell-title">{{ room.name }}</td>
+            <td class="cell-title">{{ room.description || '—' }}</td>
             <td>{{ room.total_seats }}</td>
             <td><span class="status-pill-cine active">Đang hoạt động</span></td>
             <td>
@@ -46,6 +48,11 @@
             <label>Tên Phòng Chiếu</label>
             <input v-model="newRoomName" placeholder="Ví dụ: Phòng 01" class="input-cine" />
             <span v-if="errors.newRoomName" class="error-msg">{{ errors.newRoomName[0] }}</span>
+          </div>
+          <div class="form-group-cine">
+            <label>Mô tả phòng chiếu</label>
+            <textarea v-model="newRoomDescription" placeholder="Ví dụ: Phòng chiếu 2D & Âm thanh Dolby Atmos" class="input-cine" rows="2"></textarea>
+            <span v-if="errors.newRoomDescription" class="error-msg">{{ errors.newRoomDescription[0] }}</span>
           </div>
           <div class="grid-inputs">
             <div class="form-group-cine">
@@ -81,6 +88,7 @@ const router = useRouter();
 const rooms = ref([]);
 const isCreateModalOpen = ref(false);
 const newRoomName = ref('');
+const newRoomDescription = ref('');
 const newRows = ref(5);
 const newCols = ref(10);
 
@@ -99,6 +107,11 @@ const validateForm = () => {
 
   if (!newRoomName.value || newRoomName.value.trim() === '') {
     errors.value.newRoomName = ['Vui lòng nhập tên phòng chiếu.'];
+    isValid = false;
+  }
+
+  if (newRoomDescription.value && newRoomDescription.value.length > 500) {
+    errors.value.newRoomDescription = ['Mô tả tối đa 500 ký tự.'];
     isValid = false;
   }
 
@@ -126,6 +139,7 @@ const saveRoom = async () => {
   try {
     await api.post('admin/rooms', {
       name: newRoomName.value,
+      description: newRoomDescription.value || null,
       rows: newRows.value,
       cols: newCols.value
     });
