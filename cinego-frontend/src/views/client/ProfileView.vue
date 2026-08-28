@@ -169,14 +169,33 @@
             
             <div v-if="loadingWallet" class="cinego-loading" style="padding: 30px; text-align: center;">Đang tải thông tin ví...</div>
             <div v-else>
-              <div style="background: linear-gradient(135deg, #1e293b, #0f172a); border-radius: 12px; padding: 24px; color: white; display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);">
-                <div>
-                  <p style="margin: 0; font-size: 14px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">Số dư hiện tại</p>
-                  <p style="margin: 8px 0 0; font-size: 32px; font-weight: 700; color: #fff;">{{ formatPrice(walletData.balance || 0) }}đ</p>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
+                <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; padding: 28px; color: white; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); position: relative; overflow: hidden;">
+                  <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.05); border-radius: 50%;"></div>
+                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                    <div style="width: 40px; height: 40px; background: rgba(34,197,94,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    </div>
+                    <p style="margin: 0; font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Số dư hiện tại</p>
+                  </div>
+                  <p style="margin: 0 0 20px; font-size: 36px; font-weight: 800; color: #fff; letter-spacing: -1px;">{{ formatPrice(walletData.balance || 0) }}<span style="font-size: 18px; font-weight: 600; opacity: 0.8;">đ</span></p>
+                  <button @click="openWithdrawModal" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(239,68,68,0.3);">
+                    Rút Tiền
+                  </button>
                 </div>
-                <button @click="openWithdrawModal" style="background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s;">
-                  Rút Tiền
-                </button>
+                <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 16px; padding: 28px; color: white; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); position: relative; overflow: hidden;">
+                  <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
+                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                    <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    </div>
+                    <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Điểm CinePoints</p>
+                  </div>
+                  <p style="margin: 0 0 20px; font-size: 36px; font-weight: 800; color: #fff; letter-spacing: -1px;">{{ profileForm.cine_points || 0 }}<span style="font-size: 14px; font-weight: 600; opacity: 0.8; margin-left: 4px;">điểm</span></p>
+                  <button @click="activeTab = 'loyalty'" style="display: block; text-align: center; background: linear-gradient(135deg, #fff, #fef3c7); color: #92400e; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%;">
+                    Đổi Điểm
+                  </button>
+                </div>
               </div>
 
               <h4>Lịch sử giao dịch ví</h4>
@@ -321,7 +340,7 @@
                 </div>
               </div>
               <div v-else class="text-center empty-msg" style="padding: 40px; color: #94a3b8;">
-                <p style="font-size: 32px; margin-bottom: 8px;">🎬</p>
+                <p style="font-size: 32px; margin-bottom: 8px;"></p>
                 Hiện chưa có Voucher nào hỗ trợ đổi bằng điểm.
               </div>
             </div>
@@ -347,7 +366,7 @@
                 </div>
               </div>
               <div v-else class="text-center empty-msg" style="padding: 40px; color: #94a3b8;">
-                <p style="font-size: 32px; margin-bottom: 8px;">🍿</p>
+                <p style="font-size: 32px; margin-bottom: 8px;"></p>
                 Hiện chưa có Combo bắp nước nào hỗ trợ đổi bằng điểm.
               </div>
             </div>
@@ -427,13 +446,13 @@
                    :class="{'unread': notif.read_at === null}"
                    @click="markAsRead(notif.id)">
                 <div class="notif-page-icon">
-                  {{ notif.data.type === 'booking_confirmed' ? '🎟️'
-                    : notif.data.type === 'withdrawal_completed' ? '💸'
-                    : notif.data.type === 'withdrawal_rejected' ? '🚫'
-                    : notif.data.type === 'wallet_credit' ? '💰'
-                    : notif.data.type === 'seat_incident' ? '⚠️'
-                    : notif.data.type === 'compensation' ? '💵'
-                    : '🎁' }}
+                  {{ notif.data.type === 'booking_confirmed' ? ''
+                    : notif.data.type === 'withdrawal_completed' ? ''
+                    : notif.data.type === 'withdrawal_rejected' ? ''
+                    : notif.data.type === 'wallet_credit' ? ''
+                    : notif.data.type === 'seat_incident' ? ''
+                    : notif.data.type === 'compensation' ? ''
+                    : '' }}
                 </div>
                 <div class="notif-page-content">
                   <p class="notif-page-title" v-if="notif.data.title" style="font-weight: 700; margin: 0 0 4px 0; font-size: 14px; color: #0f172a;">{{ notif.data.title }}</p>
@@ -1488,6 +1507,7 @@ const withdrawQrFile = ref(null);
 
 // Dữ liệu cho Ví Voucher
 const loadingMyVouchers = ref(false);
+const loadingLoyalty = ref(false);
 const unusedVouchers = ref([]);
 const usedVouchers = ref([]);
 const myVouchers = ref([]);
@@ -1537,6 +1557,7 @@ const profileForm = ref({
   email: "",
   birthday: "",
   avatar_url: "",
+  cine_points: 0,
   vouchers: [],
 });
 
@@ -1599,6 +1620,7 @@ const fetchUserData = async () => {
         email: data.email || "",
         birthday: data.birthday || "",
         avatar_url: data.avatar_url || defaultAvatar,
+        cine_points: data.cine_points || 0,
       };
     }
   } catch (err) {

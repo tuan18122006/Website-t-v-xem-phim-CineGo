@@ -172,7 +172,73 @@
       </div>
     </section>
 
-    
+    <!-- SECTION: SỰ KIỆN -->
+    <section class="events-section" v-if="events.length > 0">
+      <div class="events-container">
+        <div class="section-header-light">
+          <h2 class="section-title-light">Sự kiện nổi bật</h2>
+          <router-link to="/blog-phim" class="see-all-link">Xem tất cả →</router-link>
+        </div>
+
+        <div class="events-carousel-wrapper">
+          <button class="arrow-btn-light prev-light" @click="scrollEvents('left')">❮</button>
+
+          <div class="events-carousel" ref="eventsCarouselRef">
+            <div v-for="event in events" :key="event.id" class="event-card" @click="openEventModal(event.id)">
+              <div class="event-img-box">
+                <img :src="event.thumbnail_url || 'https://via.placeholder.com/400x220/1a1a1a/e50914?text=Sự+kiện'" :alt="event.title" class="event-img" />
+                <div class="event-gradient"></div>
+                <span class="event-date-badge">{{ formatDate(event.published_at || event.created_at) }}</span>
+              </div>
+              <div class="event-info">
+                <h3 class="event-title">{{ event.title }}</h3>
+                <p class="event-excerpt">{{ event.excerpt || 'Xem chi tiết sự kiện...' }}</p>
+              </div>
+            </div>
+          </div>
+
+          <button class="arrow-btn-light next-light" @click="scrollEvents('right')">❯</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MODAL CHI TIẾT SỰ KIỆN -->
+    <transition name="modal-fade">
+      <div v-if="isEventModalOpen" class="event-modal-overlay" @click.self="closeEventModal">
+        <div class="event-modal-content">
+          <div class="event-modal-header">
+            <h3 class="event-modal-brand">Sự kiện CineGo</h3>
+            <button class="event-modal-close" @click="closeEventModal">✕</button>
+          </div>
+
+          <div class="event-modal-body" v-if="eventModalLoading">
+            <div class="loading-spinner">Đang tải nội dung...</div>
+          </div>
+          <div class="event-modal-body" v-else-if="selectedEvent">
+            <div class="event-modal-cover">
+              <img :src="selectedEvent.thumbnail_url || 'https://via.placeholder.com/800x400/1a1a1a/e50914?text=Sự+kiện'" alt="Cover" />
+            </div>
+
+            <div class="event-modal-info">
+              <span class="event-modal-cat" v-if="selectedEvent.category">{{ selectedEvent.category.name }}</span>
+              <small class="event-modal-date">{{ formatDate(selectedEvent.published_at || selectedEvent.created_at) }}</small>
+            </div>
+
+            <h1 class="event-modal-title">{{ selectedEvent.title }}</h1>
+
+            <div class="event-modal-excerpt" v-if="selectedEvent.excerpt">
+              {{ selectedEvent.excerpt }}
+            </div>
+
+            <div class="event-modal-html" v-html="selectedEvent.content"></div>
+          </div>
+
+          <div class="event-modal-footer">
+            <button class="event-btn-close-bottom" @click="closeEventModal">ĐÓNG</button>
+          </div>
+        </div>
+      </div>
+    </transition>
 
     <section class="home-featured-comments-section">
       <div class="home-featured-comments-container">
@@ -282,6 +348,56 @@ const genreList = ref([
 ]);
 
 const featuredComments = ref([]);
+const events = ref([]);
+const isEventModalOpen = ref(false);
+const eventModalLoading = ref(false);
+const selectedEvent = ref(null);
+const eventsCarouselRef = ref(null);
+
+const fetchEvents = async () => {
+  try {
+    const catRes = await api.get('/blog-categories');
+    const categories = catRes.data?.data || [];
+    const eventCat = categories.find(c => c.name.toLowerCase().includes('sự kiện') || c.name.toLowerCase().includes('su kien'));
+    if (!eventCat) return;
+
+    const res = await api.get('/blogs', { params: { category_id: eventCat.id, status: 'published' } });
+    events.value = (res.data?.data || []).slice(0, 6);
+  } catch (e) {
+    console.error('Lỗi tải sự kiện:', e);
+  }
+};
+
+const scrollEvents = (direction) => {
+  if (eventsCarouselRef.value) {
+    const scrollAmount = 350;
+    eventsCarouselRef.value.scrollLeft += direction === 'left' ? -scrollAmount : scrollAmount;
+  }
+};
+
+const openEventModal = async (id) => {
+  isEventModalOpen.value = true;
+  eventModalLoading.value = true;
+  selectedEvent.value = null;
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const res = await api.get(`/blogs/${id}`);
+    if (res.data?.success) {
+      selectedEvent.value = res.data.data;
+    }
+  } catch (e) {
+    console.error('Lỗi tải sự kiện:', e);
+  } finally {
+    eventModalLoading.value = false;
+  }
+};
+
+const closeEventModal = () => {
+  isEventModalOpen.value = false;
+  selectedEvent.value = null;
+  document.body.style.overflow = '';
+};
 
 const fetchFeaturedComments = async () => {
   try {
@@ -528,6 +644,7 @@ onMounted(async () => {
   await fetchBanners();
   fetchFeaturedComments();
   fetchMovies();
+  fetchEvents();
   slideInterval = setInterval(nextSlide, 5000);
 });
 
@@ -548,6 +665,224 @@ onUnmounted(() => {
 
 <style scoped>
 @import '../../assets/css/pages/home-view.css';
+
+.events-section {
+  padding: 40px 0 20px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 1) 0%, rgba(255, 255, 255, 0.95) 100%);
+}
+.events-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+.section-header-light {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.see-all-link {
+  color: #dc2626;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+}
+.see-all-link:hover { text-decoration: underline; }
+.events-carousel-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.events-carousel {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  padding: 10px 0;
+}
+.events-carousel::-webkit-scrollbar { display: none; }
+.event-card {
+  min-width: 320px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: transform 0.3s, box-shadow 0.3s;
+  flex-shrink: 0;
+}
+.event-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+.event-img-box {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  overflow: hidden;
+}
+.event-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s;
+}
+.event-card:hover .event-img { transform: scale(1.05); }
+.event-gradient {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60%;
+  background: linear-gradient(transparent, rgba(0,0,0,0.7));
+}
+.event-date-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(220, 38, 38, 0.9);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.event-info {
+  padding: 14px 16px;
+}
+.event-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.event-excerpt {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.event-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  padding: 20px;
+}
+.event-modal-content {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 750px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.event-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.event-modal-brand {
+  font-size: 18px;
+  font-weight: 800;
+  color: #dc2626;
+  margin: 0;
+}
+.event-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #94a3b8;
+}
+.event-modal-close:hover { color: #ef4444; }
+.event-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+.event-modal-cover {
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.event-modal-cover img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.event-modal-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.event-modal-cat {
+  background: #dc2626;
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.event-modal-date {
+  color: #94a3b8;
+  font-size: 13px;
+}
+.event-modal-title {
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 12px;
+}
+.event-modal-excerpt {
+  background: #fef2f2;
+  border-left: 4px solid #dc2626;
+  padding: 12px 16px;
+  border-radius: 0 8px 8px 0;
+  color: #475569;
+  font-size: 15px;
+  margin-bottom: 20px;
+}
+.event-modal-html {
+  font-size: 15px;
+  line-height: 1.8;
+  color: #334155;
+}
+.event-modal-footer {
+  padding: 14px 24px;
+  border-top: 1px solid #e2e8f0;
+  text-align: right;
+}
+.event-btn-close-bottom {
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  padding: 10px 30px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.event-btn-close-bottom:hover { background: #b91c1c; }
+.modal-fade-enter-active, .modal-fade-leave-active { transition: opacity 0.3s; }
+.modal-fade-enter-from, .modal-fade-leave-to { opacity: 0; }
 
 .home-featured-comments-section {
   padding: 48px 0 28px;

@@ -82,23 +82,32 @@
             <label class="form-label">Nội dung bài viết *</label>
             <div class="rich-editor-wrapper">
               <div class="editor-toolbar">
-                <button type="button" class="toolbar-btn"><b>B</b></button>
-                <button type="button" class="toolbar-btn"><i>I</i></button>
-                <button type="button" class="toolbar-btn"><u>U</u></button>
-                <button type="button" class="toolbar-btn"><Link2 :size="15" style="vertical-align:-2px" /> Thêm Link</button>
-                <button type="button" class="toolbar-btn">
-                  <Clapperboard :size="15" style="vertical-align:-2px" /> Nhúng
-                  Video Youtube
+                <button type="button" class="toolbar-btn" @click="execCmd('bold')"><b>B</b></button>
+                <button type="button" class="toolbar-btn" @click="execCmd('italic')"><i>I</i></button>
+                <button type="button" class="toolbar-btn" @click="execCmd('underline')"><u>U</u></button>
+                <button type="button" class="toolbar-btn" @click="insertLink"><Link2 :size="15" style="vertical-align:-2px" /> Thêm Link</button>
+                <button type="button" class="toolbar-btn" @click="insertYoutube">
+                  <Clapperboard :size="15" style="vertical-align:-2px" /> Nhúng Video Youtube
                 </button>
-                <button type="button" class="toolbar-btn"><Image :size="15" style="vertical-align:-2px" /> Thêm Ảnh</button>
+                <button type="button" class="toolbar-btn" @click="triggerContentImageUpload">
+                  <Image :size="15" style="vertical-align:-2px" /> Thêm Ảnh
+                </button>
               </div>
-              <textarea
-                v-model="form.content"
-                class="editor-textarea"
-                rows="16"
-                placeholder="Bắt đầu viết nội dung bài viết của bạn tại đây..."
-              ></textarea>
+              <div
+                ref="contentEditor"
+                class="editor-content-area"
+                contenteditable="true"
+                @input="onContentInput"
+                data-placeholder="Bắt đầu viết nội dung bài viết của bạn tại đây..."
+              ></div>
             </div>
+            <input
+              ref="contentImageInput"
+              type="file"
+              accept="image/*"
+              style="display: none"
+              @change="handleContentImageUpload"
+            />
             <span v-if="errors?.content" class="error-msg">{{
               errors.content[0]
             }}</span>
@@ -197,6 +206,13 @@
                 <div class="change-layer">Thay ảnh khác</div>
               </div>
             </div>
+            <input
+              ref="thumbnailInput"
+              type="file"
+              accept="image/*"
+              style="display: none"
+              @change="handleThumbnailUpload"
+            />
             <span v-if="errors?.thumbnail_url" class="error-msg">{{
               errors.thumbnail_url[0]
             }}</span>
@@ -258,6 +274,9 @@ const submitting = ref(false);
 
 const categories = ref([]);
 const activeMovies = ref([]);
+const contentEditor = ref(null);
+const contentImageInput = ref(null);
+const thumbnailInput = ref(null);
 
 // ĐÃ ĐỔI: category_id -> blog_category_id cho đồng bộ với Laravel
 const form = ref({
@@ -318,6 +337,9 @@ const checkEditState = async () => {
       const response = await api.get(`/admin/blogs/${id}`);
       const data = response.data.data || response.data;
       form.value = { ...data };
+      if (contentEditor.value && data.content) {
+        contentEditor.value.innerHTML = data.content;
+      }
     } catch (error) {
       toast("Không tìm thấy bài viết cần sửa!", "error");
       localStorage.setItem('admin_active_tab', 'blogs');
@@ -386,10 +408,88 @@ const savePost = async (targetStatus) => {
   }
 };
 
-// Giả lập uploader ảnh
+// ===== CONTENT EDITOR FUNCTIONS =====
+const execCmd = (command) => {
+  document.execCommand(command, false, null);
+  contentEditor.value?.focus();
+};
+
+const insertLink = () => {
+  const url = prompt("Nhập URL liên kết:");
+  if (url) {
+    document.execCommand('createLink', false, url);
+    contentEditor.value?.focus();
+  }
+};
+
+const insertYoutube = () => {
+  const url = prompt("Nhập URL video YouTube:");
+  if (!url) return;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([^&?#]+)/);
+  const videoId = match ? match[1] : null;
+  if (!videoId) {
+    toast("URL YouTube không hợp lệ!", "warning");
+    return;
+  }
+  const embedUrl = `https://www.youtube.com/embed/${videoId}`;
+  const html = `<div class="video-wrapper" style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;margin:16px 0;border-radius:8px;"><iframe src="${embedUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allowfullscreen></iframe></div>`;
+  document.execCommand('insertHTML', false, html);
+  contentEditor.value?.focus();
+};
+
+const triggerContentImageUpload = () => {
+  contentImageInput.value?.click();
+};
+
+const handleContentImageUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const res = await api.post('/upload/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    const imageUrl = res.data?.url || res.data?.data?.url;
+    if (imageUrl) {
+      const html = `<img src="${imageUrl}" alt="Ảnh bài viết" style="max-width:100%;border-radius:8px;margin:12px 0;" />`;
+      document.execCommand('insertHTML', false, html);
+      contentEditor.value?.focus();
+    }
+  } catch (err) {
+    toast("Lỗi tải ảnh lên!", "error");
+  }
+  e.target.value = '';
+};
+
+const onContentInput = () => {
+  if (contentEditor.value) {
+    form.value.content = contentEditor.value.innerHTML;
+  }
+};
+
+// ===== THUMBNAIL UPLOAD =====
 const triggerUpload = () => {
-  const url = prompt("Nhập tạm URL ảnh bìa để kiểm tra giao diện:");
-  if (url) form.value.thumbnail_url = url;
+  thumbnailInput.value?.click();
+};
+
+const handleThumbnailUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const res = await api.post('/upload/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    const imageUrl = res.data?.url || res.data?.data?.url;
+    if (imageUrl) {
+      form.value.thumbnail_url = imageUrl;
+    }
+  } catch (err) {
+    toast("Lỗi tải ảnh bìa lên!", "error");
+  }
+  e.target.value = '';
 };
 
 onMounted(async () => {
@@ -619,6 +719,38 @@ onMounted(async () => {
   resize: vertical;
   box-sizing: border-box;
   background: white;
+}
+
+.editor-content-area {
+  width: 100%;
+  min-height: 400px;
+  border: none;
+  padding: 16px;
+  font-size: 15px;
+  line-height: 1.8;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  background: white;
+  overflow-y: auto;
+}
+.editor-content-area:empty::before {
+  content: attr(data-placeholder);
+  color: #94a3b8;
+  pointer-events: none;
+}
+.editor-content-area img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+.editor-content-area a {
+  color: #2563eb;
+  text-decoration: underline;
+}
+.editor-content-area iframe {
+  max-width: 100%;
+  border-radius: 8px;
 }
 
 /* SIDEBAR CỘT PHẢI */

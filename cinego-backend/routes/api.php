@@ -44,6 +44,9 @@ Route::get('/reviews/featured', [ReviewController::class, 'publicFeatured']);
 Route::get('/actors', [ActorController::class, 'index']);
 Route::get('/actors/{id}', [ActorController::class, 'show']);
 
+// Upload ảnh (công khai cho editor)
+Route::post('/upload/image', [\App\Http\Controllers\Api\UploadController::class, 'uploadImage']);
+
 // Blog public routes
 Route::get('/blogs', [BlogController::class, 'index']); 
 Route::get('/blogs/{id}', [BlogController::class, 'show']); 

@@ -37,14 +37,19 @@ class LoyaltyController extends Controller
         ]);
     }
 
-    public function getRedeemableVouchers()
+    public function getRedeemableVouchers(Request $request)
     {
+        $userId = $request->user()?->id;
+
         $vouchers = Voucher::whereNotNull('points_required')
             ->where('points_required', '>', 0)
             ->where('is_active', true)
             ->where(function ($q) {
                 $q->whereNull('expires_at')
                   ->orWhere('expires_at', '>', now());
+            })
+            ->when($userId, function ($q) use ($userId) {
+                $q->whereRaw('(COALESCE(max_exchanges, user_limit) IS NULL OR (SELECT COUNT(*) FROM user_vouchers WHERE user_vouchers.voucher_id = vouchers.id AND user_vouchers.user_id = ?) < COALESCE(max_exchanges, user_limit))', [$userId]);
             })
             ->get();
 
@@ -54,12 +59,17 @@ class LoyaltyController extends Controller
         ]);
     }
 
-    public function getRedeemableCombos()
+    public function getRedeemableCombos(Request $request)
     {
+        $userId = $request->user()?->id;
+
         $combos = Combo::where('status', 'active')
             ->where('is_redeemable', true) 
             ->where('points_required', '>', 0)
             ->where('stock', '>', 0)
+            ->when($userId, function ($q) use ($userId) {
+                $q->whereRaw('(limit_per_user IS NULL OR limit_per_user > 1 OR (SELECT COUNT(*) FROM user_combos WHERE user_combos.combo_id = combos.id AND user_combos.user_id = ?) < limit_per_user)', [$userId]);
+            })
             ->get();
 
         return response()->json([
