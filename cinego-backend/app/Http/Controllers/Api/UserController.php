@@ -245,7 +245,8 @@ class UserController extends Controller
         ]);
 
         $user = User::findOrFail($id);
-        LoyaltyService::setTier($user, $request->membership_tier);
+        $user->membership_tier = $request->membership_tier;
+        $user->save();
 
         return response()->json([
             'success' => true,
@@ -263,18 +264,27 @@ class UserController extends Controller
         ]);
 
         $user = User::findOrFail($id);
-        $result = LoyaltyService::adjustPoints(
-            $user,
-            $request->amount,
-            $request->reason ?? ''
-        );
+        $amount = (int) $request->amount;
+        $user->loyalty_points = max(0, (int) ($user->loyalty_points ?? 0) + $amount);
+        $user->save();
+
+        try {
+            \App\Models\PointHistory::create([
+                'user_id'     => $user->id,
+                'points'      => $amount,
+                'type'        => $amount >= 0 ? 'earn' : 'spend',
+                'description' => $request->reason ?: 'Admin điều chỉnh điểm thủ công',
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return response()->json([
             'success' => true,
-            'message' => $request->amount > 0
-                ? "Cộng {$request->amount} điểm thành công!"
-                : "Trừ " . abs($request->amount) . " điểm thành công!",
-            'data' => $result,
+            'message' => $amount >= 0
+                ? "Cộng {$amount} điểm thành công!"
+                : "Trừ " . abs($amount) . " điểm thành công!",
+            'data' => $user,
         ], 200);
     }
 
