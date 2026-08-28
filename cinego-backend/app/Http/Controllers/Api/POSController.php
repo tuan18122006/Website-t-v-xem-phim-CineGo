@@ -97,7 +97,7 @@ class POSController extends Controller
             ]);
         }
 
-        $email = $data['email'] ?: ('walkin_' . preg_replace('/\D/', '', $data['phone']) . '@cinego.local');
+        $email = ($data['email'] ?? null) ?: ('walkin_' . preg_replace('/\D/', '', $data['phone']) . '@cinego.local');
         if (User::where('email', $email)->exists()) {
             $email = 'walkin_' . preg_replace('/\D/', '', $data['phone']) . '_' . Str::lower(Str::random(4)) . '@cinego.local';
         }
@@ -127,7 +127,7 @@ class POSController extends Controller
             'combos.*.quantity'    => 'required|integer|min:1',
             'voucher_id'            => 'nullable|integer|exists:vouchers,id',
             'payment_method'        => 'required|string|in:cash,bank_transfer',
-            'customer_id'           => 'nullable|integer|exists:users,id',
+            'customer_id'           => 'required|integer|exists:users,id',
             'total_amount'          => 'required|numeric'
         ]);
 
