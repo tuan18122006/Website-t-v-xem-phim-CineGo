@@ -170,31 +170,31 @@
             <div v-if="loadingWallet" class="cinego-loading" style="padding: 30px; text-align: center;">Đang tải thông tin ví...</div>
             <div v-else>
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;">
-                <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border-radius: 16px; padding: 28px; color: white; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); position: relative; overflow: hidden;">
-                  <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.05); border-radius: 50%;"></div>
-                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                    <div style="width: 40px; height: 40px; background: rgba(34,197,94,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                <!-- Ví Tiền -->
+                <div class="wallet-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px 28px; color: #1a1a2e; position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); min-height: 180px; transition: all 0.3s ease;">
+                  <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #e71a0f, #ff6b6b, #e71a0f);"></div>
+                  <p style="margin: 0 0 24px; font-size: 11px; color: #1a1a2e; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">Ví Tiền</p>
+                  <p style="margin: 0 0 20px; font-size: 28px; font-weight: 700; color: #1a1a2e; letter-spacing: 1px; font-family: 'Courier New', monospace;">{{ formatPrice(walletData.balance || 0) }}<span style="font-size: 14px; font-weight: 700; opacity: 1;">đ</span></p>
+                  <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                    <p style="margin: 0; font-size: 9px; color: #1a1a2e; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700;">Số dư khả dụng</p>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span style="font-size: 18px; font-weight: 800; font-style: italic; font-family: 'Arial', sans-serif;"><span style="color: #e71a0f;">Cine</span><span style="color: #1a1a2e;">go</span></span>
+                      <button @click="openWithdrawModal" style="background: #e71a0f; color: white; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px;">Rút Tiền</button>
                     </div>
-                    <p style="margin: 0; font-size: 13px; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Số dư hiện tại</p>
                   </div>
-                  <p style="margin: 0 0 20px; font-size: 36px; font-weight: 800; color: #fff; letter-spacing: -1px;">{{ formatPrice(walletData.balance || 0) }}<span style="font-size: 18px; font-weight: 600; opacity: 0.8;">đ</span></p>
-                  <button @click="openWithdrawModal" style="background: linear-gradient(135deg, #ef4444, #dc2626); color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: all 0.2s; width: 100%; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(239,68,68,0.3);">
-                    Rút Tiền
-                  </button>
                 </div>
-                <div style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); border-radius: 16px; padding: 28px; color: white; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); position: relative; overflow: hidden;">
-                  <div style="position: absolute; top: -20px; right: -20px; width: 100px; height: 100px; background: rgba(255,255,255,0.1); border-radius: 50%;"></div>
-                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-                    <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.2); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                <!-- CinePoints -->
+                <div class="wallet-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px 28px; color: #1a1a2e; position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); min-height: 180px; transition: all 0.3s ease;">
+                  <div style="position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #e71a0f, #ff6b6b, #e71a0f);"></div>
+                  <p style="margin: 0 0 24px; font-size: 11px; color: #1a1a2e; text-transform: uppercase; letter-spacing: 2px; font-weight: 700;">CinePoints</p>
+                  <p style="margin: 0 0 20px; font-size: 28px; font-weight: 700; color: #1a1a2e; letter-spacing: 1px; font-family: 'Courier New', monospace;">{{ profileForm.cine_points || 0 }}<span style="font-size: 13px; font-weight: 700; opacity: 1; margin-left: 4px;">điểm</span></p>
+                  <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                    <p style="margin: 0; font-size: 9px; color: #1a1a2e; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700;">Điểm tích lũy</p>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <span style="font-size: 18px; font-weight: 800; font-style: italic; font-family: 'Arial', sans-serif;"><span style="color: #e71a0f;">Cine</span><span style="color: #1a1a2e;">go</span></span>
+                      <button @click="activeTab = 'loyalty'" style="background: #e71a0f; color: white; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 12px;">Đổi Điểm</button>
                     </div>
-                    <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Điểm CinePoints</p>
                   </div>
-                  <p style="margin: 0 0 20px; font-size: 36px; font-weight: 800; color: #fff; letter-spacing: -1px;">{{ profileForm.cine_points || 0 }}<span style="font-size: 14px; font-weight: 600; opacity: 0.8; margin-left: 4px;">điểm</span></p>
-                  <button @click="activeTab = 'loyalty'" style="display: block; text-align: center; background: linear-gradient(135deg, #fff, #fef3c7); color: #92400e; border: none; padding: 12px 24px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 14px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); width: 100%;">
-                    Đổi Điểm
-                  </button>
                 </div>
               </div>
 
@@ -279,9 +279,6 @@
                 :class="{ 'is-used': item.is_used || item.is_expired }">
                 <div class="voucher-wallet-left">
                   <div class="voucher-wallet-code">{{ item.code }}</div>
-                  <span v-if="item.is_used" class="voucher-wallet-status status-used">Đã dùng</span>
-                  <span v-else-if="item.is_expired" class="voucher-wallet-status status-expired">Hết hạn</span>
-                  <span v-else class="voucher-wallet-status status-active">Đang dùng</span>
                 </div>
                 <div class="voucher-wallet-center">
                   <p class="voucher-wallet-desc">{{ item.description || (item.type === 'combo' ? 'Ưu đãi Bắp Nước' : 'Voucher giảm giá vé') }}</p>
@@ -372,7 +369,7 @@
             </div>
 
             <!-- 3. TAB LỊCH SỬ ĐIỂM -->
-            <div v-if="loyaltySubTab === 'history'" style="margin-top: 15px;">
+            <div v-if="loyaltySubTab === 'history'" style="margin-top: 15px; overflow-x: auto;">
               <table class="cinego-table">
                 <thead>
                   <tr>
@@ -630,6 +627,14 @@
                           >
                             Mã QR
                           </button>
+                          <button
+                            v-if="ticket.status === 'paid'"
+                            @click="confirmSelfRefund(ticket)"
+                            class="btn-table-action"
+                            style="background: #fef2f2; color: #dc2626; border: 1px solid #fca5a5;"
+                          >
+                            Hoàn vé
+                          </button>
                           <span v-else-if="ticket.status === 'waiting_confirmation'" class="badge badge-warning" title="Admin đang xác nhận chuyển khoản của bạn">
                              Chờ xác nhận
                           </span>
@@ -638,8 +643,8 @@
                             Hủy thanh toán
                           </span>
                           <!-- Badge đã hoàn tiền -->
-                          <span v-else-if="ticket.status === 'refunded'" class="badge" style="background: #818cf8; color: #fff;">
-                            💰 Đã hoàn tiền
+                          <span v-else-if="ticket.status === 'refunded'" style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;">
+                            Đã hoàn tiền
                           </span>
                           <!-- Badge đã hủy -->
                           <span v-else-if="ticket.status === 'cancelled'" class="badge badge-danger">
@@ -1807,6 +1812,51 @@ const selfRefundTicket = async (ticket) => {
   }
 };
 
+const confirmSelfRefund = async (ticket) => {
+  const totalAmount = ticket.total_price || ticket.total_amount || 0;
+  const refundAmount = Math.round(totalAmount * 0.9);
+  const fee = totalAmount - refundAmount;
+  const seats = ticket.seats
+    ? ticket.seats.map(s => typeof s === 'object' ? `${s.row}${s.number}` : s).join(', ')
+    : '';
+
+  const result = await Swal.fire({
+    title: 'Xác nhận hoàn vé',
+    html: `<div style="text-align:left;font-size:14px;">
+      <p><strong>Phim:</strong> ${ticket.movie_title}</p>
+      <p><strong>Ghế:</strong> ${seats}</p>
+      <p><strong>Suất:</strong> ${ticket.start_time} - ${formatDate(ticket.date)}</p>
+      <hr style="margin:10px 0;border-color:#e2e8f0"/>
+      <p>Tổng tiền: <strong style="color:#0f172a">${formatPrice(totalAmount)}đ</strong></p>
+      <p>Phí hủy (10%): <strong style="color:#dc2626">-${formatPrice(fee)}đ</strong></p>
+      <p>Số tiền hoàn: <strong style="color:#16a34a">+${formatPrice(refundAmount)}đ</strong></p>
+      <p style="color:#64748b;font-size:13px;margin-top:8px;">Số tiền hoàn sẽ được cộng vào ví tiền của bạn.</p>
+    </div>`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#dc2626',
+    cancelButtonColor: '#6b7280',
+    confirmButtonText: 'Xác nhận hoàn vé',
+    cancelButtonText: 'Giữ nguyên'
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    const { data } = await api.post('/bookings/self-refund-paid', { booking_id: ticket.booking_id });
+    if (data.success) {
+      Swal.fire({
+        title: 'Hoàn vé thành công!',
+        html: `<p>${data.message}</p><p style="margin-top:8px;">Số dư ví mới: <strong>${formatPrice(data.wallet_balance)}đ</strong></p>`,
+        icon: 'success'
+      });
+      fetchBookingHistory();
+    }
+  } catch (err) {
+    Swal.fire('Lỗi', err.response?.data?.message || 'Không thể hoàn vé.', 'error');
+  }
+};
+
 const swapAffectedTicket = async (ticket) => {
   try {
     const { data } = await api.get(`/showtimes/${ticket.showtime_id}/seats`);
@@ -2537,6 +2587,12 @@ onUnmounted(() => {
   box-shadow: 0 4px 12px rgba(231, 26, 15, 0.3);
 }
 
+.wallet-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(231, 26, 15, 0.12);
+  border-color: #e71a0f;
+}
+
 /* ==== NỘI DUNG CHÍNH ==== */
 .cinego-content-area {
   flex: 1;
@@ -2962,7 +3018,7 @@ onUnmounted(() => {
 }
 
 .loyalty-card-badge.combo-badge {
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
 }
 
 .loyalty-card-points {
@@ -3012,7 +3068,7 @@ onUnmounted(() => {
 }
 
 .loyalty-card-btn.combo-btn {
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
 }
 
 .loyalty-card-btn:hover:not(.disabled) {
@@ -3022,7 +3078,7 @@ onUnmounted(() => {
 }
 
 .loyalty-card-btn.combo-btn:hover:not(.disabled) {
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
 .loyalty-card-btn.disabled {

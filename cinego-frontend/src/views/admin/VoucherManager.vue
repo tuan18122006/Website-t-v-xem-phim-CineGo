@@ -2,7 +2,7 @@
     <div class="admin-vouchers-view-container">
         <div class="glass-panel list-card">
             <div class="header-row">
-                <h2 class="title-cine"><Ticket :size="15" style="vertical-align:-2px" /> Quản Lý Mã Giảm Giá</h2>
+                <h2 class="title-cine"> Quản Lý Mã Giảm Giá</h2>
                 <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Mã Mới</button>
             </div>
 
@@ -69,7 +69,6 @@
                             <td>{{ voucher.max_discount ? formatCurrency(voucher.max_discount) : 'Không GH' }}</td>
                             <td>{{ voucher.user_limit ? voucher.user_limit : '1' }}</td>
                             
-                            <!-- FIX STATUS: Kết hợp cả is_active và Hạn sử dụng -->
                             <td>
                                 <span :class="['status-pill', voucher.is_active && !isVoucherExpired(voucher.expires_at) ? 'active' : 'inactive']">
                                     {{ !voucher.is_active ? 'Đã khóa' : (isVoucherExpired(voucher.expires_at) ? 'Hết hạn' : 'Hoạt động') }}
@@ -97,7 +96,6 @@
                     <button class="close-btn" @click="isModalOpen = false">×</button>
                 </div>
 
-                <!-- FIX 2: Thêm ô Kích hoạt TRẠNG THÁI (is_active) -->
                 <div class="form-group" style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
                     <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; margin-bottom: 0;">
                         <input type="checkbox" v-model="voucherForm.is_active" style="width: 18px; height: 18px;">

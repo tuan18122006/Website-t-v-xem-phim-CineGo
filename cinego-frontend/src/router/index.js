@@ -302,6 +302,10 @@ router.beforeEach((to, from) => {
       return { name: "home" };
     }
   }
+
+  if (!['seat-selection', 'payment'].includes(to.name)) {
+    document.title = 'CineGo | Việt Nam';
+  }
 });
 
 export default router;

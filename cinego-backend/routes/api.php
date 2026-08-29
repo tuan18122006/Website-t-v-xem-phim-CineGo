@@ -110,6 +110,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // vé bị ảnh hưởng bởi ghế hỏng (khách hàng tự xử lý)
     Route::get('/my-affected-tickets', [\App\Http\Controllers\Api\CompensationController::class, 'myAffectedTickets']);
     Route::post('/self-refund', [\App\Http\Controllers\Api\CompensationController::class, 'selfRefund']);
+    Route::post('/bookings/self-refund-paid', [BookingController::class, 'selfRefundPaid']);
     Route::post('/self-swap', [\App\Http\Controllers\Api\CompensationController::class, 'selfSwap']);
     // giữ ghế
     Route::post('/seats/hold', [BookingController::class, 'holdSeats']);

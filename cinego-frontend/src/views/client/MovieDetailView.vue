@@ -26,10 +26,7 @@
             <span class="meta-label">Khởi chiếu:</span>
             <span class="meta-value">{{ formatDate(movie.release_date) }}</span>
           </div>
-          <div class="meta-item">
-            <span class="meta-label">Đạo diễn:</span>
-            <span class="meta-value">John Doe</span>
-          </div>
+      
           <div class="meta-item">
             <span class="meta-label">Ngôn ngữ:</span>
             <span class="meta-value">Phụ đề tiếng Việt</span>
@@ -688,8 +685,10 @@ const proceedToSeatSelection = async () => {
     }
 
     if (route.query.mode === 'pos') {
+      document.title = 'Mua vé - ' + (movie.value?.title || 'CineGo');
       router.push({ path: '/booking/seats', query: { mode: 'pos' } });
     } else {
+      document.title = 'Mua vé - ' + (movie.value?.title || 'CineGo');
       router.push('/booking/seats');
     }
   }

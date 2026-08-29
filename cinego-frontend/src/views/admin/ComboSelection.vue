@@ -2,7 +2,7 @@
     <div class="admin-movies-view-container">
         <div class="glass-panel list-card">
             <div class="header-row">
-                <h2 class="title-cine"><Popcorn :size="15" style="vertical-align:-2px" /> Quản Lý Combo và Đồ Ăn</h2>
+                <h2 class="title-cine"> Quản Lý Combo và Đồ Ăn</h2>
                 <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Combo Mới</button>
             </div>
 
@@ -34,9 +34,9 @@
                                     'type-badge',
                                     combo.type
                                 ]">
-                                    <template v-if="combo.type === 'combo'"><Gift :size="15" style="vertical-align:-2px" /> Combo</template>
-                                    <template v-else-if="combo.type === 'drink'"><CupSoda :size="15" style="vertical-align:-2px" /> Nước</template>
-                                    <template v-else><Popcorn :size="15" style="vertical-align:-2px" /> Đồ ăn</template>
+                                    <template v-if="combo.type === 'combo'"> Combo</template>
+                                    <template v-else-if="combo.type === 'drink'"> Nước</template>
+                                    <template v-else> Đồ ăn</template>
                                 </span>
                             </td>
                             <td>{{ formatPrice(combo.price) }}</td>
