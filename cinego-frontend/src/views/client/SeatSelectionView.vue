@@ -216,6 +216,7 @@ const mappedSeats = computed(() => {
       row: seat.row_name, 
       number: seat.seat_number, 
       type: seat.type || "standard", 
+      status: seat.status,
       is_booked: seat.status === "sold" || seat.status === "broken" || (seat.status === "holding" && !myHeldSeatIds.includes(seat.id)), 
     };
   });
