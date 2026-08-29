@@ -12,25 +12,24 @@
 
       <div class="seats-legend">
         <div class="legend-item">
-          <span class="legend-box seat-standard"></span> Standard ({{ priceK(seatPrices.standard) }})
         </div>
         <div class="legend-item">
-          <span class="legend-box seat-vip"></span> VIP ({{ priceK(seatPrices.vip) }})
         </div>
         <div class="legend-item">
-          <span class="legend-box seat-couple"></span> Couple ({{ priceK(seatPrices.couple) }})
         </div>
         <div class="legend-item">
-          <span class="legend-box seat-selected"></span> Đang chọn
         </div>
         <div class="legend-item">
-          <span class="legend-box seat-sold"></span> Đã bán / Đang giữ
         </div>
       </div>
     </div>
 
     <div class="booking-sidebar glass-panel">
       <h2 class="sidebar-title gradient-text-accent">Thông Tin Vé</h2>
+
+      <div v-if="bookingStore.selectedMovie?.poster_url" class="movie-poster-box">
+        <img :src="getPosterUrl(bookingStore.selectedMovie.poster_url)" :alt="bookingStore.selectedMovie.title" class="movie-poster-img" />
+      </div>
 
       <div class="summary-details">
         <div class="summary-row">
@@ -144,6 +143,13 @@ const seatPrices = ref({ standard: 75000, vip: 95000, couple: 140000 });
 const countdownText = ref("03:00");
 const featuredComments = ref([]);
 const processingSeatCount = ref(0);
+
+const getPosterUrl = (url) => {
+  if (!url) return 'https://via.placeholder.com/300x450/1a1a1a/e50914?text=CineGo';
+  if (url.startsWith('http')) return url;
+  const cleanPath = url.replace(/^(.*\/storage\/)/, '');
+  return `http://127.0.0.1:8000/storage/${cleanPath}`;
+};
 let timerInterval = null;
 
 const cancelBooking = () => {
@@ -523,6 +529,7 @@ const fetchSeatStatus = async () => {
 };
 
 onMounted(() => {
+  document.title = 'Mua vé - ' + (bookingStore.selectedMovie?.title || 'CineGo');
   fetchSeatStatus();
   updateFeaturedComments();
   if (bookingStore.holdExpiresAt) {
@@ -677,8 +684,10 @@ const proceedToPayment = async () => {
     startTimer();
 
     if (route.query.mode === 'pos') {
+      document.title = 'Mua vé - ' + (bookingStore.selectedMovie?.title || 'CineGo');
       router.push({ path: '/staff/pos/checkout' });
     } else {
+      document.title = 'Mua vé - ' + (bookingStore.selectedMovie?.title || 'CineGo');
       router.push("/booking/payment");
     }
   } catch (error) {
@@ -775,6 +784,22 @@ const proceedToPayment = async () => {
 .sidebar-title {
   font-size: 22px;
   font-weight: 700;
+}
+
+.movie-poster-box {
+  width: 100%;
+  max-width: 220px;
+  margin: 0 auto 16px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+.movie-poster-img {
+  width: 100%;
+  height: auto;
+  max-height: 280px;
+  display: block;
+  object-fit: cover;
 }
 
 .summary-details {

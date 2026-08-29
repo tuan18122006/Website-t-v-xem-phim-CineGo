@@ -72,11 +72,11 @@
           <div class="combo-tabs">
             <button type="button" :class="['tab-btn', { active: activeComboTab === 'buy' }]"
               @click="activeComboTab = 'buy'">
-              🍿 Mua Bắp Nước
+               Mua Bắp Nước 
             </button>
             <button type="button" :class="['tab-btn', { active: activeComboTab === 'wallet' }]"
               @click="activeComboTab = 'wallet'">
-              🎁 Ví Quà Tặng ({{ walletCombos.length }})
+               Ví Quà Tặng ({{ walletCombos.length }})
             </button>
           </div>
 
@@ -230,7 +230,6 @@
             </div>
             <!-- Vouchers trong ví -->
             <div v-if="walletVouchers.length > 0 && !bookingStore.appliedVoucher" class="voucher-chips">
-              <span class="chip-label">Sẵn có:</span>
               <button v-for="v in walletVouchers" :key="v.id" class="voucher-chip" @click="applyWalletVoucher(v.code)">
                 🎟 {{ v.code }} (-{{ v.discount_amount }}{{ v.discount_type === 'percent' ? '%' : 'đ' }})
               </button>

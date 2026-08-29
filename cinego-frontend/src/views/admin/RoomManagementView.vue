@@ -2,7 +2,7 @@
   <div class="admin-movies-view-container">
     <div class="glass-panel list-card">
       <div class="header-row">
-        <h2 class="title-cine"><Building2 :size="15" style="vertical-align:-2px" /> Quản Lý Phòng Chiếu & Ghế</h2>
+        <h2 class="title-cine"> Quản Lý Phòng Chiếu & Ghế</h2>
         <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Phòng Chiếu Mới</button>
       </div>
 

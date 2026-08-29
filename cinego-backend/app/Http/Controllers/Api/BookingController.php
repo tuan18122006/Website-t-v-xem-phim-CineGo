@@ -17,15 +17,18 @@ use Illuminate\Support\Str;
 use Carbon\Carbon;
 use App\Services\BookingService;
 use App\Services\LoyaltyService;
+use App\Services\WalletService;
 
 class BookingController extends Controller
 {
     protected $bookingService;
     protected $loyaltyService;
-    public function __construct(BookingService $bookingService, LoyaltyService $loyaltyService)
+    protected $walletService;
+    public function __construct(BookingService $bookingService, LoyaltyService $loyaltyService, WalletService $walletService)
     {
         $this->bookingService = $bookingService;
         $this->loyaltyService = $loyaltyService;
+        $this->walletService = $walletService;
     }
 
     public function store(Request $request)
@@ -519,5 +522,77 @@ public function holdSeats(Request $request)
             'message' => 'Đã báo cáo chuyển khoản thành công',
             'data'    => $booking
         ]);
+    }
+
+    /**
+     * User tự hoàn vé đã thanh toán (trước giờ chiếu 2h, phí 10%)
+     */
+    public function selfRefundPaid(Request $request)
+    {
+        $request->validate([
+            'booking_id' => 'required|exists:bookings,id',
+        ]);
+
+        $user = $request->user();
+        $booking = Booking::with('showtime.movie', 'bookingDetails.seat', 'bookingCombos')
+            ->findOrFail($request->booking_id);
+
+        if ($booking->user_id !== $user->id) {
+            return response()->json(['message' => 'Bạn không có quyền với đơn hàng này.'], 403);
+        }
+        if ($booking->payment_status !== 'paid') {
+            return response()->json(['message' => 'Chỉ hoàn được vé đã thanh toán.'], 400);
+        }
+        if (in_array($booking->booking_status, ['refunded', 'cancelled'])) {
+            return response()->json(['message' => 'Đơn hàng đã được hoàn/hủy trước đó.'], 400);
+        }
+
+        $startTime = Carbon::parse($booking->showtime->start_time);
+        $hoursUntilShowtime = Carbon::now()->diffInHours($startTime, false);
+
+        if ($hoursUntilShowtime < 2) {
+            return response()->json(['message' => 'Chỉ có thể hoàn vé trước giờ chiếu ít nhất 2 tiếng.'], 400);
+        }
+
+        $refundFee = 0.10;
+        $totalAmount = (float) $booking->total_amount;
+        $refundAmount = round($totalAmount * (1 - $refundFee));
+
+        DB::beginTransaction();
+        try {
+            $this->walletService->credit(
+                $user,
+                $refundAmount,
+                "Hoàn vé {$booking->booking_code} - {$booking->showtime->movie->title} (phí hủy 10%)",
+                'refund',
+                $booking
+            );
+
+            $seatIds = $booking->bookingDetails->pluck('seat_id')->toArray();
+            if (!empty($seatIds)) {
+                DB::table('seat_holds')
+                    ->where('user_id', $user->id)
+                    ->where('showtime_id', $booking->showtime_id)
+                    ->whereIn('seat_id', $seatIds)
+                    ->delete();
+            }
+
+            $booking->payment_status = 'refunded';
+            $booking->booking_status = 'cancelled';
+            $booking->save();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Hoàn vé thành công! Số tiền {$refundAmount}đ (đã trừ 10% phí hủy) đã được cộng vào ví tiền của bạn.",
+                'refund_amount' => $refundAmount,
+                'fee' => $totalAmount - $refundAmount,
+                'wallet_balance' => $user->fresh()->wallet_balance,
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['message' => 'Lỗi hoàn tiền: ' . $e->getMessage()], 500);
+        }
     }
 }

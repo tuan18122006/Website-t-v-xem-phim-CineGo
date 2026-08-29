@@ -2,7 +2,7 @@
   <div class="admin-movies-view-container">
     <div class="glass-panel list-card">
       <div class="header-row">
-        <h2 class="title-cine"><Clapperboard :size="15" style="vertical-align:-2px" /> Quản Lý Danh Sách Phim</h2>
+        <h2 class="title-cine"> Quản Lý Danh Sách Phim</h2>
         <button @click="openCreateModal" class="btn-primary-cine">+ Thêm Phim Mới</button>
       </div>
 

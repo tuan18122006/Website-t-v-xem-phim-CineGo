@@ -87,6 +87,7 @@ export const useBookingStore = defineStore('booking', {
       const isSameMovie = this.selectedMovie && this.selectedMovie.id == movie.id;
       this.selectedMovie = movie;
       setStorage('cinego_movie', movie);
+      document.title = movie.title || 'CineGo | Việt Nam';
 
       // Quay lại ĐÚNG phim cũ → giữ nguyên suất chiếu, ghế đã chọn và bộ đếm giữ ghế
       if (isSameMovie) return;
