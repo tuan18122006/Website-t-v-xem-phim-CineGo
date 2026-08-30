@@ -205,9 +205,15 @@
               </div>
               <div class="pricing-field">
                 <label>Trạng thái</label>
-                <div class="status-options">
-                  <label class="status-option"><input v-model="pricingRuleDraft.status" type="radio" value="active" /><span>Bật</span></label>
-                  <label class="status-option"><input v-model="pricingRuleDraft.status" type="radio" value="inactive" /><span>Tắt</span></label>
+                <div class="status-options" :title="rulePageMode === 'create' ? 'Quy tắc mới luôn được Bật mặc định. Nếu muốn Tắt, bạn có thể Sửa sau khi thêm.' : ''">
+                  <label class="status-option" :style="rulePageMode === 'create' ? 'opacity: 0.6; cursor: not-allowed;' : ''">
+                    <input v-model="pricingRuleDraft.status" type="radio" value="active" :disabled="rulePageMode === 'create'" />
+                    <span :style="rulePageMode === 'create' ? 'pointer-events: none;' : ''">Bật</span>
+                  </label>
+                  <label class="status-option" :style="rulePageMode === 'create' ? 'opacity: 0.6; cursor: not-allowed;' : ''">
+                    <input v-model="pricingRuleDraft.status" type="radio" value="inactive" :disabled="rulePageMode === 'create'" />
+                    <span :style="rulePageMode === 'create' ? 'pointer-events: none;' : ''">Tắt</span>
+                  </label>
                 </div>
               </div>
               <div class="pricing-field">
@@ -497,7 +503,8 @@ const toggleRuleStatus = (index) => {
 const addPricingRule = async () => {
   const rule = { ...pricingRuleDraft.value };
   const validationIndex = selectedRuleIndex.value !== null ? selectedRuleIndex.value : pricingForm.value.pricing_rules?.length ?? 0;
-  const validation = validatePricingRule(rule, validationIndex);
+  const isEditingRule = rulePageMode.value === 'edit';
+  const validation = validatePricingRule(rule, validationIndex, isEditingRule);
 
   if (!validation.isValid) {
     pricingRuleErrors.value = {
@@ -515,6 +522,11 @@ const addPricingRule = async () => {
 
   const payload = {
     ...rule,
+    movie_id: rule.movie_id || null,
+    start_date: rule.start_date || null,
+    end_date: rule.end_date || null,
+    time_from: rule.time_from || null,
+    time_to: rule.time_to || null,
     value: rule.adjustment_type === 'free' ? 0 : Number(rule.value || 0),
     status: rule.status || 'active',
     days: Array.isArray(rule.days) ? [...rule.days] : [...weekdayOptions],
@@ -529,8 +541,20 @@ const addPricingRule = async () => {
     pricingForm.value.pricing_rules.push(payload);
   }
 
+  const finalPayload = {
+    ...pricingForm.value,
+    pricing_rules: pricingForm.value.pricing_rules.map(r => ({
+      ...r,
+      movie_id: r.movie_id || null,
+      start_date: r.start_date || null,
+      end_date: r.end_date || null,
+      time_from: r.time_from || null,
+      time_to: r.time_to || null,
+    }))
+  };
+
   try {
-    await api.put('/admin/pricing-rules', pricingForm.value);
+    await api.put('/admin/pricing-rules', finalPayload);
     toast(isEditing ? 'Cập nhật quy tắc thành công!' : 'Thêm quy tắc thành công!');
   } catch (error) {
     if (isEditing) {

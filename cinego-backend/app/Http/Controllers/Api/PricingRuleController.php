@@ -34,9 +34,9 @@ class PricingRuleController extends Controller
     public function update(Request $request)
     {
         $request->validate([
-            'standard_price' => 'required|integer|min:0|max:1000000000',
-            'vip_price' => 'required|integer|min:0|max:1000000000',
-            'couple_price' => 'required|integer|min:0|max:1000000000',
+            'standard_price' => 'nullable|integer|min:0|max:1000000000',
+            'vip_price' => 'nullable|integer|min:0|max:1000000000',
+            'couple_price' => 'nullable|integer|min:0|max:1000000000',
             'weekend_price' => 'nullable|integer|min:0|max:1000000000',
             'happy_hour_price' => 'nullable|integer|min:0|max:1000000000',
             'format_3d_price' => 'nullable|integer|min:0|max:1000000000',
@@ -52,8 +52,8 @@ class PricingRuleController extends Controller
             'pricing_rules.*.seat_type' => 'nullable|in:all,standard,vip,couple',
             'pricing_rules.*.adjustment_type' => 'required|in:surcharge,percentage,free',
             'pricing_rules.*.value' => 'nullable|numeric|min:0',
-            'pricing_rules.*.start_date' => 'nullable|date_format:Y-m-d|after_or_equal:today',
-            'pricing_rules.*.end_date' => 'nullable|date_format:Y-m-d|after_or_equal:pricing_rules.*.start_date',
+            'pricing_rules.*.start_date' => 'nullable|date_format:Y-m-d',
+            'pricing_rules.*.end_date' => 'nullable|date_format:Y-m-d',
             'pricing_rules.*.excluded_dates' => 'nullable|array',
             'pricing_rules.*.excluded_dates.*' => 'date_format:Y-m-d',
             'pricing_rules.*.use_time_filter' => 'boolean',
@@ -62,7 +62,8 @@ class PricingRuleController extends Controller
             'pricing_rules.*.status' => 'nullable|in:active,inactive',
         ]);
 
-        if ($request->integer('standard_price') > $request->integer('vip_price')) {
+        if ($request->filled('standard_price') && $request->filled('vip_price') &&
+            $request->integer('standard_price') > $request->integer('vip_price')) {
             return response()->json([
                 'message' => 'Giá vé phải theo thứ tự Thường <= VIP <= Ghế đôi.',
                 'errors' => [
@@ -72,7 +73,8 @@ class PricingRuleController extends Controller
             ], 422);
         }
 
-        if ($request->integer('vip_price') > $request->integer('couple_price')) {
+        if ($request->filled('vip_price') && $request->filled('couple_price') &&
+            $request->integer('vip_price') > $request->integer('couple_price')) {
             return response()->json([
                 'message' => 'Giá vé phải theo thứ tự Thường <= VIP <= Ghế đôi.',
                 'errors' => [

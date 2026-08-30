@@ -77,7 +77,7 @@ export const validatePricingConfig = (form = {}) => {
   return { isValid, errors };
 };
 
-export const validatePricingRule = (rule = {}, index = 0) => {
+export const validatePricingRule = (rule = {}, index = 0, isEditing = false) => {
   const errors = {};
   let isValid = true;
 
@@ -128,7 +128,7 @@ export const validatePricingRule = (rule = {}, index = 0) => {
 
   const today = new Date();
   const todayString = [today.getFullYear(), String(today.getMonth() + 1).padStart(2, '0'), String(today.getDate()).padStart(2, '0')].join('-');
-  if (rule.start_date && String(rule.start_date) < todayString) {
+  if (!isEditing && rule.start_date && String(rule.start_date) < todayString) {
     errors[`rule_${index}_date`] = ['Ngày bắt đầu không được nhỏ hơn ngày hiện tại.'];
     isValid = false;
   }
