@@ -126,6 +126,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import api from "../../api/axios";
+import { toast } from '../../utils/alert';
 
 const loading = ref(true);
 const articles = ref([]);
@@ -183,7 +184,7 @@ const openBlogModal = async (id) => {
     }
   } catch (error) {
     console.error("Lỗi tải chi tiết bài viết", error);
-    alert("Không thể tải bài viết này!");
+    toast("Không thể tải bài viết này!", 'error');
     closeModal();
   } finally {
     modalLoading.value = false;

@@ -332,6 +332,7 @@ import { useRouter } from "vue-router";
 import { useBookingStore } from "../../stores/booking";
 import { useAuthStore } from "../../stores/auth";
 import api from "../../api/axios";
+import { toast } from '../../utils/alert';
 
 // Khai báo cấu hình Backend & Ảnh mặc định
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://127.0.0.1:8000";
@@ -378,7 +379,7 @@ const searchCustomer = async () => {
     if (res.data?.success) {
       customerSearchResults.value = res.data.data;
       if (customerSearchResults.value.length === 0) {
-        alert("Không tìm thấy khách hàng nào.");
+        toast("Không tìm thấy khách hàng nào.", 'warning');
       }
     }
   } catch (err) {
@@ -630,7 +631,7 @@ const confirmPayment = async () => {
       response.data?.booking_code || "";
   } catch (err) {
     console.error("Lỗi thanh toán:", err.response?.data || err);
-    alert(err.response?.data?.message || "Giao dịch thất bại. Vui lòng thử lại!");
+    toast(err.response?.data?.message || "Giao dịch thất bại. Vui lòng thử lại!", 'error');
   } finally {
     submitting.value = false;
   }

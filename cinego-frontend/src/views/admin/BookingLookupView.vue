@@ -251,7 +251,7 @@ const payClass = (s) => ({ paid: 'is-paid', pending: 'is-pending', failed: 'is-f
 const doSearch = async () => {
   const q = query.value.trim();
   if (q.length < 3) {
-    alert('Vui lòng nhập ít nhất 3 ký tự để tra cứu.');
+    toast('Vui lòng nhập ít nhất 3 ký tự để tra cứu.', 'warning');
     return;
   }
   loading.value = true;
@@ -262,7 +262,7 @@ const doSearch = async () => {
   } catch (err) {
     console.error('Lookup error:', err);
     results.value = [];
-    alert(err.response?.data?.message || 'Có lỗi khi tra cứu đơn hàng.');
+    toast(err.response?.data?.message || 'Có lỗi khi tra cứu đơn hàng.', 'error');
   } finally {
     loading.value = false;
   }
@@ -294,7 +294,7 @@ const openDetail = async (id) => {
     detail.value = res.data;
   } catch (err) {
     console.error('Detail error:', err);
-    alert('Không tải được chi tiết đơn hàng.');
+    toast('Không tải được chi tiết đơn hàng.', 'error');
     showDetail.value = false;
   } finally {
     detailLoading.value = false;

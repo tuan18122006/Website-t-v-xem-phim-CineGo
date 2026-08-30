@@ -113,6 +113,7 @@ import { ref, onMounted } from 'vue';
 import api from '../../api/axios';
 import TicketPrintable from '../../components/TicketPrintable.vue';
 import { useAuthStore } from '../../stores/auth';
+import { toast, confirmDialog } from '../../utils/alert';
 
 const auth = useAuthStore();
 const isAdmin = auth.isAdmin;
@@ -147,7 +148,7 @@ const fetchBookings = async () => {
   } catch (err) {
     console.error('Fetch bookings error', err);
     bookings.value = [];
-    alert('Không lấy được danh sách đơn.');
+    toast('Không lấy được danh sách đơn.', 'error');
   } finally {
     loading.value = false;
   }
@@ -171,7 +172,7 @@ const viewDetail = async (id) => {
     detail.value = res.data.data || res.data;
   } catch (err) {
     console.error('Detail error', err);
-    alert('Không tải được chi tiết.');
+    toast('Không tải được chi tiết.', 'error');
     showDetail.value = false;
   } finally {
     detailLoading.value = false;
@@ -185,7 +186,7 @@ const closeDetail = () => {
 
 const exportCsv = () => {
   if (!bookings.value || bookings.value.length === 0) {
-    alert('Không có đơn để xuất');
+    toast('Không có đơn để xuất', 'warning');
     return;
   }
 
@@ -233,8 +234,9 @@ const refundTargetId = ref(null);
 const refundReason = ref('');
 const refundLoading = ref(false);
 
-const refund = (id) => {
-  if (!confirm('Bạn có chắc muốn bắt đầu quy trình hoàn tiền cho đơn này?')) return;
+const refund = async (id) => {
+  const confirmed = await confirmDialog('Hoàn tiền?', 'Bạn có chắc muốn bắt đầu quy trình hoàn tiền cho đơn này?');
+  if (!confirmed) return;
   refundTargetId.value = id;
   refundReason.value = '';
   showRefundModal.value = true;
@@ -252,12 +254,12 @@ const sendRefund = async (id) => {
   refundLoading.value = true;
   try {
     await api.post(`/admin/orders/${id}/refund`, { reason: refundReason.value.trim() });
-    alert('Yêu cầu hoàn tiền đã được gửi và đang chờ phê duyệt.');
+    toast('Yêu cầu hoàn tiền đã được gửi và đang chờ phê duyệt.', 'success');
     closeRefundModal();
     await fetchBookings();
   } catch (err) {
     console.error('Refund error', err);
-    alert(err.response?.data?.message || 'Không thể gửi yêu cầu hoàn tiền.');
+    toast(err.response?.data?.message || 'Không thể gửi yêu cầu hoàn tiền.', 'error');
   } finally {
     refundLoading.value = false;
   }

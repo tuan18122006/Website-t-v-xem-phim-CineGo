@@ -310,6 +310,7 @@ import { useRouter } from 'vue-router';
 import { useBookingStore } from '../../stores/booking';
 import api from '../../api/axios';
 import { Clock, FolderOpen, Star } from 'lucide-vue-next';
+import { toast } from '../../utils/alert';
 
 const router = useRouter();
 const bookingStore = useBookingStore();
@@ -491,7 +492,7 @@ const openTrailer = (url) => {
     currentTrailerUrl.value = url;
     isTrailerOpen.value = true;
   } else {
-    alert('Phim hiện chưa có trailer chính thức!');
+    toast('Phim hiện chưa có trailer chính thức!', 'warning');
   }
 };
 

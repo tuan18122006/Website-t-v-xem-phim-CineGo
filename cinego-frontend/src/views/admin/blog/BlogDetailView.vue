@@ -71,7 +71,7 @@ const goBack = () => {
 };
 
 const goToBooking = (movieId) => {
-  alert(`Hệ thống sẽ điều hướng khách hàng ra trang mua vé trực tuyến của bộ phim có ID: #${movieId}`);
+  toast(`Hệ thống sẽ điều hướng khách hàng ra trang mua vé trực tuyến của bộ phim có ID: #${movieId}`, 'info');
 };
 
 onMounted(fetchPostDetail);

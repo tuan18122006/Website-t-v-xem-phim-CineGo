@@ -99,6 +99,7 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { RefreshCw, Trash2, RotateCcw, Inbox, Film, Clock, Drama, Folder, Popcorn, Ticket } from 'lucide-vue-next';
 import { getTrashItems, restoreTrashItem, forceDeleteTrashItem, emptyTrash } from '../../api/trash';
+import { toast, confirmDialog } from '../../utils/alert';
 
 const loading = ref(false);
 const activeTab = ref('movies');
@@ -159,7 +160,7 @@ const loadData = async () => {
     data.combos = d.combos || [];
     data.vouchers = d.vouchers || [];
   } catch (err) {
-    alert(err.response?.data?.message || 'Không thể tải thùng rác.');
+    toast(err.response?.data?.message || 'Không thể tải thùng rác.', 'error');
   } finally {
     loading.value = false;
   }
@@ -167,26 +168,28 @@ const loadData = async () => {
 
 const restoreItem = async (item) => {
   const type = apiType(activeTab.value);
-  if (!confirm(`Bạn có chắc muốn khôi phục "${displayInfo(item).title}"?`)) return;
+  const confirmed = await confirmDialog('Khôi phục mục này?', `Bạn có chắc muốn khôi phục "${displayInfo(item).title}"?`);
+  if (!confirmed) return;
   try {
     await restoreTrashItem(type, item.id);
-    alert('Khôi phục thành công.');
+    toast('Khôi phục thành công.', 'success');
     loadData();
   } catch (err) {
-    alert(err.response?.data?.message || 'Khôi phục thất bại.');
+    toast(err.response?.data?.message || 'Khôi phục thất bại.', 'error');
   }
 };
 
 const forceDeleteItem = async (item) => {
   const type = apiType(activeTab.value);
   const name = displayInfo(item).title;
-  if (!confirm(`Xóa VĨNH VIỄN "${name}"?\n\nThao tác này không thể hoàn tác!`)) return;
+  const confirmed = await confirmDialog('Xóa vĩnh viễn?', `Xóa VĨNH VIỄN "${name}"? Thao tác này không thể hoàn tác!`);
+  if (!confirmed) return;
   try {
     await forceDeleteTrashItem(type, item.id);
-    alert('Đã xóa vĩnh viễn.');
+    toast('Đã xóa vĩnh viễn.', 'success');
     loadData();
   } catch (err) {
-    alert(err.response?.data?.message || 'Xóa vĩnh viễn thất bại.');
+    toast(err.response?.data?.message || 'Xóa vĩnh viễn thất bại.', 'error');
   }
 };
 
@@ -210,13 +213,14 @@ const displayInfo = (item) => {
 };
 
 const handleEmptyAll = async () => {
-  if (!confirm('Bạn có chắc muốn dọn sạch toàn bộ thùng rác? Các mục còn vé đã bán sẽ được giữ lại.')) return;
+  const confirmed = await confirmDialog('Dọn thùng rác?', 'Bạn có chắc muốn dọn sạch toàn bộ thùng rác? Các mục còn vé đã bán sẽ được giữ lại.');
+  if (!confirmed) return;
   try {
     const res = await emptyTrash();
-    alert(res.data.message || 'Đã dọn thùng rác.');
+    toast(res.data.message || 'Đã dọn thùng rác.', 'success');
     loadData();
   } catch (err) {
-    alert(err.response?.data?.message || 'Dọn thùng rác thất bại.');
+    toast(err.response?.data?.message || 'Dọn thùng rác thất bại.', 'error');
   }
 };
 

@@ -324,6 +324,7 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import api from "../../api/axios";
+import { toast } from '../../utils/alert';
 
 const activeTab = ref("info");
 const subTab = ref("upcoming");
@@ -402,10 +403,10 @@ const updateProfile = async () => {
       phone: profileForm.value.phone,
       birthday: profileForm.value.birthday,
     });
-    alert("Cập nhật thông tin thành công!");
+    toast("Cập nhật thông tin thành công!", 'success');
     isEditingInfo.value = false;
   } catch (err) {
-    alert("Lỗi cập nhật dữ liệu!");
+    toast("Lỗi cập nhật dữ liệu!", 'error');
   } finally {
     btnLoading.value = false;
   }
@@ -421,7 +422,7 @@ const handleAvatarUpload = async (event) => {
       headers: { "Content-Type": "multipart/form-data" },
     });
     profileForm.value.avatar_url = response.data.avatar_url;
-    alert("Thay đổi ảnh đại diện thành công!");
+    toast("Thay đổi ảnh đại diện thành công!", 'success');
   } catch (err) {
     console.error(err);
   }
@@ -429,10 +430,10 @@ const handleAvatarUpload = async (event) => {
 
 const changePassword = async () => {
   if (passwordForm.value.new_password.length < 8) {
-    return alert("Mật khẩu mới phải từ 8 ký tự!");
+    toast("Mật khẩu mới phải từ 8 ký tự!", 'warning'); return;
   }
   if (passwordForm.value.new_password !== passwordForm.value.confirm_password) {
-    return alert("Mật khẩu nhập lại không khớp!");
+    toast("Mật khẩu nhập lại không khớp!", 'warning'); return;
   }
   btnLoading.value = true;
   try {
@@ -440,14 +441,14 @@ const changePassword = async () => {
       old_password: passwordForm.value.old_password,
       new_password: passwordForm.value.new_password,
     });
-    alert("Đổi mật khẩu thành công!");
+    toast("Đổi mật khẩu thành công!", 'success');
     passwordForm.value = {
       old_password: "",
       new_password: "",
       confirm_password: "",
     };
   } catch (err) {
-    alert(err.response?.data?.message || "Mật khẩu cũ sai!");
+    toast(err.response?.data?.message || "Mật khẩu cũ sai!", 'error');
   } finally {
     btnLoading.value = false;
   }

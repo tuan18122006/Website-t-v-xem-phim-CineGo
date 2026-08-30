@@ -397,7 +397,7 @@ export default {
       }
     },
     async deleteRule(id) {
-      if (!confirm('Xóa quy tắc này?')) return;
+      if (!window.confirm('Xóa quy tắc này?')) return;
       try {
         await axios.delete(`/api/admin/time-based-pricing/${id}`);
         this.rules = this.rules.filter(r => r.id !== id);

@@ -226,6 +226,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useBookingStore } from '../../stores/booking';
 import api from '../../api/axios';
 import Swal from 'sweetalert2';
+import { toast } from '../../utils/alert';
 
 const route = useRoute();
 const router = useRouter();
@@ -420,7 +421,7 @@ const fetchMovieReviews = async () => {
 
 const submitReview = async () => {
   if (!myReview.value.comment.trim()) {
-    alert('Vui lòng nhập nội dung đánh giá trước khi gửi!');
+    toast('Vui lòng nhập nội dung đánh giá trước khi gửi!', 'warning');
     return;
   }
 
@@ -455,10 +456,9 @@ const submitReview = async () => {
     reviewNotice.value = { type: 'success', message: 'Đánh giá của bạn đã được gửi thành công.' };
     canSubmitReview.value = false;
 
-    alert('Đánh giá của bạn đã được gửi thành công!');
+    toast('Đánh giá của bạn đã được gửi thành công!', 'success');
   } catch (err) {
-    console.error('Lỗi khi lưu review vào Database:', err);
-    alert(err.response?.data?.message || 'Không thể gửi đánh giá, vui lòng kiểm tra trạng thái đăng nhập hệ thống!');
+    toast(err.response?.data?.message || 'Không thể gửi đánh giá, vui lòng kiểm tra trạng thái đăng nhập hệ thống!', 'error');
   }
 };
 

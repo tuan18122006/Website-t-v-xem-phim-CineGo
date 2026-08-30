@@ -129,6 +129,7 @@
 import { ref, onMounted } from 'vue';
 import { getAdminUsersLoyalty, adjustUserPoints } from '../../../src/api/adminLoyalty';
 import { Star, Settings } from 'lucide-vue-next';
+import { toast } from '../../utils/alert';
 
 const userList = ref([]);
 const searchQuery = ref('');
@@ -183,11 +184,11 @@ const handleAdjustPoints = async () => {
   loading.value = true;
   try {
     await adjustUserPoints(selectedUser.value.id, adjustForm.value);
-    alert('Điều chỉnh điểm thành công!');
+    toast('Điều chỉnh điểm thành công!', 'success');
     isModalOpen.value = false;
     fetchUsers();
   } catch (err) {
-    alert(err.response?.data?.message || 'Có lỗi xảy ra!');
+    toast(err.response?.data?.message || 'Có lỗi xảy ra!', 'error');
   } finally {
     loading.value = false;
   }

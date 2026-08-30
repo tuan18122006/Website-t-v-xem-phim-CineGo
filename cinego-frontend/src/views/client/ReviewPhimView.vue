@@ -116,6 +116,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import api from '../../api/axios';
+import { toast } from '../../utils/alert';
 
 const router = useRouter();
 const page = ref(1);
@@ -143,7 +144,7 @@ const openTrailer = (url) => {
     currentTrailerUrl.value = url;
     isTrailerOpen.value = true;
   } else {
-    alert('Phim hiện chưa có trailer chính thức!');
+    toast('Phim hiện chưa có trailer chính thức!', 'warning');
   }
 };
 

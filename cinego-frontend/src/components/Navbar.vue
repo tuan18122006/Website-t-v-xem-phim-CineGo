@@ -119,6 +119,7 @@ import { useAuthStore } from '../stores/auth';
 import { useBookingStore } from '../stores/booking';
 import api from '../api/axios';
 import Swal from 'sweetalert2';
+import { toast } from '../utils/alert';
 
 const authStore = useAuthStore();
 const bookingStore = useBookingStore();
@@ -233,7 +234,7 @@ const updateTimer = () => {
     
     if (diff <= 0) {
       bookingStore.clearBooking();
-      alert('Thời gian giữ ghế đã hết hạn. Ghế của bạn đã được giải phóng!');
+      toast('Thời gian giữ ghế đã hết hạn. Ghế của bạn đã được giải phóng!', 'warning');
       router.push('/');
     }
   } else {

@@ -118,6 +118,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import api from '../../api/axios';
 import { Search, Vote, Pin, Ban, Eye, EyeOff, MessageSquare, Trash2 } from 'lucide-vue-next';
+import { toast, confirmDialog } from '../../utils/alert';
 
 const loading = ref(false);
 const reviews = ref([]);
@@ -161,7 +162,7 @@ const fetchReviews = async () => {
     total.value = res.data.total || 0;
   } catch (e) {
     console.error('reviews error', e);
-    alert('Không tải được danh sách đánh giá.');
+    toast('Không tải được danh sách đánh giá.', 'error');
   } finally {
     loading.value = false;
   }
@@ -172,16 +173,17 @@ const goPage = (p) => { page.value = p; fetchReviews(); };
 
 const toggleFeature = async (r) => {
   try { const res = await api.patch(`/admin/reviews/${r.id}/feature`); r.is_featured = res.data.is_featured; }
-  catch { alert('Lỗi khi ghim.'); }
+  catch { toast('Lỗi khi ghim.', 'error'); }
 };
 const toggleHide = async (r) => {
   try { const res = await api.patch(`/admin/reviews/${r.id}/hide`); r.is_hidden = res.data.is_hidden; }
-  catch { alert('Lỗi khi ẩn/hiện.'); }
+  catch { toast('Lỗi khi ẩn/hiện.', 'error'); }
 };
 const removeReview = async (r) => {
-  if (!confirm(`Xóa vĩnh viễn bình luận của ${r.user?.name || 'khách'}? Không thể hoàn tác.`)) return;
+  const confirmed = await confirmDialog('Xóa bình luận?', `Xóa vĩnh viễn bình luận của ${r.user?.name || 'khách'}? Không thể hoàn tác.`);
+  if (!confirmed) return;
   try { await api.delete(`/admin/reviews/${r.id}`); reviews.value = reviews.value.filter(x => x.id !== r.id); }
-  catch { alert('Lỗi khi xóa.'); }
+  catch { toast('Lỗi khi xóa.', 'error'); }
 };
 
 const openReply = (r) => { replyTarget.value = r; replyText.value = r.admin_reply || ''; };
@@ -190,7 +192,7 @@ const saveReply = async (text) => {
     const res = await api.post(`/admin/reviews/${replyTarget.value.id}/reply`, { admin_reply: text });
     replyTarget.value.admin_reply = res.data.data.admin_reply;
     replyTarget.value = null;
-  } catch { alert('Lỗi khi gửi phản hồi.'); }
+  } catch { toast('Lỗi khi gửi phản hồi.', 'error'); }
 };
 
 onMounted(() => { fetchMovies(); fetchReviews(); });

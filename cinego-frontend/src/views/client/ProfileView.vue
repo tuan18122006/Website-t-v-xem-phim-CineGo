@@ -1635,13 +1635,13 @@ const fetchUserData = async () => {
 
 const updateProfile = async () => {
     if (!profileForm.value.name || profileForm.value.name.trim().length < 2) {
-      return alert("Tên khách hàng phải có ít nhất 2 ký tự!");
+      toast("Tên khách hàng phải có ít nhất 2 ký tự!", 'warning'); return;
     }
 
     if (profileForm.value.phone) {
       const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/g;
       if (!phoneRegex.test(profileForm.value.phone)) {
-        return alert("Số điện thoại không hợp lệ! Vui lòng nhập số điện thoại Việt Nam (10 số).");
+        toast("Số điện thoại không hợp lệ! Vui lòng nhập số điện thoại Việt Nam (10 số).", 'warning'); return;
       }
     }
 
@@ -1649,7 +1649,7 @@ const updateProfile = async () => {
       const selectedDate = new Date(profileForm.value.birthday);
       const today = new Date();
       if (selectedDate >= today) {
-        return alert("Ngày sinh không hợp lệ! Vui lòng chọn ngày sinh trong quá khứ.");
+        toast("Ngày sinh không hợp lệ! Vui lòng chọn ngày sinh trong quá khứ.", 'warning'); return;
       }
     }
 
@@ -1660,12 +1660,12 @@ const updateProfile = async () => {
         phone: profileForm.value.phone,
         birthday: profileForm.value.birthday,
       });
-      alert("Cập nhật thông tin thành công!");
+      toast("Cập nhật thông tin thành công!", 'success');
       isEditingInfo.value = false;
       await authStore.fetchUser();
     } catch (err) {
       console.error(err);
-      alert(err.response?.data?.message || err.response?.data?.error || "Lỗi cập nhật dữ liệu!");
+      toast(err.response?.data?.message || err.response?.data?.error || "Lỗi cập nhật dữ liệu!", 'error');
     } finally {
       btnLoading.value = false;
     }
@@ -1963,7 +1963,7 @@ const handleAvatarUpload = async (event) => {
     });
     profileForm.value.avatar_url = response.data.avatar_url;
     await authStore.fetchUser();
-    alert("Thay đổi ảnh đại diện thành công!");
+    toast("Thay đổi ảnh đại diện thành công!", 'success');
   } catch (err) {
     console.error(err);
   }
