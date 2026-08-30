@@ -128,7 +128,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import axios from '../../api/axios';
-import { toast } from '../../utils/alert';
+import { toast, confirmDialog } from '../../utils/alert';
 import { Newspaper, Pencil, Trash2, Inbox, SquarePen, Sparkles } from 'lucide-vue-next';
 
 const articles = ref([]);
@@ -311,7 +311,8 @@ const saveArticle = async () => {
 };
 
 const deleteArticle = async (id) => {
-  if (confirm('Bạn có chắc chắn muốn xóa bài viết này không?')) {
+  const confirmed = await confirmDialog('Xác nhận xóa', 'Bạn có chắc chắn muốn xóa bài viết này không?');
+  if (confirmed) {
     try {
       await axios.delete(`/admin/articles/${id}`);
       toast('Đã xóa bài viết', 'success');
