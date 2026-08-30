@@ -546,10 +546,10 @@ const addPricingRule = async () => {
     pricing_rules: pricingForm.value.pricing_rules.map(r => ({
       ...r,
       movie_id: r.movie_id || null,
-      start_date: r.start_date || null,
-      end_date: r.end_date || null,
-      time_from: r.time_from || null,
-      time_to: r.time_to || null,
+      start_date: r.start_date ? String(r.start_date).slice(0, 10) : null,
+      end_date: r.end_date ? String(r.end_date).slice(0, 10) : null,
+      time_from: r.time_from ? String(r.time_from).slice(0, 5) : null,
+      time_to: r.time_to ? String(r.time_to).slice(0, 5) : null,
     }))
   };
 
