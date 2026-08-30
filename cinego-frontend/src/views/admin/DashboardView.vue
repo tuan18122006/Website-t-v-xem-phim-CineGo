@@ -517,6 +517,7 @@ import { useRouter } from 'vue-router';
 import { BarChart3, Tag, Clapperboard, Drama, Image, Clock, Receipt, Search, Camera, Settings, Building2, Users, Popcorn, Ticket, Star, Newspaper, Folder, PenLine, LogOut, Bell, Eye, CircleDollarSign, Trophy, Hourglass, Trash2 } from 'lucide-vue-next';
 import { useAuthStore } from '../../stores/auth';
 import api from '../../api/axios';
+import { toast } from '../../utils/alert';
 import MoviesView from './MoviesView.vue';
 import BannerManagement from './BannerManagement.vue';
 import ActorManagement from './ActorManagement.vue';
@@ -589,7 +590,7 @@ const shiftData = ref({
 
 const submitCheckin = async () => {
   if (!shiftData.value.shift_name || !shiftData.value.workstation) {
-    alert('Vui lòng nhập đầy đủ thông tin ca trực!');
+    toast('Vui lòng nhập đầy đủ thông tin ca trực!', 'warning');
     return;
   }
   try {
@@ -600,10 +601,10 @@ const submitCheckin = async () => {
     if (res.data.success) {
       if (authStore.user) authStore.user.work_status = 'on_shift';
       isCheckinModalOpen.value = false;
-      alert('Đã bắt đầu ca trực thành công!');
+      toast('Đã bắt đầu ca trực thành công!', 'success');
     }
   } catch (err) {
-    alert(err.response?.data?.message || 'Có lỗi xảy ra khi bắt đầu ca.');
+    toast(err.response?.data?.message || 'Có lỗi xảy ra khi bắt đầu ca.', 'error');
   }
 };
 
@@ -616,10 +617,10 @@ const submitCheckout = async () => {
     if (res.data.success) {
       if (authStore.user) authStore.user.work_status = 'off_shift';
       isCheckoutModalOpen.value = false;
-      alert('Đã gửi yêu cầu chốt ca thành công! Vui lòng đợi quản lý duyệt.');
+      toast('Đã gửi yêu cầu chốt ca thành công! Vui lòng đợi quản lý duyệt.', 'success');
     }
   } catch (err) {
-    alert(err.response?.data?.message || 'Có lỗi xảy ra khi chốt ca.');
+    toast(err.response?.data?.message || 'Có lỗi xảy ra khi chốt ca.', 'error');
   }
 };
 
@@ -832,7 +833,7 @@ const applyDateFilter = () => {
     const start = new Date(startDate.value);
     const end = new Date(endDate.value);
     if (start > end) {
-      alert('Ngày bắt đầu không thể lớn hơn ngày kết thúc!');
+      toast('Ngày bắt đầu không thể lớn hơn ngày kết thúc!', 'warning');
       return;
     }
   }
