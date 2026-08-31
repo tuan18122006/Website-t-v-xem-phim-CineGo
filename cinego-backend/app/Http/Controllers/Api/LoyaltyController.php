@@ -215,7 +215,7 @@ class LoyaltyController extends Controller
                 if ($endDate) {
                     try {
                         $carbonEnd = Carbon::parse($endDate);
-                        $parsedEndDate = $carbonEnd->toIso8601String();
+                        $parsedEndDate = $carbonEnd->format('Y-m-d');
                         $isExpired = now()->gt($carbonEnd);
                     } catch (\Exception $e) {
                         $parsedEndDate = null;
@@ -255,7 +255,7 @@ class LoyaltyController extends Controller
                 if ($endDate) {
                     try {
                         $carbonEnd = Carbon::parse($endDate);
-                        $parsedEndDate = $carbonEnd->toIso8601String();
+                        $parsedEndDate = $carbonEnd->format('Y-m-d');
                         $isExpired = now()->gt($carbonEnd);
                     } catch (\Exception $e) {
                         $parsedEndDate = null;

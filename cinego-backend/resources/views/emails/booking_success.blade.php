@@ -62,7 +62,7 @@
                                 @foreach($booking->bookingDetails as $ticket)
                                 <tr>
                                     <td style="border:1px solid #000;">{{ $ticket->seat->row }}{{ $ticket->seat->number }}</td>
-                                    <td style="border:1px solid #000;">{{ strtoupper($ticket->seat->type) }}</td>
+                                    <td style="border:1px solid #000;">{{ $ticket->seat->type === 'vip' ? 'VIP' : ($ticket->seat->type === 'couple' ? 'Ghế đôi' : 'Ghế thường') }}</td>
                                     <td style="border:1px solid #000;" align="right">{{ number_format($ticket->price) }}đ</td>
                                 </tr>
                                 @endforeach
