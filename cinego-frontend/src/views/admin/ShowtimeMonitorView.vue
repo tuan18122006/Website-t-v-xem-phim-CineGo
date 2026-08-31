@@ -107,7 +107,7 @@
                 <span class="value">{{ selectedSeat.row_name }}{{ selectedSeat.seat_number }}</span>
                 
                 <span class="label">Loại:</span>
-                <span class="value uppercase">{{ selectedSeat.type }}</span>
+                <span class="value uppercase">{{ selectedSeat.type === 'vip' ? 'VIP' : selectedSeat.type === 'couple' ? 'Ghế đôi' : 'Ghế thường' }}</span>
                 
                 <span class="label">Trạng thái:</span>
                 <span class="value status">
@@ -746,7 +746,7 @@ const openRescheduleModal = async () => {
         const typeColor = s.type === 'vip' ? '#ef4444' : s.type === 'couple' ? '#ec4899' : '#6b7280';
         bg = '#fff'; border = typeColor; color = typeColor; cursor = 'pointer';
         onclick = `window._toggleRescheduleSeat(${s.id}, this, ${neededCount})`;
-        title = s.type.toUpperCase();
+        title = s.type === 'vip' ? 'VIP' : s.type === 'couple' ? 'Ghế đôi' : 'Ghế thường';
       } else if (isSold) {
         bg = '#374151'; border = '#374151'; color = '#fff'; cursor = 'not-allowed';
         onclick = ''; title = 'Đã bán';

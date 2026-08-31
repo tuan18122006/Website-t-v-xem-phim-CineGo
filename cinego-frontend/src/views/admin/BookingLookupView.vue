@@ -243,7 +243,7 @@ const initials = (name) => {
   return (parts[0][0] + (parts[parts.length - 1][0] || '')).toUpperCase();
 };
 
-const typeLabel = (t) => ({ standard: 'Thường', vip: 'VIP', couple: 'Đôi' }[t] || t);
+const typeLabel = (t) => ({ standard: 'Ghế thường', vip: 'VIP', couple: 'Ghế đôi' }[t] || t);
 
 const payLabel = (s) => ({ paid: 'Đã thanh toán', pending: 'Chờ xử lý', failed: 'Thất bại' }[s] || s);
 const payClass = (s) => ({ paid: 'is-paid', pending: 'is-pending', failed: 'is-failed' }[s] || '');

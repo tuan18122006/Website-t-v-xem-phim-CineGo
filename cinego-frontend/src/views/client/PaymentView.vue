@@ -72,7 +72,7 @@
           <div class="combo-tabs">
             <button type="button" :class="['tab-btn', { active: activeComboTab === 'buy' }]"
               @click="activeComboTab = 'buy'">
-               Mua Bắp Nước 
+               Mua Bắp Nước & Combo
             </button>
             <button type="button" :class="['tab-btn', { active: activeComboTab === 'wallet' }]"
               @click="activeComboTab = 'wallet'">
@@ -209,7 +209,7 @@
           <!-- Combo quà tặng từ ví -->
           <template v-if="selectedGifts.length > 0">
             <div class="invoice-row text-mint" v-for="gift in selectedGifts" :key="gift.user_combo_id">
-              <span>🎁 {{ gift.name }} (Quà tặng)</span>
+              <span> {{ gift.name }} (Quà tặng)</span>
               <span>0đ</span>
             </div>
           </template>
@@ -226,12 +226,6 @@
               </button>
               <button v-else @click="removeVoucher" class="btn-remove-voucher">
                 Hủy
-              </button>
-            </div>
-            <!-- Vouchers trong ví -->
-            <div v-if="walletVouchers.length > 0 && !bookingStore.appliedVoucher" class="voucher-chips">
-              <button v-for="v in walletVouchers" :key="v.id" class="voucher-chip" @click="applyWalletVoucher(v.code)">
-                🎟 {{ v.code }} (-{{ v.discount_amount }}{{ v.discount_type === 'percent' ? '%' : 'đ' }})
               </button>
             </div>
             <p v-if="voucherMessage" :class="voucherSuccess ? 'voucher-msg-success' : 'voucher-msg-error'">
@@ -499,6 +493,7 @@ const formatDate = (dateString) => {
 
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 };
+
 const confirmPayment = async () => {
   if (submitting.value) return;
   submitting.value = true;

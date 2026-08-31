@@ -1246,7 +1246,7 @@
           <div style="color: #94a3b8; font-size: 13px;">
             <template v-if="swapSelectedSeat">
               Đã chọn: <strong style="color: #22c55e;">{{ swapSeatLabel(swapSelectedSeat) }}</strong>
-              ({{ swapSelectedSeat.type }})
+              ({{ typeLabel(swapSelectedSeat.type) }})
             </template>
             <template v-else>Nhấn vào ghế trống trong sơ đồ để chọn</template>
           </div>
@@ -1912,7 +1912,7 @@ const confirmSwapSeat = async () => {
     html: `
       <div style="font-size: 14px;">
         <p>Ghế hỏng: <strong style="color: #ef4444;">${ticket.seat_label}</strong></p>
-        <p>Đổi sang: <strong style="color: #22c55e;">${swapSeatLabel(seat)}</strong> (${seat.type})</p>
+        <p>Đổi sang: <strong style="color: #22c55e;">${swapSeatLabel(seat)}</strong> (${seat.type === 'vip' ? 'VIP' : seat.type === 'couple' ? 'Ghế đôi' : 'Ghế thường'})</p>
       </div>
     `,
     icon: 'question',
@@ -2128,6 +2128,8 @@ const formatLogType = (type) => {
   };
   return types[type] || type;
 };
+
+const typeLabel = (t) => ({ standard: 'Ghế thường', vip: 'VIP', couple: 'Ghế đôi' }[t] || t);
 
 const formatDate = (dateStr) => {
   if (!dateStr) return "";

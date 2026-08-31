@@ -17,7 +17,7 @@
               <strong style="color: white; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Giá cơ sở:</strong> 
               <span style="background: rgba(229,9,20,0.2); border: 1px solid rgba(229,9,20,0.5); padding: 3px 8px; border-radius: 6px; color: #fff;">Thường <b style="margin-left:4px; font-size: 1.05rem;">{{ formatPrice(currentPricing.standard_price) }}</b></span>
               <span style="background: rgba(255,215,0,0.2); border: 1px solid rgba(255,215,0,0.5); padding: 3px 8px; border-radius: 6px; color: #fff;">VIP <b style="margin-left:4px; color: var(--accent-gold); font-size: 1.05rem;">{{ formatPrice(currentPricing.vip_price) }}</b></span>
-              <span style="background: rgba(100,255,218,0.15); border: 1px solid rgba(100,255,218,0.4); padding: 3px 8px; border-radius: 6px; color: #fff;">Couple <b style="margin-left:4px; color: #64ffda; font-size: 1.05rem;">{{ formatPrice(currentPricing.couple_price) }}</b></span>
+              <span style="background: rgba(100,255,218,0.15); border: 1px solid rgba(100,255,218,0.4); padding: 3px 8px; border-radius: 6px; color: #fff;">Đôi <b style="margin-left:4px; color: #64ffda; font-size: 1.05rem;">{{ formatPrice(currentPricing.couple_price) }}</b></span>
             </div>
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
               <strong style="color: white; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;">Quy tắc phụ thu:</strong>
@@ -214,7 +214,7 @@
                 <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                   <span style="background: rgba(229,9,20,0.1); padding: 4px 8px; border-radius: 4px; color: var(--accent-pink);">Thường: <b>{{ formatPrice(selectedDetail.pricing_snapshot?.standard_price || 0) }}</b></span>
                   <span style="background: rgba(255,215,0,0.2); border: 1px solid rgba(255,215,0,0.3); padding: 4px 8px; border-radius: 4px; color: #b8860b;">VIP: <b>{{ formatPrice(selectedDetail.pricing_snapshot?.vip_price || 0) }}</b></span>
-                  <span style="background: rgba(0,150,136,0.1); padding: 4px 8px; border-radius: 4px; color: #00796b;">Couple: <b>{{ formatPrice(selectedDetail.pricing_snapshot?.couple_price || 0) }}</b></span>
+                  <span style="background: rgba(0,150,136,0.1); padding: 4px 8px; border-radius: 4px; color: #00796b;">Đôi: <b>{{ formatPrice(selectedDetail.pricing_snapshot?.couple_price || 0) }}</b></span>
                 </div>
               </div>
               <div style="font-size: 0.95rem; margin-top: 10px;">

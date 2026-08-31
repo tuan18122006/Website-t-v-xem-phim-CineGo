@@ -39,7 +39,7 @@
           class="seat-item"
         >
           <span v-if="seat.type !== 'hidden' && seat.type !== 'deleted' && seat.type !== 'couple_hidden'" class="seat-label">
-            {{ seat.row }}{{ displayNumbers.get(seat.id) }}
+            {{ seat.row }}{{ seat.number }}
           </span>
         </div>
       </div>
