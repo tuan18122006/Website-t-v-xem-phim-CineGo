@@ -155,6 +155,9 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     Route::get('/dashboard/overview', [DashboardController::class, 'overview']);
     Route::get('/dashboard/revenue', [DashboardController::class, 'revenue']);
 
+    // Lịch sử hoạt động
+    Route::get('/action-logs', [\App\Http\Controllers\Api\ActionLogController::class, 'index']);
+
     // Kiểm duyệt đánh giá (Review moderation)
     Route::get('/reviews', [ReviewController::class, 'adminIndex']);
     Route::patch('/reviews/{id}/hide', [ReviewController::class, 'toggleHide']);

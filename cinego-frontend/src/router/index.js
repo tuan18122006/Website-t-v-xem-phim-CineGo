@@ -258,6 +258,12 @@ const routes = [
       meta: { requiresAuth: true, role: "admin" }
     },
   {
+    path: '/admin/action-logs',
+    name: 'admin-ActionLogs',
+    component: () => import('../views/admin/ActionLogView.vue'),
+    meta: { requiresAuth: true, role: "admin" }
+  },
+  {
     path: "/staff",
     redirect: "/staff/dashboard",
   },

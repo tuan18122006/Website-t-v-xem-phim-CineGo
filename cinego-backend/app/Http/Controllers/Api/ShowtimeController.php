@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActionLog;
 use App\Models\Showtime;
 use App\Models\Seat;
 use App\Models\SeatHold;
 use App\Models\BookingDetail;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class ShowtimeController extends Controller
@@ -141,6 +143,15 @@ class ShowtimeController extends Controller
             ]);
         }
 
+        ActionLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'create_showtime',
+            'target_type' => 'showtimes',
+            'target_id' => $insertedShows[0]->id ?? null,
+            'details' => ['movie_id' => $request->movie_id, 'room_id' => $request->room_id, 'count' => count($insertedShows)],
+            'ip_address' => $request->ip(),
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Thêm suất chiếu thành công',
@@ -205,6 +216,15 @@ class ShowtimeController extends Controller
         ]);
 
 
+
+        ActionLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'edit_showtime',
+            'target_type' => 'showtimes',
+            'target_id' => $showtime->id,
+            'details' => ['movie_id' => $request->movie_id, 'room_id' => $request->room_id, 'start_time' => $request->start_time],
+            'ip_address' => $request->ip(),
+        ]);
 
         return response()->json([
             'success' => true,

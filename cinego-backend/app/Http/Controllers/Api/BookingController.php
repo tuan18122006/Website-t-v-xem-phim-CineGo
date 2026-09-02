@@ -394,7 +394,7 @@ public function holdSeats(Request $request)
             if ($isBrokenOrLocked) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Một số ghế bạn chọn vừa gặp sự cố kỹ thuật và đã bị rạp khóa. Vui lòng chọn ghế khác!'
+                    'message' => 'Một số ghế bạn chọn vừa gặp sự cố kỹ thuật và đã bị hệ thống khóa. Vui lòng chọn ghế khác!'
                 ], 422);
             }
         }

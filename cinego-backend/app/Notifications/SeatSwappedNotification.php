@@ -42,7 +42,7 @@ class SeatSwappedNotification extends Notification
         return [
             'type' => 'seat_swapped',
             'title' => 'Cập nhật ghế ngồi',
-            'message' => "Ghế của bạn đã được rạp đổi từ {$this->oldSeatLabel} sang {$this->newSeatLabel}.",
+            'message' => "Ghế của bạn đã được hệ thống đổi từ {$this->oldSeatLabel} sang {$this->newSeatLabel}.",
             'movie_name' => $this->movieName,
             'start_time' => $this->startTime,
             'old_seat' => $this->oldSeatLabel,

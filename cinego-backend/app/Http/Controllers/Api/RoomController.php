@@ -24,12 +24,12 @@ class RoomController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:500',
+            'description' => 'required|string|max:500',
             'rows' => 'required|integer|max:10',
             'cols' => 'required|integer|min:1|max:14',
         ], [
-            'rows.max' => 'Số hàng tối đa là 10 (phù hợp rạp thực tế).',
-            'cols.max' => 'Số ghế mỗi hàng tối đa là 14 (phù hợp rạp thực tế).',
+            'rows.max' => 'Số hàng tối đa là 10 (phù hợp phòng chiếu thực tế).',
+            'cols.max' => 'Số ghế mỗi hàng tối đa là 14 (phù hợp phòng chiếu thực tế).',
         ]);
 
         $room = Room::create([
@@ -99,7 +99,7 @@ class RoomController extends Controller
         if ($room->showtimes()->count() > 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không thể lưu sơ đồ! Rạp này đang có suất chiếu. Vui lòng xóa các suất chiếu trước khi đổi sơ đồ.'
+                'message' => 'Không thể lưu sơ đồ! Phòng chiếu này đang có suất chiếu. Vui lòng xóa các suất chiếu trước khi đổi sơ đồ.'
             ], 400);
         }
 
@@ -163,7 +163,7 @@ class RoomController extends Controller
         if ($room->showtimes()->count() > 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'Không thể xóa rạp này vì đã được lên lịch chiếu! Vui lòng xóa suất chiếu trước.'
+                'message' => 'Không thể xóa phòng chiếu này vì đã được lên lịch chiếu! Vui lòng xóa suất chiếu trước.'
             ], 400);
         }
 
