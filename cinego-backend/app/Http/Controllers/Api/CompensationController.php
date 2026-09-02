@@ -431,7 +431,7 @@ class CompensationController extends Controller
             app(WalletService::class)->credit(
                 $user,
                 $refundAmount,
-                "Hoàn tiền do sự cố rạp. Mã đơn: {$booking->booking_code}",
+                "Hoàn tiền do sự cố hệ thống. Mã đơn: {$booking->booking_code}",
                 'refund',
                 $booking
             );

@@ -393,8 +393,8 @@
               <label>Vai trò truy cập</label>
               <select v-model="form.role" class="select-form-premium">
                 <option value="admin">Quản trị viên (Admin)</option>
-                <option value="staff">Nhân viên rạp (Staff)</option>
-                <option value="customer">Khách hàng rạp (User)</option>
+                <option value="staff">Nhân viên CineGo (Staff)</option>
+                <option value="customer">Khách hàng CineGo (User)</option>
               </select>
             </div>
             <div class="form-group-premium">
@@ -568,7 +568,7 @@
 
               <!-- TAB: REVIEWS -->
               <div v-if="crmTab === 'reviews'">
-                <h4 class="content-title">Bình luận & Đánh giá rạp phim</h4>
+                <h4 class="content-title">Bình luận & Đánh giá CineGo</h4>
                 <div v-if="detail.reviews.length === 0" class="empty-tab-text">Chưa thực hiện bình luận nào.</div>
                 <ul class="crm-review-list">
                   <li v-for="r in detail.reviews" :key="r.id">
@@ -681,7 +681,7 @@ const newVoucherCode = ref('');
 const sections = [
   { key: 'customer', label: 'Khách hàng', icon: IconUser,      role: 'customer', addLabel: 'Khách Hàng', title: 'Danh mục Khách hàng', desc: 'Quản lý thông tin, phân hạng thành viên, khóa/mở khóa tài khoản khách hàng.' },
   { key: 'staff',    label: 'Nhân viên',  icon: IconBriefcase, role: 'staff',    addLabel: 'Nhân Viên', title: 'Nhân sự vận hành', desc: 'Danh sách nhân sự trực tuyến đầu, theo dõi ca làm việc và quầy trực.' },
-  { key: 'admin',    label: 'Quản trị',   icon: IconCrown,     role: 'admin',    addLabel: 'Quản Trị Viên', title: 'Quản trị viên hệ thống', desc: 'Tài khoản quản lý cấp cao có toàn quyền quản trị và thiết lập cấu hình rạp.' },
+  { key: 'admin',    label: 'Quản trị',   icon: IconCrown,     role: 'admin',    addLabel: 'Quản Trị Viên', title: 'Quản trị viên hệ thống', desc: 'Tài khoản quản lý cấp cao có toàn quyền quản trị và thiết lập cấu hình hệ thống.' },
 ];
 
 const activeSection = ref('customer');
@@ -803,7 +803,7 @@ const dashboardCards = computed(() => {
     return [
       { label: 'Tổng số quản trị viên', value: total + ' người', icon: IconCrown, colorClass: 'card-gold' },
       { label: 'Quyền hạn bảo mật', value: 'Cấp cao nhất', icon: IconShield, colorClass: 'card-blue' },
-      { label: 'Hệ thống rạp CineGo', value: '1 Cơ sở duy nhất', icon: IconUsers, colorClass: 'card-violet' },
+      { label: 'Hệ thống CineGo', value: '1 Cơ sở duy nhất', icon: IconUsers, colorClass: 'card-violet' },
     ];
   } else if (activeSection.value === 'shift') {
     const totalPending = shiftAudits.value.length;

@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActionLog;
 use App\Models\Movie;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 
 class MovieController extends Controller
 {
@@ -114,6 +116,15 @@ class MovieController extends Controller
 
         $this->syncCast($movie, $request);
 
+        ActionLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'create_movie',
+            'target_type' => 'movies',
+            'target_id' => $movie->id,
+            'details' => ['title' => $movie->title],
+            'ip_address' => $request->ip(),
+        ]);
+
         return response()->json(['success' => true, 'data' => $movie->load(['genres', 'actors'])], 201);
     }
 
@@ -175,6 +186,15 @@ class MovieController extends Controller
         $movie->genres()->sync($request->genre_ids);
 
         $this->syncCast($movie, $request);
+
+        ActionLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'edit_movie',
+            'target_type' => 'movies',
+            'target_id' => $movie->id,
+            'details' => ['title' => $movie->title],
+            'ip_address' => $request->ip(),
+        ]);
 
         return response()->json([
             'success' => true,

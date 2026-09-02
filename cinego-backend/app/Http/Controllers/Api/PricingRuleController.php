@@ -3,8 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActionLog;
 use Illuminate\Http\Request;
-
+use Illuminate\Support\Facades\Auth;
 use App\Models\PricingRule;
 
 class PricingRuleController extends Controller
@@ -101,6 +102,15 @@ class PricingRuleController extends Controller
         ]);
 
         $rule->update($payload);
+
+        ActionLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'edit_price',
+            'target_type' => 'pricing',
+            'target_id' => $rule->id,
+            'details' => $payload,
+            'ip_address' => $request->ip(),
+        ]);
 
         return response()->json([
             'success' => true,

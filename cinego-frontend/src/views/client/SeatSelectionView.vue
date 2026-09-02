@@ -549,7 +549,7 @@ onMounted(() => {
            bookingStore.removeSeat(isSelected);
            Swal.fire({
              title: 'Ghế gặp sự cố!',
-             text: `Ghế ${isSelected.row}${isSelected.number} bạn đang chọn vừa được rạp khóa do bảo trì. Vui lòng chọn ghế khác!`,
+              text: `Ghế ${isSelected.row}${isSelected.number} bạn đang chọn vừa được hệ thống khóa do bảo trì. Vui lòng chọn ghế khác!`,
              icon: 'warning',
              confirmButtonColor: '#e50914'
            });
@@ -625,7 +625,7 @@ const validateSeatSelection = () => {
 
           if (leftCaused || rightCaused) {
             Swal.fire({
-              title: 'Quy định rạp',
+              title: 'Quy định hệ thống',
               text: 'Không được để trống 1 ghế đơn lẻ ở giữa các ghế đã chọn hoặc ở sát rìa hàng ghế.',
               icon: 'warning',
               confirmButtonColor: '#e50914'

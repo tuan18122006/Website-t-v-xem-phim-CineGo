@@ -100,6 +100,11 @@
           <span>Đánh Giá Khách Hàng</span>
         </button>
 
+        <button class="nav-link" :class="{ active: activeTab === 'action_logs' }" @click="activeTab = 'action_logs'">
+          <span class="nav-icon"><History :size="20" /></span>
+          <span>Lịch Sử Hoạt Động</span>
+        </button>
+
         <!-- BLOG DROPDOWN -->
         <div class="nav-dropdown">
           <button
@@ -468,6 +473,10 @@
         <ReviewManagement />
       </div>
 
+      <div v-if="activeTab === 'action_logs'">
+        <ActionLogView />
+      </div>
+
       <div v-show="activeTab === 'genres'">
         <GenreManagement />
       </div>
@@ -514,7 +523,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { BarChart3, Tag, Clapperboard, Drama, Image, Clock, Receipt, Search, Camera, Settings, Building2, Users, Popcorn, Ticket, Star, Newspaper, Folder, PenLine, LogOut, Bell, Eye, CircleDollarSign, Trophy, Hourglass, Trash2 } from 'lucide-vue-next';
+import { BarChart3, Tag, Clapperboard, Drama, Image, Clock, Receipt, Search, Camera, Settings, Building2, Users, Popcorn, Ticket, Star, Newspaper, Folder, PenLine, LogOut, Bell, Eye, CircleDollarSign, Trophy, Hourglass, Trash2, History } from 'lucide-vue-next';
 import { useAuthStore } from '../../stores/auth';
 import api from '../../api/axios';
 import { toast } from '../../utils/alert';
@@ -531,6 +540,7 @@ import ShowtimeMonitorView from './ShowtimeMonitorView.vue';
 import ComboSelection from './ComboSelection.vue'; 
 import VoucherManager from './VoucherManager.vue';
 import ReviewManagement from './ReviewManagement.vue';
+import ActionLogView from './ActionLogView.vue';
 import ArticleManagementView from './ArticleManagementView.vue';
 import BlogList from "./blog/BlogListView.vue";
 import BlogCategoryList from "./blog/BlogCategoryList.vue";

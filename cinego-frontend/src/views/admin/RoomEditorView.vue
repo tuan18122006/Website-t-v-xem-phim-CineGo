@@ -34,7 +34,7 @@
     </div>
 
     <div class="glass-panel editor-card">
-      <div v-if="loading" class="loading-state">Đang tải sơ đồ rạp...</div>
+      <div v-if="loading" class="loading-state">Đang tải sơ đồ phòng chiếu...</div>
       <div v-else class="seat-map-wrapper">
         <!-- CHUYỀN SỰ KIỆN LÊN ĐỂ CẬP NHẬT TOOLBAR -->
         <SeatMap 

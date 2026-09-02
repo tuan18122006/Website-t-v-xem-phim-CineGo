@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActionLog;
 use App\Models\User;
 use App\Models\Booking;
 use App\Models\BookingDetail;
@@ -11,6 +12,7 @@ use App\Models\Voucher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 use App\Services\LoyaltyService;
@@ -205,8 +207,18 @@ class UserController extends Controller
         ]);
 
         $user = User::findOrFail($id);
+        $oldRole = $user->role;
         $user->role = $request->role;
         $user->save();
+
+        ActionLog::create([
+            'user_id' => Auth::id(),
+            'action' => 'change_role',
+            'target_type' => 'users',
+            'target_id' => $user->id,
+            'details' => ['old_role' => $oldRole, 'new_role' => $request->role, 'user_name' => $user->name],
+            'ip_address' => $request->ip(),
+        ]);
 
         return response()->json([
             'success' => true,

@@ -110,7 +110,10 @@ const validateForm = () => {
     isValid = false;
   }
 
-  if (newRoomDescription.value && newRoomDescription.value.length > 500) {
+  if (!newRoomDescription.value || newRoomDescription.value.trim() === '') {
+    errors.value.newRoomDescription = ['Vui lòng nhập mô tả phòng chiếu.'];
+    isValid = false;
+  } else if (newRoomDescription.value.length > 500) {
     errors.value.newRoomDescription = ['Mô tả tối đa 500 ký tự.'];
     isValid = false;
   }
@@ -119,7 +122,7 @@ const validateForm = () => {
     errors.value.newRows = ['Số hàng phải lớn hơn 0.'];
     isValid = false;
   } else if (newRows.value > 10) {
-    errors.value.newRows = ['Số hàng tối đa là 10 (phù hợp rạp thực tế).'];
+    errors.value.newRows = ['Số hàng tối đa là 10 (phù hợp phòng chiếu thực tế).'];
     isValid = false;
   }
 
@@ -127,7 +130,7 @@ const validateForm = () => {
     errors.value.newCols = ['Số cột phải lớn hơn 0.'];
     isValid = false;
   } else if (newCols.value > 14) {
-    errors.value.newCols = ['Số ghế mỗi hàng tối đa là 14 (phù hợp rạp thực tế).'];
+    errors.value.newCols = ['Số ghế mỗi hàng tối đa là 14 (phù hợp phòng chiếu thực tế).'];
     isValid = false;
   }
 
@@ -139,25 +142,25 @@ const saveRoom = async () => {
   try {
     await api.post('admin/rooms', {
       name: newRoomName.value,
-      description: newRoomDescription.value || null,
+      description: newRoomDescription.value,
       rows: newRows.value,
       cols: newCols.value
     });
     isCreateModalOpen.value = false;
-    toast("Thêm rạp thành công!");
+    toast("Thêm phòng chiếu thành công!");
     fetchRooms();
-  } catch (e) { toast("Lỗi khi thêm rạp!", "error"); }
+  } catch (e) { toast("Lỗi khi thêm phòng chiếu!", "error"); }
 };
 
 const deleteRoom = async (id) => {
-  if (!(await confirmDialog("Bạn có chắc chắn muốn xóa rạp này không?", "Hành động này không thể hoàn tác!"))) return;
+  if (!(await confirmDialog("Bạn có chắc chắn muốn xóa phòng chiếu này không?", "Hành động này không thể hoàn tác!"))) return;
 
   const originalRooms = [...rooms.value];
   rooms.value = rooms.value.filter(r => r.id !== id);
 
   try {
     await api.delete(`/admin/rooms/${id}`);
-    toast("Đã xóa rạp thành công!");
+    toast("Đã xóa phòng chiếu thành công!");
   } catch (e) {
     rooms.value = originalRooms;
     console.error("Lỗi chi tiết:", e.response ? e.response.data : e);
