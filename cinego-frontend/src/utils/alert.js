@@ -27,3 +27,18 @@ export const confirmDialog = async (title = 'Bạn có chắc chắn?', text = '
   });
   return result.isConfirmed;
 };
+
+// Hộp thoại nhập liệu
+export const promptDialog = async (title = 'Nhập thông tin', inputPlaceholder = '') => {
+  const result = await Swal.fire({
+    title,
+    input: 'text',
+    inputPlaceholder,
+    showCancelButton: true,
+    confirmButtonColor: '#e50914',
+    cancelButtonColor: '#64748b',
+    confirmButtonText: 'Xác nhận',
+    cancelButtonText: 'Hủy'
+  });
+  return result.isConfirmed ? result.value : null;
+};

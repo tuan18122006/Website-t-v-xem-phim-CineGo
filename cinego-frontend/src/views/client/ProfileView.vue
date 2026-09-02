@@ -129,7 +129,7 @@
                     </div>
                     <div class="gmc-footer">
                       <div class="gmc-points-group">
-                        <span class="gmc-points"><b>{{ loyaltyData.loyalty_points || 0 }}</b> điểm CineGo</span>
+                        <span class="gmc-points"><b>{{ loyaltyData.cine_points || 0 }}</b> điểm CineGo</span>
                         <span class="gmc-points"><b>{{ formatPrice(loyaltyData.total_spent) }}đ</b> tổng chi tiêu</span>
                       </div>
                       <span class="gmc-tier">🏆 {{ tierLabel(loyaltyData.current_tier || 'Bronze') }}</span>
@@ -329,10 +329,10 @@
                     <p class="loyalty-card-desc">{{ item.description || 'Voucher giảm giá vé xem phim' }}</p>
                   </div>
                   <button @click="redeemVoucher(item.id)"
-                    :disabled="loyaltyData.loyalty_points < item.points_required || btnLoading"
+                    :disabled="loyaltyData.cine_points < item.points_required || btnLoading"
                     class="loyalty-card-btn"
-                    :class="{ 'disabled': loyaltyData.loyalty_points < item.points_required }">
-                    {{ loyaltyData.loyalty_points < item.points_required ? 'Chưa đủ điểm' : 'ĐỔI NGAY' }}
+                    :class="{ 'disabled': loyaltyData.cine_points < item.points_required }">
+                    {{ loyaltyData.cine_points < item.points_required ? 'Chưa đủ điểm' : 'ĐỔI NGAY' }}
                   </button>
                 </div>
               </div>
@@ -355,10 +355,10 @@
                     <p class="loyalty-card-desc">{{ item.description }}</p>
                   </div>
                   <button @click="redeemCombo(item.id)"
-                    :disabled="loyaltyData.loyalty_points < item.points_required || btnLoading"
+                    :disabled="loyaltyData.cine_points < item.points_required || btnLoading"
                     class="loyalty-card-btn combo-btn"
-                    :class="{ 'disabled': loyaltyData.loyalty_points < item.points_required }">
-                    {{ btnLoading ? 'Đang xử lý...' : (loyaltyData.loyalty_points < item.points_required ? 'Chưa đủ điểm' : 'ĐỔI NGAY') }}
+                    :class="{ 'disabled': loyaltyData.cine_points < item.points_required }">
+                    {{ btnLoading ? 'Đang xử lý...' : (loyaltyData.cine_points < item.points_required ? 'Chưa đủ điểm' : 'ĐỔI NGAY') }}
                   </button>
                 </div>
               </div>
@@ -2168,7 +2168,7 @@ const loyaltyData = ref({
   current_tier: 'Bronze',
   next_tier: 'Silver',
   total_spent: 0,
-  loyalty_points: 0,
+  cine_points: 0,
   progress_percent: 0,
   remaining_amount: 0,
 });

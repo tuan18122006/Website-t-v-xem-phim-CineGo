@@ -277,7 +277,7 @@ class UserController extends Controller
 
         $user = User::findOrFail($id);
         $amount = (int) $request->amount;
-        $user->loyalty_points = max(0, (int) ($user->loyalty_points ?? 0) + $amount);
+        $user->cine_points = max(0, (int) ($user->cine_points ?? 0) + $amount);
         $user->save();
 
         try {

@@ -137,7 +137,7 @@
             <div class="cust-ava">{{ initials(selected.customer.name) }}</div>
             <div class="cust-meta">
               <strong>{{ selected.customer.name }}</strong>
-              <span>{{ selected.customer.phone || selected.customer.email }} · 🏆 {{ selected.customer.membership_tier || 'Bronze' }} · {{ selected.customer.loyalty_points || 0 }}đ</span>
+              <span>{{ selected.customer.phone || selected.customer.email }} · 🏆 {{ selected.customer.membership_tier || 'Bronze' }} · {{ selected.customer.cine_points || 0 }}đ</span>
             </div>
             <button class="cust-clear" @click="selected.customer = null">Đổi</button>
           </div>
@@ -151,7 +151,7 @@
               <button v-for="u in custResults" :key="u.id" class="cust-result" @click="pickCustomer(u)">
                 <span class="cust-ava sm">{{ initials(u.name) }}</span>
                 <span class="cust-r-meta"><strong>{{ u.name }}</strong><span>{{ u.phone || u.email }}</span></span>
-                <span class="cust-r-pts">{{ u.loyalty_points || 0 }}đ</span>
+                <span class="cust-r-pts">{{ u.cine_points || 0 }}đ</span>
               </button>
             </div>
             <div class="quick-create">

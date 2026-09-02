@@ -354,10 +354,10 @@ public function holdSeats(Request $request)
     $userId = auth()->id();
 
     return DB::transaction(function () use ($request, $userId) {
-        $isBooked = DB::table('booking_seats')
-            ->join('bookings', 'booking_seats.booking_id', '=', 'bookings.id')
+        $isBooked = DB::table('booking_details')
+            ->join('bookings', 'booking_details.booking_id', '=', 'bookings.id')
             ->where('bookings.showtime_id', $request->showtime_id)
-            ->whereIn('booking_seats.seat_id', $request->seat_ids)
+            ->whereIn('booking_details.seat_id', $request->seat_ids)
             ->where('bookings.booking_status', 'confirmed')
             ->exists();
 

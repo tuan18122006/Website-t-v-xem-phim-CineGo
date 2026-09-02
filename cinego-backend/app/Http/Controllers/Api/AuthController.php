@@ -49,7 +49,7 @@ class AuthController extends Controller
             'birthday' => $request->birthday,
             'password' => Hash::make($request->password),
             'role' => 'customer',
-            'loyalty_points' => 0, // Đảm bảo khởi tạo 0 điểm
+            'cine_points' => 0, // Đảm bảo khởi tạo 0 điểm
             'total_spent' => 0,
             'membership_tier' => 'Bronze',
         ]);

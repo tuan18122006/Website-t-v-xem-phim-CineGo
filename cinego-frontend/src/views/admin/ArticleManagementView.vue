@@ -2,7 +2,7 @@
   <div class="admin-movies-view-container">
     <div class="glass-panel list-card">
       <div class="header-row">
-        <h2 class="title-cine"><Newspaper :size="15" style="vertical-align:-2px" /> Quản Lý Bài Viết / Top Phim</h2>
+        <h2 class="title-cine"><Newspaper :size="15" style="vertical-align:-2px" /> QL Trang Top Phim</h2>
         <button @click="openModal()" class="btn-primary-cine">+ Thêm Bài Viết Mới</button>
       </div>
 

@@ -146,7 +146,7 @@ class LoyaltyService
                 'progress_percent' => 100,
                 'remaining_amount' => 0,
                 'total_spent' => $totalSpent,
-                'loyalty_points' => $user->cine_points ?? 0,
+                'cine_points' => $user->cine_points ?? 0,
                 'multiplier' => $user->point_multiplier ?? 1,
             ];
         }
@@ -164,7 +164,7 @@ class LoyaltyService
             'progress_percent' => round($progressPercent, 2),
             'remaining_amount' => $nextThreshold - $totalSpent,
             'total_spent' => $totalSpent,
-            'loyalty_points' => $user->cine_points ?? 0,
+            'cine_points' => $user->cine_points ?? 0,
             'multiplier' => $user->point_multiplier ?? 1,
         ];
     }

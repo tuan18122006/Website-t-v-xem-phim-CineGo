@@ -238,4 +238,18 @@ class BlogController extends Controller
             ], 500);
         }
     }
+
+    public function uploadImage(Request $request)
+    {
+        $request->validate([
+            'image' => 'required|image|max:5120',
+        ]);
+
+        $file = $request->file('image');
+        $path = $file->store('blogs', 'public');
+
+        return response()->json([
+            'url' => asset('storage/' . $path)
+        ], 200);
+    }
 }

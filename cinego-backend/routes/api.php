@@ -259,6 +259,7 @@ Route::middleware(['auth:sanctum', 'can:admin-only'])->prefix('admin')->group(fu
     Route::apiResource('vouchers', VoucherController::class);
     Route::get('movies/list', [App\Http\Controllers\Api\MovieController::class, 'listForSelection']);
     // Quản lý Blog
+    Route::post('/blogs/upload-image', [BlogController::class, 'uploadImage']);
     Route::apiResource('blogs', BlogController::class);
     Route::apiResource('blog-categories', BlogCategoryController::class);
 

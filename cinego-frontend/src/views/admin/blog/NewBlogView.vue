@@ -3,10 +3,7 @@
     <div class="editor-header">
       <div class="header-title-zone">
         <h2 class="page-title">
-          <span class="title-icon">
-            <SquarePen v-if="isEditing" :size="20" />
-            <PenLine v-else :size="20" />
-          </span>
+          <span class="title-icon">{{ isEditing ? "📝" : "✍️" }}</span>
           {{ isEditing ? "Chỉnh sửa bài viết" : "Viết bài mới" }}
         </h2>
         <p class="page-subtitle">
@@ -15,6 +12,14 @@
         </p>
       </div>
       <div class="header-actions">
+        <button
+          type="button"
+          @click="goBack"
+          class="btn-secondary-cine"
+          style="background-color: transparent; border: 1px solid #94a3b8; color: #475569; margin-right: 10px;"
+        >
+          Quay lại
+        </button>
         <button
           type="button"
           @click="savePost('draft')"
@@ -51,7 +56,7 @@
           </div>
 
           <div class="slug-permalink-zone">
-            <span class="permalink-label"><Link2 :size="15" style="vertical-align:-2px" /> Liên kết tĩnh (Slug):</span>
+            <span class="permalink-label">🔗 Liên kết tĩnh (Slug):</span>
             <span class="permalink-url"
               >cinego.com/blog/<strong class="slug-text">{{
                 generateSlug(form.title)
@@ -82,32 +87,37 @@
             <label class="form-label">Nội dung bài viết *</label>
             <div class="rich-editor-wrapper">
               <div class="editor-toolbar">
-                <button type="button" class="toolbar-btn" @click="execCmd('bold')"><b>B</b></button>
-                <button type="button" class="toolbar-btn" @click="execCmd('italic')"><i>I</i></button>
-                <button type="button" class="toolbar-btn" @click="execCmd('underline')"><u>U</u></button>
-                <button type="button" class="toolbar-btn" @click="insertLink"><Link2 :size="15" style="vertical-align:-2px" /> Thêm Link</button>
-                <button type="button" class="toolbar-btn" @click="insertYoutube">
-                  <Clapperboard :size="15" style="vertical-align:-2px" /> Nhúng Video Youtube
+                <button type="button" class="toolbar-btn" @click="formatText('bold')"><b>B</b></button>
+                <button type="button" class="toolbar-btn" @click="formatText('italic')"><i>I</i></button>
+                <button type="button" class="toolbar-btn" @click="formatText('underline')"><u>U</u></button>
+                <button type="button" class="toolbar-btn" @click="addLink">🔗 Thêm Link</button>
+                <button type="button" class="toolbar-btn" @click="addYoutubeVideo">
+                  🎬 Nhúng Video Youtube
                 </button>
-                <button type="button" class="toolbar-btn" @click="triggerContentImageUpload">
-                  <Image :size="15" style="vertical-align:-2px" /> Thêm Ảnh
+
+                <button
+                  type="button"
+                  class="toolbar-btn"
+                  @click="triggerContentImage"
+                >
+                  🖼️ Thêm Ảnh
                 </button>
+
+                <input
+                  ref="contentImageInput"
+                  type="file"
+                  accept="image/*"
+                  style="display: none"
+                  @change="uploadContentImage"
+                />
               </div>
               <div
-                ref="contentEditor"
-                class="editor-content-area"
+                ref="editor"
+                class="editor-content"
                 contenteditable="true"
-                @input="onContentInput"
-                data-placeholder="Bắt đầu viết nội dung bài viết của bạn tại đây..."
+                @input="updateContent"
               ></div>
             </div>
-            <input
-              ref="contentImageInput"
-              type="file"
-              accept="image/*"
-              style="display: none"
-              @change="handleContentImageUpload"
-            />
             <span v-if="errors?.content" class="error-msg">{{
               errors.content[0]
             }}</span>
@@ -116,8 +126,7 @@
 
         <div class="glass-panel content-box marketing-card">
           <h4 class="box-sub-title">
-            <Target :size="15" style="vertical-align:-2px" /> Gắn kết phim bán vé
-            nhanh (Call to Action)
+            🎯 Gắn kết phim bán vé nhanh (Call to Action)
           </h4>
           <p class="box-desc">
             Hệ thống tự động hiển thị Poster và nút "ĐẶT VÉ XEM PHIM NÀY NGAY" ở
@@ -133,7 +142,7 @@
                 :key="movie.id"
                 :value="movie.id"
               >
-                Phim: {{ movie.title }}
+                🎬 Phim: {{ movie.title }}
               </option>
             </select>
           </div>
@@ -142,7 +151,7 @@
 
       <div class="sidebar-column">
         <div class="glass-panel sidebar-box">
-          <h4 class="sidebar-box-title"><Settings :size="15" style="vertical-align:-2px" /> Trạng thái & Lên lịch</h4>
+          <h4 class="sidebar-box-title">⚙️ Trạng thái & Lên lịch</h4>
           <div class="sidebar-box-content">
             <div class="radio-group-vertical">
               <label class="radio-label">
@@ -172,10 +181,10 @@
         </div>
 
         <div class="glass-panel sidebar-box">
-          <h4 class="sidebar-box-title"><Folder :size="15" style="vertical-align:-2px" /> Chuyên mục</h4>
+          <h4 class="sidebar-box-title">📁 Chuyên mục</h4>
           <div class="sidebar-box-content">
             <div class="input-group">
-              <select v-model="form.category_id" class="form-select">
+              <select v-model="form.blog_category_id" class="form-select">
                 <option value="">-- Chọn chuyên mục --</option>
                 <option v-for="cat in categories" :key="cat.id" :value="cat.id">
                   {{ cat.name }}
@@ -189,38 +198,39 @@
         </div>
 
         <div class="glass-panel sidebar-box">
-          <h4 class="sidebar-box-title"><Image :size="15" style="vertical-align:-2px" /> Ảnh bìa bài viết (16:9)</h4>
+          <h4 class="sidebar-box-title">🖼️ Ảnh bìa bài viết</h4>
+
           <div class="sidebar-box-content">
-            <div class="thumbnail-uploader-box" @click="triggerUpload">
-              <div v-if="!form.thumbnail_url" class="uploader-placeholder">
-                <span class="upload-icon"><Camera :size="28" /></span>
-                <p class="upload-text">Tải ảnh bìa lên</p>
-                <span class="upload-hint">Tỷ lệ khuyên dùng 1920x1080</span>
-              </div>
-              <div v-else class="uploader-preview">
-                <img
-                  :src="form.thumbnail_url"
-                  alt="Thumbnail Preview"
-                  class="preview-img"
-                />
-                <div class="change-layer">Thay ảnh khác</div>
-              </div>
-            </div>
             <input
               ref="thumbnailInput"
               type="file"
               accept="image/*"
               style="display: none"
-              @change="handleThumbnailUpload"
+              @change="uploadThumbnail"
             />
-            <span v-if="errors?.thumbnail_url" class="error-msg">{{
-              errors.thumbnail_url[0]
-            }}</span>
+
+            <div class="thumbnail-uploader-box" @click="triggerUpload">
+              <div v-if="!thumbnailPreview">
+                <span class="upload-icon">📸</span>
+                <p class="upload-text">Tải ảnh bìa lên</p>
+                <span class="upload-hint"> Tỷ lệ khuyên dùng 1920x1080 </span>
+              </div>
+
+              <div v-else class="uploader-preview">
+                <img :src="thumbnailPreview" class="preview-img" />
+
+                <div class="change-layer">Đổi ảnh khác</div>
+              </div>
+            </div>
+
+            <span v-if="errors?.thumbnail_url" class="error-msg">
+              {{ errors.thumbnail_url[0] }}
+            </span>
           </div>
         </div>
 
         <div class="glass-panel sidebar-box">
-          <h4 class="sidebar-box-title"><Search :size="15" style="vertical-align:-2px" /> Cấu hình SEO Google</h4>
+          <h4 class="sidebar-box-title">🔍 Cấu hình SEO Google</h4>
           <div class="sidebar-box-content seo-fields">
             <div class="input-group">
               <label class="form-label-small">SEO Title</label>
@@ -248,22 +258,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import {
-  SquarePen,
-  PenLine,
-  Link2,
-  Clapperboard,
-  Image,
-  Target,
-  Settings,
-  Folder,
-  Camera,
-  Search,
-} from "lucide-vue-next";
+import { ref, onMounted, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import api from "../../../api/axios";
-import { toast } from "../../../utils/alert";
+import { toast, promptDialog } from "../../../utils/alert";
 
 const route = useRoute();
 const router = useRouter();
@@ -274,17 +272,27 @@ const submitting = ref(false);
 
 const categories = ref([]);
 const activeMovies = ref([]);
-const contentEditor = ref(null);
-const contentImageInput = ref(null);
-const thumbnailInput = ref(null);
 
-// ĐÃ ĐỔI: category_id -> blog_category_id cho đồng bộ với Laravel
+const thumbnailPreview = ref("");
+const thumbnailInput = ref(null);
+const editor = ref(null);
+
+const updateContent = () => {
+  form.value.content = editor.value.innerHTML;
+};
+
+const goBack = () => {
+  localStorage.setItem('admin_active_tab', 'blogs');
+  router.push('/admin');
+};
+
+// 💡 ĐÃ ĐỔI: category_id -> blog_category_id cho đồng bộ với Laravel
 const form = ref({
   title: "",
   excerpt: "",
   content: "",
   thumbnail_url: "",
-  category_id: "", // Sửa ở đây
+  blog_category_id: "", // Sửa ở đây
   movie_id: null,
   status: "published",
   published_at: "",
@@ -312,7 +320,7 @@ const generateSlug = (title) => {
   return slug;
 };
 
-// ĐÃ GOM: Gom việc gọi API danh mục và phim vào đúng hàm fetchInitialData
+// 💡 ĐÃ GOM: Gom việc gọi API danh mục và phim vào đúng hàm fetchInitialData
 const fetchInitialData = async () => {
   try {
     const catResponse = await api.get("/admin/blog-categories");
@@ -336,10 +344,16 @@ const checkEditState = async () => {
     try {
       const response = await api.get(`/admin/blogs/${id}`);
       const data = response.data.data || response.data;
-      form.value = { ...data };
-      if (contentEditor.value && data.content) {
-        contentEditor.value.innerHTML = data.content;
-      }
+      console.log(data);
+      form.value = {
+        ...data,
+        blog_category_id: data.category_id,
+      };
+
+      await nextTick();
+
+      editor.value.innerHTML = form.value.content || "";
+      thumbnailPreview.value = form.value.thumbnail_url;
     } catch (error) {
       toast("Không tìm thấy bài viết cần sửa!", "error");
       localStorage.setItem('admin_active_tab', 'blogs');
@@ -360,8 +374,9 @@ const validateForm = () => {
     errors.value.content = ["Vui lòng nhập nội dung chi tiết bài viết."];
     isValid = false;
   }
-  if (!form.value.category_id) {
-    errors.value.category_id = ["Vui lòng lựa chọn chuyên mục phân loại."];
+  // 💡 ĐÃ SỬA: Kiểm tra theo đúng biến blog_category_id mới
+  if (!form.value.blog_category_id) {
+    errors.value.blog_category_id = ["Vui lòng lựa chọn chuyên mục phân loại."];
     isValid = false;
   }
 
@@ -382,11 +397,18 @@ const savePost = async (targetStatus) => {
   }
 
   submitting.value = true;
+
   try {
     const payload = {
       ...form.value,
+
       slug: generateSlug(form.value.title),
+
+      // Đổi tên field cho đúng với Backend
+      category_id: form.value.blog_category_id,
     };
+
+    delete payload.blog_category_id;
 
     if (isEditing.value) {
       await api.put(`/admin/blogs/${editingId.value}`, payload);
@@ -395,6 +417,7 @@ const savePost = async (targetStatus) => {
       await api.post("/admin/blogs", payload);
       toast("Đã xuất bản bài viết mới thành công!");
     }
+
     localStorage.setItem('admin_active_tab', 'blogs');
     router.push("/admin");
   } catch (error) {
@@ -408,93 +431,106 @@ const savePost = async (targetStatus) => {
   }
 };
 
-// ===== CONTENT EDITOR FUNCTIONS =====
-const execCmd = (command) => {
-  document.execCommand(command, false, null);
-  contentEditor.value?.focus();
+const triggerUpload = () => {
+  thumbnailInput.value.click();
 };
 
-const insertLink = () => {
-  const url = prompt("Nhập URL liên kết:");
+const uploadThumbnail = async (event) => {
+  const file = event.target.files[0];
+
+  if (!file) return;
+
+  thumbnailPreview.value = URL.createObjectURL(file);
+
+  const formData = new FormData();
+  formData.append("image", file);
+
+  try {
+    const res = await api.post("/admin/blogs/upload-image", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    form.value.thumbnail_url = res.data.url;
+
+    toast("Upload ảnh thành công");
+  } catch (e) {
+    toast("Upload thất bại", "error");
+  }
+};
+
+const contentImageInput = ref(null);
+
+const triggerContentImage = () => {
+  contentImageInput.value.click();
+};
+
+const uploadContentImage = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append("image", file);
+
+  try {
+    const res = await api.post("/admin/blogs/upload-image", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    editor.value.focus();
+
+    document.execCommand(
+      "insertHTML",
+      false,
+      `<img src="${res.data.url}" style="max-width:100%;border-radius:8px;margin:10px 0;" />`,
+    );
+
+    form.value.content = editor.value.innerHTML;
+
+    toast("Đã chèn ảnh vào bài viết");
+  } catch (e) {
+    toast("Upload thất bại", "error");
+  }
+};
+
+const formatText = (command) => {
+  document.execCommand(command, false, null);
+  editor.value.focus();
+  updateContent();
+};
+
+const addLink = async () => {
+  const url = await promptDialog('Nhập URL liên kết:', 'https://...');
   if (url) {
     document.execCommand('createLink', false, url);
-    contentEditor.value?.focus();
+    updateContent();
   }
 };
 
-const insertYoutube = () => {
-  const url = prompt("Nhập URL video YouTube:");
-  if (!url) return;
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([^&?#]+)/);
-  const videoId = match ? match[1] : null;
-  if (!videoId) {
-    toast("URL YouTube không hợp lệ!", "warning");
-    return;
-  }
-  const embedUrl = `https://www.youtube.com/embed/${videoId}`;
-  const html = `<div class="video-wrapper" style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;margin:16px 0;border-radius:8px;"><iframe src="${embedUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allowfullscreen></iframe></div>`;
-  document.execCommand('insertHTML', false, html);
-  contentEditor.value?.focus();
-};
-
-const triggerContentImageUpload = () => {
-  contentImageInput.value?.click();
-};
-
-const handleContentImageUpload = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const formData = new FormData();
-  formData.append('file', file);
-  try {
-    const res = await api.post('/upload/image', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-    const imageUrl = res.data?.url || res.data?.data?.url;
-    if (imageUrl) {
-      const html = `<img src="${imageUrl}" alt="Ảnh bài viết" style="max-width:100%;border-radius:8px;margin:12px 0;" />`;
-      document.execCommand('insertHTML', false, html);
-      contentEditor.value?.focus();
+const addYoutubeVideo = async () => {
+  const url = await promptDialog('Nhập URL YouTube video:', 'https://www.youtube.com/watch?v=...');
+  if (url) {
+    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})/);
+    if (match && match[1]) {
+      const embedCode = `<iframe width="560" height="315" src="https://www.youtube.com/embed/${match[1]}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="max-width:100%;"></iframe><br/>`;
+      document.execCommand('insertHTML', false, embedCode);
+      updateContent();
+    } else {
+      toast('URL YouTube không hợp lệ!', 'warning');
     }
-  } catch (err) {
-    toast("Lỗi tải ảnh lên!", "error");
   }
-  e.target.value = '';
-};
-
-const onContentInput = () => {
-  if (contentEditor.value) {
-    form.value.content = contentEditor.value.innerHTML;
-  }
-};
-
-// ===== THUMBNAIL UPLOAD =====
-const triggerUpload = () => {
-  thumbnailInput.value?.click();
-};
-
-const handleThumbnailUpload = async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const formData = new FormData();
-  formData.append('file', file);
-  try {
-    const res = await api.post('/upload/image', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-    const imageUrl = res.data?.url || res.data?.data?.url;
-    if (imageUrl) {
-      form.value.thumbnail_url = imageUrl;
-    }
-  } catch (err) {
-    toast("Lỗi tải ảnh bìa lên!", "error");
-  }
-  e.target.value = '';
 };
 
 onMounted(async () => {
-  await fetchInitialData(); // Bây giờ hàm này đã tồn tại và chạy chuẩn xác!
+  await fetchInitialData();
   await checkEditState();
+
+  if (editor.value) {
+    editor.value.innerHTML = form.value.content || "";
+  }
 });
 </script>
 
@@ -708,49 +744,26 @@ onMounted(async () => {
   border-color: #94a3b8;
 }
 
-.editor-textarea {
-  width: 100%;
-  border: none;
+.editor-content {
+  min-height: 500px;
   padding: 16px;
-  font-size: 15px;
-  line-height: 1.6;
-  font-family: inherit;
+  border: none;
   outline: none;
-  resize: vertical;
-  box-sizing: border-box;
-  background: white;
+  overflow-y: auto;
+  word-break: break-word;
 }
 
-.editor-content-area {
-  width: 100%;
-  min-height: 400px;
-  border: none;
-  padding: 16px;
-  font-size: 15px;
-  line-height: 1.8;
-  font-family: inherit;
-  outline: none;
-  box-sizing: border-box;
-  background: white;
-  overflow-y: auto;
+.editor-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 16px auto;
+  border-radius: 8px;
 }
-.editor-content-area:empty::before {
-  content: attr(data-placeholder);
+
+.editor-content:empty::before {
+  content: "Nhập nội dung bài viết...";
   color: #94a3b8;
-  pointer-events: none;
-}
-.editor-content-area img {
-  max-width: 100%;
-  border-radius: 8px;
-  margin: 12px 0;
-}
-.editor-content-area a {
-  color: #2563eb;
-  text-decoration: underline;
-}
-.editor-content-area iframe {
-  max-width: 100%;
-  border-radius: 8px;
 }
 
 /* SIDEBAR CỘT PHẢI */

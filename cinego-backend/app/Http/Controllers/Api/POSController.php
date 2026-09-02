@@ -56,7 +56,7 @@ class POSController extends Controller
                   ->orWhere('email', 'like', '%' . $query . '%');
             })
             ->limit(10)
-            ->get(['id', 'name', 'phone', 'email', 'membership_tier', 'loyalty_points']);
+            ->get(['id', 'name', 'phone', 'email', 'membership_tier', 'cine_points']);
 
         return response()->json(['success' => true, 'data' => $users]);
     }
@@ -93,7 +93,7 @@ class POSController extends Controller
             return response()->json([
                 'success' => true,
                 'existed' => true,
-                'data'    => $existing->only(['id', 'name', 'phone', 'email', 'membership_tier', 'loyalty_points']),
+                'data'    => $existing->only(['id', 'name', 'phone', 'email', 'membership_tier', 'cine_points']),
             ]);
         }
 
@@ -112,7 +112,7 @@ class POSController extends Controller
 
         return response()->json([
             'success' => true,
-            'data'    => $user->only(['id', 'name', 'phone', 'email', 'membership_tier', 'loyalty_points']),
+            'data'    => $user->only(['id', 'name', 'phone', 'email', 'membership_tier', 'cine_points']),
         ], 201);
     }
 

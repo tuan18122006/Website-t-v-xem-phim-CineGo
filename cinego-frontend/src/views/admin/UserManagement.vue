@@ -110,7 +110,7 @@
                     <div class="identity-meta">
                       <strong class="click-name" @click="openDetail(u)">{{ u.name }}</strong>
                       <small>{{ u.email }}</small>
-                      <span v-if="activeSection === 'leaderboard' && u.loyalty_points > 0" class="top-badge" style="display:inline-block; margin-top:2px; font-size:10px; color:#fff; background:#ef4444; padding:2px 6px; border-radius:4px; font-weight:600;">TOP CHI TIÊU</span>
+                      <span v-if="activeSection === 'leaderboard' && u.cine_points > 0" class="top-badge" style="display:inline-block; margin-top:2px; font-size:10px; color:#fff; background:#ef4444; padding:2px 6px; border-radius:4px; font-weight:600;">TOP CHI TIÊU</span>
                     </div>
                   </div>
                 </td>
@@ -122,7 +122,7 @@
                     <span class="premium-badge tier" :class="'tier-' + (u.membership_tier || 'Bronze').toLowerCase()">
                       <Trophy :size="15" style="vertical-align:-2px" /> Hạng {{ u.membership_tier || 'Bronze' }}
                     </span>
-                    <div style="font-size: 12px; color: #f59e0b; margin-top: 4px; font-weight: 600;">{{ (u.loyalty_points || 0).toLocaleString('vi-VN') }} PTS</div>
+                    <div style="font-size: 12px; color: #f59e0b; margin-top: 4px; font-weight: 600;">{{ (u.cine_points || 0).toLocaleString('vi-VN') }} PTS</div>
                   </template>
                   <template v-else>
                     <span class="premium-badge" :class="u.work_status === 'on_shift' ? 'status-active' : 'role-customer'">
@@ -454,7 +454,7 @@
               </div>
               <div class="gmc-footer">
                 <span class="gmc-tier"><Trophy :size="15" style="vertical-align:-2px" /> {{ detail.user.membership_tier || 'Bronze' }} MEMBER</span>
-                <span class="gmc-points">{{ detail.user.loyalty_points }} PTS</span>
+                <span class="gmc-points">{{ detail.user.cine_points }} PTS</span>
               </div>
             </div>
 
@@ -475,7 +475,7 @@
               <div class="quick-stat-row"><span>Số điện thoại:</span><strong>{{ detail.user.phone || 'Chưa cập nhật' }}</strong></div>
               <div class="quick-stat-row"><span>Tuổi:</span><strong>{{ detail.user.age || 'Chưa cập nhật' }}</strong></div>
               <div class="quick-stat-row"><span>Tổng chi tiêu:</span><strong>{{ formatCurrency(detail.stats.total_spent) }}</strong></div>
-              <div class="quick-stat-row"><span>Điểm tích lũy:</span><strong style="color: #f59e0b;">{{ detail.user.loyalty_points?.toLocaleString('vi-VN') || 0 }} điểm</strong></div>
+              <div class="quick-stat-row"><span>Điểm tích lũy:</span><strong style="color: #f59e0b;">{{ detail.user.cine_points?.toLocaleString('vi-VN') || 0 }} điểm</strong></div>
               <div class="quick-stat-row"><span>Vé đã mua:</span><strong>{{ detail.stats.total_tickets }} vé</strong></div>
               <div class="quick-stat-row"><span>Hóa đơn đặt:</span><strong>{{ detail.stats.total_bookings }} đơn</strong></div>
             </div>
@@ -870,7 +870,7 @@ const filteredUsers = computed(() => {
   });
 
   if (activeSection.value === 'leaderboard') {
-    result = result.sort((a, b) => (b.loyalty_points || 0) - (a.loyalty_points || 0));
+    result = result.sort((a, b) => (b.cine_points || 0) - (a.cine_points || 0));
   }
 
   return result;

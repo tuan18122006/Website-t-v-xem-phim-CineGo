@@ -131,7 +131,7 @@
                 :class="{ active: activeTab === 'articles' }"
                 @click="activeTab = 'articles'"
               >
-                <Newspaper :size="15" style="vertical-align:-2px" /> Quản lý bài viết
+                <Newspaper :size="15" style="vertical-align:-2px" /> QL Trang Top Phim
               </button>
 
               <button
@@ -750,7 +750,7 @@ const getTabTitle = computed(() => {
     combos: 'Quản Lý Combo và Đồ ăn',
     vouchers: 'Quản Lý Mã Giảm Giá (Vouchers)',
     reviews: 'Kiểm Duyệt Đánh Giá & Bình Luận',
-    articles: 'Quản Lý Bài Viết & Top Phim',
+    articles: 'QL Trang Top Phim',
     blogs: 'Quản Lý Blog',
     'blog-categories': 'Quản Lý Thể Loại Blog',
     revenue: 'Báo Cáo & Thống Kê Doanh Thu',
