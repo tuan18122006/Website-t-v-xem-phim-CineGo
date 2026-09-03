@@ -127,8 +127,10 @@ const generateDays = () => {
   for (let i = 0; i < 7; i++) {
     const d = new Date();
     d.setDate(d.getDate() + i);
+    // Dùng local date (giờ VN) thay vì toISOString() (UTC) để tránh lệch ngày sau 0h
+    const localDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       days.push({
-        dateStr: d.toISOString().split('T')[0],
+        dateStr: localDateStr,
         weekday: i === 0 ? 'Hôm nay' : weekdays[d.getDay()],
         dateLabel: d.getDate(),
         fullLabel: d.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })

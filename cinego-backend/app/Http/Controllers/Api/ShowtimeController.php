@@ -315,6 +315,9 @@ class ShowtimeController extends Controller
             
         $heldSeatIds = $heldDetails->keys()->toArray();
 
+        // Lấy user hiện tại (có thể null nếu chưa đăng nhập)
+        $currentUserId = auth('sanctum')->id();
+
         // Lấy danh sách ghế đang bị khóa (bảo trì/sự cố) trong khoảng thời gian diễn ra suất chiếu
         $lockedSeatIds = \App\Models\SeatLock::where('room_id', $showtime->room_id)
             ->where('start_time', '<', $showtime->end_time)
@@ -323,7 +326,7 @@ class ShowtimeController extends Controller
             ->toArray();
 
         // 6. Định dạng đầu ra khớp chính xác với frontend yêu cầu
-        $formattedSeats = $seats->map(function ($seat) use ($bookedSeatIds, $heldSeatIds, $lockedSeatIds, $prices, $bookedDetails, $heldDetails) {
+        $formattedSeats = $seats->map(function ($seat) use ($bookedSeatIds, $heldSeatIds, $lockedSeatIds, $prices, $bookedDetails, $heldDetails, $currentUserId) {
             $status = 'available';
             if ($seat->status === 'broken' || in_array($seat->id, $lockedSeatIds)) {
                 $status = 'broken';
@@ -352,10 +355,15 @@ class ShowtimeController extends Controller
                 $result['customer_phone'] = $detail->booking->user->phone ?? 'N/A';
             } elseif ($status === 'holding' && isset($heldDetails[$seat->id])) {
                 $hold = $heldDetails[$seat->id];
-                $result['holder_name'] = $hold->user->name ?? 'Khách';
-                $result['holder_email'] = $hold->user->email ?? 'N/A';
-                $result['holder_phone'] = $hold->user->phone ?? 'N/A';
-                $result['hold_expires_at'] = $hold->expires_at;
+                $isMyHold = $currentUserId && $hold->user_id == $currentUserId;
+                $result['is_held_by_me']   = $isMyHold;
+                $result['hold_expires_at'] = $hold->expires_at; // luôn trả về để FE restore timer
+                if (!$isMyHold) {
+                    // Chỉ lộ thông tin holder nếu không phải chính mình (dùng cho admin/nhân viên)
+                    $result['holder_name']  = $hold->user->name  ?? 'Khách';
+                    $result['holder_email'] = $hold->user->email ?? 'N/A';
+                    $result['holder_phone'] = $hold->user->phone ?? 'N/A';
+                }
             }
 
             return $result;
@@ -373,11 +381,15 @@ class ShowtimeController extends Controller
 
         $query = Showtime::with('room')
             ->where('movie_id', $id)
-            ->where('status', 'active')
-            ->where('start_time', '>=', now());
+            ->where('status', 'active');
 
         if ($date) {
+            // Khi có ngày cụ thể: lấy TẤT CẢ suất của ngày đó (kể cả đã qua giờ)
+            // để nhân viên/khách vẫn thấy toàn bộ lịch của ngày hôm đó
             $query->whereDate('start_time', $date);
+        } else {
+            // Khi không có ngày: chỉ lấy suất từ bây giờ trở đi
+            $query->where('start_time', '>=', now());
         }
 
         $showtimes = $query->get();

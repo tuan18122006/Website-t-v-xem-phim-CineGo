@@ -412,6 +412,7 @@ const mappedSeats = computed(() =>
     number: s.seat_number,
     type: s.type || 'standard',
     is_booked: s.status !== 'available',
+    status: s.status
   }))
 );
 
@@ -440,7 +441,8 @@ const validateSeatSelection = () => {
   const ids = new Set(chosen.map((s) => s.id));
   const rows = {};
   mappedSeats.value.forEach((seat) => {
-    if (!['standard', 'vip', 'couple'].includes(seat.type)) return;
+    // Loại bỏ 'couple' khỏi mảng check để ghế đôi không bị áp dụng luật cấm để trống 1 ghế
+    if (!['standard', 'vip'].includes(seat.type)) return;
     (rows[seat.row] = rows[seat.row] || []).push(seat);
   });
 

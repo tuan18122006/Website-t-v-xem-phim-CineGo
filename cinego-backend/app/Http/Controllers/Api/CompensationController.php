@@ -184,11 +184,19 @@ class CompensationController extends Controller
             $detail = BookingDetail::with('booking')->findOrFail($request->booking_detail_id);
             $booking = $detail->booking;
             
+            $oldSeat = Seat::findOrFail($detail->seat_id);
             $newSeat = Seat::findOrFail($request->new_seat_id);
             $showtime = Showtime::findOrFail($booking->showtime_id);
             
             if ($newSeat->room_id !== $showtime->room_id) {
                 throw new \Exception('Ghế mới không thuộc phòng của suất chiếu này.');
+            }
+
+            // Chặn đổi khác loại (Đôi <-> Thường/VIP)
+            $isOldCouple = $oldSeat->type === 'couple';
+            $isNewCouple = $newSeat->type === 'couple';
+            if ($isOldCouple !== $isNewCouple) {
+                throw new \Exception('Không thể đổi chéo giữa ghế Đôi và ghế Thường/VIP.');
             }
 
             $isBooked = BookingDetail::join('bookings', 'booking_details.booking_id', '=', 'bookings.id')
@@ -206,7 +214,7 @@ class CompensationController extends Controller
 
             DB::commit();
 
-            $oldSeatLabel = $seat->row . $seat->number;
+            $oldSeatLabel = $oldSeat->row . $oldSeat->number;
             $newSeatLabel = $newSeat->row . $newSeat->number;
             $user = $booking->user ?? null;
             if ($user) {
@@ -219,7 +227,7 @@ class CompensationController extends Controller
                 ));
 
                 try {
-                    \Illuminate\Support\Facades\Mail::to($user->email)->send(
+                    \Illuminate\Support\Facades\Mail::to($user->email)->queue(
                         new \App\Mail\SeatIncidentMail(
                             $booking,
                             $newSeatLabel,
@@ -232,6 +240,20 @@ class CompensationController extends Controller
                 } catch (\Exception $e) {
                     \Log::error("Gửi email đổi ghế thất bại cho user {$user->id}: " . $e->getMessage());
                 }
+            }
+
+            // Xử lý khóa ghế cũ sau khi đổi thành công
+            if ($request->old_seat_action === 'broken') {
+                $oldSeat->status = 'broken';
+                $oldSeat->save();
+            } elseif ($request->old_seat_action === 'temp_lock' && $request->lock_start && $request->lock_end) {
+                \App\Models\SeatLock::create([
+                    'seat_id' => $oldSeat->id,
+                    'room_id' => $oldSeat->room_id,
+                    'start_time' => $request->lock_start,
+                    'end_time' => $request->lock_end,
+                    'reason' => $request->lock_reason
+                ]);
             }
 
             return response()->json([
@@ -352,7 +374,7 @@ class CompensationController extends Controller
 
         DB::beginTransaction();
         try {
-            $booking = Booking::with('details')->findOrFail($request->booking_id);
+            $booking = Booking::with('bookingDetails')->findOrFail($request->booking_id);
             $newShowtime = Showtime::findOrFail($request->new_showtime_id);
 
             // Kiểm tra suất mới có cùng phim không
@@ -365,14 +387,24 @@ class CompensationController extends Controller
             $booking->showtime_id = $newShowtime->id;
             $booking->save();
 
-            foreach ($booking->details as $detail) {
+            $oldCoupleCount = 0;
+            $newCoupleCount = 0;
+
+            foreach ($booking->bookingDetails as $detail) {
                 if (isset($request->seat_mapping[$detail->seat_id])) {
                     $newSeatId = $request->seat_mapping[$detail->seat_id];
                     
-                    // Kiểm tra ghế mới có bị mua chưa
+                    $oldSeat = Seat::findOrFail($detail->seat_id);
+                    $newSeat = Seat::findOrFail($newSeatId);
+
+                    if ($oldSeat->type === 'couple') $oldCoupleCount++;
+                    if ($newSeat->type === 'couple') $newCoupleCount++;
+
+                    // Kiểm tra ghế mới có bị mua chưa (trừ chính đơn hàng này)
                     $isBooked = BookingDetail::join('bookings', 'booking_details.booking_id', '=', 'bookings.id')
                         ->where('bookings.showtime_id', $newShowtime->id)
                         ->where('bookings.payment_status', 'paid')
+                        ->where('bookings.id', '!=', $booking->id)
                         ->where('booking_details.seat_id', $newSeatId)
                         ->exists();
 
@@ -384,6 +416,10 @@ class CompensationController extends Controller
                     // Giá giữ nguyên (Free Upgrade)
                     $detail->save();
                 }
+            }
+
+            if ($oldCoupleCount !== $newCoupleCount) {
+                throw new \Exception("Số lượng ghế Đôi được đổi ({$newCoupleCount}) không khớp với số lượng ghế Đôi ban đầu của khách ({$oldCoupleCount}).");
             }
 
             DB::commit();

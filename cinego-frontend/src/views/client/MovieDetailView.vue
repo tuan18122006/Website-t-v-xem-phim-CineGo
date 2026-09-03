@@ -265,8 +265,10 @@ const defaultDays = () => {
   for (let i = 0; i < 5; i++) {
     const d = new Date();
     d.setDate(d.getDate() + i);
+    // Dùng local date (giờ VN) thay vì toISOString() (UTC) để tránh lệch ngày
+    const localDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     days.push({
-      dateStr: d.toISOString().split('T')[0],
+      dateStr: localDateStr,
       weekday: i === 0 ? 'Hôm nay' : weekdays[d.getDay()],
       dateLabel: `${d.getDate()}/${d.getMonth() + 1}`,
       fullLabel: d.toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -320,10 +322,12 @@ const fetchAvailableDates = async () => {
     
     if (dates.length > 0) {
       const weekdays = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
-      const todayStr = new Date().toISOString().split('T')[0];
+      // Dùng local date để xác định "hôm nay" theo giờ VN, không dùng UTC
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
       
       availableDays.value = dates.map(dateStr => {
-        const d = new Date(dateStr);
+        const d = new Date(dateStr + 'T00:00:00'); // Thêm T00:00:00 để parse theo local time
         return {
           dateStr: dateStr,
           weekday: dateStr === todayStr ? 'Hôm nay' : weekdays[d.getDay()],

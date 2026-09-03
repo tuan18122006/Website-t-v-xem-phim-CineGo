@@ -209,15 +209,16 @@ const shuffleArray = (arr) => {
 };
 
 const mappedSeats = computed(() => {
-  const myHeldSeatIds = bookingStore.selectedSeats.map(s => s.id);
   return rawSeatsFromAPI.value.map((seat) => {
+    // Ghế do chính mình giữ: hiện như "available" để có thể click, store sẽ tô màu vàng
+    const isMyHold = seat.is_held_by_me === true;
     return {
       id: seat.id, 
       row: seat.row_name, 
       number: seat.seat_number, 
       type: seat.type || "standard", 
-      status: seat.status,
-      is_booked: seat.status === "sold" || seat.status === "broken" || (seat.status === "holding" && !myHeldSeatIds.includes(seat.id)), 
+      status: isMyHold ? 'available' : seat.status,
+      is_booked: !isMyHold && (seat.status === "sold" || seat.status === "broken" || seat.status === "holding"), 
     };
   });
 });
@@ -502,6 +503,37 @@ const fetchSeatStatus = async () => {
         seatPrices.value = { ...seatPrices.value, ...data.prices };
       }
     }
+
+    // --- RESTORE: khôi phục ghế đang giữ nếu user quay lại trang ---
+    const myHeldSeats = rawSeatsFromAPI.value.filter(s => s.is_held_by_me === true);
+    if (myHeldSeats.length > 0) {
+      // Chỉ khôi phục nếu store đang trống (tránh ghi đè nếu đã có ghế trong store rồi)
+      if (bookingStore.selectedSeats.length === 0) {
+        myHeldSeats.forEach(seat => {
+          const seatObj = {
+            id: seat.id,
+            row: seat.row_name,
+            number: seat.seat_number,
+            type: seat.type || 'standard',
+            price: seatPrices.value[seat.type] ?? seatPrices.value.standard ?? 0,
+          };
+          bookingStore.toggleSeat(seatObj);
+        });
+      }
+
+      // Khôi phục timer theo thời gian hết hạn thực tế từ server
+      const earliestExpiry = myHeldSeats
+        .map(s => new Date(s.hold_expires_at).getTime())
+        .filter(t => !isNaN(t))
+        .sort()[0];
+
+      if (earliestExpiry && earliestExpiry > Date.now()) {
+        bookingStore.holdExpiresAt = earliestExpiry;
+        startTimer();
+      }
+    }
+    // --- END RESTORE ---
+
   } catch (err) {
     console.warn("Fetch seats API error, using fallback mock data structures:");
 
@@ -594,7 +626,8 @@ const validateSeatSelection = () => {
 
   const rows = {};
   mappedSeats.value.forEach(seat => {
-    if (!['standard', 'vip', 'couple'].includes(seat.type)) return;
+    // Loại bỏ 'couple' khỏi mảng check để ghế đôi không bị áp dụng luật cấm để trống 1 ghế
+    if (!['standard', 'vip'].includes(seat.type)) return;
 
     if (!rows[seat.row]) rows[seat.row] = [];
     rows[seat.row].push(seat);

@@ -6,20 +6,21 @@
         GIÁM SÁT VẬN HÀNH SUẤT CHIẾU
       </h1>
       <div class="header-actions">
-        <button @click="isLeftPanelOpen = !isLeftPanelOpen" class="btn-toggle" title="Ẩn/Hiện danh sách">
-          <PanelLeftClose v-if="isLeftPanelOpen" :size="20"/>
-          <PanelLeftOpen v-else :size="20"/>
-        </button>
-        <button @click="isRightPanelOpen = !isRightPanelOpen" class="btn-toggle" title="Ẩn/Hiện điều khiển">
-          <PanelRightClose v-if="isRightPanelOpen" :size="20"/>
-          <PanelRightOpen v-else :size="20"/>
-        </button>
-        <input 
-          type="date" 
-          v-model="selectedDate"
-          @change="fetchShowtimes"
-          class="date-input"
-        />
+        
+        <div class="date-picker-wrapper">
+          <button @click="prevDate" class="btn-toggle" title="Ngày hôm trước">
+            <ChevronLeft :size="18"/>
+          </button>
+          <input 
+            type="date" 
+            v-model="selectedDate"
+            @change="fetchShowtimes"
+            class="date-input"
+          />
+          <button @click="nextDate" class="btn-toggle" title="Ngày tiếp theo">
+            <ChevronRight :size="18"/>
+          </button>
+        </div>
       </div>
     </div>
 
@@ -28,11 +29,11 @@
       'right-closed': !isRightPanelOpen
     }">
       <!-- CỘT 1: Danh sách suất chiếu -->
-      <div v-if="isLeftPanelOpen" class="monitor-col left-panel">
-        <div class="col-header">
-          <h2><List :size="18" /> DANH SÁCH SUẤT CHIẾU</h2>
+      <div class="monitor-col left-panel">
+        <div class="col-header clickable" @click="isLeftPanelOpen = !isLeftPanelOpen" title="Ẩn/Hiện Danh Sách">
+          <h2><List :size="18" style="min-width: 18px" /> <span v-show="isLeftPanelOpen">DANH SÁCH SUẤT CHIẾU</span></h2>
         </div>
-        <div class="col-body custom-scrollbar">
+        <div class="col-body custom-scrollbar" v-show="isLeftPanelOpen">
           <div v-if="loadingShowtimes" class="empty-state">Đang tải...</div>
           <div v-else-if="groupedShowtimes.length === 0" class="empty-state">Không có suất chiếu nào.</div>
           
@@ -87,11 +88,11 @@
       </div>
 
       <!-- CỘT 3: Bảng điều khiển / Thông tin -->
-      <div v-if="isRightPanelOpen" class="monitor-col right-panel">
-        <div class="col-header">
-          <h2><SlidersHorizontal :size="18" /> ĐIỀU KHIỂN & SỰ CỐ</h2>
+      <div class="monitor-col right-panel">
+        <div class="col-header clickable" @click="isRightPanelOpen = !isRightPanelOpen" title="Ẩn/Hiện Điều Khiển">
+          <h2><SlidersHorizontal :size="18" style="min-width: 18px" /> <span v-show="isRightPanelOpen">ĐIỀU KHIỂN & SỰ CỐ</span></h2>
         </div>
-        <div class="col-body custom-scrollbar">
+        <div class="col-body custom-scrollbar" v-show="isRightPanelOpen">
           
           <div v-if="!selectedSeat" class="empty-state padding-large">
             <MousePointerClick :size="40" style="opacity: 0.5; margin-bottom: 15px;" />
@@ -207,12 +208,27 @@ import { ref, computed, onMounted } from 'vue';
 import axios from '../../api/axios';
 import SeatMap from '../../components/SeatMap.vue';
 import Swal from 'sweetalert2';
-import { Monitor, List, Armchair, SlidersHorizontal, MousePointerClick, RefreshCw, Loader2, CheckCircle2, ArrowRightLeft, CalendarDays, CircleDollarSign, Lock, TriangleAlert, Unlock, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen } from 'lucide-vue-next';
+import { Monitor, List, Armchair, SlidersHorizontal, MousePointerClick, RefreshCw, Loader2, CheckCircle2, ArrowRightLeft, CalendarDays, CircleDollarSign, Lock, TriangleAlert, Unlock, ChevronLeft, ChevronRight } from 'lucide-vue-next';
 
 const isLeftPanelOpen = ref(true);
 const isRightPanelOpen = ref(true);
 
 const selectedDate = ref(new Date().toISOString().split('T')[0]);
+
+const prevDate = () => {
+  const d = new Date(selectedDate.value);
+  d.setDate(d.getDate() - 1);
+  selectedDate.value = d.toISOString().split('T')[0];
+  fetchShowtimes();
+};
+
+const nextDate = () => {
+  const d = new Date(selectedDate.value);
+  d.setDate(d.getDate() + 1);
+  selectedDate.value = d.toISOString().split('T')[0];
+  fetchShowtimes();
+};
+
 const groupedShowtimes = ref([]);
 const loadingShowtimes = ref(false);
 
@@ -323,6 +339,13 @@ const handleSeatClick = async (seatObj) => {
       Swal.fire('Ghế không hợp lệ', 'Vui lòng chọn một ghế đang trống.', 'warning');
       return;
     }
+
+    const isOldCouple = quickSwapOldSeat.value.type === 'couple';
+    const isNewCouple = fullSeat.type === 'couple';
+    if (isOldCouple !== isNewCouple) {
+      Swal.fire('Không hợp lệ', 'Không thể đổi chéo giữa ghế Đôi và ghế Thường/VIP. Vui lòng chọn ghế cùng loại.', 'error');
+      return;
+    }
     
     // Calculate default times for temp lock
     let stStart = "00:00:00";
@@ -396,7 +419,7 @@ const handleSeatClick = async (seatObj) => {
       booking_details: customerSeats.map(s => ({
         id: s.booking_detail_id,
         seat_id: s.id,
-        seat: { row: s.row_name, number: s.seat_number }
+        seat: { row: s.row_name, number: s.seat_number, type: s.type }
       }))
     };
   }
@@ -419,7 +442,11 @@ const submitQuickSwap = async (newSeatId, lockOptions) => {
                           || bookingInfo.value.booking_details[0]; // fallback
     const { data } = await axios.post('/staff/compensation/swap', {
       booking_detail_id: bookingDetail.id,
-      new_seat_id: newSeatId
+      new_seat_id: newSeatId,
+      old_seat_action: lockOptions?.action || 'none',
+      lock_start: lockOptions?.start,
+      lock_end: lockOptions?.end,
+      lock_reason: lockOptions?.reason
     });
 
     Swal.fire('Thành công', data.message || 'Đổi ghế thành công!', 'success');
@@ -732,42 +759,66 @@ const openRescheduleModal = async () => {
 
     const oldSeatLabels = bookingInfo.value.booking_details?.map(d => `${d.seat.row || ''}${d.seat.number || ''}`).join(', ') || '';
 
-    // Render TẤT CẢ ghế, phân biệt rõ trạng thái
-    const seatHtml = allSeats.map(s => {
-      const label = `${s.row_name}${s.seat_number}`;
-      const isAvailable = s.status === 'available';
-      const isSold    = s.status === 'sold';
-      const isHolding = s.status === 'holding';
-      const isBroken  = s.status === 'broken';
+    // Sắp xếp ghế theo hàng (A→Z) rồi theo số (1→n)
+    const sortedSeats = [...allSeats].sort((a, b) => {
+      if (a.row_name < b.row_name) return -1;
+      if (a.row_name > b.row_name) return 1;
+      return parseInt(a.seat_number) - parseInt(b.seat_number);
+    });
 
-      let bg, border, color, cursor, onclick, title;
+    // Nhóm theo hàng để hiển thị ngắt dòng
+    const rowGroups = {};
+    sortedSeats.forEach(s => {
+      if (!rowGroups[s.row_name]) rowGroups[s.row_name] = [];
+      rowGroups[s.row_name].push(s);
+    });
 
-      if (isAvailable) {
-        const typeColor = s.type === 'vip' ? '#ef4444' : s.type === 'couple' ? '#ec4899' : '#6b7280';
-        bg = '#fff'; border = typeColor; color = typeColor; cursor = 'pointer';
-        onclick = `window._toggleRescheduleSeat(${s.id}, this, ${neededCount})`;
-        title = s.type === 'vip' ? 'VIP' : s.type === 'couple' ? 'Ghế đôi' : 'Ghế thường';
-      } else if (isSold) {
-        bg = '#374151'; border = '#374151'; color = '#fff'; cursor = 'not-allowed';
-        onclick = ''; title = 'Đã bán';
-      } else if (isHolding) {
-        bg = '#f59e0b'; border = '#f59e0b'; color = '#fff'; cursor = 'not-allowed';
-        onclick = ''; title = 'Đang giữ chỗ';
-      } else { // broken / locked
-        bg = '#fee2e2'; border = '#fca5a5'; color = '#ef4444'; cursor = 'not-allowed';
-        onclick = ''; title = 'Bị khóa';
-      }
+    const seatHtml = Object.entries(rowGroups).map(([rowName, rowSeats]) => {
+      const btnHtml = rowSeats.map(s => {
+        // Bỏ qua các ghế ảo (ẩn, xóa, hoặc nửa kia của ghế đôi)
+        if (['hidden', 'deleted', 'couple_hidden'].includes(s.type)) return '';
 
-      const dataAttrs = isAvailable
-        ? `data-seat-id="${s.id}" data-color="${border}"`
-        : '';
+        const label = `${s.row_name}${s.seat_number}`;
+        const isAvailable = s.status === 'available';
+        const isSold    = s.status === 'sold';
+        const isHolding = s.status === 'holding';
+        const isCouple  = s.type === 'couple';
 
-      return `<button type="button" ${onclick ? `onclick="${onclick}"` : ''} ${dataAttrs}
-        style="margin:3px;padding:6px 10px;border-radius:6px;border:2px solid ${border};background:${bg};color:${color};font-weight:600;font-size:12px;cursor:${cursor};transition:all .2s;opacity:${isAvailable ? '1' : '0.65'}"
-        title="${title}">
-        ${label}
-      </button>`;
+        let bg, border, color, cursor, onclick, title;
+
+        if (isAvailable) {
+          const typeColor = s.type === 'vip' ? '#ef4444' : s.type === 'couple' ? '#ec4899' : '#6b7280';
+          bg = '#fff'; border = typeColor; color = typeColor; cursor = 'pointer';
+          onclick = `window._toggleRescheduleSeat(${s.id}, this, ${neededCount})`;
+          title = s.type === 'vip' ? 'VIP' : s.type === 'couple' ? 'Ghế đôi' : 'Ghế thường';
+        } else if (isSold) {
+          bg = '#374151'; border = '#374151'; color = '#fff'; cursor = 'not-allowed';
+          onclick = ''; title = 'Đã bán';
+        } else if (isHolding) {
+          bg = '#f59e0b'; border = '#f59e0b'; color = '#fff'; cursor = 'not-allowed';
+          onclick = ''; title = 'Đang giữ chỗ';
+        } else { // broken / locked
+          bg = '#fee2e2'; border = '#fca5a5'; color = '#ef4444'; cursor = 'not-allowed';
+          onclick = ''; title = 'Bị khóa';
+        }
+
+        const dataAttrs = isAvailable
+          ? `data-seat-id="${s.id}" data-color="${border}"`
+          : '';
+
+        // Ghế thường/VIP rộng 36px, ghế đôi rộng gấp đôi + margin = 78px
+        const width = isCouple ? '78px' : '36px';
+
+        return `<button type="button" ${onclick ? `onclick="${onclick}"` : ''} ${dataAttrs}
+          style="width:${width};height:32px;margin:3px;padding:0;border-radius:6px;border:2px solid ${border};background:${bg};color:${color};font-weight:600;font-size:11px;cursor:${cursor};transition:all .2s;opacity:${isAvailable ? '1' : '0.65'};display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box"
+          title="${title}">
+          ${label}
+        </button>`;
+      }).join('');
+      // Mỗi hàng ghế chiếm 1 dòng riêng
+      return `<div style="display:flex;flex-wrap:nowrap;justify-content:center;margin-bottom:4px">${btnHtml}</div>`;
     }).join('');
+
 
     window._rescheduleSeatIds = [];
     window._toggleRescheduleSeat = (seatId, el, maxCount) => {
@@ -818,13 +869,14 @@ const openRescheduleModal = async () => {
 
     const { isConfirmed: step2OK, value: finalSeatIds } = await Swal.fire({
       title: 'Chọn ghế cho suất mới',
+      width: '650px',
       html:
         `<div style="text-align:left;font-size:13px;margin-bottom:12px">
           <p>Suất mới: <strong>${newShowtimeLabel}</strong></p>
           <p>Ghế cũ của khách: <strong style="color:#ef4444">${oldSeatLabels}</strong></p>
           <p id="swal-seat-counter" style="color:#f59e0b;font-weight:700;margin-top:8px">Đã chọn: 0/${neededCount} ghế</p>
         </div>
-        <div style="max-height:260px;overflow-y:auto;padding:4px;border:1px solid #eee;border-radius:8px;text-align:center">
+        <div style="max-height:350px;overflow-y:auto;padding:4px;border:1px solid #eee;border-radius:8px;text-align:center">
           ${seatHtml}
         </div>`,
       showCancelButton: true,
@@ -835,6 +887,23 @@ const openRescheduleModal = async () => {
           Swal.showValidationMessage(`Vui lòng chọn đúng ${neededCount} ghế`);
           return false;
         }
+
+        let oldCoupleCount = 0;
+        bookingInfo.value.booking_details.forEach(d => {
+          if (d.seat.type === 'couple') oldCoupleCount++;
+        });
+
+        let newCoupleCount = 0;
+        window._rescheduleSeatIds.forEach(id => {
+          const s = allSeats.find(seat => seat.id === id);
+          if (s && s.type === 'couple') newCoupleCount++;
+        });
+
+        if (oldCoupleCount !== newCoupleCount) {
+          Swal.showValidationMessage(`Số lượng ghế Đôi mới (${newCoupleCount}) không khớp với đơn gốc (${oldCoupleCount})`);
+          return false;
+        }
+
         return [...window._rescheduleSeatIds];
       }
     });
@@ -957,7 +1026,7 @@ onMounted(() => {
 
 .monitor-grid {
   display: grid;
-  grid-template-columns: 2.5fr 7fr 2.5fr;
+  grid-template-columns: 350px 1fr 350px;
   gap: 24px;
   height: calc(100vh - 120px);
   min-height: 600px;
@@ -965,15 +1034,15 @@ onMounted(() => {
 }
 
 .monitor-grid.left-closed {
-  grid-template-columns: 9.5fr 2.5fr;
+  grid-template-columns: 60px 1fr 350px;
 }
 
 .monitor-grid.right-closed {
-  grid-template-columns: 2.5fr 9.5fr;
+  grid-template-columns: 350px 1fr 60px;
 }
 
 .monitor-grid.left-closed.right-closed {
-  grid-template-columns: 1fr;
+  grid-template-columns: 60px 1fr 60px;
 }
 
 .btn-toggle {
@@ -994,6 +1063,34 @@ onMounted(() => {
   color: var(--accent-pink);
 }
 
+.btn-toggle.active {
+  background: var(--bg-body);
+  color: var(--accent-pink);
+  border-color: rgba(216, 45, 139, 0.2);
+}
+
+.date-picker-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-surface);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.date-picker-wrapper .date-input {
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.date-picker-wrapper .date-input:focus {
+  box-shadow: none;
+}
+
 .monitor-col {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
@@ -1008,6 +1105,18 @@ onMounted(() => {
   padding: 16px 20px;
   background: rgba(0,0,0,0.02);
   border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.col-header.clickable {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.col-header.clickable:hover {
+  background: rgba(0,0,0,0.06);
 }
 
 .col-header.flex-between {
