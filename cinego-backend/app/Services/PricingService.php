@@ -83,16 +83,36 @@ class PricingService
     /**
      * Tạo snapshot giá cho showtime (bao gồm giá cơ bản và áp dụng các quy tắc)
      */
-    public static function createPricingSnapshot(Carbon $datetime, ?int $movieId = null): array
+    public static function createPricingSnapshot(Carbon $datetime, ?int $movieId = null, string $format = '2D', bool $isSneakShow = false): array
     {
         $pricingRule = PricingRule::first();
 
         // Lấy giá cơ bản từ PricingRule
         $snapshot = [
+            'base_standard_price' => $pricingRule?->standard_price ?? 50000,
+            'base_vip_price' => $pricingRule?->vip_price ?? 70000,
+            'base_couple_price' => $pricingRule?->couple_price ?? 120000,
             'standard_price' => $pricingRule?->standard_price ?? 50000,
             'vip_price' => $pricingRule?->vip_price ?? 70000,
             'couple_price' => $pricingRule?->couple_price ?? 120000,
+            'format_3d_surcharge' => $pricingRule?->format_3d_surcharge ?? 0,
+            'sneak_show_surcharge' => $pricingRule?->sneak_show_surcharge ?? 0,
         ];
+
+        // Áp dụng Phụ thu Cố định (3D, Sneak Show)
+        $fixedSurcharge = 0;
+        if (str_contains(strtoupper($format), '3D')) {
+            $fixedSurcharge += $pricingRule?->format_3d_surcharge ?? 0;
+        }
+        if ($isSneakShow) {
+            $fixedSurcharge += $pricingRule?->sneak_show_surcharge ?? 0;
+        }
+
+        if ($fixedSurcharge > 0) {
+            $snapshot['standard_price'] += $fixedSurcharge;
+            $snapshot['vip_price'] += $fixedSurcharge;
+            $snapshot['couple_price'] += ($fixedSurcharge * 2); // Ghế đôi tính 2 người
+        }
 
         // Áp dụng các điều chỉnh theo thời gian
         $seatTypes = ['standard', 'vip', 'couple'];
@@ -114,8 +134,9 @@ class PricingService
                 $adjustmentAmount = 0;
 
                 if ($adjType === 'surcharge') {
-                    $adjustmentAmount = $value;
-                    $currentPrice += $value;
+                    $actualValue = ($seatType === 'couple') ? ($value * 2) : $value;
+                    $adjustmentAmount = $actualValue;
+                    $currentPrice += $actualValue;
                 } elseif ($adjType === 'percentage') {
                     $adjustmentAmount = ($basePrice * $value) / 100;
                     $currentPrice += $adjustmentAmount;

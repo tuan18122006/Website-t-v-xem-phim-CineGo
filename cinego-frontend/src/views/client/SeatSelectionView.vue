@@ -89,9 +89,14 @@
       <div class="price-summary">
         <div class="price-row">
           <span>Tạm tính ghế:</span>
-          <span class="price-value">{{
-            formatCurrency(bookingStore.subtotalSeats)
-          }}</span>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="price-value">{{
+              formatCurrency(bookingStore.subtotalSeats)
+            }}</span>
+            <button class="btn-info-price" @click="showPriceBreakdown" title="Xem chi tiết giá">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="info-icon"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -143,6 +148,7 @@ const seatPrices = ref({ standard: 75000, vip: 95000, couple: 140000 });
 const countdownText = ref("03:00");
 const featuredComments = ref([]);
 const processingSeatCount = ref(0);
+const processingSeatIds = ref(new Set());
 
 const getPosterUrl = (url) => {
   if (!url) return 'https://via.placeholder.com/300x450/1a1a1a/e50914?text=CineGo';
@@ -197,6 +203,54 @@ const getSeatPrice = (type) => {
   return seatPrices.value[type] ?? seatPrices.value.standard ?? 0;
 };
 
+const showPriceBreakdown = () => {
+  if (bookingStore.selectedSeats.length === 0) {
+    Swal.fire({ title: 'Chưa chọn ghế', text: 'Vui lòng chọn ghế để xem chi tiết.', icon: 'info', confirmButtonColor: '#e50914' });
+    return;
+  }
+  
+  const snapshot = seatPrices.value.snapshot;
+  let html = '<div style="text-align: left; font-size: 15px; line-height: 1.6; color: #fff;">';
+  html += '<p>Tổng tiền ghế hiện tại đã bao gồm:</p><ul style="margin-top: 10px; margin-bottom: 10px; text-align: left; line-height: 1.6;">';
+  
+  const baseStd = snapshot?.base_standard_price || 50000;
+  const baseVip = snapshot?.base_vip_price || 70000;
+  const baseCpl = snapshot?.base_couple_price || 120000;
+
+  html += `<li><b>Giá vé cơ bản:</b><br/> Thường: ${new Intl.NumberFormat('vi-VN').format(baseStd)}đ | VIP: ${new Intl.NumberFormat('vi-VN').format(baseVip)}đ | Đôi: ${new Intl.NumberFormat('vi-VN').format(baseCpl)}đ</li>`;
+  
+  if (bookingStore.selectedShowtime?.format?.includes('3D')) {
+      const p3d = snapshot?.format_3d_surcharge || 0;
+      html += `<li><b>Phụ thu định dạng 3D:</b> +${new Intl.NumberFormat('vi-VN').format(p3d)}đ</li>`;
+  }
+  if (bookingStore.selectedShowtime?.is_sneak_show) {
+      const pSneak = snapshot?.sneak_show_surcharge || 0;
+      html += `<li><b>Phụ thu suất chiếu sớm:</b> +${new Intl.NumberFormat('vi-VN').format(pSneak)}đ</li>`;
+  }
+  
+  if (snapshot && snapshot.time_based_rules_applied) {
+      const rules = snapshot.time_based_rules_applied['standard'] || [];
+      rules.forEach(rule => {
+          let valStr = rule.adjustment_type === 'percentage' ? `+${rule.value}%` : `+${new Intl.NumberFormat('vi-VN').format(rule.value)}đ`;
+          html += `<li><b>Quy tắc "${rule.name}":</b> ${valStr}</li>`;
+      });
+  }
+  
+  html += '</ul>';
+  html += '<p style="color: #aaa; font-size: 13px; margin-top: 15px; border-top: 1px solid #444; padding-top: 10px;"><i>* Lưu ý: Các khoản phụ thu được tính trên mỗi người xem (mỗi vé). Ghế đôi dành cho 2 người nên các khoản phụ thu sẽ được tự động nhân 2.</i></p>';
+  html += '</div>';
+
+  Swal.fire({
+      title: 'Chi Tiết Giá Vé',
+      html: html,
+      icon: 'info',
+      confirmButtonText: 'Đã hiểu',
+      confirmButtonColor: '#e50914',
+      background: '#1a1a1a',
+      color: '#ffffff'
+  });
+};
+
 const priceK = (val) => `${Math.round((val || 0) / 1000)}k`;
 
 const shuffleArray = (arr) => {
@@ -241,6 +295,10 @@ const handleSeatMapClick = async (seat) => {
     return;
   }
 
+  // BUG FIX 1: Chặn click đúnh lên cùng 1 ghế khi đang xử lý
+  if (processingSeatIds.value.has(seat.id)) return;
+  processingSeatIds.value.add(seat.id);
+
   const price = getSeatPrice(seat.type);
   const seatObj = {
     id: seat.id,
@@ -250,31 +308,49 @@ const handleSeatMapClick = async (seat) => {
     price: price,
   };
 
-  const isAlreadySelected = bookingStore.selectedSeats.some(
-    (s) => s.id === seat.id,
-  );
-
+  const isAlreadySelected = bookingStore.selectedSeats.some((s) => s.id === seat.id);
   processingSeatCount.value++;
 
   try {
     if (!isAlreadySelected) {
+      // B1: Cập nhật UI ngay lập tức
       bookingStore.toggleSeat(seatObj);
 
+      // BUG FIX 2: Cập nhật rawSeatsFromAPI local để is_held_by_me = true
+      // Mục đích: mappedSeats sẽ tính isMyHold = true → ghế không bị khóa click
+      const heldSeat = rawSeatsFromAPI.value.find((s) => s.id === seat.id);
+      if (heldSeat) {
+        heldSeat.status = "holding";
+        heldSeat.is_held_by_me = true; // ← Thêm dòng này
+      }
+
+      // B2: Gọi API giữ ghế
       const response = await api.post("/seat-holds", {
         showtime_id: bookingStore.selectedShowtime.id,
         seat_id: seat.id,
       });
 
-      if (bookingStore.selectedSeats.length === 1 && response.data.expires_at) {
-        bookingStore.holdExpiresAt = Date.parse(response.data.expires_at);
-        localStorage.setItem('cinego_holdExpiresAt', Date.parse(response.data.expires_at));
-        startTimer();
+      // BUG FIX 3: Khởi động timer cho Dù đây là ghế đầu tiên (chưa có timer) hay ghế thứ n
+      if (response.data.expires_at) {
+        const expiresStr = response.data.expires_at.replace(' ', 'T');
+        const expiresMs = Date.parse(expiresStr);
+        if (!isNaN(expiresMs) && expiresMs > Date.now()) {
+          bookingStore.holdExpiresAt = expiresMs;
+          sessionStorage.setItem('cinego_holdExpiresAt', JSON.stringify(expiresMs));
+          // Chỉ khởi động timer lần đầu tiên (không chạy lại nếu đã có timer rồi)
+          if (!timerInterval) startTimer();
+        }
       }
-
-      const heldSeat = rawSeatsFromAPI.value.find((s) => s.id === seat.id);
-      if (heldSeat) heldSeat.status = "holding";
     } else {
+      // Bỏ chọn: Cập nhật UI trước
       bookingStore.toggleSeat(seatObj);
+
+      // Cập nhật local state trước khi gọi API
+      const releasedSeat = rawSeatsFromAPI.value.find((s) => s.id === seat.id);
+      if (releasedSeat) {
+        releasedSeat.status = "available";
+        releasedSeat.is_held_by_me = false; // ← Xóa flag
+      }
 
       if (bookingStore.selectedSeats.length === 0) {
         bookingStore.holdExpiresAt = null;
@@ -285,12 +361,18 @@ const handleSeatMapClick = async (seat) => {
         showtime_id: bookingStore.selectedShowtime.id,
         seat_id: seat.id,
       });
-
-      const releasedSeat = rawSeatsFromAPI.value.find((s) => s.id === seat.id);
-      if (releasedSeat) releasedSeat.status = "available";
     }
   } catch (error) {
+    // Rollback UI nếu API lỗi
     bookingStore.toggleSeat(seatObj);
+
+    // Rollback local raw state
+    const rollbackSeat = rawSeatsFromAPI.value.find((s) => s.id === seat.id);
+    if (rollbackSeat) {
+      rollbackSeat.status = isAlreadySelected ? 'holding' : 'available';
+      rollbackSeat.is_held_by_me = isAlreadySelected;
+    }
+
     if (bookingStore.selectedSeats.length === 0) {
       bookingStore.holdExpiresAt = null;
       stopTimer();
@@ -303,9 +385,11 @@ const handleSeatMapClick = async (seat) => {
       icon: 'error',
       confirmButtonColor: '#e50914'
     });
+    // Fetch lại từ server để đồng bộ trạng thái thật
     fetchSeatStatus();
   } finally {
     processingSeatCount.value--;
+    processingSeatIds.value.delete(seat.id);
   }
 };
 
@@ -524,12 +608,16 @@ const fetchSeatStatus = async () => {
 
       // Khôi phục timer theo thời gian hết hạn thực tế từ server
       const earliestExpiry = myHeldSeats
-        .map(s => new Date(s.hold_expires_at).getTime())
+        .map(s => {
+          const ds = s.hold_expires_at ? String(s.hold_expires_at).replace(' ', 'T') : '';
+          return new Date(ds).getTime();
+        })
         .filter(t => !isNaN(t))
-        .sort()[0];
+        .sort((a,b) => a - b)[0];
 
       if (earliestExpiry && earliestExpiry > Date.now()) {
         bookingStore.holdExpiresAt = earliestExpiry;
+        sessionStorage.setItem('cinego_holdExpiresAt', JSON.stringify(earliestExpiry));
         startTimer();
       }
     }
@@ -747,6 +835,23 @@ const proceedToPayment = async () => {
   grid-template-columns: 1fr 360px;
   gap: 30px;
   align-items: start;
+}
+
+.btn-info-price {
+  background: transparent;
+  border: none;
+  color: #aaa;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+.btn-info-price:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 @media (max-width: 992px) {

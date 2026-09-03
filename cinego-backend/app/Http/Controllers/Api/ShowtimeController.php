@@ -128,7 +128,7 @@ class ShowtimeController extends Controller
                 $isSneakShow = true;
             }
 
-            $snapshot = \App\Services\PricingService::createPricingSnapshot($dates['start'], $request->movie_id);
+            $snapshot = \App\Services\PricingService::createPricingSnapshot($dates['start'], $request->movie_id, $request->format, $isSneakShow);
 
             $insertedShows[] = Showtime::create([
                 'movie_id' => $request->movie_id,
@@ -205,6 +205,8 @@ class ShowtimeController extends Controller
             $isSneakShow = true;
         }
 
+        $snapshot = \App\Services\PricingService::createPricingSnapshot($start, $request->movie_id, $request->format, $isSneakShow);
+
         $showtime->update([
             'movie_id' => $request->movie_id,
             'room_id' => $request->room_id,
@@ -212,7 +214,8 @@ class ShowtimeController extends Controller
             'end_time' => $end,
             'format' => $request->format,
             'translation' => $request->translation,
-            'is_sneak_show' => $isSneakShow
+            'is_sneak_show' => $isSneakShow,
+            'pricing_snapshot' => $snapshot
         ]);
 
 
@@ -264,6 +267,7 @@ class ShowtimeController extends Controller
             'standard' => (float) ($snapshot['standard_price'] ?? 0),
             'vip'      => (float) ($snapshot['vip_price'] ?? 0),
             'couple'   => (float) ($snapshot['couple_price'] ?? 0),
+            'snapshot' => $snapshot,
         ];
 
         // Nếu suất chiếu cũ chưa có snapshot, fallback về PricingRule hệ thống
