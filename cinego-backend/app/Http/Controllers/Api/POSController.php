@@ -88,8 +88,14 @@ class POSController extends Controller
             'email' => 'nullable|email|max:255',
         ]);
 
-        $existing = User::where('role', 'customer')->where('phone', $data['phone'])->first();
+        $existing = User::where('phone', $data['phone'])->first();
         if ($existing) {
+            if ($existing->role !== 'customer') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Số điện thoại này đã thuộc một tài khoản khác (nhân viên/quản trị).',
+                ], 422);
+            }
             return response()->json([
                 'success' => true,
                 'existed' => true,
