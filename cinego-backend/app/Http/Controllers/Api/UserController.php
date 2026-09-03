@@ -113,10 +113,13 @@ class UserController extends Controller
             'name'     => 'required|string|max:20',
             'email'    => 'required|email|max:255|unique:users,email',
             'password' => 'required|string|min:8',
-            'phone'    => 'nullable|string|max:20|unique:users,phone',
+            'phone'    => ['nullable', 'string', 'regex:/^(84|0[3|5|7|8|9])+([0-9]{8})\b$/', 'unique:users,phone'],
             'role'     => ['required', Rule::in(['admin', 'staff', 'customer'])],
             'status'   => ['nullable', Rule::in(['active', 'locked'])],
             'age'      => 'nullable|integer|min:0|max:120',
+        ], [
+            'phone.regex'  => 'Số điện thoại không hợp lệ.',
+            'phone.unique' => 'Số điện thoại này đã được đăng ký.',
         ]);
 
         $user = User::create([
@@ -145,10 +148,13 @@ class UserController extends Controller
             'name'     => 'required|string|max:20',
             'email'    => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($id)],
             'password' => 'nullable|string|min:8',
-            'phone'    => ['nullable', 'string', 'max:20', Rule::unique('users', 'phone')->ignore($id)],
+            'phone'    => ['nullable', 'string', 'regex:/^(84|0[3|5|7|8|9])+([0-9]{8})\b$/', Rule::unique('users', 'phone')->ignore($id)],
             'role'     => ['required', Rule::in(['admin', 'staff', 'customer'])],
             'status'   => ['required', Rule::in(['active', 'locked'])],
             'age'      => 'nullable|integer|min:0|max:120',
+        ], [
+            'phone.regex'  => 'Số điện thoại không hợp lệ.',
+            'phone.unique' => 'Số điện thoại này đã được đăng ký.',
         ]);
 
         $user->name   = $request->name;
@@ -370,7 +376,10 @@ class UserController extends Controller
 
         $request->validate([
             'name'     => ['required', 'string', 'max:20', 'regex:/^[\pL\pN]+$/u'],
-            'phone'    => 'nullable|string|max:20',
+            'phone'    => ['nullable', 'string', 'regex:/^(84|0[3|5|7|8|9])+([0-9]{8})\b$/', Rule::unique('users', 'phone')->ignore($user->id)],
+        ], [
+            'phone.regex'  => 'Số điện thoại không hợp lệ.',
+            'phone.unique' => 'Số điện thoại này đã được đăng ký.',
         ]);
 
         $user->name = $request->name;
