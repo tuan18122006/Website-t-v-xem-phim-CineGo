@@ -322,8 +322,12 @@ class ReviewController extends Controller
     public function publicFeatured()
     {
         $reviews = Review::where('is_hidden', false)
-            ->where('rating', 5)
+            ->where(function ($q) {
+                $q->where('is_featured', true)
+                  ->orWhere('rating', 5);
+            })
             ->with(['user:id,name', 'movie:id,title,poster_url,duration,trailer_url'])
+            ->orderByDesc('is_featured')
             ->latest()
             ->limit(6)
             ->get();
