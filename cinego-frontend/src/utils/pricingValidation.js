@@ -97,7 +97,7 @@ export const validatePricingRule = (rule = {}, index = 0, isEditing = false) => 
   }
 
   if (rule.theater_id !== undefined && rule.theater_id !== null && rule.theater_id !== '' && !String(rule.theater_id).trim()) {
-    errors[`rule_${index}_theater_id`] = ['Vui lòng chọn rạp hợp lệ.'];
+    errors[`rule_${index}_theater_id`] = ['Vui lòng chọn phòng chiếu hợp lệ.'];
     isValid = false;
   }
 
