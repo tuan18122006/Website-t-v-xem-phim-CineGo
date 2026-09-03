@@ -446,7 +446,7 @@
         <!-- TAB: PAYMENT SETTINGS -->
         <div v-if="activeTab === 'payment_settings'">
           <PaymentSettingsView />
-          <p class="text-muted" style="margin-top: 15px; font-size: 0.9em;">Cấu hình cổng thanh toán và phương thức giao dịch cho hệ thống rạp.</p>
+          <p class="text-muted" style="margin-top: 15px; font-size: 0.9em;">Cấu hình cổng thanh toán và phương thức giao dịch cho hệ thống.</p>
         </div>
 
       <!-- TAB: QUẢN LÝ RẠP & GHẾ -->

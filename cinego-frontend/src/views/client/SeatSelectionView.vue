@@ -259,15 +259,16 @@ const handleSeatMapClick = async (seat) => {
     if (!isAlreadySelected) {
       bookingStore.toggleSeat(seatObj);
 
-      if (bookingStore.selectedSeats.length === 1) {
-        bookingStore.setHoldExpiry(3);
-        startTimer();
-      }
-
-      await api.post("/seat-holds", {
+      const response = await api.post("/seat-holds", {
         showtime_id: bookingStore.selectedShowtime.id,
         seat_id: seat.id,
       });
+
+      if (bookingStore.selectedSeats.length === 1 && response.data.expires_at) {
+        bookingStore.holdExpiresAt = Date.parse(response.data.expires_at);
+        localStorage.setItem('cinego_holdExpiresAt', Date.parse(response.data.expires_at));
+        startTimer();
+      }
 
       const heldSeat = rawSeatsFromAPI.value.find((s) => s.id === seat.id);
       if (heldSeat) heldSeat.status = "holding";

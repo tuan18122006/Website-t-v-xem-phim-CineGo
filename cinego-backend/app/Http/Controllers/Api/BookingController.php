@@ -218,7 +218,7 @@ public function history(Request $request)
                 'total_price'    => $booking->total_amount,
                 'payment_method' => $booking->payment_method,
                 'payment_status' => $booking->payment_status,
-                'created_at'     => $booking->created_at ? $booking->created_at->format('H:i d/m/Y') : '',
+                'created_at'     => $booking->created_at ? $booking->created_at->toIso8601String() : '',
                 'status'         => $booking->payment_status,
                 'booking_status' => $booking->showtime?->end_time && Carbon::parse($booking->showtime->end_time)->isPast() ? 'Đã chiếu' : 'Sắp chiếu',
                 'status_label'   => match($booking->payment_status) {

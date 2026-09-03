@@ -941,7 +941,7 @@
                 <span style="display: inline-block; width: 95px; color: #94a3b8"
                   >Thời gian đặt:</span
                 >
-                {{ selectedTicket?.created_at }}
+                {{ formatDateTime(selectedTicket?.created_at) }}
               </p>
             </div>
           </div>

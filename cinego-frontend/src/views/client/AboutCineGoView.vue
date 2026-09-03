@@ -7,7 +7,7 @@
         <span class="hero-subtitle">CINEGO LUXURY CINEMA</span>
         <h1 class="hero-title">Trải Nghiệm Điện Ảnh Thượng Lưu</h1>
         <p class="hero-desc">
-          CineGo tự hào là hệ thống rạp chiếu phim cao cấp hàng đầu, mang đến tiêu chuẩn trình chiếu vượt trội, âm thanh sống động cùng dịch vụ ẩm thực rạp thượng hạng.
+          CineGo tự hào là hệ thống chiếu phim cao cấp hàng đầu, mang đến tiêu chuẩn trình chiếu vượt trội, âm thanh sống động cùng dịch vụ ẩm thực thượng hạng.
         </p>
 
         <!-- STATS BADGES -->

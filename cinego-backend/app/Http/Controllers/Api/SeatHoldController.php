@@ -28,7 +28,8 @@ class SeatHoldController extends Controller
         $userId = auth()->id();
 
         try {
-            DB::transaction(function () use ($showtimeId, $seatId, $userId) {
+            $expiresAt = null;
+            DB::transaction(function () use ($showtimeId, $seatId, $userId, &$expiresAt) {
                 $seat = DB::table('seats')->where('id', $seatId)->lockForUpdate()->first();
 
                 if (!$seat) {
@@ -71,6 +72,7 @@ class SeatHoldController extends Controller
 
                 if ($activeHold) {
                     if ($activeHold->user_id == $userId) {
+                        $expiresAt = Carbon::parse($activeHold->expires_at);
                         return;
                     } else {
                         throw new \Exception('Ghế này đang được chọn bởi người khác.');
@@ -90,13 +92,16 @@ class SeatHoldController extends Controller
                     'created_at' => $now,
                     'updated_at' => $now
                 ]);
+
+                $expiresAt = $now->copy()->addMinutes(self::PICK_HOLD_MINUTES);
             });
 
             broadcast(new SeatLocked($showtimeId, $seatId, $userId))->toOthers();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Giữ ghế thành công trong ' . self::PICK_HOLD_MINUTES . ' phút'
+                'message' => 'Giữ ghế thành công trong ' . self::PICK_HOLD_MINUTES . ' phút',
+                'expires_at' => $expiresAt->toIso8601String()
             ], 200);
         } catch (UniqueConstraintViolationException $e) {
             return response()->json([
