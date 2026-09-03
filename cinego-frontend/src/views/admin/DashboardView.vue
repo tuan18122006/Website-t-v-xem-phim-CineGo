@@ -22,7 +22,6 @@
               <button class="sub-nav-link" :class="{ active: activeTab === 'orders' }" @click="activeTab = 'orders'"><Receipt :size="15" style="vertical-align:-2px" /> Danh sách đơn hàng</button>
               <button class="sub-nav-link" :class="{ active: activeTab === 'lookup' }" @click="activeTab = 'lookup'"><Search :size="15" style="vertical-align:-2px" /> Tra cứu & Hỗ trợ</button>
               <button class="sub-nav-link" :class="{ active: activeTab === 'scan' }" @click="activeTab = 'scan'"><Camera :size="15" style="vertical-align:-2px" /> Quét mã QR / Soát vé</button>
-              <button class="sub-nav-link" :class="{ active: activeTab === 'payment_settings' }" @click="activeTab = 'payment_settings'"><Settings :size="15" style="vertical-align:-2px" /> Cấu hình thanh toán</button>
             </div>
           </transition>
         </div>

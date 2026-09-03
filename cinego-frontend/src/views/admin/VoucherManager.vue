@@ -166,7 +166,6 @@
                     <select v-model="voucherForm.target_limit" class="form-control">
                         <option value="all">Tất cả khách hàng</option>
                         <option value="new_user">Tân binh (Đăng ký mới)</option>
-                        <option value="birthday">Voucher sinh nhật (Áp dụng đúng tháng sinh)</option>
                     </select>
                 </div>
 

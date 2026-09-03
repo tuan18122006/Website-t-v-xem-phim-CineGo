@@ -240,54 +240,6 @@
       </div>
     </transition>
 
-    <section class="home-featured-comments-section">
-      <div class="home-featured-comments-container">
-        <h2 class="home-featured-comments-title">Bình luận tiêu biểu</h2>
-        <div class="home-featured-comments-grid">
-          <div v-for="review in featuredComments" :key="review.id" class="review-card glass-panel">
-            <!-- Movie Trailer Preview Area -->
-            <div class="movie-preview-box" @click="goToDetailWithReview(review.movieId, review.id)"
-              style="cursor: pointer;">
-              <img :src="review.moviePoster" :alt="review.movieTitle" class="movie-backdrop-img" />
-              <div class="overlay-gradient"></div>
-
-              <!-- Play Button -->
-              <button class="btn-play-preview" title="Xem trailer review" @click.stop="openTrailer(review.trailerUrl)">
-                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-                  <polygon points="5 3 19 12 5 21 5 3" />
-                </svg>
-              </button>
-
-              <span class="movie-rating-pill"><Star :size="12" fill="#fbbf24" stroke="#fbbf24" style="vertical-align:-2px" /> {{ review.rating }}/5</span>
-              <span v-if="review.duration" class="movie-duration-pill">{{ review.duration }} phút</span>
-            </div>
-
-            <!-- Card Info -->
-            <div class="review-card-body" @click="goToDetailWithReview(review.movieId, review.id)"
-              style="cursor: pointer;">
-              <h3 class="movie-title">{{ review.movieTitle }}</h3>
-
-              <div class="user-comment-wrap">
-                <div class="user-meta">
-                  <div class="user-meta-header" style="display: flex; align-items: center; gap: 12px; width: 100%;">
-                    <span class="user-avatar" :style="{ background: review.avatarColor }">{{ review.userInitials
-                      }}</span>
-                    <div class="user-info-text">
-                      <h4 class="user-name">{{ review.userName }}</h4>
-                      <small class="comment-time">{{ review.timeAgo }}</small>
-                    </div>
-                  </div>
-                  <!-- Verification Badge -->
-                  <span class="verified-buyer-badge"
-                    style="width: fit-content; margin-top: 8px; align-self: flex-start;">✓ Đã mua vé qua CineGo</span>
-                </div>
-                <p class="user-comment-text">"{{ review.comment }}"</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- TRAILER MODAL -->
     <div v-if="isTrailerOpen" class="trailer-modal-backdrop" @click.self="closeTrailer">

@@ -1352,46 +1352,189 @@
       </div>
 
       <!-- Modal Rút Tiền -->
-      <div v-if="isWithdrawModalOpen" class="modal-overlay" @click.self="isWithdrawModalOpen = false">
-        <div class="modal-content hide-scrollbar" style="max-width: 500px; width: 100%; padding: 25px; text-align: left; max-height: 90vh; overflow-y: auto;">
-          <button @click="isWithdrawModalOpen = false" class="btn-close">×</button>
-          <h3 style="margin-top: 0; color: #1e293b; text-align: center;">RÚT TIỀN VỀ NGÂN HÀNG</h3>
-          <p style="color: #64748b; font-size: 14px; text-align: center; margin-bottom: 20px;">
-            Số dư khả dụng: <strong style="color: #0f172a; font-size: 16px;">{{ formatPrice(walletData.balance) }}đ</strong>
-          </p>
-          
-          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
-            <label style="font-weight: 600; font-size: 14px; color: #1e293b;">Số tiền cần rút (Tối thiểu 50.000đ)</label>
-            <input type="number" v-model="withdrawForm.amount" class="cinego-input" placeholder="Nhập số tiền..." style="width: 100%;" />
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
-            <label style="font-weight: 600; font-size: 14px; color: #1e293b;">Ngân hàng hưởng thụ</label>
-            <select v-model="withdrawForm.bank_name" class="cinego-input" style="width: 100%;">
-              <option value="">-- Chọn ngân hàng --</option>
-              <option v-for="bank in bankList" :key="bank" :value="bank">{{ bank }}</option>
-            </select>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
-            <label style="font-weight: 600; font-size: 14px; color: #1e293b;">Số tài khoản</label>
-            <input type="text" v-model="withdrawForm.bank_account" class="cinego-input" placeholder="Nhập số tài khoản..." style="width: 100%;" />
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 25px;">
-            <label style="font-weight: 600; font-size: 14px; color: #1e293b;">Tên chủ tài khoản (Viết Hoa không dấu)</label>
-            <input type="text" v-model="withdrawForm.bank_holder" class="cinego-input" placeholder="VD: NGUYEN VAN A" style="text-transform: uppercase; width: 100%;" />
-          </div>
-          
-          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 25px;">
-            <label style="font-weight: 600; font-size: 14px; color: #1e293b;">Hoặc tải lên Mã QR Nhận Tiền (VietQR, Momo...)</label>
-            <input type="file" @change="handleQrUpload" accept="image/*" class="cinego-input" style="padding: 10px; width: 100%;" />
-            <p style="font-size: 12px; color: #64748b; margin-top: 2px; margin-bottom: 0;">Nếu tải lên QR Code, bạn không bắt buộc phải điền Ngân hàng và Số tài khoản phía trên.</p>
+      <div
+        v-if="isWithdrawModalOpen"
+        class="modal-overlay withdraw-overlay"
+        @click.self="isWithdrawModalOpen = false"
+      >
+        <div class="withdraw-modal">
+
+          <!-- Header -->
+          <div class="withdraw-header">
+            <div class="withdraw-header-icon">💸</div>
+
+            <div>
+              <h3>Rút tiền về ngân hàng</h3>
+              <p>Nhập thông tin để tạo yêu cầu rút tiền</p>
+            </div>
+
+            <button
+              type="button"
+              class="withdraw-close"
+              @click="isWithdrawModalOpen = false"
+            >
+              ×
+            </button>
           </div>
 
-          <div style="display: flex; gap: 10px; justify-content: center;">
-          <button @click="isWithdrawModalOpen = false" class="btn-action-text" style="padding: 10px 20px; background: #e2e8f0; color: #475569; border-radius: 8px;">HỦY BỎ</button>
-          <button @click="submitWithdraw" class="btn-cinego-submit" :disabled="withdrawLoading" style="max-width: 200px; margin: 0; background: #ef4444;">
-            {{ withdrawLoading ? 'ĐANG XỬ LÝ...' : 'TẠO YÊU CẦU' }}
-          </button>
-        </div>
+          <!-- Số dư -->
+          <div class="withdraw-balance-card">
+            <div class="withdraw-balance-icon">💰</div>
+
+            <div>
+              <span class="withdraw-balance-label">
+                Số dư khả dụng
+              </span>
+
+              <strong class="withdraw-balance-value">
+                {{ formatPrice(walletData.balance) }}đ
+              </strong>
+            </div>
+          </div>
+
+          <!-- Form -->
+          <div class="withdraw-form">
+
+            <!-- Số tiền -->
+            <div class="withdraw-field">
+              <label class="withdraw-label">
+                <span>💵</span>
+                Số tiền cần rút
+              </label>
+
+              <div class="withdraw-input-wrap">
+                <input
+                  type="number"
+                  v-model="withdrawForm.amount"
+                  class="withdraw-input"
+                  placeholder="Nhập số tiền..."
+                  min="50000"
+                />
+
+                <span class="withdraw-input-unit">VNĐ</span>
+              </div>
+
+              <small class="withdraw-hint">
+                Số tiền rút tối thiểu là <b>50.000đ</b>
+              </small>
+            </div>
+
+            <!-- Ngân hàng -->
+            <div class="withdraw-field">
+              <label class="withdraw-label">
+                <span>🏦</span>
+                Ngân hàng hưởng thụ
+              </label>
+
+              <select
+                v-model="withdrawForm.bank_name"
+                class="withdraw-input withdraw-select"
+              >
+                <option value="">-- Chọn ngân hàng --</option>
+
+                <option
+                  v-for="bank in bankList"
+                  :key="bank"
+                  :value="bank"
+                >
+                  {{ bank }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Số tài khoản -->
+            <div class="withdraw-field">
+              <label class="withdraw-label">
+                <span>💳</span>
+                Số tài khoản
+              </label>
+
+              <input
+                type="text"
+                v-model="withdrawForm.bank_account"
+                class="withdraw-input"
+                placeholder="Nhập số tài khoản..."
+              />
+            </div>
+
+            <!-- Chủ tài khoản -->
+            <div class="withdraw-field">
+              <label class="withdraw-label">
+                <span>👤</span>
+                Tên chủ tài khoản
+              </label>
+
+              <input
+                type="text"
+                v-model="withdrawForm.bank_holder"
+                class="withdraw-input"
+                placeholder="VD: NGUYEN VAN A"
+              />
+
+              <small class="withdraw-hint">
+                Viết hoa, không dấu
+              </small>
+            </div>
+
+            <!-- QR -->
+            <div class="withdraw-qr-section">
+
+              <div class="withdraw-qr-title">
+                <span>📱</span>
+                Hoặc sử dụng mã QR nhận tiền
+              </div>
+
+              <label class="withdraw-qr-upload">
+                <input
+                  type="file"
+                  @change="handleQrUpload"
+                  accept="image/*"
+                />
+
+                <div class="qr-upload-icon">📷</div>
+
+                <div class="qr-upload-text">
+                  <strong>Chọn ảnh mã QR</strong>
+                  <span>VietQR, MoMo hoặc ngân hàng</span>
+                </div>
+              </label>
+
+              <p class="withdraw-qr-note">
+                Nếu tải lên mã QR, bạn không bắt buộc phải nhập
+                ngân hàng và số tài khoản.
+              </p>
+            </div>
+
+          </div>
+
+          <!-- Buttons -->
+          <div class="withdraw-actions">
+
+            <button
+              type="button"
+              class="withdraw-btn withdraw-btn-cancel"
+              @click="isWithdrawModalOpen = false"
+            >
+              Hủy bỏ
+            </button>
+
+            <button
+              type="button"
+              class="withdraw-btn withdraw-btn-submit"
+              @click="submitWithdraw"
+              :disabled="withdrawLoading"
+            >
+              <span v-if="withdrawLoading">
+                ĐANG XỬ LÝ...
+              </span>
+
+              <span v-else>
+                💸 TẠO YÊU CẦU
+              </span>
+            </button>
+
+          </div>
+
         </div>
       </div>
 
@@ -3772,15 +3915,383 @@ onUnmounted(() => {
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   white-space: nowrap;
 }
+
+.withdraw-overlay {
+  backdrop-filter: blur(5px);
+  background: rgba(15, 23, 42, 0.65);
+}
+
+.withdraw-modal {
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 0;
+
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.25);
+
+  animation: withdrawModalShow 0.25s ease;
+}
+
+@keyframes withdrawModalShow {
+  from {
+    opacity: 0;
+    transform: translateY(15px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.withdraw-header {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+
+  padding: 22px 24px 18px;
+
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.withdraw-header-icon {
+  width: 48px;
+  height: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 14px;
+
+  background: #fff1f2;
+  font-size: 24px;
+}
+
+.withdraw-header h3 {
+  margin: 0;
+
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.withdraw-header p {
+  margin: 4px 0 0;
+
+  color: #64748b;
+  font-size: 13px;
+}
+
+.withdraw-close {
+  margin-left: auto;
+
+  width: 34px;
+  height: 34px;
+
+  border: none;
+  border-radius: 50%;
+
+  background: #f8fafc;
+  color: #64748b;
+
+  font-size: 24px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.withdraw-close:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.withdraw-balance-card {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+
+  margin: 20px 24px;
+
+  padding: 16px 18px;
+
+  border-radius: 14px;
+
+  background: linear-gradient(
+    135deg,
+    #fff7ed,
+    #fff1f2
+  );
+
+  border: 1px solid #fed7aa;
+}
+
+.withdraw-balance-icon {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  font-size: 21px;
+}
+
+.withdraw-balance-label {
+  display: block;
+
+  margin-bottom: 3px;
+
+  color: #64748b;
+  font-size: 13px;
+}
+
+.withdraw-balance-value {
+  display: block;
+
+  color: #dc2626;
+  font-size: 21px;
+  font-weight: 800;
+}
+
+.withdraw-form {
+  padding: 0 24px;
+}
+
+.withdraw-field {
+  margin-bottom: 18px;
+}
+
+.withdraw-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  margin-bottom: 8px;
+
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.withdraw-input-wrap {
+  position: relative;
+}
+
+.withdraw-input {
+  width: 100%;
+  box-sizing: border-box;
+
+  min-height: 46px;
+
+  padding: 11px 14px;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+
+  outline: none;
+
+  background: #ffffff;
+
+  color: #0f172a;
+  font-size: 14px;
+
+  transition: all 0.2s;
+}
+
+.withdraw-input:focus {
+  border-color: #ef4444;
+
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.08);
+}
+
+.withdraw-input::placeholder {
+  color: #94a3b8;
+}
+
+.withdraw-input-wrap .withdraw-input {
+  padding-right: 55px;
+}
+
+.withdraw-input-unit {
+  position: absolute;
+
+  right: 14px;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.withdraw-select {
+  cursor: pointer;
+}
+
+.withdraw-hint {
+  display: block;
+
+  margin-top: 6px;
+
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.withdraw-qr-section {
+  margin-top: 4px;
+  margin-bottom: 20px;
+
+  padding: 16px;
+
+  border: 1px dashed #cbd5e1;
+  border-radius: 14px;
+
+  background: #f8fafc;
+}
+
+.withdraw-qr-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  margin-bottom: 12px;
+
+  color: #334155;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.withdraw-qr-upload {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  padding: 13px;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+
+  background: #ffffff;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+.withdraw-qr-upload:hover {
+  border-color: #ef4444;
+  background: #fffafa;
+}
+
+.withdraw-qr-upload input {
+  display: none;
+}
+
+.qr-upload-icon {
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+
+  background: #fff1f2;
+
+  font-size: 20px;
+}
+
+.qr-upload-text strong {
+  display: block;
+
+  color: #334155;
+  font-size: 13px;
+}
+
+.qr-upload-text span {
+  display: block;
+
+  margin-top: 3px;
+
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.withdraw-qr-note {
+  margin: 9px 0 0;
+
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+
+.withdraw-actions {
+  display: flex;
+  gap: 10px;
+
+  padding: 18px 24px 22px;
+
+  border-top: 1px solid #f1f5f9;
+}
+
+.withdraw-btn {
+  flex: 1;
+
+  min-height: 46px;
+
+  border: none;
+  border-radius: 10px;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition: all 0.2s;
+}
+
+.withdraw-btn-cancel {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.withdraw-btn-cancel:hover {
+  background: #e2e8f0;
+}
+
+.withdraw-btn-submit {
+  background: #dc2626;
+  color: #ffffff;
+
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+}
+
+.withdraw-btn-submit:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.withdraw-btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 </style>
-
-
-
-
-
-
-
-
 
 <style scoped>
 .notif-page-item {
