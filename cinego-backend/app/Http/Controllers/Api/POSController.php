@@ -84,8 +84,10 @@ class POSController extends Controller
     {
         $data = $request->validate([
             'name'  => 'required|string|max:50',
-            'phone' => 'required|string|max:20',
+            'phone' => ['required', 'string', 'regex:/^(84|0[3|5|7|8|9])+([0-9]{8})\b$/'],
             'email' => 'nullable|email|max:255',
+        ], [
+            'phone.regex' => 'Số điện thoại không hợp lệ.',
         ]);
 
         $existing = User::where('phone', $data['phone'])->first();
