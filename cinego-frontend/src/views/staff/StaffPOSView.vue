@@ -425,17 +425,12 @@ const onSeatClick = (mapped) => {
   if (i >= 0) {
     selected.seats.splice(i, 1);
   } else {
-    if (selected.seats.length >= 8) {
-      toast('Chỉ được chọn tối đa 8 ghế mỗi lần.', 'error');
-      return;
-    }
     selected.seats.push(raw);
   }
 };
 
 const validateSeatSelection = () => {
   const chosen = selected.seats;
-  if (chosen.length > 8) { toast('Chỉ được chọn tối đa 8 ghế mỗi lần.', 'error'); return false; }
   if (chosen.length < 2) return true;
 
   const ids = new Set(chosen.map((s) => s.id));
